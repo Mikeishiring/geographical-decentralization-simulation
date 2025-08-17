@@ -133,8 +133,8 @@ def simulation(
         json.dump(failed_block_proposals, f)
 
     action_reasons = model_standard.action_reasons
-    with open(f"{output_folder}/action_reasons.json", "w") as f:
-        json.dump(action_reasons, f)
+    action_reasons_df = pd.DataFrame(action_reasons, columns=["Action_Reason", "Previous_Region", "New_Region"])
+    action_reasons_df.to_csv(f"{output_folder}/action_reasons.csv", index=False)
 
     agent_data = model_standard.datacollector.get_agent_vars_dataframe()
 
@@ -328,6 +328,7 @@ if __name__ == "__main__":
         )
 
     except (FileNotFoundError, ValueError, RuntimeError) as e:
+        traceback.print_exc()
         print(f"\n❌ Fatal error during simulation setup or execution: {e}")
     except Exception as e:
         traceback.print_exc()

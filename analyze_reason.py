@@ -1,15 +1,15 @@
 import argparse
-import json
+import pandas as pd
+
 from collections import Counter
 
 def main():
     parser = argparse.ArgumentParser(description="Analyze migration reasons from simulation output.")
-    parser.add_argument("action_reasons_file", type=str, help="Path to the action_reasons.json file")
+    parser.add_argument("action_reasons_file", type=str, help="Path to the action_reasons.csv file")
     args = parser.parse_args()
 
-    with open(args.action_reasons_file, "r") as f:
-        action_reasons = json.load(f)
-
+    df = pd.read_csv(args.action_reasons_file)
+    action_reasons = df["Action_Reason"].values.tolist()
     reason_counter = Counter(action_reasons)
     total_actions = len(action_reasons)
 

@@ -244,9 +244,12 @@ class MEVBoostModel(Model):
             self.gcp_latency
         )
         self.current_proposer_agent.estimate_profit()
+        prev_gcp_region = self.current_proposer_agent.gcp_region
         is_migrated, action_reason = self.current_proposer_agent.decide_to_migrate()  # Check if proposer should migrate
+        new_gcp_region = self.current_proposer_agent.gcp_region
+        # Log migration decision
         self.migration_queue.append(is_migrated)
-        self.action_reasons.append(action_reason)
+        self.action_reasons.append((action_reason, prev_gcp_region, new_gcp_region))
 
         # Reset relay's MEV offer for the new slot start
         [relay_agent.update_mev_offer() for relay_agent in self.relay_agents]

@@ -400,10 +400,12 @@ class LatencyGenerator:
             else:
                 self.inititalize_distribution(mean, std)
                 key = (mean, std)
-                if key not in self.dist_cache:
-                    continue
-                dist = self.dist_cache[key]
-                total_latency = shared_latency + dist.rvs(size=samples)
+                if key in self.dist_cache:
+                    dist = self.dist_cache[key]
+                    total_latency = shared_latency + dist.rvs(size=samples)
+                else:
+                    total_latency = shared_latency # mean is 0
+
             prob = np.mean(total_latency < threshold)
             success_probs.append(prob)
 
@@ -429,7 +431,6 @@ class LatencyGenerator:
         Binary search for the minimum latency threshold such that
         the success probability is >= target_prob.
         """
-        print(f"Finding min threshold with Monte Carlo: target_prob={target_prob}, samples={samples}")
         while threshold_high - threshold_low > tolerance:
             mid = (threshold_low + threshold_high) / 2
             prob = self.evaluate_threshold_with_monte_carlo(
@@ -476,6 +477,11 @@ class LatencyGenerator:
             if std <= 0:
                 prob = 1.0 if latency < threshold else 0.0
             else:
+                # Handle zero or negative latency cases
+                if latency <= 0:
+                    probabilities.append(1.0)
+                    continue
+
                 self.inititalize_distribution(latency, std)
                 key = (latency, std)
                 if key not in self.dist_cache:
@@ -491,7 +497,7 @@ class LatencyGenerator:
     @lru_cache(maxsize=1024)
     def find_min_threshold(
         self,
-        braodcast_latencies,
+        broadcast_latencies,
         broadcast_stds,
         required_attesters,
         target_prob=0.95,
@@ -502,7 +508,7 @@ class LatencyGenerator:
         while threshold_high - threshold_low > tolerance:
             mid = (threshold_low + threshold_high) / 2
             prob = self.evaluate_threshold(
-                braodcast_latencies,
+                broadcast_latencies,
                 broadcast_stds,
                 threshold=mid,
                 required_attesters=required_attesters
