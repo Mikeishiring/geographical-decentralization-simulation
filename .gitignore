@@ -213,5 +213,7 @@ buckets/*.png
 
 # Figures
 figures/
+latency_figures/
 
 .DS_Store
+data/

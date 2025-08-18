@@ -6,23 +6,26 @@ import pandas as pd
 import random
 import time
 import traceback
-import yaml # Import yaml library
+import yaml  # Import yaml library
 from collections import defaultdict, Counter
 
 from consensus import ConsensusSettings
-from measure import * # Assuming measure.py contains necessary measurement functions
-from mevboost import MEVBoostModel # Assuming MEVBoostModel is defined in mevboost.py
+from measure import *  # Assuming measure.py contains necessary measurement functions
+from mevboost import MEVBoostModel  # Assuming MEVBoostModel is defined in mevboost.py
 from relay_agent import initialize_relays
 
 # --- Simulation Initialization Functions ---
 
+
 def load_simulation_config(config_file_path):
     """Loads and parses the simulation's YAML configuration file."""
     if not os.path.exists(config_file_path):
-        raise FileNotFoundError(f"Configuration file '{config_file_path}' not found. Please ensure the file exists.")
+        raise FileNotFoundError(
+            f"Configuration file '{config_file_path}' not found. Please ensure the file exists."
+        )
 
     try:
-        with open(config_file_path, 'r', encoding='utf-8') as file:
+        with open(config_file_path, "r", encoding="utf-8") as file:
             config = yaml.safe_load(file)
         print(f"✅ Successfully loaded configuration from: {config_file_path}")
         return config
@@ -31,9 +34,10 @@ def load_simulation_config(config_file_path):
     except Exception as e:
         raise RuntimeError(f"Unknown error loading configuration file: {e}")
 
+
 def initialize_consensus_settings(config_data):
     """Initializes a ConsensusSettings instance from configuration data."""
-    consensus_settings_data = config_data.get('consensus_settings', {})
+    consensus_settings_data = config_data.get("consensus_settings", {})
     return ConsensusSettings(**consensus_settings_data)
 
 
@@ -43,14 +47,14 @@ def simulation(
     validators,
     gcp_regions,
     gcp_latency,
-    consensus_settings, # Pass the ConsensusSettings object
-    relay_profiles,    # Pass the list of Relay profiles
+    consensus_settings,  # Pass the ConsensusSettings object
+    relay_profiles,  # Pass the list of Relay profiles
     timing_strategies,  # Pass the list of timing strategies
-    location_strategies,# Pass the list of location strategies
-    simulation_name,    # Simulation name from YAML
-    output_folder,      # Output folder
-    time_window,        # Time window for migration checks
-    fast_mode=False,     # Fast mode for latency computation
+    location_strategies,  # Pass the list of location strategies
+    simulation_name,  # Simulation name from YAML
+    output_folder,  # Output folder
+    time_window,  # Time window for migration checks
+    fast_mode=False,  # Fast mode for latency computation
     cost=0.0001,  # Cost for migration, default to 0.0001
 ):
     # --- Simulation Execution ---
@@ -60,7 +64,12 @@ def simulation(
     # --- Define Simulation Parameters ---
     # Calculate total time steps using values from ConsensusSettings
     TOTAL_TIME_STEPS = (
-        num_slots * (consensus_settings.slot_duration_ms // consensus_settings.time_granularity_ms) + 1
+        num_slots
+        * (
+            consensus_settings.slot_duration_ms
+            // consensus_settings.time_granularity_ms
+        )
+        + 1
     )
 
     # --- Use Strategies from YAML ---
@@ -69,16 +78,16 @@ def simulation(
 
     model_params_standard_nomig = {
         "num_validators": number_of_validators,
-        "num_relays": len(relay_profiles), # Use the actual number of loaded relays
+        "num_relays": len(relay_profiles),  # Use the actual number of loaded relays
         "timing_strategies_pool": all_timing_strategies,
         "location_strategies_pool": all_location_strategies,
         "num_slots": num_slots,
-        "proposer_has_optimized_latency": False, # This could also be a YAML config if needed
+        "proposer_has_optimized_latency": False,  # This could also be a YAML config if needed
         "validators": validators,
         "gcp_regions": gcp_regions,
         "gcp_latency": gcp_latency,
-        "consensus_settings": consensus_settings, # Pass the ConsensusSettings object to the model
-        "relay_profiles": relay_profiles, # Pass the Relay profiles to the model
+        "consensus_settings": consensus_settings,  # Pass the ConsensusSettings object to the model
+        "relay_profiles": relay_profiles,  # Pass the Relay profiles to the model
         "time_window": time_window,  # Time window for migration checks
         "fast_mode": fast_mode,  # Fast mode for latency computation
         "cost": cost,  # Cost for migration
@@ -91,11 +100,15 @@ def simulation(
     for i in range(TOTAL_TIME_STEPS):
         model_standard.step()
         if not model_standard.running:
-            print(f"Stopping simulation as no validators moved within the time window ({time_window}).")
+            print(
+                f"Stopping simulation as no validators moved within the time window ({time_window})."
+            )
             break
     end_time = time.time()
     if model_standard.running:
-        print(f"Stopping simulation after reaching the maximum time steps: {TOTAL_TIME_STEPS}.")
+        print(
+            f"Stopping simulation after reaching the maximum time steps: {TOTAL_TIME_STEPS}."
+        )
 
     print(f"Simulation completed in {end_time - start_time:.2f} seconds.")
 
@@ -115,7 +128,7 @@ def simulation(
     print(model_data.tail())
 
     # relay profiles:
-    relay_names = [relay['unique_id'] for relay in relay_profiles]
+    relay_names = [relay["unique_id"] for relay in relay_profiles]
     with open(f"{output_folder}/relay_names.json", "w") as f:
         json.dump(relay_names, f)
 
@@ -128,12 +141,14 @@ def simulation(
 
     with open(f"{output_folder}/supermajority_success.json", "w") as f:
         json.dump(supermaj_series, f)
-    
+
     with open(f"{output_folder}/failed_block_proposals.json", "w") as f:
         json.dump(failed_block_proposals, f)
 
     action_reasons = model_standard.action_reasons
-    action_reasons_df = pd.DataFrame(action_reasons, columns=["Action_Reason", "Previous_Region", "New_Region"])
+    action_reasons_df = pd.DataFrame(
+        action_reasons, columns=["Action_Reason", "Previous_Region", "New_Region"]
+    )
     action_reasons_df.to_csv(f"{output_folder}/action_reasons.csv", index=False)
 
     agent_data = model_standard.datacollector.get_agent_vars_dataframe()
@@ -153,12 +168,20 @@ def simulation(
         agent_data = agent_data.reset_index()
 
     validator_agent_data = agent_data[agent_data["Role"] != "relay_agent"].reindex()
-    positions_by_slot = validator_agent_data.groupby("Slot")["Position"].apply(list).reset_index()
+    positions_by_slot = (
+        validator_agent_data.groupby("Slot")["Position"].apply(list).reset_index()
+    )
     nested_array = positions_by_slot["Position"].tolist()
     # Group by slot and collect lists of per-agent values:
-    mev_by_slot = validator_agent_data.groupby("Slot")["MEV_Captured_Slot"].apply(list).tolist()
-    estimated_mev_by_slot = validator_agent_data.groupby("Slot")["Estimated_Profit"].apply(list).tolist()
-    attest_by_slot = validator_agent_data.groupby("Slot")["Attestation_Rate"].apply(list).tolist()
+    mev_by_slot = (
+        validator_agent_data.groupby("Slot")["MEV_Captured_Slot"].apply(list).tolist()
+    )
+    estimated_mev_by_slot = (
+        validator_agent_data.groupby("Slot")["Estimated_Profit"].apply(list).tolist()
+    )
+    attest_by_slot = (
+        validator_agent_data.groupby("Slot")["Attestation_Rate"].apply(list).tolist()
+    )
     proposal_time_by_slot = (
         validator_agent_data.groupby("Slot")["Proposal Time"].apply(list).tolist()
     )
@@ -167,12 +190,18 @@ def simulation(
     # --------------------------------------------
     # build one relay-point list per slot
     # --------------------------------------------
-    relay_pos_list = [list(relay_position) for relay_position in relay_positions]  # JSON wants lists
+    relay_pos_list = [
+        list(relay_position) for relay_position in relay_positions
+    ]  # JSON wants lists
     nested_array_relay = [
         relay_pos_list for _ in range(len(nested_array))  # <- extra [] !
     ]
 
-    latest_steps = validator_agent_data.sort_values("Step").groupby(["Slot", "AgentID"], as_index=False).last()
+    latest_steps = (
+        validator_agent_data.sort_values("Step")
+        .groupby(["Slot", "AgentID"], as_index=False)
+        .last()
+    )
     region_counter_per_slot = defaultdict(list)
     for slot, slot_df in latest_steps.groupby("Slot"):
         region_counts = Counter(slot_df["GCP_Region"])
@@ -261,37 +290,50 @@ if __name__ == "__main__":
         config = load_simulation_config(args.config)
 
         # Extract top-level simulation parameters from config
-        simulation_name = config.get('simulation_name', 'Default Simulation')
+        simulation_name = config.get("simulation_name", "Default Simulation")
         # Use 'iterations' from YAML as num_slots
-        num_slots = args.slots if args.slots else config.get('iterations', 1000)
-        num_validators = args.validators if args.validators else config.get('num_validators', 1000)
-        input_folder = config.get('input_folder', args.input_dir)
-        output_folder = config.get('output_folder', 'output')
+        num_slots = args.slots if args.slots else config.get("iterations", 1000)
+        num_validators = (
+            args.validators if args.validators else config.get("num_validators", 1000)
+        )
+        input_folder = config.get("input_folder", args.input_dir)
+        output_folder = config.get("output_folder", "output")
 
         # Initialize Consensus Settings
-        consensus_parameters = config.get('consensus_settings', {})
+        consensus_parameters = config.get("consensus_settings", {})
         consensus_settings = ConsensusSettings(**consensus_parameters)
 
         # Time window for migration checks
-        time_window = args.time_window if args.time_window else config.get('time_window', 10)  # Default to 10
+        time_window = (
+            args.time_window if args.time_window else config.get("time_window", 10)
+        )  # Default to 10
 
         # fast mode
         fast_mode = args.fast
 
         # cost for migration
-        cost = args.cost if args.cost else config.get('migration_cost', 0.0001)
+        cost = args.cost if args.cost else config.get("migration_cost", 0.0001)
+
+        output_folder = os.path.join(
+            output_folder,
+            f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}",
+        )
 
         # Initialize Relays
-        relay_profiles_data = config.get('relay_profiles', [])
+        relay_profiles_data = config.get("relay_profiles", [])
         relay_profiles = initialize_relays(relay_profiles_data)
         # Get actual count of initialized relays
         number_of_relays = len(relay_profiles)
 
         # Get Proposer Timing Strategies
-        timing_strategies = config.get('proposer_strategies', [{"type": "optimal_latency"}])
+        timing_strategies = config.get(
+            "proposer_strategies", [{"type": "optimal_latency"}]
+        )
 
         # Get Proposer Location Strategies
-        location_strategies = config.get('location_strategies', [{"type": "best_relay"}])
+        location_strategies = config.get(
+            "location_strategies", [{"type": "best_relay"}]
+        )
 
         # Ensure the output directory exists
         if not os.path.exists(output_folder):
@@ -304,14 +346,18 @@ if __name__ == "__main__":
         if len(validators) > num_validators:
             validators = validators.sample(n=num_validators, random_state=42)
         else:
-            print(f"Using all {len(validators)} validators from CSV as it's less than configured {num_validators}.")
+            print(
+                f"Using all {len(validators)} validators from CSV as it's less than configured {num_validators}."
+            )
 
         gcp_regions = pd.read_csv(os.path.join(input_folder, "gcp_regions.csv"))
         gcp_latency = pd.read_csv(os.path.join(input_folder, "gcp_latency.csv"))
 
         # Run the simulation with parameters from YAML and CSVs
         simulation(
-            number_of_validators=len(validators), # Use the actual number of loaded validators
+            number_of_validators=len(
+                validators
+            ),  # Use the actual number of loaded validators
             num_slots=num_slots,
             validators=validators,
             gcp_regions=gcp_regions,
@@ -321,7 +367,7 @@ if __name__ == "__main__":
             timing_strategies=timing_strategies,
             location_strategies=location_strategies,
             simulation_name=simulation_name,
-            output_folder=output_folder, # Pass output_folder for consistent sub-directory creation
+            output_folder=output_folder,  # Pass output_folder for consistent sub-directory creation
             time_window=time_window,
             fast_mode=fast_mode,
             cost=cost,
@@ -333,4 +379,3 @@ if __name__ == "__main__":
     except Exception as e:
         traceback.print_exc()
         print(f"\n❌ An unexpected error occurred: {e}")
-
