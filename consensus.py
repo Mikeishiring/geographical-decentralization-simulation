@@ -10,6 +10,7 @@ from constants import (
     SYNC_COMMITTEE_REWARD,
 )
 
+
 class ConsensusSettings:
     def __init__(
             self,

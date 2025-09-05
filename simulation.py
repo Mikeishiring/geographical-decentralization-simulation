@@ -11,11 +11,12 @@ from collections import defaultdict, Counter
 
 from consensus import ConsensusSettings
 from measure import *  # Assuming measure.py contains necessary measurement functions
-from mevboost import MEVBoostModel  # Assuming MEVBoostModel is defined in mevboost.py
-from relay_agent import initialize_relays
+from models import MEVBoostModel, EthereumWithoutMEVBoostModel
+from relay_agent import initialize_relays, get_random_relay_profile
+from info_agent import initialize_infos, get_random_info_profile
+
 
 # --- Simulation Initialization Functions ---
-
 
 def load_simulation_config(config_file_path):
     """Loads and parses the simulation's YAML configuration file."""
@@ -42,6 +43,7 @@ def initialize_consensus_settings(config_data):
 
 
 def simulation(
+    model,
     number_of_validators,
     num_slots,
     validators,
@@ -49,6 +51,7 @@ def simulation(
     gcp_latency,
     consensus_settings,  # Pass the ConsensusSettings object
     relay_profiles,  # Pass the list of Relay profiles
+    info_profiles,
     timing_strategies,  # Pass the list of timing strategies
     location_strategies,  # Pass the list of location strategies
     simulation_name,  # Simulation name from YAML
@@ -79,15 +82,17 @@ def simulation(
     model_params_standard_nomig = {
         "num_validators": number_of_validators,
         "num_relays": len(relay_profiles),  # Use the actual number of loaded relays
+        "num_infos": len(info_profiles),
         "timing_strategies_pool": all_timing_strategies,
         "location_strategies_pool": all_location_strategies,
         "num_slots": num_slots,
         "proposer_has_optimized_latency": False,  # This could also be a YAML config if needed
-        "validators": validators,
+        "validator_profiles": validators,
         "gcp_regions": gcp_regions,
         "gcp_latency": gcp_latency,
         "consensus_settings": consensus_settings,  # Pass the ConsensusSettings object to the model
         "relay_profiles": relay_profiles,  # Pass the Relay profiles to the model
+        "info_profiles": info_profiles,
         "time_window": time_window,  # Time window for migration checks
         "fast_mode": fast_mode,  # Fast mode for latency computation
         "cost": cost,  # Cost for migration
@@ -96,7 +101,12 @@ def simulation(
     # --- Create and Run the Model ---
     print(f"\n--- Starting MEV-Boost Simulation: {simulation_name} ---")
     start_time = time.time()
-    model_standard = MEVBoostModel(**model_params_standard_nomig)
+
+    if model == 'mevboost':
+        model_standard = MEVBoostModel(**model_params_standard_nomig)
+    else:
+        model_standard = EthereumWithoutMEVBoostModel(**model_params_standard_nomig)
+
     for i in range(TOTAL_TIME_STEPS):
         model_standard.step()
         if not model_standard.running:
@@ -104,13 +114,13 @@ def simulation(
                 f"Stopping simulation as no validators moved within the time window ({time_window})."
             )
             break
-    end_time = time.time()
+    
     if model_standard.running:
         print(
             f"Stopping simulation after reaching the maximum time steps: {TOTAL_TIME_STEPS}."
         )
 
-    print(f"Simulation completed in {end_time - start_time:.2f} seconds.")
+    print(f"Simulation completed in {time.time() - start_time:.2f} seconds.")
 
     # --- Final Analysis & Plotting ---
     print("\n--- Final Results Summary ---")
@@ -127,10 +137,14 @@ def simulation(
     print(model_data.head())
     print(model_data.tail())
 
-    # relay profiles:
-    relay_names = [relay["unique_id"] for relay in relay_profiles]
-    with open(f"{output_folder}/relay_names.json", "w") as f:
-        json.dump(relay_names, f)
+    # profiles:
+    for profiles, output_name in [
+        (relay_profiles, "relay_names.json"),
+        (info_profiles, "info_names.json"),
+    ]:
+        names = [profile["unique_id"] for profile in profiles]
+        with open(f"{output_folder}/{output_name}", "w") as f:
+            json.dump(names, f)
 
     avg_mev_series = model_data["Average_MEV_Earned"].tolist()
     supermaj_series = model_data["Supermajority_Success_Rate"].tolist()
@@ -156,8 +170,6 @@ def simulation(
     print("\n--- Agent Data Collected ---")
     print("DataFrame Head:")
     print(agent_data.head())
-
-    relay_agent_data = agent_data[agent_data["Role"] == "relay_agent"]
 
     print("\nDataFrame Tail:")
     print(agent_data.tail())
@@ -185,6 +197,8 @@ def simulation(
     proposal_time_by_slot = (
         validator_agent_data.groupby("Slot")["Proposal Time"].apply(list).tolist()
     )
+
+    relay_agent_data = agent_data[agent_data["Role"] == "relay_agent"]
     relay_positions = relay_agent_data["Position"].iloc[0:number_of_relays]
     # Since relay is not moving, we can just use the first position and multiply it by the number of slots
     # --------------------------------------------
@@ -195,6 +209,13 @@ def simulation(
     ]  # JSON wants lists
     nested_array_relay = [
         relay_pos_list for _ in range(len(nested_array))  # <- extra [] !
+    ]
+    # --------------------------------------------
+    info_agent_data = agent_data[agent_data["Role"] == "info_agent"]
+    info_positions = info_agent_data["Position"].iloc[0 : len(info_profiles)]
+    info_pos_list = [list(info_position) for info_position in info_positions]
+    nested_array_info = [
+        info_pos_list for _ in range(len(nested_array))  # <- extra [] !
     ]
 
     latest_steps = (
@@ -228,12 +249,20 @@ def simulation(
 
     with open(f"{output_folder}/relay_data.json", "w") as f:
         json.dump(nested_array_relay, f)
+    with open(f"{output_folder}/info_data.json", "w") as f:
+        json.dump(nested_array_info, f)
 
     with open(f"{output_folder}/region_counter_per_slot.json", "w") as f:
         json.dump(region_counter_per_slot, f)
 
     print("Saved data in JSON files in the output directory.")
-
+    print("Information sources:")
+    if len(nested_array_info) > 0:
+        print("Infos:")
+        print("\n".join([f"{i['unique_id']} ({i['gcp_region']})" for i in info_profiles]))
+    if len(nested_array_relay) > 0:
+        print("Relays:")
+        print("\n".join([f"{r['unique_id']} ({r['gcp_region']})" for r in relay_profiles]))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -250,6 +279,13 @@ if __name__ == "__main__":
         type=str,
         default="data",
         help="Directory to read input data (default: 'data')",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="mevboost",
+        choices=["mevboost", "raw"],
+        help="Type of model to simulate: 'mevboost' or 'raw' (default: 'mevboost')",
     )
     parser.add_argument(
         "--validators",
@@ -282,15 +318,22 @@ if __name__ == "__main__":
         action=argparse.BooleanOptionalAction,
         help="Enable fast mode for latency computation (default: False)",
     )
+    parser.add_argument(
+        "--random",
+        type=bool,
+        default=False,
+        action=argparse.BooleanOptionalAction,
+        help="Randomly assign validators / information sources to GCP regions (default: False)"
+    )
 
     args = parser.parse_args()
 
     try:
         # Load the entire simulation configuration from YAML
         config = load_simulation_config(args.config)
-
         # Extract top-level simulation parameters from config
         simulation_name = config.get("simulation_name", "Default Simulation")
+        model = args.model if args.model else config.get("model", "mevboost")
         # Use 'iterations' from YAML as num_slots
         num_slots = args.slots if args.slots else config.get("iterations", 1000)
         num_validators = (
@@ -319,11 +362,39 @@ if __name__ == "__main__":
             f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}",
         )
 
-        # Initialize Relays
-        relay_profiles_data = config.get("relay_profiles", [])
-        relay_profiles = initialize_relays(relay_profiles_data)
-        # Get actual count of initialized relays
-        number_of_relays = len(relay_profiles)
+        gcp_regions = pd.read_csv(os.path.join(input_folder, "gcp_regions.csv"))
+        gcp_latency = pd.read_csv(os.path.join(input_folder, "gcp_latency.csv"))
+
+        gcp_regions["gcp_region"] = gcp_regions["Region"]
+        gcp_regions["lat"] = gcp_regions["Nearest City Latitude"]
+        gcp_regions["lon"] = gcp_regions["Nearest City Longitude"]
+    
+        # Input data (validators, gcp_regions, gcp_latency) are still from CSVs
+        validators = pd.read_csv(os.path.join(input_folder, "validators.csv"))
+        # Sample validators if the CSV has more than the configured number
+        if len(validators) > num_validators:
+            validators = validators.sample(n=num_validators, random_state=42)
+        else:
+            print(
+                f"Using all {len(validators)} validators from CSV as it's less than configured {num_validators}."
+            )
+
+        # Initialize Relays/Info
+        if args.random:
+            number_of_infos = random.randint(3, 10)
+            number_of_relays = random.randint(3, 10)
+            relay_profiles = get_random_relay_profile(gcp_regions, number_of_relays)
+            info_profiles = get_random_info_profile(gcp_regions, number_of_infos)
+            validators = None # Validators will be randomly assigned in the model
+        else:
+            relay_profiles_data = config.get("relay_profiles", [])
+            relay_profiles = initialize_relays(relay_profiles_data)
+            # Get actual count of initialized relays
+            number_of_relays = len(relay_profiles)
+
+            info_profiles_data = config.get("info_profiles", [])
+            info_profiles = initialize_infos(info_profiles_data)
+            number_of_infos = len(info_profiles)
 
         # Get Proposer Timing Strategies
         timing_strategies = config.get(
@@ -340,30 +411,17 @@ if __name__ == "__main__":
             os.makedirs(output_folder)
             print(f"Created base output directory: {output_folder}")
 
-        # Input data (validators, gcp_regions, gcp_latency) are still from CSVs
-        validators = pd.read_csv(os.path.join(input_folder, "validators.csv"))
-        # Sample validators if the CSV has more than the configured number
-        if len(validators) > num_validators:
-            validators = validators.sample(n=num_validators, random_state=42)
-        else:
-            print(
-                f"Using all {len(validators)} validators from CSV as it's less than configured {num_validators}."
-            )
-
-        gcp_regions = pd.read_csv(os.path.join(input_folder, "gcp_regions.csv"))
-        gcp_latency = pd.read_csv(os.path.join(input_folder, "gcp_latency.csv"))
-
         # Run the simulation with parameters from YAML and CSVs
         simulation(
-            number_of_validators=len(
-                validators
-            ),  # Use the actual number of loaded validators
+            model=model,
+            number_of_validators=num_validators,
             num_slots=num_slots,
             validators=validators,
             gcp_regions=gcp_regions,
             gcp_latency=gcp_latency,
             consensus_settings=consensus_settings,
             relay_profiles=relay_profiles,
+            info_profiles=info_profiles,
             timing_strategies=timing_strategies,
             location_strategies=location_strategies,
             simulation_name=simulation_name,

@@ -1,3 +1,5 @@
+import random
+
 from enum import Enum
 from mesa import Agent
 
@@ -193,3 +195,20 @@ def initialize_relays(relay_profiles_data):
         except Exception as e:
             print(f"❌ Unknown error occurred while initializing Relay '{unique_id}': {e}")
     return relay_profiles
+
+
+def get_random_relay_profile(gcp_data_df, num):
+    relay_profiles = []
+    for i, row in gcp_data_df.iterrows():
+        profile = {
+            "unique_id": f"relay-{i}",
+            "gcp_region": row['gcp_region'],
+            "lat": row['lat'],
+            "lon": row['lon'],
+            "utility_function": lambda x: BASE_MEV_AMOUNT * 0.2 + x * MEV_INCREASE_PER_SECOND * 0.2,
+            "type": RelayType.NONCENSORING,
+            "subsidy": 0.0,
+            "threshold": 0.0
+        }
+        relay_profiles.append(profile)
+    return random.choices(relay_profiles, k=num)
