@@ -4,11 +4,11 @@ iterations: 1000
 time_granularity_ms: 100
 validators: 100
 input_folder: data
-output_folder: three-info-new
+output_folder: three-info
 time_window: 1000
 cost: 0.0001
 
-cloud: 0.9
+cloud: 1
 noncompliant: 1
 
 consensus_settings:
@@ -28,7 +28,7 @@ info_profiles:
     lon: -77.4874
     utility_function:
       type: linear_mev
-      base_mev: 0.04
+      base_mev: 0.1
       mev_increase: 0.01
       multiplier: 1.0
     type: NONCENSORING
@@ -38,8 +38,8 @@ info_profiles:
     lon: 3.8643
     utility_function:
       type: linear_mev
-      base_mev: 0.05
-      mev_increase: 0.0125
+      base_mev: 0.1
+      mev_increase: 0.01
       multiplier: 1.0
     type: NONCENSORING
   - unique_id: as-info
@@ -48,7 +48,7 @@ info_profiles:
     lon: 139.6917
     utility_function:
       type: linear_mev
-      base_mev: 0.04
-      mev_increase: 0.03
+      base_mev: 0.1
+      mev_increase: 0.01
       multiplier: 1.0
     type: NONCENSORING

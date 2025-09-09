@@ -7,6 +7,7 @@ import pandas as pd
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple
+from collections import Counter, defaultdict
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,6 +25,38 @@ sns.set_style("whitegrid")
 
 SPACE = SphericalSpace()
 
+
+data_path = Path("data")
+
+
+# Metrics
+def gini(values):
+    """Compute Gini coefficient"""
+    values = np.array(values, dtype=float)
+    if np.amin(values) < 0:
+        raise ValueError("Values cannot be negative")
+    if np.sum(values) == 0:
+        return 0.0
+    values_sorted = np.sort(values)
+    n = len(values)
+    cumvals = np.cumsum(values_sorted)
+    gini_coeff = (n + 1 - 2 * np.sum(cumvals) / cumvals[-1]) / n
+    return gini_coeff
+
+def hhi(values):
+    """Compute Herfindahl–Hirschman Index (HHI)"""
+    values = np.array(values, dtype=float)
+    total = np.sum(values)
+    shares = values / total
+    return np.sum(shares ** 2)
+
+def liveness_coefficient(values):
+    """Compute Liveness Coefficient"""
+    values_sorted = np.sort(values)[::-1]
+    total_value = np.sum(values_sorted)
+    for i, v in enumerate(values_sorted):
+        if np.sum(values_sorted[:i+1]) >= total_value / 3:
+            return (i + 1)
 
 # ------------------------ Data containers ------------------------
 @dataclass
@@ -121,6 +154,7 @@ def parse_name(name: str) -> Dict[str, Any]:
     Parse a simulation run name into a dictionary of parameters.
     """
     
+    name = name.replace("num_slots", "slots").replace("time_window", "window")
     parts = name.split("_")
     result = {}
     i = 0
@@ -158,8 +192,8 @@ def compute_extras_for_slot_series(
     attest_by_slot = _load_json_if_exists(run_dir / "attest_by_slot.json")
     failed_blocks = _load_json_if_exists(run_dir / "failed_block_proposals.json")
     proposal_time_by_slot = _load_json_if_exists(run_dir / "proposal_time_by_slot.json")
-    relay_data = _load_json_if_exists(run_dir / "relay_data.json")
-    relay_names = _load_json_if_exists(run_dir / "relay_names.json") or []
+    relay_data = _load_json_if_exists(run_dir / "info_data.json")
+    relay_names = _load_json_if_exists(run_dir / "info_names.json") or []
 
     mev_hist = None
     if isinstance(mev_by_slot, list) and len(mev_by_slot) >= n:
@@ -243,6 +277,49 @@ def load_region_to_country(data_dir: Path) -> Dict[str, str]:
     return mapping
 
 
+def compute_metrics(run_dir: Path, data_dir: Path) -> Dict[str, Any]:
+    region_counts_per_slot = _load_json_if_exists(
+        run_dir / "region_counter_per_slot.json"
+    )
+    validator_agent_countries = {}
+    region_df = pd.read_csv(f"{data_path}/gcp_regions.csv")
+    region_to_country = {}
+    for region, city in zip(region_df["Region"], region_df["location"]):
+        region_to_country[region] = city.split(",")[-1].strip() if "," in city else city.strip()
+    
+    for slot, region_list in region_counts_per_slot.items():
+        country_counter = defaultdict(int)
+        for region, count in region_list:
+            country = region_to_country.get(region, "Unknown")
+            country_counter[country] += count
+    
+        validator_agent_countries[slot] = Counter(country_counter).most_common()
+
+    region_metrics = []
+    country_metrics = []
+
+    for slot in region_counts_per_slot:
+        count_values = np.array([count for _, count in region_counts_per_slot[slot]], dtype=int)
+        gini_value = gini(count_values)
+        hhi_value = hhi(count_values)
+        live_coeff = liveness_coefficient(count_values)
+        region_metrics.append((int(slot), gini_value, hhi_value, live_coeff))
+        
+    
+    for slot in validator_agent_countries:
+        count_values = np.array([count for _, count in validator_agent_countries[slot]], dtype=int)
+        gini_value = gini(count_values)
+        hhi_value = hhi(count_values)
+        live_coeff = liveness_coefficient(count_values)
+        
+        country_metrics.append((int(slot), gini_value, hhi_value, live_coeff))
+
+
+    region_df = pd.DataFrame(sorted(region_metrics, key=lambda x: x[0]), columns=["slot", "gini", "hhi", "liveness"])
+    country_df = pd.DataFrame(sorted(country_metrics, key=lambda x: x[0]), columns=["slot", "gini", "hhi", "liveness"])
+
+    return (region_df, country_df)
+
 def compute_country_histograms(run_dir: Path, data_dir: Path) -> Dict[str, Any]:
     """
     Returns:
@@ -295,13 +372,16 @@ def single_line(ax: plt.Axes, data_df: pd.DataFrame, x_col: str, y_col: str, hue
         y=y_col,
         hue=hue,
         ax=ax,
-        lw=1.6,
+        lw=4.0,
     )
-    ax.set_xlabel("Slot")
-    ax.set_ylabel(ylabel)
-    plt.legend(title=None)
-    ax.set_title(title)
-
+    ax.set_xlabel("Slot", fontsize=32)
+    ax.set_ylabel(ylabel, fontsize=32)
+    plt.xticks(fontsize=28)
+    plt.yticks(fontsize=28)
+    # ax.set_xticks(fontsize=28)
+    # ax.set_yticks(fontsize=28)
+    plt.legend(title=None, fontsize=20)
+    # ax.set_title(title)
 
 
 def save_fig(fig: plt.Figure, outfile: Path, fmt: str, dpi: int):
@@ -403,7 +483,10 @@ def analyze_one(
     # -------- Countries (overall + final slot) --------
     countries = compute_country_histograms(run_dir, data_dir)
 
-    return metrics_df, extras_df, pd.concat(relay_extras_dfs), countries
+    eval_metrics = compute_metrics(run_dir, data_dir)
+    
+
+    return metrics_df, extras_df, pd.concat(relay_extras_dfs), countries, eval_metrics
     
 
 
@@ -480,6 +563,9 @@ def main():
         total_extras = []
         total_relay = []
         total_countries = []
+
+        total_region_metrics = []
+        total_country_metrics = []
         for rd in run_dirs:
             try:
                 slots_path = find_slots_file(rd)
@@ -489,7 +575,7 @@ def main():
                 print(
                     f"\n→ {rd.name} | slots: {slots_path.relative_to(rd)} | out: {outdir.relative_to(rd)}"
                 )
-                metrics_df, extras_df, relay_extras_dfs, countries = analyze_one(
+                metrics_df, extras_df, relay_extras_dfs, countries, eval_metrics_dfs = analyze_one(
                     slots_path,
                     outdir,
                     granularity=max(1, args.granularity),
@@ -497,12 +583,20 @@ def main():
                     every=max(1, args.every),
                     data_dir=data_dir,
                 )
+
+                region_df, country_df = eval_metrics_dfs
                 
                 unique_name = ",".join(f"{k}={v}" for k, v in config.items() if k not in common_configs)
                 metrics_df["name"] = unique_name
                 extras_df["name"] = unique_name
                 relay_extras_dfs["name"] = unique_name
                 countries["name"] = unique_name
+
+                region_df["name"] = unique_name
+                country_df["name"] = unique_name
+                total_region_metrics.append(region_df)
+                total_country_metrics.append(country_df)
+
                 total_metrics.append(metrics_df)
                 total_extras.append(extras_df)
                 total_relay.append(relay_extras_dfs)
@@ -512,6 +606,8 @@ def main():
                 print(f"✗ Skipping {rd}: {e}")
         
         total_metrics_df = pd.concat(total_metrics, ignore_index=True)
+        total_region_metrics_df = pd.concat(total_region_metrics, ignore_index=True)
+        total_country_metrics_df = pd.concat(total_country_metrics, ignore_index=True)
         total_extras_df = pd.concat(total_extras, ignore_index=True)
         total_relay_df = pd.concat(total_relay)
         total_countries_df = pd.DataFrame(total_countries)
@@ -520,7 +616,7 @@ def main():
             w_str, h_str = args.size.lower().split("x")
             fig_w, fig_h = float(w_str), float(h_str)
         except Exception:
-            fig_w, fig_h = 10.0, 4.0
+            fig_w, fig_h = 16.0, 9.0
 
         outdir = root / args.outsubdir
         outdir.mkdir(parents=True, exist_ok=True)
@@ -537,6 +633,33 @@ def main():
                 common_configs_str
             )
             save_fig(fig, outdir / f"{y}_per_slot", args.fmt, args.dpi)
+            plt.close(fig)
+
+        for y, y_label in zip(["gini", "hhi", "liveness"], ["Gini Coefficient", "HHI", "Liveness Coefficient"]):
+            fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+            single_line(
+                ax,
+                total_region_metrics_df,
+                "slot",
+                y,
+                "name",
+                y_label,
+                f"Regions | {common_configs_str}"
+            )
+            save_fig(fig, outdir / f"regions_{y}_per_slot", args.fmt, args.dpi)
+            plt.close(fig)
+
+            fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+            single_line(
+                ax,
+                total_country_metrics_df,
+                "slot",
+                y,
+                "name",
+                y_label,
+                f"Countries | {common_configs_str}"
+            )
+            save_fig(fig, outdir / f"countries_{y}_per_slot", args.fmt, args.dpi)
             plt.close(fig)
 
         for y, y_label in zip(["mev", "attest", "failed", "proposal"], ["MEV", "Attestation", "Failed Proposals", "Proposal Time"]):

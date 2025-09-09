@@ -42,6 +42,22 @@ def initialize_consensus_settings(config_data):
     return ConsensusSettings(**consensus_settings_data)
 
 
+def random_validators(gcp_regions, number_of_validators):
+    """Generates a list of validators with random GCP region assignments."""
+    gcp_data = [(region["gcp_region"], region["lat"], region["lon"]) for _, region in gcp_regions.iterrows()]
+    validators = [random.choice(gcp_data) for _ in range(number_of_validators)]
+
+    return pd.DataFrame(validators, columns=["gcp_region", "latitude", "longitude"])
+
+def evenly_distribute_validators(gcp_regions, number_of_validators):
+    """Generates a list of validators evenly distributed across GCP regions."""
+    gcp_data = [(region["gcp_region"], region["lat"], region["lon"]) for _, region in gcp_regions.iterrows()]
+    num_regions = len(gcp_data)
+    validators = [gcp_data[i % num_regions] for i in range(number_of_validators)]
+
+    return pd.DataFrame(validators, columns=["gcp_region", "latitude", "longitude"])
+
+
 def simulation(
     model,
     number_of_validators,
@@ -319,11 +335,11 @@ if __name__ == "__main__":
         help="Enable fast mode for latency computation (default: False)",
     )
     parser.add_argument(
-        "--random",
-        type=bool,
-        default=False,
-        action=argparse.BooleanOptionalAction,
-        help="Randomly assign validators / information sources to GCP regions (default: False)"
+        "--distribution",
+        type=str,
+        default="even",
+        choices=["even", "random", "real-world"],
+        help="Assign validators / information sources to GCP regions (default: False)"
     )
 
     args = parser.parse_args()
@@ -380,21 +396,34 @@ if __name__ == "__main__":
             )
 
         # Initialize Relays/Info
-        if args.random:
-            number_of_infos = random.randint(3, 10)
-            number_of_relays = random.randint(3, 10)
-            relay_profiles = get_random_relay_profile(gcp_regions, number_of_relays)
-            info_profiles = get_random_info_profile(gcp_regions, number_of_infos)
-            validators = None # Validators will be randomly assigned in the model
-        else:
-            relay_profiles_data = config.get("relay_profiles", [])
-            relay_profiles = initialize_relays(relay_profiles_data)
-            # Get actual count of initialized relays
-            number_of_relays = len(relay_profiles)
+        if args.distribution == "even":
+            validators = evenly_distribute_validators(gcp_regions, num_validators)
+        elif args.distribution == "random":
+            validators = random_validators(gcp_regions, num_validators)
+        elif args.distribution == "real-world":
+            pass  # Use validators as loaded from CSV
+            # number_of_infos = random.randint(3, 10)
+            # number_of_relays = random.randint(3, 10)
+            # relay_profiles = get_random_relay_profile(gcp_regions, number_of_relays)
+            # info_profiles = get_random_info_profile(gcp_regions, number_of_infos)
+        relay_profiles_data = config.get("relay_profiles", [])
+        relay_profiles = initialize_relays(relay_profiles_data)
+        number_of_relays = len(relay_profiles)
 
-            info_profiles_data = config.get("info_profiles", [])
-            info_profiles = initialize_infos(info_profiles_data)
-            number_of_infos = len(info_profiles)
+        info_profiles_data = config.get("info_profiles", [])
+        info_profiles = initialize_infos(info_profiles_data)
+        number_of_infos = len(info_profiles)
+        #     # validators = None # Validators will be randomly assigned in the model
+        #     validators = random_validators(gcp_regions, num_validators)
+        # else:
+        #     relay_profiles_data = config.get("relay_profiles", [])
+        #     relay_profiles = initialize_relays(relay_profiles_data)
+        #     # Get actual count of initialized relays
+        #     number_of_relays = len(relay_profiles)
+
+        #     info_profiles_data = config.get("info_profiles", [])
+        #     info_profiles = initialize_infos(info_profiles_data)
+        #     number_of_infos = len(info_profiles)
 
         # Get Proposer Timing Strategies
         timing_strategies = config.get(
