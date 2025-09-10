@@ -192,8 +192,8 @@ def compute_extras_for_slot_series(
     attest_by_slot = _load_json_if_exists(run_dir / "attest_by_slot.json")
     failed_blocks = _load_json_if_exists(run_dir / "failed_block_proposals.json")
     proposal_time_by_slot = _load_json_if_exists(run_dir / "proposal_time_by_slot.json")
-    relay_data = _load_json_if_exists(run_dir / "info_data.json")
-    relay_names = _load_json_if_exists(run_dir / "info_names.json") or []
+    relay_data = _load_json_if_exists(run_dir / "relay_data.json") or _load_json_if_exists(run_dir / "info_data.json") or []
+    relay_names = _load_json_if_exists(run_dir / "relay_names.json") or _load_json_if_exists(run_dir / "info_names.json") or []
 
     mev_hist = None
     if isinstance(mev_by_slot, list) and len(mev_by_slot) >= n:
@@ -298,8 +298,12 @@ def compute_metrics(run_dir: Path, data_dir: Path) -> Dict[str, Any]:
     region_metrics = []
     country_metrics = []
 
+    initial_num_of_regions = region_df.shape[0]
+    initial_num_of_countries = len(set(country_counter.keys()))
+
     for slot in region_counts_per_slot:
         count_values = np.array([count for _, count in region_counts_per_slot[slot]], dtype=int)
+        count_values = np.append(count_values, [0]*(initial_num_of_regions - len(count_values)))
         gini_value = gini(count_values)
         hhi_value = hhi(count_values)
         live_coeff = liveness_coefficient(count_values)
@@ -308,6 +312,7 @@ def compute_metrics(run_dir: Path, data_dir: Path) -> Dict[str, Any]:
     
     for slot in validator_agent_countries:
         count_values = np.array([count for _, count in validator_agent_countries[slot]], dtype=int)
+        count_values = np.append(count_values, [0]*(initial_num_of_countries - len(count_values)))
         gini_value = gini(count_values)
         hhi_value = hhi(count_values)
         live_coeff = liveness_coefficient(count_values)

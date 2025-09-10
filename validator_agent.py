@@ -683,14 +683,15 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
             if simulation_result["gcp_region"] == self.gcp_region:
                 return False, "utility_not_improved"
             else:
-                target_gcp_region = simulation_result["gcp_region"]
-                self.target_relay = simulation_result["relay"]
-
                 # Check if migration cost is acceptable
                 # simulation_results[0]["mev_offer"] is the best MEV offer after migration
                 # self.estimated_profit is the estimated profit before migration
                 if self.migration_cost >= (simulation_result["mev_offer"] - self.estimated_profit):
+                    # print(f"Validator {self.unique_id} (at {self.gcp_region}) Migration cost too high, not migrating.")
                     return False, "migration_cost_high (utility_not_improved)"
+                
+                target_gcp_region = simulation_result["gcp_region"]
+                self.target_relay = simulation_result["relay"]
 
                 if self.target_relay.gcp_region != target_gcp_region:
                     row = self.model.gcp_regions[["Region"] == target_gcp_region].iloc[
@@ -724,6 +725,7 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
         simulation_results.sort(key=lambda x: (-x["mev_offer"], x["latency_threshold"]))
         best_mev = simulation_results[0]["mev_offer"]
         self.estimated_profit = best_mev
+        self.target_relay = simulation_results[0]["relay"]
 
     
     # --- In-Slot Behavior Methods (Called from step()) ---
