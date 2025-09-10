@@ -4,7 +4,7 @@ import random
 from collections import defaultdict
 from enum import Enum
 from mesa import Agent
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 
 from constants import (
     BASE_NETWORK_LATENCY_MS,
@@ -283,13 +283,9 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
                 to_attester_latency, required_attesters_for_supermajority = params
                 time_simulations.append((gcp_region, to_attester_latency[required_attesters_for_supermajority],))
         else:
-            import time
-            t1 = time.time()
-            thread_number = min(8, len(self.model.gcp_regions))
+            thread_number = min(cpu_count(), len(self.model.gcp_regions))
             with Pool(thread_number) as pool:
                 time_simulations = pool.starmap(find_min_threshold, region_data)
-            t2 = time.time()
-            print(f"Threaded find_min_threshold took {t2-t1:.2f} seconds with {thread_number} threads.")
             time_simulations = list(zip(self.model.gcp_regions["Region"].values, time_simulations))
         
         for gcp_region, required_time in time_simulations:
