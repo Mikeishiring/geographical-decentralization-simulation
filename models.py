@@ -334,7 +334,7 @@ class EthereumWithoutMEVBoostModel(EthereumRawModel):
         filtered_kwargs = {k: v for k, v in kwargs.items() if k in inspected_args}
         super().__init__(*args, **filtered_kwargs)
 
-        num_info = kwargs.get('num_info', 3)
+        num_info = kwargs.get('num_infos', 3)
         info_profiles = kwargs.get('info_profiles', INFO_PROFILES)
 
         # --- Create Agents ---

@@ -476,6 +476,7 @@ class LatencyGenerator:
         for latency, std in zip(broadcast_latencies, broadcast_stds):
             if std <= 0:
                 prob = 1.0 if latency < threshold else 0.0
+                probabilities.append(prob)
             else:
                 # Handle zero or negative latency cases
                 if latency <= 0:
@@ -500,7 +501,7 @@ class LatencyGenerator:
         broadcast_latencies,
         broadcast_stds,
         required_attesters,
-        target_prob=0.95,
+        target_prob=0.99,
         threshold_low=0.0,
         threshold_high=4000.0,
         tolerance=5.0
@@ -532,3 +533,74 @@ class LatencyGenerator:
     
     def compute_the_delay_from_distribution(self):
         pass  # Placeholder for potential methods.
+
+
+    
+
+@lru_cache(maxsize=1024)
+def inititalize_distribution(mean_latency, std_dev_ratio=0.1):
+    if mean_latency <= 0:
+        return None
+
+    std_dev = mean_latency * std_dev_ratio
+    mu = np.log(mean_latency**2 / np.sqrt(mean_latency**2 + std_dev**2))
+    sigma = np.sqrt(np.log(1 + (std_dev**2 / mean_latency**2)))
+    
+    return lognorm(s=sigma, scale=np.exp(mu))
+
+
+@lru_cache(maxsize=1024)
+def evaluate_threshold(
+        broadcast_latencies,
+        broadcast_stds,
+        threshold,
+        required_attesters
+    ):
+        if not broadcast_latencies or not broadcast_stds:
+            return 0.0
+
+        probabilities = []
+        for latency, std in zip(broadcast_latencies, broadcast_stds):
+            if std <= 0:
+                prob = 1.0 if latency < threshold else 0.0
+                probabilities.append(prob)
+            else:
+                if latency <= 0:
+                    probabilities.append(1.0)
+                    continue
+                dist = inititalize_distribution(latency, std)
+                probabilities.append(
+                    dist.cdf(threshold)
+                )
+        
+        pb = poisson_binom(probabilities)
+        return pb.sf(required_attesters - 1)
+
+
+@lru_cache(maxsize=1024)
+def find_min_threshold(
+        broadcast_latencies,
+        broadcast_stds,
+        required_attesters,
+        target_prob=0.99,
+        threshold_low=0.0,
+        threshold_high=4000.0,
+        tolerance=5.0
+    ):
+        while threshold_high - threshold_low > tolerance:
+            mid = (threshold_low + threshold_high) / 2
+            prob = evaluate_threshold(
+                broadcast_latencies,
+                broadcast_stds,
+                threshold=mid,
+                required_attesters=required_attesters
+            )
+            if prob >= target_prob:
+                threshold_high = mid
+            else:
+                threshold_low = mid
+            
+            if threshold_high - threshold_low < tolerance:
+                break
+        
+        return (threshold_high + threshold_low) / 2

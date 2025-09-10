@@ -4,11 +4,12 @@ import random
 from collections import defaultdict
 from enum import Enum
 from mesa import Agent
+from multiprocessing import Pool
 
 from constants import (
     BASE_NETWORK_LATENCY_MS,
 )
-from distribution import update_distance_matrix_for_node
+from distribution import update_distance_matrix_for_node, find_min_threshold
 from relay_agent import RelayType
 
 # --- Validator Agent Class Definition ---
@@ -211,7 +212,7 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
         super().__init__(model)
 
 
-    def calculate_minimal_needed_time(self, gcp_region):
+    def calculate_minimal_needed_time_params(self, gcp_region):
         """Calculates the latency threshold for the Proposer based on its timing strategy."""
         if self.timing_strategy["type"] == "optimal_latency":
             to_attester_latency = [
@@ -229,48 +230,125 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
             # In fast mode, return a simplified estimate
             if self.model.fast_mode:
                 return (
-                    to_attester_latency[required_attesters_for_supermajority]
+                    to_attester_latency,
+                    required_attesters_for_supermajority,
                 )
             else:
-                return self.model.latency_generator.find_min_threshold(
+                return (
                     tuple(to_attester_latency),
                     tuple([0.5] * len(self.model.current_attesters)),
                     required_attesters_for_supermajority,
-                    target_prob=0.95,
-                    threshold_low=0.0,
-                    threshold_high=self.model.consensus_settings.attestation_time_ms,
-                    tolerance=5.0,
+                    0.99,
+                    0.0,
+                    self.model.consensus_settings.attestation_time_ms,
+                    5.0
                 )
+    
+    def calculate_minimal_needed_time(self, gcp_region):
+        params = self.calculate_minimal_needed_time_params(gcp_region)
+        if self.model.fast_mode:
+            to_attester_latency, required_attesters_for_supermajority = params
+            return to_attester_latency[required_attesters_for_supermajority]
+        else:
+            return find_min_threshold(
+                *params
+            )
+    # def _compute_for_region(self, gcp_region: str) -> dict:
+    #     # Read-only computations; no shared writes here
+
+
+
+    #     required_time = self.calculate_minimal_needed_time(gcp_region)
+    #     base_threshold = self.model.consensus_settings.attestation_time_ms - required_time
+
+    #     mev_offer = 0.0
+    #     for info_agent in self.model.info_agents:
+    #         to_info_latency = self.model.space.get_latency(gcp_region, info_agent.gcp_region)
+    #         latency_threshold = base_threshold - to_info_latency
+    #         mev_offer += info_agent.get_mev_offer_at_time(latency_threshold)
+
+    #     return {
+    #         "gcp_region": gcp_region,
+    #         "mev_offer": mev_offer,
+    #         "latency_threshold": base_threshold,
+    #     }
 
 
     def simulation_with_info_sources(self):
         simulation_results = []
-        for gcp_region in self.model.gcp_regions["Region"].values:
-            required_time = self.calculate_minimal_needed_time(gcp_region)
+        time_simulations = []
+        region_data = [self.calculate_minimal_needed_time_params(gcp_region) for gcp_region in self.model.gcp_regions["Region"].values]
+        if self.model.fast_mode:
+            for gcp_region, params in zip(self.model.gcp_regions["Region"].values, region_data):
+                to_attester_latency, required_attesters_for_supermajority = params
+                time_simulations.append((gcp_region, to_attester_latency[required_attesters_for_supermajority],))
+        else:
+            import time
+            t1 = time.time()
+            thread_number = min(8, len(self.model.gcp_regions))
+            with Pool(thread_number) as pool:
+                time_simulations = pool.starmap(find_min_threshold, region_data)
+            t2 = time.time()
+            print(f"Threaded find_min_threshold took {t2-t1:.2f} seconds with {thread_number} threads.")
+            time_simulations = list(zip(self.model.gcp_regions["Region"].values, time_simulations))
+        
+        for gcp_region, required_time in time_simulations:
+            base_threshold = self.model.consensus_settings.attestation_time_ms - required_time
+
             mev_offer = 0.0
             for info_agent in self.model.info_agents:
-                to_info_latency = self.model.space.get_latency(
-                    gcp_region, info_agent.gcp_region
-                )
-                # if self.model.fast_mode:
-                latency_threshold = (
-                    self.model.consensus_settings.attestation_time_ms
-                    - required_time
-                    - to_info_latency
-                )
-                info_source_value = info_agent.get_mev_offer_at_time(latency_threshold)
-                mev_offer += info_source_value
+                to_info_latency = self.model.space.get_latency(gcp_region, info_agent.gcp_region)
+                latency_threshold = base_threshold - to_info_latency
+                mev_offer += info_agent.get_mev_offer_at_time(latency_threshold)
 
             simulation_results.append(
                 {
                     "gcp_region": gcp_region,
                     "mev_offer": mev_offer,
-                    "latency_threshold": self.model.consensus_settings.attestation_time_ms - required_time,
+                    "latency_threshold": base_threshold,
                 }
             )
 
+
+            
+
+
+
+
+
+        # import time
+        # t1 = time.time()
+        # # with Pool(thread_number) as pool:
+        #     # simulation_results = pool.map(self._compute_for_region, self.model.gcp_regions["Region"].values)
+        # t2 = time.time()
+        # print(f"Threaded simulation took {t2-t1:.2f} seconds with {thread_number} threads.")
+        # for gcp_region in self.model.gcp_regions["Region"].values:
+        #     required_time = self.calculate_minimal_needed_time(gcp_region)
+        #     mev_offer = 0.0
+        #     for info_agent in self.model.info_agents:
+        #         to_info_latency = self.model.space.get_latency(
+        #             gcp_region, info_agent.gcp_region
+        #         )
+        #         # if self.model.fast_mode:
+        #         latency_threshold = (
+        #             self.model.consensus_settings.attestation_time_ms
+        #             - required_time
+        #             - to_info_latency
+        #         )
+        #         info_source_value = info_agent.get_mev_offer_at_time(latency_threshold)
+        #         mev_offer += info_source_value
+
+        #     simulation_results.append(
+        #         {
+        #             "gcp_region": gcp_region,
+        #             "mev_offer": mev_offer,
+        #             "latency_threshold": self.model.consensus_settings.attestation_time_ms - required_time,
+        #         }
+        #     )
+        for result in simulation_results:
+            gcp_region = result["gcp_region"]
             if self.gcp_region == gcp_region:
-                self.estimated_profit = mev_offer
+                self.estimated_profit = result["mev_offer"]
 
         return simulation_results
 
@@ -283,6 +361,8 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
             0 if x["gcp_region"] == self.gcp_region else 1,
             x["latency_threshold"]
         ))
+
+        # import IPython; IPython.embed(colors="neutral")
 
         return simulation_results[0]
     

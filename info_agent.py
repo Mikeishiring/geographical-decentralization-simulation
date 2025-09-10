@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import random
 
 from mesa import Agent
@@ -6,6 +7,17 @@ from constants import (
     BASE_MEV_AMOUNT,
     MEV_INCREASE_PER_SECOND
 )
+
+
+@dataclass(frozen=True)
+class LinearMEVUtility:
+    base_mev: float
+    mev_increase: float
+    multiplier: float = 1.0
+
+    def __call__(self, x: float) -> float:
+        return (self.base_mev * self.multiplier) + (x * self.mev_increase * self.multiplier)
+
 
 INFO_PROFILES = [
     {
@@ -55,7 +67,7 @@ class InfoAgent(Agent):
         self.role = "info_agent"
         self.utility_function = profile.get(
             "utility_function",
-            lambda x: BASE_MEV_AMOUNT + x * MEV_INCREASE_PER_SECOND
+            LinearMEVUtility(BASE_MEV_AMOUNT, MEV_INCREASE_PER_SECOND, 1.0)
         )
 
     def set_position(self, position):
@@ -115,7 +127,7 @@ def create_info_utility_function(config_data):
         mev_increase = config_data.get('mev_increase', MEV_INCREASE_PER_SECOND) # Get MEV increase per second, default to constant
         multiplier = config_data.get('multiplier', 1.0) # Get the multiplier, default to 1.0
         # Return a lambda function that calculates MEV utility
-        return lambda x: (base_mev * multiplier) + (x * mev_increase * multiplier)
+        return LinearMEVUtility(base_mev, mev_increase, multiplier)
     # Add more utility function types here if needed
     else:
         raise ValueError(f"Unknown or unsupported Info utility function type: {func_type}")
