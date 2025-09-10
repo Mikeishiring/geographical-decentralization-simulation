@@ -284,9 +284,13 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
                 time_simulations.append((gcp_region, to_attester_latency[required_attesters_for_supermajority],))
         else:
             thread_number = min(cpu_count(), len(self.model.gcp_regions))
+            # import time
+            # t1 = time.time()
             with Pool(thread_number) as pool:
                 time_simulations = pool.starmap(find_min_threshold_fast, region_data)
             time_simulations = list(zip(self.model.gcp_regions["Region"].values, time_simulations))
+            # t2 = time.time()
+            # print(f"Time taken for parallel computation: {t2 - t1} seconds")
         
         for gcp_region, required_time in time_simulations:
             base_threshold = self.model.consensus_settings.attestation_time_ms - required_time
@@ -305,42 +309,6 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
                 }
             )
 
-
-            
-
-
-
-
-
-        # import time
-        # t1 = time.time()
-        # # with Pool(thread_number) as pool:
-        #     # simulation_results = pool.map(self._compute_for_region, self.model.gcp_regions["Region"].values)
-        # t2 = time.time()
-        # print(f"Threaded simulation took {t2-t1:.2f} seconds with {thread_number} threads.")
-        # for gcp_region in self.model.gcp_regions["Region"].values:
-        #     required_time = self.calculate_minimal_needed_time(gcp_region)
-        #     mev_offer = 0.0
-        #     for info_agent in self.model.info_agents:
-        #         to_info_latency = self.model.space.get_latency(
-        #             gcp_region, info_agent.gcp_region
-        #         )
-        #         # if self.model.fast_mode:
-        #         latency_threshold = (
-        #             self.model.consensus_settings.attestation_time_ms
-        #             - required_time
-        #             - to_info_latency
-        #         )
-        #         info_source_value = info_agent.get_mev_offer_at_time(latency_threshold)
-        #         mev_offer += info_source_value
-
-        #     simulation_results.append(
-        #         {
-        #             "gcp_region": gcp_region,
-        #             "mev_offer": mev_offer,
-        #             "latency_threshold": self.model.consensus_settings.attestation_time_ms - required_time,
-        #         }
-        #     )
         for result in simulation_results:
             gcp_region = result["gcp_region"]
             if self.gcp_region == gcp_region:
@@ -418,7 +386,7 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
         if (
             self.timing_strategy["type"] == "optimal_latency"
         ):  # The proposer knows its latency is optimized
-            required_time = self.calculate_minimal_needed_time(self.gcp_region)    
+            required_time = self.model.consensus_settings.attestation_time_ms - self.calculate_minimal_needed_time(self.gcp_region)
 
             if (
                 current_slot_time_ms_inner <= required_time
@@ -439,13 +407,14 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
                     info_source_value = info_agent.get_mev_offer_at_time(latency_threshold)
                     mev_offer += info_source_value
                
-                return True, mev_offer, self.model.consensus_settings.attestation_time_ms - required_time
+                return True, mev_offer, required_time
 
         return False, 0.0, 0
     
 
     def propose_block(self,proposed_time, mev_offer):
         """Executes the block proposal action for the Proposer."""
+        # print(f"Validator {self.unique_id} proposing at {proposed_time} ms with MEV offer {mev_offer:.4f} ETH")
         self.has_proposed_block = True
         self.proposed_time_ms = proposed_time
         self.mev_captured_potential = (
@@ -485,6 +454,8 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
             ):
                 self.attested_to_proposer_block = True
             else:
+                # if
+                # print(f"Validator {self.unique_id} could not attest in time. Block arrival: {block_arrival_at_this_attester_ms} ({block_proposed_time_ms}, {to_attester_latency}), attestation deadline: {self.model.consensus_settings.attestation_time_ms}")
                 self.attested_to_proposer_block = False
             self.has_attested = True
 
@@ -508,7 +479,7 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
             self.decide_and_attest(
                 current_slot_time_ms_inner,
                 proposer_agent.proposed_time_ms,
-                to_attester_latency
+                self.model.latency_generator.get_latency(to_attester_latency, 0.5)
             )
 
 
