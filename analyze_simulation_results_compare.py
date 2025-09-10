@@ -299,7 +299,7 @@ def compute_metrics(run_dir: Path, data_dir: Path) -> Dict[str, Any]:
     country_metrics = []
 
     initial_num_of_regions = region_df.shape[0]
-    initial_num_of_countries = len(set(country_counter.keys()))
+    initial_num_of_countries = len(set(region_to_country.keys()))
 
     for slot in region_counts_per_slot:
         count_values = np.array([count for _, count in region_counts_per_slot[slot]], dtype=int)
