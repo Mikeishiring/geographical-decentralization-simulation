@@ -5,6 +5,7 @@ from collections import defaultdict
 from enum import Enum
 from mesa import Agent
 from multiprocessing import Pool, cpu_count
+from concurrent.futures import ThreadPoolExecutor
 
 from constants import (
     BASE_NETWORK_LATENCY_MS,
@@ -253,25 +254,6 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
             return find_min_threshold_fast(
                 *params
             )
-    # def _compute_for_region(self, gcp_region: str) -> dict:
-    #     # Read-only computations; no shared writes here
-
-
-
-    #     required_time = self.calculate_minimal_needed_time(gcp_region)
-    #     base_threshold = self.model.consensus_settings.attestation_time_ms - required_time
-
-    #     mev_offer = 0.0
-    #     for info_agent in self.model.info_agents:
-    #         to_info_latency = self.model.space.get_latency(gcp_region, info_agent.gcp_region)
-    #         latency_threshold = base_threshold - to_info_latency
-    #         mev_offer += info_agent.get_mev_offer_at_time(latency_threshold)
-
-    #     return {
-    #         "gcp_region": gcp_region,
-    #         "mev_offer": mev_offer,
-    #         "latency_threshold": base_threshold,
-    #     }
 
 
     def simulation_with_info_sources(self):
@@ -283,15 +265,11 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
                 to_attester_latency, required_attesters_for_supermajority = params
                 time_simulations.append((gcp_region, to_attester_latency[required_attesters_for_supermajority],))
         else:
-            thread_number = min(cpu_count(), len(self.model.gcp_regions))
-            # import time
-            # t1 = time.time()
-            with Pool(thread_number) as pool:
-                time_simulations = pool.starmap(find_min_threshold_fast, region_data)
+            thread_number = min(10, cpu_count(), len(self.model.gcp_regions))
+            with ThreadPoolExecutor(max_workers=thread_number) as ex:
+                time_simulations = list(ex.map(lambda p: find_min_threshold_fast(*p), region_data))
             time_simulations = list(zip(self.model.gcp_regions["Region"].values, time_simulations))
-            # t2 = time.time()
-            # print(f"Time taken for parallel computation: {t2 - t1} seconds")
-        
+
         for gcp_region, required_time in time_simulations:
             base_threshold = self.model.consensus_settings.attestation_time_ms - required_time
 
