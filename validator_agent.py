@@ -9,7 +9,7 @@ from multiprocessing import Pool, cpu_count
 from constants import (
     BASE_NETWORK_LATENCY_MS,
 )
-from distribution import update_distance_matrix_for_node, find_min_threshold
+from distribution import update_distance_matrix_for_node, find_min_threshold, find_min_threshold_fast
 from relay_agent import RelayType
 
 # --- Validator Agent Class Definition ---
@@ -250,7 +250,7 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
             to_attester_latency, required_attesters_for_supermajority = params
             return to_attester_latency[required_attesters_for_supermajority]
         else:
-            return find_min_threshold(
+            return find_min_threshold_fast(
                 *params
             )
     # def _compute_for_region(self, gcp_region: str) -> dict:
@@ -285,7 +285,7 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
         else:
             thread_number = min(cpu_count(), len(self.model.gcp_regions))
             with Pool(thread_number) as pool:
-                time_simulations = pool.starmap(find_min_threshold, region_data)
+                time_simulations = pool.starmap(find_min_threshold_fast, region_data)
             time_simulations = list(zip(self.model.gcp_regions["Region"].values, time_simulations))
         
         for gcp_region, required_time in time_simulations:

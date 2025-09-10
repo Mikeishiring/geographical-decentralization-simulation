@@ -1,4 +1,4 @@
-simulation_name: three-info
+simulation_name: all-info
 model: ethereum-raw
 iterations: 1000
 time_granularity_ms: 50

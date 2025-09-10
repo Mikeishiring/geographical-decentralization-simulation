@@ -578,6 +578,53 @@ def evaluate_threshold(
 
 
 @lru_cache(maxsize=1024)
+def evaluate_threshold_fast(
+        broadcast_latencies, # MUST be a tuple
+        broadcast_stds,      # MUST be a tuple
+        threshold,
+        required_attesters
+    ):
+        if not broadcast_latencies:
+            return 0.0
+
+        latencies = np.array(broadcast_latencies, dtype=np.float64)
+        stds = np.array(broadcast_stds, dtype=np.float64)
+        
+        probabilities = np.zeros_like(latencies)
+
+        # Masks for different conditions
+        zero_latency_mask = (latencies <= 0)
+        zero_std_mask = (stds <= 0) & ~zero_latency_mask
+        valid_mask = ~zero_latency_mask & ~zero_std_mask
+
+        # Condition 1: latency <= 0 -> prob = 1.0
+        probabilities[zero_latency_mask] = 1.0
+
+        # Condition 2: std <= 0 (and latency > 0) -> prob is 1.0 if latency < threshold, else 0.0
+        probabilities[zero_std_mask] = np.where(latencies[zero_std_mask] < threshold, 1.0, 0.0)
+
+        # Condition 3: Regular calculation for valid entries
+        if np.any(valid_mask):
+            valid_latencies = latencies[valid_mask]
+            # Assuming broadcast_stds represents the std_dev_ratio
+            std_dev = valid_latencies * stds[valid_mask]
+
+            mean_sq = valid_latencies**2
+            std_dev_sq = std_dev**2
+            
+            mu = np.log(mean_sq / np.sqrt(mean_sq + std_dev_sq))
+            sigma = np.sqrt(np.log(1 + (std_dev_sq / mean_sq)))
+            
+            probabilities[valid_mask] = lognorm.cdf(threshold, s=sigma, scale=np.exp(mu))
+        
+        # Use a PoissonBinomial library to calculate the survival function
+        pb = poisson_binom(probabilities.tolist())
+        # pb.sf(k) is P(X > k). We want P(X >= k), which is P(X > k-1).
+        return pb.sf(required_attesters - 1)
+
+
+
+@lru_cache(maxsize=1024)
 def find_min_threshold(
         broadcast_latencies,
         broadcast_stds,
@@ -602,5 +649,38 @@ def find_min_threshold(
             
             if threshold_high - threshold_low < tolerance:
                 break
+        
+        return (threshold_high + threshold_low) / 2
+
+
+@lru_cache(maxsize=1024)
+def find_min_threshold_fast(
+        broadcast_latencies, # MUST be a tuple
+        broadcast_stds,      # MUST be a tuple
+        required_attesters,
+        target_prob=0.99,
+        threshold_low=0.0,
+        threshold_high=4000.0,
+        tolerance=5.0
+    ):
+        # The binary search logic is already efficient. The main speedup comes
+        # from calling the fast version of evaluate_threshold.
+        while threshold_high - threshold_low > tolerance:
+            mid = (threshold_low + threshold_high) / 2
+            if mid <= 0: # Avoid getting stuck at 0
+                threshold_low = tolerance
+                continue
+            
+            prob = evaluate_threshold_fast( # Call the fast version!
+                broadcast_latencies,
+                broadcast_stds,
+                threshold=mid,
+                required_attesters=required_attesters
+            )
+
+            if prob >= target_prob:
+                threshold_high = mid
+            else:
+                threshold_low = mid
         
         return (threshold_high + threshold_low) / 2
