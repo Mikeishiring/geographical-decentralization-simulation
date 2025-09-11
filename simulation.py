@@ -57,6 +57,29 @@ def evenly_distribute_validators(gcp_regions, number_of_validators):
 
     return pd.DataFrame(validators, columns=["gcp_region", "latitude", "longitude"])
 
+def big_region_evenly_distribute_validators(gcp_regions, number_of_validators):
+    """Generates a list of validators evenly distributed across major GCP regions."""
+    gcp_data = [(region["gcp_region"].split("-")[0], region["gcp_region"], region["lat"], region["lon"]) for _, region in gcp_regions.iterrows()]
+    greater_regions = {}
+    for region in gcp_data:
+        greater_region = region[0]
+        if greater_region not in greater_regions:
+            greater_regions[greater_region] = []
+        greater_regions[greater_region].append(region[1:])  # Store (gcp_region, lat, lon)
+
+    greater_region_list = list(greater_regions.keys())
+    number_of_greater_regions = len(greater_region_list)
+    greater_region_selected_counts = {region: 0 for region in greater_region_list}
+    validators = []
+    for i in range(number_of_validators):
+        selected_greater_region = greater_region_list[i % number_of_greater_regions]
+        region_options = greater_regions[selected_greater_region]
+        selected_count = greater_region_selected_counts[selected_greater_region]
+        selected_region = region_options[selected_count % len(region_options)]
+        validators.append(selected_region)
+        greater_region_selected_counts[selected_greater_region] += 1
+    
+    return pd.DataFrame(validators, columns=["gcp_region", "latitude", "longitude"])
 
 def simulation(
     model,
@@ -338,7 +361,7 @@ if __name__ == "__main__":
         "--distribution",
         type=str,
         default="even",
-        choices=["even", "random", "real-world"],
+        choices=["even", "macro-region-even", "random", "real-world"],
         help="Assign validators / information sources to GCP regions (default: False)"
     )
 
@@ -398,6 +421,8 @@ if __name__ == "__main__":
         # Initialize Relays/Info
         if args.distribution == "even":
             validators = evenly_distribute_validators(gcp_regions, num_validators)
+        elif args.distribution == "macro-region-even":
+            validators = big_region_evenly_distribute_validators(gcp_regions, num_validators)
         elif args.distribution == "random":
             validators = random_validators(gcp_regions, num_validators)
         elif args.distribution == "real-world":

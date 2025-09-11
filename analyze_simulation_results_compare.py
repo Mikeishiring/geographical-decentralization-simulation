@@ -192,8 +192,12 @@ def compute_extras_for_slot_series(
     attest_by_slot = _load_json_if_exists(run_dir / "attest_by_slot.json")
     failed_blocks = _load_json_if_exists(run_dir / "failed_block_proposals.json")
     proposal_time_by_slot = _load_json_if_exists(run_dir / "proposal_time_by_slot.json")
-    relay_data = _load_json_if_exists(run_dir / "relay_data.json") or _load_json_if_exists(run_dir / "info_data.json") or []
-    relay_names = _load_json_if_exists(run_dir / "relay_names.json") or _load_json_if_exists(run_dir / "info_names.json") or []
+    relay_names = _load_json_if_exists(run_dir / "relay_names.json")
+    relay_data = _load_json_if_exists(run_dir / "relay_data.json")
+
+    if len(relay_names) == 0:
+        relay_names = _load_json_if_exists(run_dir / "info_names.json")
+        relay_data = _load_json_if_exists(run_dir / "info_data.json")
 
     mev_hist = None
     if isinstance(mev_by_slot, list) and len(mev_by_slot) >= n:
@@ -246,6 +250,8 @@ def compute_extras_for_slot_series(
                 except Exception:
                     avg_d = 0.0
                 relay_series[relay_names[j]][i] = avg_d
+
+    # import IPython; IPython.embed(colors="neutral")  # noqa: E402   
 
     return {
         "mev": mev_hist,
@@ -355,6 +361,7 @@ def compute_country_histograms(run_dir: Path, data_dir: Path) -> Dict[str, Any]:
             agg[country] = agg.get(country, 0) + int(count)
             overall[country] = overall.get(country, 0) + int(count)
         final = agg  # last assignment ends up as final slot
+    print(final)
 
     # sort top-15
     top_overall = sorted(overall.items(), key=lambda kv: kv[1], reverse=True)[:15]
@@ -377,7 +384,7 @@ def single_line(ax: plt.Axes, data_df: pd.DataFrame, x_col: str, y_col: str, hue
         y=y_col,
         hue=hue,
         ax=ax,
-        lw=4.0,
+        lw=5.0,
     )
     ax.set_xlabel("Slot", fontsize=32)
     ax.set_ylabel(ylabel, fontsize=32)
@@ -475,7 +482,7 @@ def analyze_one(
         "proposal": [extras["proposal"][i] if extras["proposal"] else 0.0 for i in keep],
     })
 
-    relay_extras = extras.get("relay", {})
+    relay_extras = extras.get("relay", {}) or extras.get("info", {}) or {}
     relay_extras_dfs = []
     for rname, series in relay_extras.items():
         df = pd.DataFrame({
@@ -484,7 +491,7 @@ def analyze_one(
             "avg_distance": [series[i] if series else 0.0 for i in keep],
         })
         relay_extras_dfs.append(df)
-
+    
     # -------- Countries (overall + final slot) --------
     countries = compute_country_histograms(run_dir, data_dir)
 
@@ -590,7 +597,7 @@ def main():
                 )
 
                 region_df, country_df = eval_metrics_dfs
-                
+
                 unique_name = ",".join(f"{k}={v}" for k, v in config.items() if k not in common_configs)
                 metrics_df["name"] = unique_name
                 extras_df["name"] = unique_name
@@ -610,6 +617,7 @@ def main():
             except Exception as e:
                 print(f"✗ Skipping {rd}: {e}")
         
+
         total_metrics_df = pd.concat(total_metrics, ignore_index=True)
         total_region_metrics_df = pd.concat(total_region_metrics, ignore_index=True)
         total_country_metrics_df = pd.concat(total_country_metrics, ignore_index=True)
