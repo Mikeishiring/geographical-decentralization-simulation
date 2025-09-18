@@ -218,38 +218,38 @@ def compute_extras_for_slot_series(
             for i in range(n)
         ]
 
-    relay_series: Dict[str, List[float]] = {}
-    if isinstance(relay_data, list) and n > 0:
-        relay_positions = []
-        if relay_data:
-            if (
-                isinstance(relay_data[0], list)
-                and relay_data[0]
-                and isinstance(relay_data[0][0], (int, float))
-            ):
-                relay_positions = [relay_data]
-            else:
-                relay_positions = relay_data[0] if relay_data else []
-        if not relay_positions:
-            relay_names = []
-        elif not relay_names or len(relay_names) != len(relay_positions):
-            relay_names = [f"relay{i+1}" for i in range(len(relay_positions))]
-        for rname in relay_names:
-            relay_series[rname] = [0.0] * n
-        for i in range(n):
-            pts = slots[i]
-            if not pts or not relay_positions:
-                continue
-            for j, rpos in enumerate(relay_positions):
-                try:
-                    avg_d = (
-                        float(np.mean([SPACE.distance(pt, rpos) for pt in pts]))
-                        if pts
-                        else 0.0
-                    )
-                except Exception:
-                    avg_d = 0.0
-                relay_series[relay_names[j]][i] = avg_d
+    # relay_series: Dict[str, List[float]] = {}
+    # if isinstance(relay_data, list) and n > 0:
+    #     relay_positions = []
+    #     if relay_data:
+    #         if (
+    #             isinstance(relay_data[0], list)
+    #             and relay_data[0]
+    #             and isinstance(relay_data[0][0], (int, float))
+    #         ):
+    #             relay_positions = [relay_data]
+    #         else:
+    #             relay_positions = relay_data[0] if relay_data else []
+    #     if not relay_positions:
+    #         relay_names = []
+    #     elif not relay_names or len(relay_names) != len(relay_positions):
+    #         relay_names = [f"relay{i+1}" for i in range(len(relay_positions))]
+    #     for rname in relay_names:
+    #         relay_series[rname] = [0.0] * n
+    #     for i in range(n):
+    #         pts = slots[i]
+    #         if not pts or not relay_positions:
+    #             continue
+    #         for j, rpos in enumerate(relay_positions):
+    #             try:
+    #                 avg_d = (
+    #                     float(np.mean([SPACE.distance(pt, rpos) for pt in pts]))
+    #                     if pts
+    #                     else 0.0
+    #                 )
+    #             except Exception:
+    #                 avg_d = 0.0
+    #             relay_series[relay_names[j]][i] = avg_d
 
     # import IPython; IPython.embed(colors="neutral")  # noqa: E402   
 
@@ -258,7 +258,7 @@ def compute_extras_for_slot_series(
         "attest": attest_hist,
         "failed": failed_hist,
         "proposal": proposal_hist,
-        "relay": relay_series,
+        # "relay": relay_series,
     }
 
 
@@ -305,7 +305,7 @@ def compute_metrics(run_dir: Path, data_dir: Path) -> Dict[str, Any]:
     country_metrics = []
 
     initial_num_of_regions = region_df.shape[0]
-    initial_num_of_countries = len(set(region_to_country.keys()))
+    initial_num_of_countries = len(set(region_to_country.values()))
 
     for slot in region_counts_per_slot:
         count_values = np.array([count for _, count in region_counts_per_slot[slot]], dtype=int)
@@ -377,23 +377,29 @@ def compute_country_histograms(run_dir: Path, data_dir: Path) -> Dict[str, Any]:
 # ------------------------ Plotting helpers ------------------------
 
 
-def single_line(ax: plt.Axes, data_df: pd.DataFrame, x_col: str, y_col: str, hue: str, ylabel: str, title: str = ""):
+def single_line(ax: plt.Axes, data_df: pd.DataFrame, x_col: str, y_col: str, hue: str, ylabel: str, title: str = "", legend: bool = True):
     sns.lineplot(
         data=data_df,
         x=x_col,
         y=y_col,
         hue=hue,
+        style=hue,
         ax=ax,
-        lw=5.0,
+        lw=6.0,
+        legend=legend
     )
-    ax.set_xlabel("Slot", fontsize=32)
-    ax.set_ylabel(ylabel, fontsize=32)
-    plt.xticks(fontsize=28)
-    plt.yticks(fontsize=28)
+    ax.set_xlabel("Slot", fontsize=40)
+    ax.set_ylabel(ylabel, fontsize=40)
+    ax.set_xlim(0, data_df[x_col].max()+1)
+    # plt.xticks(fontsize=28)
+    # plt.yticks(fontsize=28)
+    ax.tick_params(axis="x", labelsize=32)
+    ax.tick_params(axis="y", labelsize=32)
     # ax.set_xticks(fontsize=28)
     # ax.set_yticks(fontsize=28)
-    plt.legend(title=None, fontsize=20)
+    # plt.legend(title=None, fontsize=20)
     # ax.set_title(title)
+    # return ax
 
 
 def save_fig(fig: plt.Figure, outfile: Path, fmt: str, dpi: int):
@@ -451,25 +457,25 @@ def analyze_one(
     slots = load_slots(slots_path)
     n = len(slots)
 
-    metrics = compute_metrics_per_slot(slots, granularity=granularity)
-    if rolling and rolling > 1:
-        metrics = MetricSeries(
-            clusters=maybe_rolling(metrics.clusters, rolling),
-            total_dist=maybe_rolling(metrics.total_dist, rolling),
-            avg_nnd=maybe_rolling(metrics.avg_nnd, rolling),
-            nni=maybe_rolling(metrics.nni, rolling),
-        )
+    # metrics = compute_metrics_per_slot(slots, granularity=granularity)
+    # if rolling and rolling > 1:
+    #     metrics = MetricSeries(
+    #         clusters=maybe_rolling(metrics.clusters, rolling),
+    #         total_dist=maybe_rolling(metrics.total_dist, rolling),
+    #         avg_nnd=maybe_rolling(metrics.avg_nnd, rolling),
+    #         nni=maybe_rolling(metrics.nni, rolling),
+    #     )
     
     x_full = np.arange(1, n + 1)
     keep = np.arange(0, n, max(1, every))
 
-    metrics_df = pd.DataFrame({
-        "slot": x_full[keep],
-        "clusters": metrics.clusters[keep],
-        "total_dist": metrics.total_dist[keep],
-        "avg_nnd": metrics.avg_nnd[keep],
-        "nni": metrics.nni[keep],
-    })
+    # metrics_df = pd.DataFrame({
+    #     "slot": x_full[keep],
+    #     "clusters": metrics.clusters[keep],
+    #     "total_dist": metrics.total_dist[keep],
+    #     "avg_nnd": metrics.avg_nnd[keep],
+    #     "nni": metrics.nni[keep],
+    # })
 
     # -------- Extras (MEV/attest/failed/proposal + relays) --------
     run_dir = outdir.parent
@@ -482,23 +488,22 @@ def analyze_one(
         "proposal": [extras["proposal"][i] if extras["proposal"] else 0.0 for i in keep],
     })
 
-    relay_extras = extras.get("relay", {}) or extras.get("info", {}) or {}
-    relay_extras_dfs = []
-    for rname, series in relay_extras.items():
-        df = pd.DataFrame({
-            "slot": x_full[keep],
-            "relay": rname,
-            "avg_distance": [series[i] if series else 0.0 for i in keep],
-        })
-        relay_extras_dfs.append(df)
+    # relay_extras = extras.get("relay", {}) or extras.get("info", {}) or {}
+    # relay_extras_dfs = []
+    # for rname, series in relay_extras.items():
+    #     df = pd.DataFrame({
+    #         "slot": x_full[keep],
+    #         "relay": rname,
+    #         "avg_distance": [series[i] if series else 0.0 for i in keep],
+    #     })
+    #     relay_extras_dfs.append(df)
     
     # -------- Countries (overall + final slot) --------
     countries = compute_country_histograms(run_dir, data_dir)
 
     eval_metrics = compute_metrics(run_dir, data_dir)
     
-
-    return metrics_df, extras_df, pd.concat(relay_extras_dfs), countries, eval_metrics
+    return None, extras_df, None, countries, eval_metrics
     
 
 
@@ -599,9 +604,9 @@ def main():
                 region_df, country_df = eval_metrics_dfs
 
                 unique_name = ",".join(f"{k}={v}" for k, v in config.items() if k not in common_configs)
-                metrics_df["name"] = unique_name
+                # metrics_df["name"] = unique_name
                 extras_df["name"] = unique_name
-                relay_extras_dfs["name"] = unique_name
+                # relay_extras_dfs["name"] = unique_name
                 countries["name"] = unique_name
 
                 region_df["name"] = unique_name
@@ -609,20 +614,20 @@ def main():
                 total_region_metrics.append(region_df)
                 total_country_metrics.append(country_df)
 
-                total_metrics.append(metrics_df)
+                # total_metrics.append(metrics_df)
                 total_extras.append(extras_df)
-                total_relay.append(relay_extras_dfs)
+                # total_relay.append(relay_extras_dfs)
                 total_countries.append(countries)
-                print(f"✓ Processed {rd.name} with {len(metrics_df)} slots")
+                print(f"✓ Processed {rd.name} with {len(total_extras)} slots")
             except Exception as e:
                 print(f"✗ Skipping {rd}: {e}")
         
 
-        total_metrics_df = pd.concat(total_metrics, ignore_index=True)
+        # total_metrics_df = pd.concat(total_metrics, ignore_index=True)
         total_region_metrics_df = pd.concat(total_region_metrics, ignore_index=True)
         total_country_metrics_df = pd.concat(total_country_metrics, ignore_index=True)
         total_extras_df = pd.concat(total_extras, ignore_index=True)
-        total_relay_df = pd.concat(total_relay)
+        # total_relay_df = pd.concat(total_relay)
         total_countries_df = pd.DataFrame(total_countries)
 
         try:
@@ -634,19 +639,49 @@ def main():
         outdir = root / args.outsubdir
         outdir.mkdir(parents=True, exist_ok=True)
 
-        for y, y_label in zip(["clusters", "total_dist", "avg_nnd", "nni"], ["# Clusters", "Total Distance", "Avg. NND", "NNI"]):
-            fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+        # for y, y_label in zip(["clusters", "total_dist", "avg_nnd", "nni"], ["# Clusters", "Total Distance", "Avg. NND", "NNI"]):
+        #     fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+        #     single_line(
+        #         ax,
+        #         total_metrics_df,
+        #         "slot",
+        #         y,
+        #         "name",
+        #         y_label,
+        #         common_configs_str
+        #     )
+        #     save_fig(fig, outdir / f"{y}_per_slot", args.fmt, args.dpi)
+        #     plt.close(fig)
+
+        fig, axes = plt.subplots(1,3, figsize=(fig_w*3, fig_h), sharey=False)
+        for idx, y, y_label in zip(range(3), ["gini", "hhi", "liveness"], ["Gini Coefficient", "HHI", "Liveness Coefficient"]):
             single_line(
-                ax,
-                total_metrics_df,
+                axes[idx],
+                total_region_metrics_df,
                 "slot",
                 y,
                 "name",
                 y_label,
-                common_configs_str
+                f"Regions | {common_configs_str}",
+                False if idx < 2 else True
             )
-            save_fig(fig, outdir / f"{y}_per_slot", args.fmt, args.dpi)
-            plt.close(fig)
+        handles, labels = axes[-1].get_legend_handles_labels()
+        print(handles, labels)
+        # axes[-1].legend_.remove()
+        # plt.tight_layout(rect=[0, 0, 1, 0.8])
+
+        fig.legend(handles, labels, loc="upper center", fontsize=36, ncol=5, title=None, bbox_to_anchor=(0.5, 1.04), 
+            framealpha=0, facecolor="none", edgecolor="none", columnspacing=0.5)
+        plt.savefig(outdir / f"regions_metrics_per_slot.{args.fmt}", dpi=args.dpi, bbox_inches="tight")
+        plt.close(fig)
+        
+        # plt.tight_layout()
+        # save_fig(fig, outdir / f"regions_metrics_per_slot", args.fmt, args.dpi)
+        # plt.close(fig)
+
+            # save_fig(fig, outdir / f"regions_{y}_per_slot", args.fmt, args.dpi)
+            # plt.close(fig)
+
 
         for y, y_label in zip(["gini", "hhi", "liveness"], ["Gini Coefficient", "HHI", "Liveness Coefficient"]):
             fig, ax = plt.subplots(figsize=(fig_w, fig_h))
@@ -657,7 +692,8 @@ def main():
                 y,
                 "name",
                 y_label,
-                f"Regions | {common_configs_str}"
+                f"Regions | {common_configs_str}",
+                False
             )
             save_fig(fig, outdir / f"regions_{y}_per_slot", args.fmt, args.dpi)
             plt.close(fig)
@@ -690,22 +726,22 @@ def main():
             plt.close(fig)
 
         # relay distances
-        fig, ax = plt.subplots(figsize=(fig_w, fig_h))
-        sns.lineplot(
-            data=total_relay_df,
-            x="slot",
-            y="avg_distance",
-            style="relay",
-            hue="name",
-            ax=ax,
-            lw=2.0,
-        )
-        ax.set_xlabel("Slot")
-        ax.set_ylabel("Avg. Distance to Relay")
-        plt.legend(title=None)
-        ax.set_title(f"Relay Distances | {common_configs_str}")
-        save_fig(fig, outdir / f"relay_distances_per_slot", args.fmt, args.dpi)
-        plt.close(fig)
+        # fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+        # sns.lineplot(
+        #     data=total_relay_df,
+        #     x="slot",
+        #     y="avg_distance",
+        #     style="relay",
+        #     hue="name",
+        #     ax=ax,
+        #     lw=2.0,
+        # )
+        # ax.set_xlabel("Slot")
+        # ax.set_ylabel("Avg. Distance to Relay")
+        # plt.legend(title=None)
+        # ax.set_title(f"Relay Distances | {common_configs_str}")
+        # save_fig(fig, outdir / f"relay_distances_per_slot", args.fmt, args.dpi)
+        # plt.close(fig)
     
         # countries
         if not total_countries_df.empty:
