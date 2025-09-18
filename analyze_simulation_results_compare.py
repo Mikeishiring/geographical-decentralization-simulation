@@ -21,6 +21,7 @@ from measure import (
 )
 
 import seaborn as sns
+
 sns.set_style("whitegrid")
 
 SPACE = SphericalSpace()
@@ -43,20 +44,23 @@ def gini(values):
     gini_coeff = (n + 1 - 2 * np.sum(cumvals) / cumvals[-1]) / n
     return gini_coeff
 
+
 def hhi(values):
     """Compute Herfindahl–Hirschman Index (HHI)"""
     values = np.array(values, dtype=float)
     total = np.sum(values)
     shares = values / total
-    return np.sum(shares ** 2)
+    return np.sum(shares**2)
+
 
 def liveness_coefficient(values):
     """Compute Liveness Coefficient"""
     values_sorted = np.sort(values)[::-1]
     total_value = np.sum(values_sorted)
     for i, v in enumerate(values_sorted):
-        if np.sum(values_sorted[:i+1]) >= total_value / 3:
-            return (i + 1)
+        if np.sum(values_sorted[: i + 1]) >= total_value / 3:
+            return i + 1
+
 
 # ------------------------ Data containers ------------------------
 @dataclass
@@ -153,14 +157,14 @@ def parse_name(name: str) -> Dict[str, Any]:
     """
     Parse a simulation run name into a dictionary of parameters.
     """
-    
+
     name = name.replace("num_slots", "slots").replace("time_window", "window")
     parts = name.split("_")
     result = {}
     i = 0
     while i < len(parts) - 1:
         key = parts[i]
-        value = parts[i+1]
+        value = parts[i + 1]
         try:
             if "." in value:
                 value = float(value)
@@ -172,10 +176,6 @@ def parse_name(name: str) -> Dict[str, Any]:
         i += 2
 
     return result
-
-
-
-
 
 
 # ------------------------ Dash-extras computation ------------------------
@@ -251,7 +251,7 @@ def compute_extras_for_slot_series(
     #                 avg_d = 0.0
     #             relay_series[relay_names[j]][i] = avg_d
 
-    # import IPython; IPython.embed(colors="neutral")  # noqa: E402   
+    # import IPython; IPython.embed(colors="neutral")  # noqa: E402
 
     return {
         "mev": mev_hist,
@@ -291,14 +291,16 @@ def compute_metrics(run_dir: Path, data_dir: Path) -> Dict[str, Any]:
     region_df = pd.read_csv(f"{data_path}/gcp_regions.csv")
     region_to_country = {}
     for region, city in zip(region_df["Region"], region_df["location"]):
-        region_to_country[region] = city.split(",")[-1].strip() if "," in city else city.strip()
-    
+        region_to_country[region] = (
+            city.split(",")[-1].strip() if "," in city else city.strip()
+        )
+
     for slot, region_list in region_counts_per_slot.items():
         country_counter = defaultdict(int)
         for region, count in region_list:
             country = region_to_country.get(region, "Unknown")
             country_counter[country] += count
-    
+
         validator_agent_countries[slot] = Counter(country_counter).most_common()
 
     region_metrics = []
@@ -308,28 +310,41 @@ def compute_metrics(run_dir: Path, data_dir: Path) -> Dict[str, Any]:
     initial_num_of_countries = len(set(region_to_country.values()))
 
     for slot in region_counts_per_slot:
-        count_values = np.array([count for _, count in region_counts_per_slot[slot]], dtype=int)
-        count_values = np.append(count_values, [0]*(initial_num_of_regions - len(count_values)))
+        count_values = np.array(
+            [count for _, count in region_counts_per_slot[slot]], dtype=int
+        )
+        count_values = np.append(
+            count_values, [0] * (initial_num_of_regions - len(count_values))
+        )
         gini_value = gini(count_values)
         hhi_value = hhi(count_values)
         live_coeff = liveness_coefficient(count_values)
         region_metrics.append((int(slot), gini_value, hhi_value, live_coeff))
-        
-    
+
     for slot in validator_agent_countries:
-        count_values = np.array([count for _, count in validator_agent_countries[slot]], dtype=int)
-        count_values = np.append(count_values, [0]*(initial_num_of_countries - len(count_values)))
+        count_values = np.array(
+            [count for _, count in validator_agent_countries[slot]], dtype=int
+        )
+        count_values = np.append(
+            count_values, [0] * (initial_num_of_countries - len(count_values))
+        )
         gini_value = gini(count_values)
         hhi_value = hhi(count_values)
         live_coeff = liveness_coefficient(count_values)
-        
+
         country_metrics.append((int(slot), gini_value, hhi_value, live_coeff))
 
-
-    region_df = pd.DataFrame(sorted(region_metrics, key=lambda x: x[0]), columns=["slot", "gini", "hhi", "liveness"])
-    country_df = pd.DataFrame(sorted(country_metrics, key=lambda x: x[0]), columns=["slot", "gini", "hhi", "liveness"])
+    region_df = pd.DataFrame(
+        sorted(region_metrics, key=lambda x: x[0]),
+        columns=["slot", "gini", "hhi", "liveness"],
+    )
+    country_df = pd.DataFrame(
+        sorted(country_metrics, key=lambda x: x[0]),
+        columns=["slot", "gini", "hhi", "liveness"],
+    )
 
     return (region_df, country_df)
+
 
 def compute_country_histograms(run_dir: Path, data_dir: Path) -> Dict[str, Any]:
     """
@@ -377,20 +392,55 @@ def compute_country_histograms(run_dir: Path, data_dir: Path) -> Dict[str, Any]:
 # ------------------------ Plotting helpers ------------------------
 
 
-def single_line(ax: plt.Axes, data_df: pd.DataFrame, x_col: str, y_col: str, hue: str, ylabel: str, title: str = "", legend: bool = True):
+def single_line(
+    ax: plt.Axes,
+    data_df: pd.DataFrame,
+    x_col: str,
+    y_col: str,
+    hue: str,
+    ylabel: str,
+    title: str = "",
+    legend: bool = True,
+    outdir: Path = None,
+):
+    if y_col == "proposal":
+        # Calculate variance for proposal time series (individually for each proposal series) and save all to the same text file
+        lvr_df = data_df[[hue, y_col]].dropna()
+        for proposal_series in data_df[hue].unique():
+            series_data = data_df[data_df[hue] == proposal_series][y_col].dropna()
+            variance = np.var(series_data)
+            lvr = ((variance / 1000) / 12) * 0.092
+            lvr_df = pd.concat(
+                [lvr_df, pd.DataFrame({hue: [proposal_series], "lvr": [lvr]})],
+                ignore_index=True,
+            )
+        # Sort by hue
+        lvr_df = lvr_df.sort_values(by=hue)
+        # Do a simple bar plot of the lvr values
+        fig, ax_bar = plt.subplots(figsize=(8, 6))
+        ax_bar.bar(lvr_df[hue], lvr_df["lvr"] * 100, color="skyblue")
+        # If hue contains "mb" make bar orange
+        if any("mb" in str(s).lower() for s in lvr_df[hue].unique()):
+            colors = [
+                "orange" if "mb" in str(s).lower() else "skyblue" for s in lvr_df[hue]
+            ]
+            ax_bar.clear()
+            ax_bar.bar(lvr_df[hue] * 100, lvr_df["lvr"], color=colors)
+
+        ax_bar.set_xlabel("Proposal Series")
+        ax_bar.set_ylabel("LVR (%)")
+        ax_bar.set_title("LVR of Proposals")
+        plt.xticks(rotation=45, ha="right")
+        plt.tight_layout()
+        # Save to the output directory
+        plt.savefig(f"{outdir}/proposal_time_lvr.pdf", dpi=300)
+        plt.close(fig)
     sns.lineplot(
-        data=data_df,
-        x=x_col,
-        y=y_col,
-        hue=hue,
-        style=hue,
-        ax=ax,
-        lw=6.0,
-        legend=legend
+        data=data_df, x=x_col, y=y_col, hue=hue, style=hue, ax=ax, lw=6.0, legend=legend
     )
     ax.set_xlabel("Slot", fontsize=40)
     ax.set_ylabel(ylabel, fontsize=40)
-    ax.set_xlim(0, data_df[x_col].max()+1)
+    ax.set_xlim(0, data_df[x_col].max() + 1)
     # plt.xticks(fontsize=28)
     # plt.yticks(fontsize=28)
     ax.tick_params(axis="x", labelsize=32)
@@ -426,8 +476,15 @@ def bar_on(ax: plt.Axes, items: List[Tuple[str, float]], title: str, xlabel: str
     ax.set_ylabel("Validators")
 
 
-
-def sns_bar_on(ax: plt.Axes, data_df: pd.DataFrame, x_col: str, y_col: str, title: str, xlabel: str, hue: str = None):
+def sns_bar_on(
+    ax: plt.Axes,
+    data_df: pd.DataFrame,
+    x_col: str,
+    y_col: str,
+    title: str,
+    xlabel: str,
+    hue: str = None,
+):
     sns.barplot(
         ax=ax,
         data=data_df,
@@ -441,7 +498,6 @@ def sns_bar_on(ax: plt.Axes, data_df: pd.DataFrame, x_col: str, y_col: str, titl
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel("# Validators")
-
 
 
 # ------------------------ Per-run worker ------------------------
@@ -465,7 +521,7 @@ def analyze_one(
     #         avg_nnd=maybe_rolling(metrics.avg_nnd, rolling),
     #         nni=maybe_rolling(metrics.nni, rolling),
     #     )
-    
+
     x_full = np.arange(1, n + 1)
     keep = np.arange(0, n, max(1, every))
 
@@ -480,13 +536,17 @@ def analyze_one(
     # -------- Extras (MEV/attest/failed/proposal + relays) --------
     run_dir = outdir.parent
     extras = compute_extras_for_slot_series(run_dir, slots)
-    extras_df = pd.DataFrame({
-        "slot": x_full[keep],
-        "mev": [extras["mev"][i] if extras["mev"] else 0.0 for i in keep],
-        "attest": [extras["attest"][i] if extras["attest"] else 0.0 for i in keep],
-        "failed": [extras["failed"][i] if extras["failed"] else 0.0 for i in keep],
-        "proposal": [extras["proposal"][i] if extras["proposal"] else 0.0 for i in keep],
-    })
+    extras_df = pd.DataFrame(
+        {
+            "slot": x_full[keep],
+            "mev": [extras["mev"][i] if extras["mev"] else 0.0 for i in keep],
+            "attest": [extras["attest"][i] if extras["attest"] else 0.0 for i in keep],
+            "failed": [extras["failed"][i] if extras["failed"] else 0.0 for i in keep],
+            "proposal": [
+                extras["proposal"][i] if extras["proposal"] else 0.0 for i in keep
+            ],
+        }
+    )
 
     # relay_extras = extras.get("relay", {}) or extras.get("info", {}) or {}
     # relay_extras_dfs = []
@@ -497,14 +557,13 @@ def analyze_one(
     #         "avg_distance": [series[i] if series else 0.0 for i in keep],
     #     })
     #     relay_extras_dfs.append(df)
-    
+
     # -------- Countries (overall + final slot) --------
     countries = compute_country_histograms(run_dir, data_dir)
 
     eval_metrics = compute_metrics(run_dir, data_dir)
-    
+
     return None, extras_df, None, countries, eval_metrics
-    
 
 
 # ------------------------ CLI ------------------------
@@ -562,13 +621,19 @@ def main():
         if not root.is_dir():
             raise SystemExit(f"--batch path not a directory: {root}")
         run_dirs = sorted([p for p in root.iterdir() if p.is_dir()])
-        runtime_configs = [parse_name(rd.name) for rd in run_dirs if rd.is_dir() and rd.name.startswith("num_")]
+        runtime_configs = [
+            parse_name(rd.name)
+            for rd in run_dirs
+            if rd.is_dir() and rd.name.startswith("num_")
+        ]
 
         common_configs = {}
         for key in runtime_configs[0].keys():
-            if all(rc.get(key) == runtime_configs[0].get(key) for rc in runtime_configs):
+            if all(
+                rc.get(key) == runtime_configs[0].get(key) for rc in runtime_configs
+            ):
                 common_configs[key] = runtime_configs[0][key]
-        
+
         print(f"Common configs: {common_configs}")
         common_configs_str = ",".join(f"{k}={v}" for k, v in common_configs.items())
         print(f"Common configs string: {common_configs_str}")
@@ -592,18 +657,22 @@ def main():
                 print(
                     f"\n→ {rd.name} | slots: {slots_path.relative_to(rd)} | out: {outdir.relative_to(rd)}"
                 )
-                metrics_df, extras_df, relay_extras_dfs, countries, eval_metrics_dfs = analyze_one(
-                    slots_path,
-                    outdir,
-                    granularity=max(1, args.granularity),
-                    rolling=args.rolling,
-                    every=max(1, args.every),
-                    data_dir=data_dir,
+                metrics_df, extras_df, relay_extras_dfs, countries, eval_metrics_dfs = (
+                    analyze_one(
+                        slots_path,
+                        outdir,
+                        granularity=max(1, args.granularity),
+                        rolling=args.rolling,
+                        every=max(1, args.every),
+                        data_dir=data_dir,
+                    )
                 )
 
                 region_df, country_df = eval_metrics_dfs
 
-                unique_name = ",".join(f"{k}={v}" for k, v in config.items() if k not in common_configs)
+                unique_name = ",".join(
+                    f"{k}={v}" for k, v in config.items() if k not in common_configs
+                )
                 # metrics_df["name"] = unique_name
                 extras_df["name"] = unique_name
                 # relay_extras_dfs["name"] = unique_name
@@ -621,7 +690,6 @@ def main():
                 print(f"✓ Processed {rd.name} with {len(total_extras)} slots")
             except Exception as e:
                 print(f"✗ Skipping {rd}: {e}")
-        
 
         # total_metrics_df = pd.concat(total_metrics, ignore_index=True)
         total_region_metrics_df = pd.concat(total_region_metrics, ignore_index=True)
@@ -653,8 +721,12 @@ def main():
         #     save_fig(fig, outdir / f"{y}_per_slot", args.fmt, args.dpi)
         #     plt.close(fig)
 
-        fig, axes = plt.subplots(1,3, figsize=(fig_w*3, fig_h), sharey=False)
-        for idx, y, y_label in zip(range(3), ["gini", "hhi", "liveness"], ["Gini Coefficient", "HHI", "Liveness Coefficient"]):
+        fig, axes = plt.subplots(1, 3, figsize=(fig_w * 3, fig_h), sharey=False)
+        for idx, y, y_label in zip(
+            range(3),
+            ["gini", "hhi", "liveness"],
+            ["Gini Coefficient", "HHI", "Liveness Coefficient"],
+        ):
             single_line(
                 axes[idx],
                 total_region_metrics_df,
@@ -663,27 +735,44 @@ def main():
                 "name",
                 y_label,
                 f"Regions | {common_configs_str}",
-                False if idx < 2 else True
+                False if idx < 2 else True,
             )
         handles, labels = axes[-1].get_legend_handles_labels()
         print(handles, labels)
         # axes[-1].legend_.remove()
         # plt.tight_layout(rect=[0, 0, 1, 0.8])
 
-        fig.legend(handles, labels, loc="upper center", fontsize=36, ncol=5, title=None, bbox_to_anchor=(0.5, 1.04), 
-            framealpha=0, facecolor="none", edgecolor="none", columnspacing=0.5)
-        plt.savefig(outdir / f"regions_metrics_per_slot.{args.fmt}", dpi=args.dpi, bbox_inches="tight")
+        fig.legend(
+            handles,
+            labels,
+            loc="upper center",
+            fontsize=36,
+            ncol=5,
+            title=None,
+            bbox_to_anchor=(0.5, 1.04),
+            framealpha=0,
+            facecolor="none",
+            edgecolor="none",
+            columnspacing=0.5,
+        )
+        plt.savefig(
+            outdir / f"regions_metrics_per_slot.{args.fmt}",
+            dpi=args.dpi,
+            bbox_inches="tight",
+        )
         plt.close(fig)
-        
+
         # plt.tight_layout()
         # save_fig(fig, outdir / f"regions_metrics_per_slot", args.fmt, args.dpi)
         # plt.close(fig)
 
-            # save_fig(fig, outdir / f"regions_{y}_per_slot", args.fmt, args.dpi)
-            # plt.close(fig)
+        # save_fig(fig, outdir / f"regions_{y}_per_slot", args.fmt, args.dpi)
+        # plt.close(fig)
 
-
-        for y, y_label in zip(["gini", "hhi", "liveness"], ["Gini Coefficient", "HHI", "Liveness Coefficient"]):
+        for y, y_label in zip(
+            ["gini", "hhi", "liveness"],
+            ["Gini Coefficient", "HHI", "Liveness Coefficient"],
+        ):
             fig, ax = plt.subplots(figsize=(fig_w, fig_h))
             single_line(
                 ax,
@@ -693,7 +782,7 @@ def main():
                 "name",
                 y_label,
                 f"Regions | {common_configs_str}",
-                False
+                False,
             )
             save_fig(fig, outdir / f"regions_{y}_per_slot", args.fmt, args.dpi)
             plt.close(fig)
@@ -706,12 +795,15 @@ def main():
                 y,
                 "name",
                 y_label,
-                f"Countries | {common_configs_str}"
+                f"Countries | {common_configs_str}",
             )
             save_fig(fig, outdir / f"countries_{y}_per_slot", args.fmt, args.dpi)
             plt.close(fig)
 
-        for y, y_label in zip(["mev", "attest", "failed", "proposal"], ["MEV", "Attestation", "Failed Proposals", "Proposal Time"]):
+        for y, y_label in zip(
+            ["mev", "attest", "failed", "proposal"],
+            ["MEV", "Attestation", "Failed Proposals", "Proposal Time"],
+        ):
             fig, ax = plt.subplots(figsize=(fig_w, fig_h))
             single_line(
                 ax,
@@ -720,7 +812,8 @@ def main():
                 y,
                 "name",
                 y_label,
-                common_configs_str
+                common_configs_str,
+                outdir=outdir,
             )
             save_fig(fig, outdir / f"{y}_per_slot", args.fmt, args.dpi)
             plt.close(fig)
@@ -742,7 +835,7 @@ def main():
         # ax.set_title(f"Relay Distances | {common_configs_str}")
         # save_fig(fig, outdir / f"relay_distances_per_slot", args.fmt, args.dpi)
         # plt.close(fig)
-    
+
         # countries
         if not total_countries_df.empty:
             for col in ["top_overall", "top_final"]:
@@ -753,7 +846,9 @@ def main():
                     for country, count in items:
                         all_items.append((name, country, count))
                 if all_items:
-                    countries_df = pd.DataFrame(all_items, columns=["name", "country", "count"])
+                    countries_df = pd.DataFrame(
+                        all_items, columns=["name", "country", "count"]
+                    )
                     fig, ax = plt.subplots(figsize=(fig_w, fig_h))
                     sns_bar_on(
                         ax,
@@ -769,6 +864,7 @@ def main():
                 plt.close(fig)
 
         print(f"✓ Processed {len(run_dirs)} runs, outputs saved to {outdir}")
+
 
 if __name__ == "__main__":
     main()
