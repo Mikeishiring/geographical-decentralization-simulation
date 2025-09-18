@@ -87,7 +87,7 @@ def macro_region_evenly_distribute_validators(gcp_regions, number_of_validators)
     return pd.DataFrame(validators, columns=["gcp_region", "latitude", "longitude"])
 
 
-def evenly_distribute_info_profiles(gcp_regions):
+def evenly_distribute_profiles(gcp_regions):
     gcp_data = [(region["gcp_region"].split("-")[0], region["gcp_region"], region["lat"], region["lon"]) for _, region in gcp_regions.iterrows()]
     macro_regions = {}
     for region in gcp_data:
@@ -100,19 +100,29 @@ def evenly_distribute_info_profiles(gcp_regions):
         macro_regions[macro_region].append(region[1:])  # Store (gcp_region, lat, lon)
 
     info_profiles = []
+    relay_profiles = []
     for macro_region, sub_regions in macro_regions.items():
         factor = len(macro_regions) * len(sub_regions)
         for i, sub_region in enumerate(sub_regions):
-            profile = {
+            info_profile = {
                 "unique_id": f"info-{macro_region}-{i}",
                 "gcp_region": sub_region[0],
                 "lat": sub_region[1],
                 "lon": sub_region[2],
                 "utility_function": LinearMEVUtility(0.4/factor, 0.04/factor, 1.0),
             }
-            info_profiles.append(profile)
+            info_profiles.append(info_profile)
+
+            relay_profile = {
+                "unique_id": f"relay-{macro_region}-{i}",
+                "gcp_region": sub_region[0],
+                "lat": sub_region[1],
+                "lon": sub_region[2],
+                "utility_function": LinearMEVUtility(0.4, 0.04, 1.0),
+            }
+            relay_profiles.append(relay_profile)
         
-    return info_profiles
+    return info_profiles, relay_profiles
 
 
 def simulation(
@@ -222,6 +232,7 @@ def simulation(
     avg_mev_series = model_data["Average_MEV_Earned"].tolist()
     supermaj_series = model_data["Supermajority_Success_Rate"].tolist()
     failed_block_proposals = model_data["Failed_Block_Proposals"].tolist()
+    utility_increase_series = model_data["Utility_Increase"].tolist()
 
     with open(f"{output_folder}/avg_mev.json", "w") as f:
         json.dump(avg_mev_series, f)
@@ -231,6 +242,9 @@ def simulation(
 
     with open(f"{output_folder}/failed_block_proposals.json", "w") as f:
         json.dump(failed_block_proposals, f)
+
+    with open(f"{output_folder}/utility_increase.json", "w") as f:
+        json.dump(utility_increase_series, f)
 
     action_reasons = model_standard.action_reasons
     action_reasons_df = pd.DataFrame(
@@ -476,7 +490,7 @@ if __name__ == "__main__":
             validators = evenly_distribute_validators(gcp_regions, num_validators)
         elif args.distribution == "macro-region-even-v0":
             validators = macro_region_evenly_distribute_validators(gcp_regions, num_validators)
-            info_profiles = evenly_distribute_info_profiles(gcp_regions)
+            info_profiles, relay_profiles = evenly_distribute_profiles(gcp_regions)
         elif args.distribution == "random":
             validators = random_validators(gcp_regions, num_validators)
         elif args.distribution == "real-world":

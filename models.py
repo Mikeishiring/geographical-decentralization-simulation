@@ -411,7 +411,6 @@ class MEVBoostModel(EthereumRawModel):
         for relay_agent in self.relay_agents:
             relay_agent.update_subsidy()
 
-        self.current_proposer_agent.estimate_profit()
         prev_gcp_region = self.current_proposer_agent.gcp_region
         is_migrated, action_reason = self.current_proposer_agent.decide_to_migrate()  # Check if proposer should migrate
         new_gcp_region = self.current_proposer_agent.gcp_region
