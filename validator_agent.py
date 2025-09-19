@@ -305,6 +305,10 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
             x["latency_threshold"]
         ))
 
+        for i in simulation_results:
+            i["slot"] = self.model.current_slot_idx
+        
+        self.model.region_profits += simulation_results
         # import IPython; IPython.embed(colors="neutral")
 
         return simulation_results[0]
@@ -593,7 +597,11 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
     def simulation_with_relays(self):
         simulation_results = []
         time_simulations = []
+        
         validator_with_relay = self.gcp_region in set([r.gcp_region for r in self.model.relay_agents])
+        relay_regions = set([r.gcp_region for r in self.model.relay_agents])
+        other_regions = set(self.model.gcp_regions["Region"].values) - relay_regions
+
         target_relays = [relay_agent for relay_agent in self.model.relay_agents if (self.preference == ValidatorPreference.NONCOMPLIANT or relay_agent.type == RelayType.CENSORING)]
         target_gcp_regions = [r.gcp_region for r in target_relays]
         region_data = [self.calculate_minimal_needed_time_params(gcp_region) for gcp_region in target_gcp_regions]
@@ -621,17 +629,29 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
                 }
             )
 
-            if not validator_with_relay:
-                latency_threshold -= self.network_latency_to_target[target_relay.unique_id]
-                mev_offer = target_relay.get_mev_offer_at_time(latency_threshold)
+            for region in other_regions:
+                region_to_relay_latency = self.model.space.get_latency(region, target_relay.gcp_region)
+                new_latency_threshold = latency_threshold - region_to_relay_latency
+                mev_offer = target_relay.get_mev_offer_at_time(new_latency_threshold)
                 simulation_results.append(
                     {
-                        "gcp_region": self.gcp_region,
+                        "gcp_region": region,
                         "relay": target_relay,
-                        "latency_threshold": latency_threshold,
+                        "latency_threshold": new_latency_threshold,
                         "mev_offer": round(mev_offer, 6),
                     }
                 )
+            # if not validator_with_relay:
+            #     latency_threshold -= self.network_latency_to_target[target_relay.unique_id]
+            #     mev_offer = target_relay.get_mev_offer_at_time(latency_threshold)
+            #     simulation_results.append(
+            #         {
+            #             "gcp_region": self.gcp_region,
+            #             "relay": target_relay,
+            #             "latency_threshold": latency_threshold,
+            #             "mev_offer": round(mev_offer, 6),
+            #         }
+            #     )
 
         sub_results = [result for result in simulation_results if result["gcp_region"] == self.gcp_region]
         sub_results.sort(key=lambda x: (-x["mev_offer"], x["latency_threshold"]))
@@ -652,6 +672,10 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
             0 if x["gcp_region"] == self.gcp_region else 1,
             x["latency_threshold"])
         )
+
+        for i in simulation_results:
+            i["slot"] = self.model.current_slot_idx
+        self.model.region_profits += simulation_results
 
         return simulation_results[0]
 

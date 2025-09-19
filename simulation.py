@@ -234,6 +234,9 @@ def simulation(
     failed_block_proposals = model_data["Failed_Block_Proposals"].tolist()
     utility_increase_series = model_data["Utility_Increase"].tolist()
 
+    gcp_region_profits = pd.DataFrame(model_standard.region_profits)
+    gcp_region_profits.to_csv(f"{output_folder}/region_profits.csv", index=False)
+
     with open(f"{output_folder}/avg_mev.json", "w") as f:
         json.dump(avg_mev_series, f)
 
@@ -490,7 +493,7 @@ if __name__ == "__main__":
             validators = evenly_distribute_validators(gcp_regions, num_validators)
         elif args.distribution == "macro-region-even-v0":
             validators = macro_region_evenly_distribute_validators(gcp_regions, num_validators)
-            info_profiles, relay_profiles = evenly_distribute_profiles(gcp_regions)
+            # info_profiles, relay_profiles = evenly_distribute_profiles(gcp_regions)
         elif args.distribution == "random":
             validators = random_validators(gcp_regions, num_validators)
         elif args.distribution == "real-world":

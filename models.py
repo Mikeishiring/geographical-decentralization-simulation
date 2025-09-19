@@ -96,6 +96,7 @@ class EthereumRawModel(Model):
         )
         self.attestation_rate = 0.0  # Calculated as a percentage
         self.failed_block_proposals = 0  # Count of failed block proposals
+        self.region_profits = []
 
         # --- Setup DataCollector ---
         self.datacollector = self._setup_datacollector()
