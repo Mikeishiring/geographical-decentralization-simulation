@@ -3,7 +3,7 @@ import math
 import random
 
 from collections import deque
-from mesa import Model, DataCollector, Agent
+from mesa import Model, DataCollector
 
 from consensus import ConsensusSettings
 from constants import (
@@ -15,7 +15,7 @@ from distribution import (
     LatencyGenerator,
     init_distance_matrix,
 )
-from info_agent import InfoAgent, INFO_PROFILES
+from signal_agent import SignalAgent, SIGNAL_PROFILES
 from relay_agent import RelayAgent, RELAY_PROFILES
 from validator_agent import ValidatorWithMEVBoost, ValidatorWithoutMEVBoost, ValidatorType, ValidatorPreference
 
@@ -23,7 +23,7 @@ from validator_agent import ValidatorWithMEVBoost, ValidatorWithoutMEVBoost, Val
 
 class EthereumRawModel(Model):
     """
-    The main simulation model for Ethereum without MEV-Boost, managing validators and information sources.
+    The main simulation model for Ethereum without MEV-Boost, managing validators and signals.
     """
 
     def __init__(
@@ -49,7 +49,7 @@ class EthereumRawModel(Model):
 
         # --- Store Configuration Parameters (from args or defaults) ---
         self.num_validators = num_validators
-        self.validator_profiles = validator_profiles # DataFrame with validator info (lat/lon)
+        self.validator_profiles = validator_profiles # DataFrame with validator (lat/lon)
         self.timing_strategies_pool = timing_strategies_pool
         self.location_strategies_pool = location_strategies_pool
         self.num_slots = num_slots
@@ -138,6 +138,7 @@ class EthereumRawModel(Model):
             },
         )
 
+
     def _setup_new_slot(self):
         """
         Manages the setup for a new logical slot:
@@ -175,10 +176,12 @@ class EthereumRawModel(Model):
     def get_current_proposer_agent(self):
         """Helper to get the current proposer from the model for attesters."""
         return self.current_proposer_agent
-    
+
+
     def get_current_attesters(self):
         """Helper to get the current attesters from the model for proposer."""
         return self.current_attesters
+
 
     def step(self):
         """
@@ -249,8 +252,6 @@ class EthereumRawModel(Model):
         if len(self.migration_queue) == self.migration_queue.maxlen and not any(self.migration_queue):
             self.running = False
 
-        # if (self.steps * self.consensus_settings.time_granularity_ms) > (self.num_slots * self.consensus_settings.slot_duration_ms):
-        #     self.running = False  # Stop the simulation loop
 
     def get_validator_region_percentage(self, gcp_region):
         """
@@ -340,22 +341,21 @@ class EthereumWithoutMEVBoostModel(EthereumRawModel):
         filtered_kwargs = {k: v for k, v in kwargs.items() if k in inspected_args}
         super().__init__(*args, **filtered_kwargs)
 
-        num_info = kwargs.get('num_infos', 3)
-        info_profiles = kwargs.get('info_profiles', INFO_PROFILES)
+        num_signals = kwargs.get('num_signals', 3)
+        signal_profiles = kwargs.get('signal_profiles', SIGNAL_PROFILES)
 
         # --- Create Agents ---
         self.create_validator_agents(ValidatorWithoutMEVBoost)
 
-        # if num_info > 3: # Limit to max 3 information sources for now
-        InfoAgent.create_agents(
+        SignalAgent.create_agents(
             model=self,
-            n=num_info
+            n=num_signals
         )
 
         # --- Initialize Agents ---
-        self.info_agents = self.agents.select(agent_type=InfoAgent)
-        for info_agent, info_profile in zip(self.info_agents, info_profiles):
-            info_agent.initialize_with_profile(info_profile)
+        self.signal_agents = self.agents.select(agent_type=SignalAgent)
+        for signal_agent, signal_profile in zip(self.signal_agents, signal_profiles):
+            signal_agent.initialize_with_profile(signal_profile)
 
         # --- Initial Slot Setup (before first step) ---
         self._setup_new_slot()
@@ -372,7 +372,7 @@ class EthereumWithoutMEVBoostModel(EthereumRawModel):
         self.migration_queue.append(is_migrated)
         self.action_reasons.append((action_reason, prev_gcp_region, new_gcp_region))
 
-        [info_agent.update_mev_offer() for info_agent in self.info_agents]
+        [signal_agent.update_mev_offer() for signal_agent in self.signal_agents]
     
 
 class MEVBoostModel(EthereumRawModel):

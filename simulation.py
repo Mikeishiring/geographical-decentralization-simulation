@@ -11,12 +11,11 @@ from collections import defaultdict, Counter
 
 from constants import LinearMEVUtility
 from consensus import ConsensusSettings
-from distribution import convert_to_marco_regions, parse_gcp_latency
+from distribution import parse_gcp_latency
 from measure import *  # Assuming measure.py contains necessary measurement functions
 from models import MEVBoostModel, EthereumWithoutMEVBoostModel
-from relay_agent import initialize_relays, get_evenly_distributed_relay_profiles
-from info_agent import initialize_infos, get_evenly_distributed_info_profiles
-
+from relay_agent import initialize_relays
+from signal_agent import initialize_signals
 
 # --- Simulation Initialization Functions ---
 
@@ -51,7 +50,8 @@ def random_validators(gcp_regions, number_of_validators):
 
     return pd.DataFrame(validators, columns=["gcp_region", "latitude", "longitude"])
 
-def evenly_distribute_validators(gcp_regions, number_of_validators):
+
+def homogeneous_validators_per_gcp(gcp_regions, number_of_validators):
     """Generates a list of validators evenly distributed across GCP regions."""
     gcp_data = [(region["gcp_region"], region["lat"], region["lon"]) for _, region in gcp_regions.iterrows()]
     num_regions = len(gcp_data)
@@ -59,7 +59,8 @@ def evenly_distribute_validators(gcp_regions, number_of_validators):
 
     return pd.DataFrame(validators, columns=["gcp_region", "latitude", "longitude"])
 
-def macro_region_evenly_distribute_validators(gcp_regions, number_of_validators):
+
+def homogeneous_validators(gcp_regions, number_of_validators):
     """Generates a list of validators evenly distributed across major GCP regions."""
     gcp_data = [(region["gcp_region"].split("-")[0], region["gcp_region"], region["lat"], region["lon"]) for _, region in gcp_regions.iterrows()]
     macro_regions = {}
@@ -87,7 +88,7 @@ def macro_region_evenly_distribute_validators(gcp_regions, number_of_validators)
     return pd.DataFrame(validators, columns=["gcp_region", "latitude", "longitude"])
 
 
-def evenly_distribute_profiles(gcp_regions):
+def homogeneous_info_sources(gcp_regions):
     gcp_data = [(region["gcp_region"].split("-")[0], region["gcp_region"], region["lat"], region["lon"]) for _, region in gcp_regions.iterrows()]
     macro_regions = {}
     for region in gcp_data:
@@ -99,19 +100,19 @@ def evenly_distribute_profiles(gcp_regions):
             macro_regions[macro_region] = []
         macro_regions[macro_region].append(region[1:])  # Store (gcp_region, lat, lon)
 
-    info_profiles = []
+    signal_profiles = []
     relay_profiles = []
     for macro_region, sub_regions in macro_regions.items():
         factor = len(macro_regions) * len(sub_regions)
         for i, sub_region in enumerate(sub_regions):
-            info_profile = {
-                "unique_id": f"info-{macro_region}-{i}",
+            signal_profile = {
+                "unique_id": f"signal-{macro_region}-{i}",
                 "gcp_region": sub_region[0],
                 "lat": sub_region[1],
                 "lon": sub_region[2],
                 "utility_function": LinearMEVUtility(0.4/factor, 0.04/factor, 1.0),
             }
-            info_profiles.append(info_profile)
+            signal_profiles.append(signal_profile)
 
             relay_profile = {
                 "unique_id": f"relay-{macro_region}-{i}",
@@ -122,7 +123,7 @@ def evenly_distribute_profiles(gcp_regions):
             }
             relay_profiles.append(relay_profile)
         
-    return info_profiles, relay_profiles
+    return signal_profiles, relay_profiles
 
 
 def simulation(
@@ -134,7 +135,7 @@ def simulation(
     gcp_latency,
     consensus_settings,  # Pass the ConsensusSettings object
     relay_profiles,  # Pass the list of Relay profiles
-    info_profiles,
+    signal_profiles,
     timing_strategies,  # Pass the list of timing strategies
     location_strategies,  # Pass the list of location strategies
     simulation_name,  # Simulation name from YAML
@@ -165,7 +166,7 @@ def simulation(
     model_params_standard_nomig = {
         "num_validators": number_of_validators,
         "num_relays": len(relay_profiles),  # Use the actual number of loaded relays
-        "num_infos": len(info_profiles),
+        "num_signals": len(signal_profiles),
         "timing_strategies_pool": all_timing_strategies,
         "location_strategies_pool": all_location_strategies,
         "num_slots": num_slots,
@@ -175,7 +176,7 @@ def simulation(
         "gcp_latency": gcp_latency,
         "consensus_settings": consensus_settings,  # Pass the ConsensusSettings object to the model
         "relay_profiles": relay_profiles,  # Pass the Relay profiles to the model
-        "info_profiles": info_profiles,
+        "signal_profiles": signal_profiles,
         "time_window": time_window,  # Time window for migration checks
         "fast_mode": fast_mode,  # Fast mode for latency computation
         "cost": cost,  # Cost for migration
@@ -223,7 +224,7 @@ def simulation(
     # profiles:
     for profiles, output_name in [
         (relay_profiles, "relay_names.json"),
-        (info_profiles, "info_names.json"),
+        (signal_profiles, "signal_names.json"),
     ]:
         names = [profile["unique_id"] for profile in profiles]
         with open(f"{output_folder}/{output_name}", "w") as f:
@@ -289,7 +290,7 @@ def simulation(
     )
 
     relay_agent_data = agent_data[agent_data["Role"] == "relay_agent"]
-    relay_positions = relay_agent_data["Position"].iloc[0:number_of_relays]
+    relay_positions = relay_agent_data["Position"].iloc[0:len(relay_profiles)]
     # Since relay is not moving, we can just use the first position and multiply it by the number of slots
     # --------------------------------------------
     # build one relay-point list per slot
@@ -301,11 +302,13 @@ def simulation(
         relay_pos_list for _ in range(len(nested_array))  # <- extra [] !
     ]
     # --------------------------------------------
-    info_agent_data = agent_data[agent_data["Role"] == "info_agent"]
-    info_positions = info_agent_data["Position"].iloc[0 : len(info_profiles)]
-    info_pos_list = [list(info_position) for info_position in info_positions]
-    nested_array_info = [
-        info_pos_list for _ in range(len(nested_array))  # <- extra [] !
+    signal_agent_data = agent_data[agent_data["Role"] == "signal_agent"]
+    signal_positions = signal_agent_data["Position"].iloc[0 : len(signal_profiles)]
+    signal_pos_list = [
+        list(signal_position) for signal_position in signal_positions
+    ]
+    nested_array_signal = [
+        signal_pos_list for _ in range(len(nested_array))  # <- extra [] !
     ]
 
     latest_steps = (
@@ -339,17 +342,17 @@ def simulation(
 
     with open(f"{output_folder}/relay_data.json", "w") as f:
         json.dump(nested_array_relay, f)
-    with open(f"{output_folder}/info_data.json", "w") as f:
-        json.dump(nested_array_info, f)
+    with open(f"{output_folder}/signal_data.json", "w") as f:
+        json.dump(nested_array_signal, f)
 
     with open(f"{output_folder}/region_counter_per_slot.json", "w") as f:
         json.dump(region_counter_per_slot, f)
 
     print("Saved data in JSON files in the output directory.")
-    print("Information sources:")
-    if len(nested_array_info) > 0:
-        print("Infos:")
-        print("\n".join([f"{i['unique_id']} ({i['gcp_region']})" for i in info_profiles]))
+    print("Information Sources:")
+    if len(nested_array_signal) > 0:
+        print("Signals:")
+        print("\n".join([f"{i['unique_id']} ({i['gcp_region']})" for i in signal_profiles]))
     if len(nested_array_relay) > 0:
         print("Relays:")
         print("\n".join([f"{r['unique_id']} ({r['gcp_region']})" for r in relay_profiles]))
@@ -365,10 +368,16 @@ if __name__ == "__main__":
         help="Path to the simulation configuration YAML file (default: 'params/simulation_config.yaml')",
     )
     parser.add_argument(
-        "--input_dir",
+        "--input-dir",
         type=str,
         default="data",
         help="Directory to read input data (default: 'data')",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="default",
+        help="Directory to save output data (default is configured in the YAML file)",
     )
     parser.add_argument(
         "--model",
@@ -411,9 +420,34 @@ if __name__ == "__main__":
     parser.add_argument(
         "--distribution",
         type=str,
-        default="even",
-        choices=["even", "macro-region-even", "macro-region-even-v0", "random", "real-world"],
-        help="Assign validators / information sources to GCP regions (default: False)"
+        default="homogeneous",
+        choices=["homogeneous", "heterogeneous", "random", "homogeneous-gcp"],
+        help="Validator distribution strategy (default: homogeneous)"
+    )
+    parser.add_argument(
+        "--info-distribution",
+        type=str,
+        default="homogeneous",
+        choices=["homogeneous", "heterogeneous"],
+        help="Distribution of information sources (default: homogeneous)"
+    )
+    parser.add_argument(
+        "--gamma",
+        type=float,
+        default=0.6667,
+        help="Attestation threshold (\\gamma, γ) (default: 0.6667)",
+    )
+    parser.add_argument(
+        "--delta",
+        type=int,
+        default=12000,
+        help="Slot time (\\Delta, Δ) in milliseconds (default: 12000)",
+    )
+    parser.add_argument(
+        "--cutoff",
+        type=int,
+        default=4000,
+        help="Cutoff time for attestations in milliseconds (default: 4000)",
     )
 
     args = parser.parse_args()
@@ -435,6 +469,9 @@ if __name__ == "__main__":
         # Initialize Consensus Settings
         consensus_parameters = config.get("consensus_settings", {})
         consensus_settings = ConsensusSettings(**consensus_parameters)
+        consensus_settings.attestation_threshold = args.gamma
+        consensus_settings.slot_duration_ms = args.delta
+        consensus_settings.attestation_time_ms = args.cutoff
 
         # Time window for migration checks
         time_window = (
@@ -447,18 +484,24 @@ if __name__ == "__main__":
         # cost for migration
         cost = args.cost if args.cost is not None else config.get("migration_cost", 0.0001)
 
-        output_folder = os.path.join(
-            output_folder,
-            f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}",
-        )
+        if args.output_dir == "default":
+            output_folder = os.path.join(
+                output_folder,
+                f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{args.gamma}_delta_{args.delta}_cutoff_{args.cutoff}",
+            )
+        else:
+            output_folder = args.output_dir
 
         gcp_regions = pd.read_csv(os.path.join(input_folder, "gcp_regions.csv"))
         gcp_latency = pd.read_csv(os.path.join(input_folder, "gcp_latency.csv"))
+        gcp_latency = parse_gcp_latency(gcp_latency)
+
 
         gcp_regions["gcp_region"] = gcp_regions["Region"]
         gcp_regions["lat"] = gcp_regions["Nearest City Latitude"]
         gcp_regions["lon"] = gcp_regions["Nearest City Longitude"]
     
+        # heterogeneous distribution of validators
         # Input data (validators, gcp_regions, gcp_latency) are still from CSVs
         validators = pd.read_csv(os.path.join(input_folder, "validators.csv"))
         # Sample validators if the CSV has more than the configured number
@@ -469,34 +512,23 @@ if __name__ == "__main__":
                 f"Using all {len(validators)} validators from CSV as it's less than configured {num_validators}."
             )
 
-        if args.distribution == "macro-region-even":
-            gcp_regions, gcp_latency = convert_to_marco_regions(gcp_regions, gcp_latency)
-
-            number_of_relays = number_of_infos = gcp_regions.shape[0]
-            info_profiles = get_evenly_distributed_info_profiles(gcp_regions, number_of_infos)
-            relay_profiles = get_evenly_distributed_relay_profiles(gcp_regions, number_of_relays)
+        if args.info_distribution == "homogeneous":
+            signal_profiles, relay_profiles = homogeneous_info_sources(gcp_regions)
         else:
-            gcp_latency = parse_gcp_latency(gcp_latency)
-
+            signal_profiles_data = config.get("signal_profiles", [])
             relay_profiles_data = config.get("relay_profiles", [])
+            signal_profiles = initialize_signals(signal_profiles_data)
             relay_profiles = initialize_relays(relay_profiles_data)
-            number_of_relays = len(relay_profiles)
 
-            info_profiles_data = config.get("info_profiles", [])
-            info_profiles = initialize_infos(info_profiles_data)
-            number_of_infos = len(info_profiles)
 
-        # Initialize Relays/Info
-        if args.distribution == "even":
-            validators = evenly_distribute_validators(gcp_regions, num_validators)
-        elif args.distribution == "macro-region-even":
-            validators = evenly_distribute_validators(gcp_regions, num_validators)
-        elif args.distribution == "macro-region-even-v0":
-            validators = macro_region_evenly_distribute_validators(gcp_regions, num_validators)
-            # info_profiles, relay_profiles = evenly_distribute_profiles(gcp_regions)
-        elif args.distribution == "random":
+        # Initialize Validator Distribution
+        if args.distribution == "homogeneous-gcp": # homogeneous across all GCP regions
+            validators = homogeneous_validators_per_gcp(gcp_regions, num_validators)
+        elif args.distribution == "homogeneous": # homogeneous across macro regions
+            validators = homogeneous_validators(gcp_regions, num_validators)
+        elif args.distribution == "random": # random across all GCP regions
             validators = random_validators(gcp_regions, num_validators)
-        elif args.distribution == "real-world":
+        elif args.distribution == "heterogeneous": # real-world heterogeneous from CSV
             pass
 
         # Get Proposer Timing Strategies
@@ -524,7 +556,7 @@ if __name__ == "__main__":
             gcp_latency=gcp_latency,
             consensus_settings=consensus_settings,
             relay_profiles=relay_profiles,
-            info_profiles=info_profiles,
+            signal_profiles=signal_profiles,
             timing_strategies=timing_strategies,
             location_strategies=location_strategies,
             simulation_name=simulation_name,

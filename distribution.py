@@ -1,84 +1,10 @@
 import math
 import numpy as np
-import pandas as pd
 import random
-import re
 
 from abc import ABC, abstractmethod
 from scipy.stats import norm, lognorm, poisson_binom
 from functools import lru_cache
-
-
-_CONTINENT_RULES = [
-    (r"^us-|^northamerica-", "North America"),
-    (r"^southamerica-",      "South America"),
-    (r"^europe-",            "Europe"),
-    (r"^asia-",              "Asia"),
-    (r"^australia-",         "Oceania"),
-    (r"^me-",                "Middle East"),
-    (r"^africa-",            "Africa"),
-]
-
-
-def to_continent(region: str) -> str:
-    for pat, name in _CONTINENT_RULES:
-        if re.match(pat, region):
-            return name
-    return "Other"
-
-def convert_to_marco_regions(
-    regions,
-    latency
-):
-    reg_ids = set(regions["Region"])
-    latency = latency[
-        latency["sending_region"].isin(reg_ids) &
-        latency["receiving_region"].isin(reg_ids)
-    ].copy()
-
-    regions["Continent"] = regions["Region"].map(to_continent)
-    cont_map = dict(zip(regions["Region"], regions["Continent"]))
-    latency["from_c"] = latency["sending_region"].map(cont_map)
-    latency["to_c"]   = latency["receiving_region"].map(cont_map)
-
-    # Undirected mean per continent pair
-    latency["pair"] = latency.apply(
-        lambda r: tuple(sorted([r["from_c"], r["to_c"]])), axis=1
-    )
-    c_lat = latency.groupby("pair")["milliseconds"].median().reset_index()
-
-    # Build symmetric matrix
-    mat = {}
-
-    for _, row in c_lat.iterrows():
-        a, b = row["pair"]; ms = row["milliseconds"]
-        mat[(a, b)] = ms
-        mat[(b, a)] = ms
-
-    regions = (
-        regions.groupby("Continent")[["Nearest City Longitude", "Nearest City Latitude"]]
-        .mean()
-        .rename(columns={"Nearest City Longitude": "lon", "Nearest City Latitude": "lat"})
-    )
-
-    regions["Nearest City Longitude"] = regions["lon"]
-    regions["Nearest City Latitude"] = regions["lat"]
-    regions["gcp_region"] = regions.index
-    regions["Region"] = regions.index
-    regions["Region Name"] = regions.index
-
-    return regions, mat
-
-
-def parse_gcp_latency(latency_df):
-    latency_dict = {}
-    for _, row in latency_df.iterrows():
-        key1 = (row["sending_region"], row["receiving_region"])
-        latency_dict[key1] = row["milliseconds"]
-        key2 = (row["receiving_region"], row["sending_region"])
-        latency_dict[key2] = row["milliseconds"]
-
-    return latency_dict
 
 
 # --- Spatial Classes ---
@@ -130,6 +56,7 @@ class SphericalSpace(Space):
                 scale = 1.0 / math.sqrt(r2)
                 return (x * scale, y * scale, z * scale)
 
+
     def distance(self, p1, p2):
         """
         Calculates the geodesic distance between two points on a unit sphere.
@@ -140,15 +67,18 @@ class SphericalSpace(Space):
         dotp = max(-1.0, min(1.0, dotp))
         return math.acos(dotp)
 
+
     def get_area(self):
         """Returns the surface area of a unit sphere."""
         return 4 * np.pi
+
 
     def get_max_dist(self):
         """Returns the maximum possible geodesic distance on a unit sphere (half circumference)."""
         return (
             np.pi
         )  # Half the circumference of a unit circle (pi * diameter = pi * 2 * radius = 2*pi * 1 / 2 = pi)
+
 
     def get_coordinate_from_lat_lon(self, lat, lon):
         """
@@ -162,12 +92,14 @@ class SphericalSpace(Space):
         z = math.sin(phi)
         return (x, y, z)
     
+
     def set_gcp_latency_regions(self, gcp_latency, gcp_regions):
         """
         Sets the GCP latency
         """
         self.gcp_latency = gcp_latency
         self.gcp_regions = gcp_regions
+
 
     def get_nearest_gcp_region(self, position, gcp_regions):
         """
@@ -236,39 +168,6 @@ def update_distance_matrix_for_node(dist_matrix, positions, space, moved_idx):
             dist_matrix[j][i] = d
 
 
-# --- Latency Distribution ---
-# This function generates a normal distribution of latencies based on a given mean latency.
-def generate_normal_latency_distribution(mean_latency, std_dev_ratio=0.1, num_samples=10000):
-    """
-    Generates a normal distribution of latencies from a given mean latency.
-
-    Parameters:
-    mean_latency (float): The desired mean of the latency distribution.
-    std_dev_ratio (float): The ratio of standard deviation to the mean.
-                           (e.g., 0.1 means std_dev = 10% of mean_latency)
-    num_samples (int): The number of latency samples to generate.
-
-    Returns:
-    numpy.ndarray: An array of simulated latency values.
-    """
-    if mean_latency <= 0:
-        raise ValueError("Mean latency must be positive.")
-    if std_dev_ratio <= 0:
-        raise ValueError("Standard deviation ratio must be positive.")
-
-    # Calculate standard deviation based on the ratio
-    std_dev = mean_latency * std_dev_ratio
-
-    # Generate samples from a normal distribution
-    latencies = np.random.normal(loc=mean_latency, scale=std_dev, size=num_samples)
-
-    # Latency cannot be negative, so cap any negative values at 0.
-    # This is a common practical adjustment for normal distributions modeling non-negative quantities.
-    latencies[latencies < 0] = 0
-    
-    return latencies
-
-
 class LatencyGenerator:
     """
     A performance-optimized class for generating latency samples from a given distribution.
@@ -284,6 +183,7 @@ class LatencyGenerator:
         # The cache will store the calculated distribution objects, not large arrays of samples.
         self.dist_cache = {}
         self.fast = fast
+
 
     def inititalize_distribution(self, mean_latency, std_dev_ratio=0.1):
         """
@@ -320,7 +220,8 @@ class LatencyGenerator:
                 
                 # Create a lognormal distribution object.
                 self.dist_cache[key] = lognorm(s=sigma, scale=np.exp(mu))
-            
+
+
     # fast mode: return mean directly if enabled
     def get_latency(self, mean_latency, std_dev_ratio=0.1):
         """
@@ -352,190 +253,28 @@ class LatencyGenerator:
         return distribution.rvs(size=1)[0]
 
 
-    def evaluate_threshold_with_monte_carlo(
-        self,
-        shared_means,
-        shared_stds,
-        broadcast_means,
-        broadcast_stds,
-        threshold,
-        required_attesters,
-        samples=10000
-    ):
-        """
-        Estimate the probability that at least `required_attesters` receive the message
-        within the given latency threshold.
-
-        Parameters:
-        - shared_means: list of means for the first 3 shared segments (A→B→A→B)
-        - shared_stds: list of stddevs for the first 3 shared segments
-        - broadcast_means: list of means for B→attester_i broadcast (per attester)
-        - broadcast_stds: list of stddevs for B→attester_i (per attester)
-        - threshold: latency threshold to compare against (float)
-        - required_attesters: how many attesters must receive below the threshold
-        - samples: number of Monte Carlo samples to use
-
-        Returns:
-        - probability of satisfying the threshold condition
-        """
-
-        # Step 1: Sample the total shared latency (A -> B -> A -> B)
-        shared_latency = np.zeros(samples)
-        for mean, std in zip(shared_means, shared_stds):
-            if std <= 0:
-                shared_latency += mean
-            else:
-                self.inititalize_distribution(mean, std)
-                key = (mean, std)
-                if key not in self.dist_cache:
-                    continue
-                dist = self.dist_cache[key]
-                shared_latency += dist.rvs(size=samples)
-
-        # Step 2: For each attester, add their broadcast delay and compute the success prob
-        success_probs = []
-        for mean, std in zip(broadcast_means, broadcast_stds):
-            if std <= 0:
-                total_latency = shared_latency + mean
-            else:
-                self.inititalize_distribution(mean, std)
-                key = (mean, std)
-                if key in self.dist_cache:
-                    dist = self.dist_cache[key]
-                    total_latency = shared_latency + dist.rvs(size=samples)
-                else:
-                    total_latency = shared_latency # mean is 0
-
-            prob = np.mean(total_latency < threshold)
-            success_probs.append(prob)
-
-        # Step 3: Use Poisson Binomial to compute probability of at least `required_attesters` successes
-        pb = poisson_binom(success_probs)
-        return 1 - pb.cdf(required_attesters - 1)
-    
-    # @lru_cache(maxsize=1024)
-    def find_min_threshold_with_monte_carlo(
-        self,
-        shared_means,
-        shared_stds,
-        broadcast_means,
-        broadcast_stds,
-        required_attesters,
-        target_prob=0.95,
-        samples=10000,
-        threshold_low=0.0,
-        threshold_high=4000.0,
-        tolerance=5.0
-    ):
-        """
-        Binary search for the minimum latency threshold such that
-        the success probability is >= target_prob.
-        """
-        while threshold_high - threshold_low > tolerance:
-            mid = (threshold_low + threshold_high) / 2
-            prob = self.evaluate_threshold_with_monte_carlo(
-                shared_means,
-                shared_stds,
-                broadcast_means,
-                broadcast_stds,
-                threshold=mid,
-                required_attesters=required_attesters,
-                samples=samples
-            )
-
-            if prob >= target_prob:
-                threshold_high = mid  # try to reduce threshold
-            else:
-                threshold_low = mid  # need more time
-
-        return (threshold_high + threshold_low) / 2  # or threshold_high / threshold_low, depending on preference
-    
-    def evaluate_threshold(
-        self,
-        broadcast_latencies,
-        broadcast_stds,
-        threshold,
-        required_attesters
-    ):
-        """
-        Evaluates the probability that at least one attester receives the broadcast
-        within the given latency threshold.
-
-        Parameters:
-        - broadcast_latencies: list of latencies for each attester's broadcast
-        - broadcast_stds: list of standard deviations for each attester's broadcast
-        - threshold: latency threshold to compare against (float)
-
-        Returns:
-        - probability of at least one attester receiving within the threshold
-        """
-        if not broadcast_latencies or not broadcast_stds:
-            return 0.0
-
-        probabilities = []
-        for latency, std in zip(broadcast_latencies, broadcast_stds):
-            if std <= 0:
-                prob = 1.0 if latency < threshold else 0.0
-                probabilities.append(prob)
-            else:
-                # Handle zero or negative latency cases
-                if latency <= 0:
-                    probabilities.append(1.0)
-                    continue
-
-                self.inititalize_distribution(latency, std)
-                key = (latency, std)
-                if key not in self.dist_cache:
-                    continue
-                dist = self.dist_cache[key]
-                probabilities.append(
-                    dist.cdf(threshold)  # Probability that this attester receives within threshold
-                )
-        
-        pb = poisson_binom(probabilities)
-        return pb.sf(required_attesters - 1)
-
-    @lru_cache(maxsize=1024)
-    def find_min_threshold(
-        self,
-        broadcast_latencies,
-        broadcast_stds,
-        required_attesters,
-        target_prob=0.99,
-        threshold_low=0.0,
-        threshold_high=4000.0,
-        tolerance=5.0
-    ):
-        while threshold_high - threshold_low > tolerance:
-            mid = (threshold_low + threshold_high) / 2
-            prob = self.evaluate_threshold(
-                broadcast_latencies,
-                broadcast_stds,
-                threshold=mid,
-                required_attesters=required_attesters
-            )
-            if prob >= target_prob:
-                threshold_high = mid
-            else:
-                threshold_low = mid
-            
-            if threshold_high - threshold_low < tolerance:
-                break
-        
-        return (threshold_high + threshold_low) / 2  # or threshold_high / threshold_low, depending on preference
-    
     def get_search_space(self, T):
         """
         Returns the search space for the latency distribution.
         This is a placeholder method that can be overridden in subclasses.
         """
         return None
+
     
     def compute_the_delay_from_distribution(self):
         pass  # Placeholder for potential methods.
 
 
-    
+def parse_gcp_latency(latency_df):
+    latency_dict = {}
+    for _, row in latency_df.iterrows():
+        key1 = (row["sending_region"], row["receiving_region"])
+        latency_dict[key1] = row["milliseconds"]
+        key2 = (row["receiving_region"], row["sending_region"])
+        latency_dict[key2] = row["milliseconds"]
+
+    return latency_dict
+
 
 @lru_cache(maxsize=1024)
 def inititalize_distribution(mean_latency, std_dev_ratio=0.1):
@@ -547,34 +286,6 @@ def inititalize_distribution(mean_latency, std_dev_ratio=0.1):
     sigma = np.sqrt(np.log(1 + (std_dev**2 / mean_latency**2)))
     
     return lognorm(s=sigma, scale=np.exp(mu))
-
-
-@lru_cache(maxsize=1024)
-def evaluate_threshold(
-        broadcast_latencies,
-        broadcast_stds,
-        threshold,
-        required_attesters
-    ):
-        if not broadcast_latencies or not broadcast_stds:
-            return 0.0
-
-        probabilities = []
-        for latency, std in zip(broadcast_latencies, broadcast_stds):
-            if std <= 0:
-                prob = 1.0 if latency < threshold else 0.0
-                probabilities.append(prob)
-            else:
-                if latency <= 0:
-                    probabilities.append(1.0)
-                    continue
-                dist = inititalize_distribution(latency, std)
-                probabilities.append(
-                    dist.cdf(threshold)
-                )
-        
-        pb = poisson_binom(probabilities)
-        return pb.sf(required_attesters - 1)
 
 
 @lru_cache(maxsize=1024)
@@ -623,36 +334,6 @@ def evaluate_threshold_fast(
         return pb.sf(required_attesters - 1)
 
 
-
-@lru_cache(maxsize=1024)
-def find_min_threshold(
-        broadcast_latencies,
-        broadcast_stds,
-        required_attesters,
-        target_prob=0.99,
-        threshold_low=0.0,
-        threshold_high=4000.0,
-        tolerance=5.0
-    ):
-        while threshold_high - threshold_low > tolerance:
-            mid = (threshold_low + threshold_high) / 2
-            prob = evaluate_threshold(
-                broadcast_latencies,
-                broadcast_stds,
-                threshold=mid,
-                required_attesters=required_attesters
-            )
-            if prob >= target_prob:
-                threshold_high = mid
-            else:
-                threshold_low = mid
-            
-            if threshold_high - threshold_low < tolerance:
-                break
-        
-        return (threshold_high + threshold_low) / 2
-
-
 @lru_cache(maxsize=1024)
 def find_min_threshold_fast(
         broadcast_latencies, # MUST be a tuple
@@ -661,7 +342,7 @@ def find_min_threshold_fast(
         target_prob=0.99,
         threshold_low=0.0,
         threshold_high=4000.0,
-        tolerance=5.0
+        tolerance=1.0
     ):
         # The binary search logic is already efficient. The main speedup comes
         # from calling the fast version of evaluate_threshold.

@@ -1,5 +1,3 @@
-import random
-
 from enum import Enum
 from mesa import Agent
 
@@ -63,6 +61,7 @@ class RelayAgent(Agent):
         self.type = RelayType.NONCENSORING
         self.current_subsidy = 0.0
 
+
     def initialize_with_profile(self, profile):
         """
         Initializes the Relay Agent with a specific profile.
@@ -82,17 +81,21 @@ class RelayAgent(Agent):
         self.subsidy = profile.get("subsidy", 0.0)  # Default subsidy to 0.0 if not provided
         self.threshold = profile.get("threshold", 0.0)  # Default threshold to
 
+
     def set_position(self, position):
         """Sets the Relay's position in the space."""
         self.position = position
+
 
     def set_gcp_region(self, gcp_region):
         """Sets the Relay's GCP region for latency calculations."""
         self.gcp_region = gcp_region
 
+
     def set_utility_function(self, utility_function):
         """Sets the Relay's utility function for MEV offers."""
         self.utility_function = utility_function
+
 
     def update_mev_offer(self):
         """Simulates builders providing better offers to the Relay over time."""
@@ -107,6 +110,7 @@ class RelayAgent(Agent):
         self.current_mev_offer = (
             self.utility_function(time_in_seconds) + self.current_subsidy
         )
+
     
     def update_subsidy(self):
         """
@@ -119,9 +123,11 @@ class RelayAgent(Agent):
         else:
             self.current_subsidy = 0.0
 
+
     def get_mev_offer(self):
         """Provides the current best MEV offer to a Proposer."""
         return self.current_mev_offer
+
 
     def get_mev_offer_at_time(self, time_ms):
         """
@@ -131,12 +137,14 @@ class RelayAgent(Agent):
         time_in_seconds = time_ms / 1000
         return self.utility_function(time_in_seconds) + self.current_subsidy
 
+
     def step(self):
         """
         The Relay Agent's behavior in each simulation step.
         Here, it just updates its MEV offer based on the current slot time.
         """
         self.update_mev_offer()
+
 
 # ---  Utility Function Factory ---
 def create_relay_utility_function(config_data):
@@ -196,44 +204,3 @@ def initialize_relays(relay_profiles_data):
         except Exception as e:
             print(f"❌ Unknown error occurred while initializing Relay '{unique_id}': {e}")
     return relay_profiles
-
-
-def get_random_relay_profile(gcp_data_df, num):
-    relay_profiles = []
-    for i, row in gcp_data_df.iterrows():
-        profile = {
-            "unique_id": f"relay-{i}",
-            "gcp_region": row['gcp_region'],
-            "lat": row['lat'],
-            "lon": row['lon'],
-            "utility_function": lambda x: BASE_MEV_AMOUNT * 0.2 + x * MEV_INCREASE_PER_SECOND * 0.2,
-            "type": RelayType.NONCENSORING,
-            "subsidy": 0.0,
-            "threshold": 0.0
-        }
-        relay_profiles.append(profile)
-    return random.choices(relay_profiles, k=num)
-
-
-def get_evenly_distributed_relay_profiles(gcp_data_df, num):
-    relay_profiles = []
-    for i, row in gcp_data_df.iterrows():
-        profile = {
-            "unique_id": f"relay-{i}",
-            "gcp_region": row['gcp_region'],
-            "lat": row['lat'],
-            "lon": row['lon'],
-            "utility_function": LinearMEVUtility(0.4, 0.04, 1.0),
-            "type": RelayType.NONCENSORING,
-            "subsidy": 0.0,
-            "threshold": 0.0
-        }
-        relay_profiles.append(profile)
-
-    if num <= len(relay_profiles):
-        return random.sample(relay_profiles, k=num)
-    else:
-        # If more relays are requested than available regions, allow duplicates
-        repeats = num // len(relay_profiles)
-        remainder = num % len(relay_profiles)
-        return relay_profiles * repeats + random.sample(relay_profiles, k=remainder)

@@ -1,16 +1,14 @@
 import math
-import random
 
-from collections import defaultdict
 from enum import Enum
 from mesa import Agent
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count
 from concurrent.futures import ThreadPoolExecutor
 
 from constants import (
     BASE_NETWORK_LATENCY_MS,
 )
-from distribution import update_distance_matrix_for_node, find_min_threshold, find_min_threshold_fast
+from distribution import update_distance_matrix_for_node, find_min_threshold_fast
 from relay_agent import RelayType
 
 # --- Validator Agent Class Definition ---
@@ -138,6 +136,7 @@ class RawValidatorAgent(Agent):
                 "Preference must be an instance of ValidatorPreference Enum"
             )
 
+
     # --- Role Assignment Methods (Called by the Model) ---
     def set_proposer_role(self):
         """
@@ -152,12 +151,15 @@ class RawValidatorAgent(Agent):
         """
         self.role = "attester"
 
+
     # --- Migration Methods ---
     def how_to_migrate(self):
         pass
 
+
     def decide_to_migrate(self):
         pass
+
 
     def do_migration(self, new_position_coords, new_gcp_region):
         """Completes the migration process."""
@@ -176,6 +178,7 @@ class RawValidatorAgent(Agent):
             self.model.space,
             self.index,
         )
+
 
     def calculate_minimal_needed_time_params(self, gcp_region):
         """Calculates the latency threshold for the Proposer based on its timing strategy."""
@@ -206,9 +209,10 @@ class RawValidatorAgent(Agent):
                     0.99,
                     0.0,
                     self.model.consensus_settings.attestation_time_ms,
-                    5.0
+                    1.0
                 )
     
+
     def calculate_minimal_needed_time(self, gcp_region):
         params = self.calculate_minimal_needed_time_params(gcp_region)
         if self.model.fast_mode:
@@ -257,7 +261,7 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
         super().__init__(model)
 
 
-    def simulation_with_info_sources(self):
+    def simulation_with_signals(self):
         simulation_results = []
         time_simulations = []
         region_data = [self.calculate_minimal_needed_time_params(gcp_region) for gcp_region in self.model.gcp_regions["Region"].values]
@@ -275,10 +279,10 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
             base_threshold = self.model.consensus_settings.attestation_time_ms - required_time
 
             mev_offer = 0.0
-            for info_agent in self.model.info_agents:
-                to_info_latency = self.model.space.get_latency(gcp_region, info_agent.gcp_region)
-                latency_threshold = base_threshold - to_info_latency
-                mev_offer += info_agent.get_mev_offer_at_time(latency_threshold)
+            for signal_agent in self.model.signal_agents:
+                to_signal_latency = self.model.space.get_latency(gcp_region, signal_agent.gcp_region)
+                latency_threshold = base_threshold - to_signal_latency
+                mev_offer += signal_agent.get_mev_offer_at_time(latency_threshold)
 
             simulation_results.append(
                 {
@@ -297,13 +301,15 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
 
 
     def how_to_migrate(self):
-        simulation_results = self.simulation_with_info_sources()
+        simulation_results = self.simulation_with_signals()
 
         simulation_results.sort(key=lambda x: (
             -x["mev_offer"],
             0 if x["gcp_region"] == self.gcp_region else 1,
             x["latency_threshold"]
         ))
+
+        # import IPython; IPython.embed(colors="neutral")
 
         for i in simulation_results:
             i["slot"] = self.model.current_slot_idx
@@ -379,16 +385,16 @@ class ValidatorWithoutMEVBoost(RawValidatorAgent):
                 > required_time
             ):
                 mev_offer = 0.0
-                for info_agent in self.model.info_agents:
-                    to_info_latency = self.model.space.get_latency(
-                        self.gcp_region, info_agent.gcp_region
+                for signal_agent in self.model.signal_agents:
+                    to_signal_latency = self.model.space.get_latency(
+                        self.gcp_region, signal_agent.gcp_region
                     )
                     latency_threshold = (
                         required_time
-                        - to_info_latency
+                        - to_signal_latency
                     )
-                    info_source_value = info_agent.get_mev_offer_at_time(latency_threshold)
-                    mev_offer += info_source_value
+                    signal_source_value = signal_agent.get_mev_offer_at_time(latency_threshold)
+                    mev_offer += signal_source_value
                
                 return True, mev_offer, required_time
 
@@ -474,6 +480,7 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
         self.network_latency_to_target = {}  # Latency to each relay
         self.latency_threshold = -1 
 
+
     # utility functions for MEV-Boost related operations    
     def set_latency_to_relays(self):
         self.network_latency_to_target = {}
@@ -483,6 +490,7 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
                     self.gcp_region, relay_agent.gcp_region
                 )
             )
+
 
     def set_proposer_role(self):
         super().set_proposer_role()
@@ -519,67 +527,7 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
         if len(mev_offers) == 0:
             return 0.0, None
         return max(mev_offers, key=lambda x: x[0])
-    
-    
-    # def calculate_minimal_needed_time(self, target_relay=None, relay_latency=None):
-    #     """Calculates the latency threshold for the Proposer based on its timing strategy."""
-    #     if self.timing_strategy["type"] == "optimal_latency":
-    #         if self.target_relay is None:
-    #             self.target_relay = list(self.model.relay_agents)[
-    #                 0
-    #             ]  # Default to first relay if none set
-
-    #         if target_relay is None:
-    #             target_relay = self.target_relay
-
-    #         # Calculate the latency threshold for optimal latency strategy
-    #         to_relay_latency = self.network_latency_to_target[target_relay.unique_id]
-    #         if relay_latency is not None:
-    #             to_relay_latency = relay_latency
-
-    #         relay_to_attester_latency = [
-    #             a.network_latency_to_target[target_relay.unique_id]
-    #             for a in self.model.current_attesters
-    #         ]
-    #         # Sort latencies for threshold calculation
-    #         relay_to_attester_latency.sort()
-
-    #         required_attesters_for_supermajority = math.ceil(
-    #             (self.model.consensus_settings.attestation_threshold)
-    #             * len(self.model.current_attesters)
-    #         )
-
-    #         # In fast mode, return a simplified estimate
-    #         if self.model.fast_mode:
-    #             return (
-    #                 relay_to_attester_latency[required_attesters_for_supermajority]
-    #                 + to_relay_latency * 3
-    #             )
-    #         else:
-    #             if to_relay_latency == 0:
-    #                 return self.model.latency_generator.find_min_threshold(
-    #                     tuple(relay_to_attester_latency),
-    #                     tuple([0.5] * len(self.model.current_attesters)),
-    #                     required_attesters_for_supermajority,
-    #                     target_prob=0.95,
-    #                     threshold_low=0.0,
-    #                     threshold_high=self.model.consensus_settings.attestation_time_ms,
-    #                     tolerance=5.0,
-    #                 )
-    #             else:
-    #                 return self.model.latency_generator.find_min_threshold_with_monte_carlo(
-    #                     [to_relay_latency] * 3,
-    #                     [0.5] * 3,
-    #                     relay_to_attester_latency,
-    #                     [0.5] * len(self.model.current_attesters),
-    #                     required_attesters_for_supermajority,
-    #                     target_prob=0.95,
-    #                     samples=10000,
-    #                     threshold_low=0.0,
-    #                     threshold_high=self.model.consensus_settings.attestation_time_ms,
-    #                     tolerance=5.0,
-    #                 )
-
+  
         
     def set_latency_threshold(self, target_relay=None, relay_latency=None):
         """
@@ -598,7 +546,6 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
         simulation_results = []
         time_simulations = []
         
-        validator_with_relay = self.gcp_region in set([r.gcp_region for r in self.model.relay_agents])
         relay_regions = set([r.gcp_region for r in self.model.relay_agents])
         other_regions = set(self.model.gcp_regions["Region"].values) - relay_regions
 
@@ -641,17 +588,6 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
                         "mev_offer": round(mev_offer, 6),
                     }
                 )
-            # if not validator_with_relay:
-            #     latency_threshold -= self.network_latency_to_target[target_relay.unique_id]
-            #     mev_offer = target_relay.get_mev_offer_at_time(latency_threshold)
-            #     simulation_results.append(
-            #         {
-            #             "gcp_region": self.gcp_region,
-            #             "relay": target_relay,
-            #             "latency_threshold": latency_threshold,
-            #             "mev_offer": round(mev_offer, 6),
-            #         }
-            #     )
 
         sub_results = [result for result in simulation_results if result["gcp_region"] == self.gcp_region]
         sub_results.sort(key=lambda x: (-x["mev_offer"], x["latency_threshold"]))
@@ -678,6 +614,7 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
         self.model.region_profits += simulation_results
 
         return simulation_results[0]
+
 
     def decide_to_migrate(self):
         """
@@ -729,7 +666,6 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
                     f"Validator {self.unique_id} (at {self.gcp_region}) considering migration to Relay {self.target_relay.unique_id}  with MEV offer {simulation_result['mev_offer']:.4f} ETH and latency threshold {simulation_result['latency_threshold']} ms"
                 )
                 if self.gcp_region != target_gcp_region:
-                    # if self.model.space.distance(self.position, target_pos) > 0:
                     print(f"  Deciding to migrate ({self.target_relay.unique_id}).")
                     self.do_migration(target_pos, target_gcp_region)
                     return True, "utility_improved"
@@ -740,6 +676,7 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
     def do_migration(self, new_position_coords, new_gcp_region):
         super().do_migration(new_position_coords, new_gcp_region)
         self.set_latency_to_relays()
+
 
     # --- In-Slot Behavior Methods (Called from step()) ---
     def decide_and_propose(self, current_slot_time_ms_inner, relay_agents):
@@ -807,9 +744,6 @@ class ValidatorWithMEVBoost(RawValidatorAgent):
         """Executes the block proposal action for the Proposer."""
         self.has_proposed_block = True
         # Apply latency to the target (relay) to the proposed time
-        # self.proposed_time_ms = (
-        #     current_slot_time_ms_inner + 3 * self.network_latency_to_target
-        # )
         self.proposed_time_ms = proposed_time
         self.mev_captured_potential = (
             round(mev_offer, 6)  # Store potential MEV before supermajority check
