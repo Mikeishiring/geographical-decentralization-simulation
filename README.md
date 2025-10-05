@@ -1,4 +1,6 @@
-# Geographical Decentralization Simulation
+# 🌍 Geographical Decentralization Simulation
+
+This repository contains the simulation and evaluation code for the paper "Designing Ethereum’s Geographical (De)Centralization Beyond the Atlantic" ([arXiv:2509.21475](https://arxiv.org/abs/2509.21475)).
 
 ## Installation
 
@@ -64,3 +66,14 @@ run-different-gammas
 ```
 </div>
 </details>
+
+## References
+
+```bibtex
+@article{yang2025designing,
+  title={Designing Ethereum's Geographical (De)Centralization Beyond the Atlantic},
+  author={Yang, Sen and {\"O}z, Burak and Wu, Fei and Zhang, Fan},
+  journal={arXiv preprint arXiv:2509.21475},
+  year={2025}
+}
+```
