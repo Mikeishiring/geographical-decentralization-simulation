@@ -47,58 +47,29 @@ RELAY_PROFILES = [
 ]
 
 
-# --- Relay Agent Class Definition ---
 
-class RelayAgent(Agent):
+class SourceAgent(Agent):
     """
-    A simple Relay Agent that has a position and provides the current best MEV offer.
-    It doesn't have complex strategies; it's a conduit.
+    A simple Source Agent that has a region and provides the current best MEV offer.
     """
 
     def __init__(self, model):
         super().__init__(model)
         self.current_mev_offer = 0.0
-        self.type = RelayType.NONCENSORING
-        self.current_subsidy = 0.0
-
-
-    def initialize_with_profile(self, profile):
-        """
-        Initializes the Relay Agent with a specific profile.
-        The profile should contain 'unique_id', 'gcp_region', 'lat', and 'lon'.
-        """
-        self.unique_id = profile["unique_id"]
-        self.gcp_region = profile["gcp_region"]
-        self.position = self.model.space.get_coordinate_from_lat_lon(
-            profile["lat"], profile["lon"]
-        )
-        self.role = "relay_agent"
-        self.utility_function = profile.get(
-            "utility_function",
-            lambda x: BASE_MEV_AMOUNT + x * MEV_INCREASE_PER_SECOND
-        )
-        self.type = profile.get("type", RelayType.NONCENSORING)
-        self.subsidy = profile.get("subsidy", 0.0)  # Default subsidy to 0.0 if not provided
-        self.threshold = profile.get("threshold", 0.0)  # Default threshold to
-
-
-    def set_position(self, position):
-        """Sets the Relay's position in the space."""
-        self.position = position
 
 
     def set_gcp_region(self, gcp_region):
-        """Sets the Relay's GCP region for latency calculations."""
+        """Sets the Source's GCP region for latency calculations."""
         self.gcp_region = gcp_region
 
 
     def set_utility_function(self, utility_function):
-        """Sets the Relay's utility function for MEV offers."""
+        """Sets the Source's utility function for MEV offers."""
         self.utility_function = utility_function
 
 
     def update_mev_offer(self):
-        """Simulates builders providing better offers to the Relay over time."""
+        """Simulates builders providing better offers to the Signal over time."""
         # Get current time from the model's steps
         # Convert model time steps to milliseconds within the current slot
         current_slot_time_ms = (
@@ -108,20 +79,8 @@ class RelayAgent(Agent):
 
         # MEV offer is calculated based on the utility function
         self.current_mev_offer = (
-            self.utility_function(time_in_seconds) + self.current_subsidy
+            self.utility_function(time_in_seconds)
         )
-
-    
-    def update_subsidy(self):
-        """
-        Updates the Relay's subsidy amount.
-        If the Relay's subsidy is greater than 0 and the percentage of validators in its GCP region is below the threshold,
-        it applies the subsidy; otherwise, it sets the subsidy to 0.
-        """
-        if self.subsidy > 0 and self.model.get_validator_region_percentage(self.gcp_region) < self.threshold:
-            self.current_subsidy = self.subsidy
-        else:
-            self.current_subsidy = 0.0
 
 
     def get_mev_offer(self):
@@ -132,22 +91,74 @@ class RelayAgent(Agent):
     def get_mev_offer_at_time(self, time_ms):
         """
         Returns the MEV offer at a specific time in milliseconds.
-        This is useful for Proposers to query the Relay for MEV offers.
+        This is useful for Proposers to query the Signal for MEV offers.
         """
         time_in_seconds = time_ms / 1000
-        return self.utility_function(time_in_seconds) + self.current_subsidy
+        return self.utility_function(time_in_seconds)
 
 
     def step(self):
         """
-        The Relay Agent's behavior in each simulation step.
+        The Signal Agent's behavior in each simulation step.
         Here, it just updates its MEV offer based on the current slot time.
         """
         self.update_mev_offer()
 
 
+# --- Singal Agent Class Definition ---
+class SignalAgent(Agent):
+    """
+    A simple Singal Agent that has a region and provides the current best MEV offer.
+    """
+
+    def __init__(self, model):
+        super().__init__(model)
+
+    def initialize_with_profile(self, profile):
+        """
+        Initializes the Signal Agent with a specific profile.
+        The profile should contain 'unique_id', 'gcp_region', 'lat', and 'lon'.
+        """
+        self.unique_id = profile["unique_id"]
+        self.gcp_region = profile["gcp_region"]
+        self.role = "signal_agent"
+        self.utility_function = profile.get(
+            "utility_function",
+            LinearMEVUtility(BASE_MEV_AMOUNT, MEV_INCREASE_PER_SECOND, 1.0)
+        )
+
+
+
+# --- Relay Agent Class Definition ---
+class RelayAgent(SourceAgent):
+    """
+    A simple Relay Agent that has a region and provides the current best MEV offer.
+    """
+
+    def __init__(self, model):
+        super().__init__(model)
+        self.type = RelayType.NONCENSORING
+
+
+    def initialize_with_profile(self, profile):
+        """
+        Initializes the Relay Agent with a specific profile.
+        The profile should contain 'unique_id', 'gcp_region', 'lat', and 'lon'.
+        """
+        self.unique_id = profile["unique_id"]
+        self.gcp_region = profile["gcp_region"]
+        self.role = "relay_agent"
+        self.utility_function = profile.get(
+            "utility_function",
+            lambda x: BASE_MEV_AMOUNT + x * MEV_INCREASE_PER_SECOND
+        )
+        self.type = profile.get("type", RelayType.NONCENSORING)
+        self.subsidy = profile.get("subsidy", 0.0)  # Default subsidy to 0.0 if not provided
+        self.threshold = profile.get("threshold", 0.0)  # Default threshold to  
+
+
 # ---  Utility Function Factory ---
-def create_relay_utility_function(config_data):
+def create_utility_function(config_data):
     """
     Creates and returns a Relay's utility function (lambda) based on configuration.
     """
@@ -162,6 +173,37 @@ def create_relay_utility_function(config_data):
     # Add more utility function types here if needed
     else:
         raise ValueError(f"Unknown or unsupported Relay utility function type: {func_type}")
+
+
+def initialize_signals(signal_profiles_data):
+    """Initializes a list of Signal profiles from YAML data."""
+    signal_profiles = []
+    for profile_data in signal_profiles_data:
+        unique_id = profile_data.get('unique_id')
+        gcp_region = profile_data.get('gcp_region')
+        lat = profile_data.get('lat')
+        lon = profile_data.get('lon')
+        utility_func_config = profile_data.get('utility_function')
+
+        if not all([unique_id, gcp_region, lat, lon, utility_func_config]):
+            print(f"⚠️ Warning: signal profile for '{unique_id}' is missing required fields. Skipping.")
+            continue
+
+        try:
+            utility_callable = create_utility_function(utility_func_config)
+            info_profile = {
+                "unique_id": unique_id,
+                "gcp_region": gcp_region,
+                "lat": lat,
+                "lon": lon,
+                "utility_function": utility_callable,
+            }
+            signal_profiles.append(info_profile)
+        except ValueError as e:
+            print(f"❌ Failed to initialize Signal '{unique_id}': {e}")
+        except Exception as e:
+            print(f"❌ Unknown error occurred while initializing Signal '{unique_id}': {e}")
+    return signal_profiles
 
 
 def initialize_relays(relay_profiles_data):
@@ -182,7 +224,7 @@ def initialize_relays(relay_profiles_data):
             continue
 
         try:
-            utility_callable = create_relay_utility_function(utility_func_config)
+            utility_callable = create_utility_function(utility_func_config)
             # Convert string type from YAML to RelayType enum member
             relay_type = RelayType[relay_type_str.upper()]
 

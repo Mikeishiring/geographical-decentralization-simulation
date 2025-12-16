@@ -1,5 +1,5 @@
 simulation_name: MSP-latency-aligned
-model: ethereum-raw
+model: MSP
 iterations: 10000
 time_granularity_ms: 50
 validators: 1000

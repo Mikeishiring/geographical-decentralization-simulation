@@ -10,20 +10,16 @@ from constants import (
     CLOUD_VALIDATOR_PERCENTAGE,
     NON_COMPLIANT_VALIDATOR_PERCENTAGE,
 )
-from distribution import (
-    SphericalSpace,
-    LatencyGenerator,
-    init_distance_matrix,
-)
+from distribution import LatencyGenerator, GCPLatencyModel
 from signal_agent import SignalAgent, SIGNAL_PROFILES
-from relay_agent import RelayAgent, RELAY_PROFILES
-from validator_agent import ValidatorWithMEVBoost, ValidatorWithoutMEVBoost, ValidatorType, ValidatorPreference
+from source_agent import RelayAgent, RELAY_PROFILES
+from validator_agent import SSPValidator, MSPValidator, ValidatorType, ValidatorPreference
 
-# --- EthereumRawModel Class ---
+# --- Basic: Raw Ethereum ---
 
 class EthereumRawModel(Model):
     """
-    The main simulation model for Ethereum without MEV-Boost, managing validators and signals.
+    The main simulation model for the multi-source paradigm (SSP), managing validators and signals.
     """
 
     def __init__(
@@ -67,21 +63,12 @@ class EthereumRawModel(Model):
         self.migration_queue = deque(maxlen=time_window)
         self.action_reasons = []
 
-        # --- Setup the Space (SphericalSpace) ---
-        self.space = SphericalSpace()
-        self.space.set_gcp_latency_regions(
-            gcp_latency, gcp_regions
-        )  # Set GCP latency and regions if provided
-        self.distance_matrix = (
-            None  # Will be initialized after validator positions are set
-        )
         # Set latency generator fast mode
         self.fast_mode = fast_mode
         self.latency_generator = LatencyGenerator(self.fast_mode)
 
         # Set GCP latency if provided
-        self.gcp_latency = gcp_latency
-        self.gcp_regions = gcp_regions
+        self.gcp_latency_model = GCPLatencyModel(gcp_latency, gcp_regions)
 
         # --- Model-Level Tracking Variables ---
         self.current_slot_idx = -1  # Will increment at start of each slot
@@ -124,7 +111,6 @@ class EthereumRawModel(Model):
                 ),
             },
             agent_reporters={
-                "Position": "position",  # Example agent attribute
                 "Role": "role",
                 "Slot": "current_slot_idx",
                 "MEV_Captured_Slot": "mev_captured",  # MEV actually earned in the last slot
@@ -269,35 +255,24 @@ class EthereumRawModel(Model):
 
     def update_validator_profiles(self):
         # Initialize the validators list and their positions
-        self.validator_locations = []
         validator_index = 0
-        for validator_agent in self.validators:
-            v = (
-                self.validator_profiles.iloc[validator_index]
-                if self.validator_profiles is not None and validator_index < len(self.validator_profiles)
-                else {"latitude": None, "longitude": None}
-            )
 
-            position = (
-                self.space.get_coordinate_from_lat_lon(
-                    v["latitude"], v["longitude"]
-                )
-                if v["latitude"] is not None and v["longitude"] is not None
-                else self.space.sample_point()
-            )
-            self.validator_locations.append(position)
-            gcp_region = (
-                self.space.get_nearest_gcp_region(position, self.gcp_regions)
-                if self.gcp_regions is not None
-                else None
-            )
-            validator_agent.set_position(position)
+        for validator_agent in self.validators:
+            if "gcp_region" in self.validator_profiles.columns:
+                gcp_region = self.validator_profiles.iloc[validator_index]["gcp_region"]
+            else:
+                lat = self.validator_profiles.iloc[validator_index]["latitude"]
+                lon = self.validator_profiles.iloc[validator_index]["longitude"]
+                gcp_region = self.gcp_latency_model.get_nearest_gcp_region(lat, lon)
+
             validator_agent.set_gcp_region(gcp_region)
             validator_agent.set_index(validator_index)
+
             validator_agent.set_strategy(
                 random.choice(self.timing_strategies_pool),
                 random.choice(self.location_strategies_pool),
             )
+
             validator_index += 1
 
 
@@ -324,14 +299,10 @@ class EthereumRawModel(Model):
         random.shuffle(self.validators)
         for validator_agent in self.validators[:int(self.num_validators * self.validator_noncompliant_percentage)]:
             validator_agent.set_validator_preference(ValidatorPreference.NONCOMPLIANT)
-
-        # Initialize distance matrix now that all validator positions are set
-        self.distance_matrix = init_distance_matrix(
-            self.validator_locations, self.space  # , gcp_latency, gcp_regions
-        )
     
 
-class EthereumWithoutMEVBoostModel(EthereumRawModel):
+# Multi-Source Paradigm (MSP) Model
+class MultiSourceParadigm(EthereumRawModel):
     """
     A subclass of EthereumRawModel that represents Ethereum without MEV-Boost.
     """
@@ -345,7 +316,7 @@ class EthereumWithoutMEVBoostModel(EthereumRawModel):
         signal_profiles = kwargs.get('signal_profiles', SIGNAL_PROFILES)
 
         # --- Create Agents ---
-        self.create_validator_agents(ValidatorWithoutMEVBoost)
+        self.create_validator_agents(MSPValidator)
 
         SignalAgent.create_agents(
             model=self,
@@ -375,7 +346,9 @@ class EthereumWithoutMEVBoostModel(EthereumRawModel):
         [signal_agent.update_mev_offer() for signal_agent in self.signal_agents]
     
 
-class MEVBoostModel(EthereumRawModel):
+
+# --- Single-Source Paradigm (SSP) Model ---
+class SingleSourceParadigm(EthereumRawModel):
     """
     A subclass of EthereumRawModel that represents Ethereum with MEV-Boost.
     """
@@ -389,7 +362,7 @@ class MEVBoostModel(EthereumRawModel):
         relay_profiles = kwargs.get('relay_profiles', RELAY_PROFILES)
 
         # --- Create Agents ---
-        self.create_validator_agents(ValidatorWithMEVBoost)
+        self.create_validator_agents(SSPValidator)
 
         RelayAgent.create_agents(
             model=self,
@@ -407,10 +380,6 @@ class MEVBoostModel(EthereumRawModel):
 
     def _setup_new_slot(self):
         super()._setup_new_slot()
-
-        # relay updates MEV subsidy
-        for relay_agent in self.relay_agents:
-            relay_agent.update_subsidy()
 
         prev_gcp_region = self.current_proposer_agent.gcp_region
         is_migrated, action_reason = self.current_proposer_agent.decide_to_migrate()  # Check if proposer should migrate

@@ -1,122 +1,41 @@
 import math
 import numpy as np
-import random
 
-from abc import ABC, abstractmethod
 from scipy.stats import norm, lognorm, poisson_binom
 from functools import lru_cache
 
 
-# --- Spatial Classes ---
-class Space(ABC):
+def distance(p1, p2):
     """
-    Abstract base class defining the interface for a 'space'
-    where nodes can live. Subclasses must implement:
-      - sample_point()
-      - distance(p1, p2)
+    Calculates the geodesic distance between two points on a unit sphere.
+    Distance = arc length = arccos(dot(p1,p2)).
     """
-
-    @abstractmethod
-    def sample_point(self):
-        """Samples a random point within the space."""
-        pass
-
-    @abstractmethod
-    def distance(self, p1, p2):
-        """Calculates the distance between two points in the space."""
-        pass
-
-    @abstractmethod
-    def get_area(self):
-        """Returns the total 'area' or size of the space."""
-        pass
-
-    @abstractmethod
-    def get_max_dist(self):
-        """Returns the maximum possible distance between any two points in the space."""
-        pass
+    dotp = p1[0] * p2[0] + p1[1] * p2[1] + p1[2] * p2[2]
+    # Numerical safety clamp for dot product to be within [-1, 1] due to floating point inaccuracies
+    dotp = max(-1.0, min(1.0, dotp))
+    return math.acos(dotp)
 
 
-class SphericalSpace(Space):
+def get_coordinate_from_lat_lon(lat, lon):
     """
-    Sample points on (or near) the unit sphere.
-    distance() returns geodesic distance (great-circle distance).
+    Converts latitude and longitude to Cartesian coordinates on the unit sphere.
+    Latitude and longitude are in radians.
     """
-
-    def sample_point(self):
-        """Samples a random point on the unit sphere (x, y, z)."""
-        # Sample (x, y, z) from Normal(0, 1),
-        # then normalize to lie on the unit sphere.
-        while True:
-            x = random.gauss(0, 1)
-            y = random.gauss(0, 1)
-            z = random.gauss(0, 1)
-            r2 = x * x + y * y + z * z
-            if r2 > 1e-12:  # Avoid division by zero for very small magnitudes
-                scale = 1.0 / math.sqrt(r2)
-                return (x * scale, y * scale, z * scale)
+    phi = math.radians(lat)
+    theta = math.radians(lon)
+    x = math.cos(phi) * math.cos(theta)
+    y = math.cos(phi) * math.sin(theta)
+    z = math.sin(phi)
+    return (x, y, z)
 
 
-    def distance(self, p1, p2):
-        """
-        Calculates the geodesic distance between two points on a unit sphere.
-        Distance = arc length = arccos(dot(p1,p2)).
-        """
-        dotp = p1[0] * p2[0] + p1[1] * p2[1] + p1[2] * p2[2]
-        # Numerical safety clamp for dot product to be within [-1, 1] due to floating point inaccuracies
-        dotp = max(-1.0, min(1.0, dotp))
-        return math.acos(dotp)
-
-
-    def get_area(self):
-        """Returns the surface area of a unit sphere."""
-        return 4 * np.pi
-
-
-    def get_max_dist(self):
-        """Returns the maximum possible geodesic distance on a unit sphere (half circumference)."""
-        return (
-            np.pi
-        )  # Half the circumference of a unit circle (pi * diameter = pi * 2 * radius = 2*pi * 1 / 2 = pi)
-
-
-    def get_coordinate_from_lat_lon(self, lat, lon):
-        """
-        Converts latitude and longitude to Cartesian coordinates on the unit sphere.
-        Latitude and longitude are in radians.
-        """
-        phi = math.radians(lat)
-        theta = math.radians(lon)
-        x = math.cos(phi) * math.cos(theta)
-        y = math.cos(phi) * math.sin(theta)
-        z = math.sin(phi)
-        return (x, y, z)
-    
-
-    def set_gcp_latency_regions(self, gcp_latency, gcp_regions):
-        """
-        Sets the GCP latency
-        """
+class GCPLatencyModel:
+    """
+    A simple class to hold GCP latency data.
+    """
+    def __init__(self, gcp_latency, gcp_regions):
         self.gcp_latency = gcp_latency
         self.gcp_regions = gcp_regions
-
-
-    def get_nearest_gcp_region(self, position, gcp_regions):
-        """
-        Finds the nearest GCP region to a given position on the unit sphere.
-        Returns the GCP region that is closest in terms of geodesic distance.
-        """
-        min_distance = float("inf")
-        nearest_zone = None
-        for index, row in gcp_regions.iterrows():
-            zone_position = self.get_coordinate_from_lat_lon(
-                row["Nearest City Latitude"], row["Nearest City Longitude"]
-            )
-            distance = self.distance(position, zone_position)
-            if distance < min_distance:
-                min_distance = distance
-                nearest_zone = row["Region Name"]
-        return nearest_zone if nearest_zone else None
 
 
     @lru_cache(maxsize=1024)
@@ -135,37 +54,25 @@ class SphericalSpace(Space):
             return self.gcp_latency[(gcp2, gcp1)] / 2
         else:
             return max(self.gcp_latency.values()) / 2
+        
 
-
-def init_distance_matrix(positions, space):
-    """
-    Build the initial distance matrix for all node pairs.
-    Returns a 2D list (or NumPy array) of shape (n, n).
-    """
-    n = len(positions)
-    dist_matrix = np.zeros((n, n))
-    for i in range(n):
-        for j in range(i + 1, n):
-            d = space.distance(positions[i], positions[j])
-            dist_matrix[i][j] = d
-            dist_matrix[j][i] = d  # Symmetric matrix
-    return dist_matrix
-
-
-def update_distance_matrix_for_node(dist_matrix, positions, space, moved_idx):
-    """
-    After node 'moved_idx' has changed its position,
-    recalc only row [moved_idx] and column [moved_idx].
-    """
-    n = len(positions)
-    i = moved_idx
-    for j in range(n):
-        if j == i:
-            dist_matrix[i][j] = 0.0
-        else:
-            d = space.distance(positions[i], positions[j])
-            dist_matrix[i][j] = d
-            dist_matrix[j][i] = d
+    def get_nearest_gcp_region(self, lat, lon):
+        """
+        Finds the nearest GCP region to a given position on the unit sphere.
+        Returns the GCP region that is closest in terms of geodesic distance.
+        """
+        min_distance = float("inf")
+        nearest_zone = None
+        position = get_coordinate_from_lat_lon(lat, lon)
+        for index, row in self.gcp_regions.iterrows():
+            zone_position = get_coordinate_from_lat_lon(
+                row["Nearest City Latitude"], row["Nearest City Longitude"]
+            )
+            cur_distance = distance(position, zone_position)
+            if cur_distance < min_distance:
+                min_distance = cur_distance
+                nearest_zone = row["Region Name"]
+        return nearest_zone if nearest_zone else None
 
 
 class LatencyGenerator:

@@ -13,9 +13,9 @@ from constants import LinearMEVUtility
 from consensus import ConsensusSettings
 from distribution import parse_gcp_latency
 from measure import *  # Assuming measure.py contains necessary measurement functions
-from models import MEVBoostModel, EthereumWithoutMEVBoostModel
-from relay_agent import initialize_relays
-from signal_agent import initialize_signals
+from models import SingleSourceParadigm, MultiSourceParadigm
+from source_agent import initialize_relays, initialize_signals
+
 
 # --- Simulation Initialization Functions ---
 
@@ -186,10 +186,10 @@ def simulation(
     print(f"\n--- Starting MEV-Boost Simulation: {simulation_name} ---")
     start_time = time.time()
 
-    if model == 'mevboost':
-        model_standard = MEVBoostModel(**model_params_standard_nomig)
+    if model == "SSP":
+        model_standard = SingleSourceParadigm(**model_params_standard_nomig)
     else:
-        model_standard = EthereumWithoutMEVBoostModel(**model_params_standard_nomig)
+        model_standard = MultiSourceParadigm(**model_params_standard_nomig)
 
     for i in range(TOTAL_TIME_STEPS):
         model_standard.step()
@@ -270,11 +270,8 @@ def simulation(
     if isinstance(agent_data.index, pd.MultiIndex):
         agent_data = agent_data.reset_index()
 
-    validator_agent_data = agent_data[agent_data["Role"] != "relay_agent"].reindex()
-    positions_by_slot = (
-        validator_agent_data.groupby("Slot")["Position"].apply(list).reset_index()
-    )
-    nested_array = positions_by_slot["Position"].tolist()
+    validator_agent_data = agent_data[(agent_data["Role"] != "relay_agent") & (agent_data["Role"] != "signal_agent")].reindex()
+    
     # Group by slot and collect lists of per-agent values:
     mev_by_slot = (
         validator_agent_data.groupby("Slot")["MEV_Captured_Slot"].apply(list).tolist()
@@ -288,28 +285,6 @@ def simulation(
     proposal_time_by_slot = (
         validator_agent_data.groupby("Slot")["Proposal Time"].apply(list).tolist()
     )
-
-    relay_agent_data = agent_data[agent_data["Role"] == "relay_agent"]
-    relay_positions = relay_agent_data["Position"].iloc[0:len(relay_profiles)]
-    # Since relay is not moving, we can just use the first position and multiply it by the number of slots
-    # --------------------------------------------
-    # build one relay-point list per slot
-    # --------------------------------------------
-    relay_pos_list = [
-        list(relay_position) for relay_position in relay_positions
-    ]  # JSON wants lists
-    nested_array_relay = [
-        relay_pos_list for _ in range(len(nested_array))  # <- extra [] !
-    ]
-    # --------------------------------------------
-    signal_agent_data = agent_data[agent_data["Role"] == "signal_agent"]
-    signal_positions = signal_agent_data["Position"].iloc[0 : len(signal_profiles)]
-    signal_pos_list = [
-        list(signal_position) for signal_position in signal_positions
-    ]
-    nested_array_signal = [
-        signal_pos_list for _ in range(len(nested_array))  # <- extra [] !
-    ]
 
     latest_steps = (
         validator_agent_data.sort_values("Step")
@@ -327,8 +302,7 @@ def simulation(
         ["Slot", "Location_Strategy", "MEV_Captured_Slot"]
     ].to_dict(orient="records")
 
-    with open(f"{output_folder}/data.json", "w") as f:
-        json.dump(nested_array, f)
+
     with open(f"{output_folder}/mev_by_slot.json", "w") as f:
         json.dump(mev_by_slot, f)
     with open(f"{output_folder}/estimated_mev_by_slot.json", "w") as f:
@@ -339,23 +313,18 @@ def simulation(
         json.dump(proposal_time_by_slot, f)
     with open(f"{output_folder}/proposer_strategy_and_mev.json", "w") as f:
         json.dump(proposer_strategy_and_mev, f)
-
-    with open(f"{output_folder}/relay_data.json", "w") as f:
-        json.dump(nested_array_relay, f)
-    with open(f"{output_folder}/signal_data.json", "w") as f:
-        json.dump(nested_array_signal, f)
-
     with open(f"{output_folder}/region_counter_per_slot.json", "w") as f:
         json.dump(region_counter_per_slot, f)
 
     print("Saved data in JSON files in the output directory.")
     print("Information Sources:")
-    if len(nested_array_signal) > 0:
+    if model == 'SSP':
         print("Signals:")
         print("\n".join([f"{i['unique_id']} ({i['gcp_region']})" for i in signal_profiles]))
-    if len(nested_array_relay) > 0:
+    else:
         print("Relays:")
         print("\n".join([f"{r['unique_id']} ({r['gcp_region']})" for r in relay_profiles]))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -382,9 +351,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="mevboost",
-        choices=["mevboost", "raw"],
-        help="Type of model to simulate: 'mevboost' or 'raw' (default: 'mevboost')",
+        default="SSP",
+        choices=["SSP", "MSP"],
+        help="Type of model to simulate: 'SSP' or 'MSP' (default: 'SSP')",
     )
     parser.add_argument(
         "--validators",
@@ -457,7 +426,7 @@ if __name__ == "__main__":
         config = load_simulation_config(args.config)
         # Extract top-level simulation parameters from config
         simulation_name = config.get("simulation_name", "Default Simulation")
-        model = args.model if args.model else config.get("model", "mevboost")
+        model = args.model if args.model else config.get("model", "SSP")
         # Use 'iterations' from YAML as num_slots
         num_slots = args.slots if args.slots else config.get("iterations", 1000)
         num_validators = (

@@ -1,5 +1,5 @@
 simulation_name: SSP-baseline
-model: mevboost
+model: SSP
 iterations: 10000
 time_granularity_ms: 50
 validators: 1000

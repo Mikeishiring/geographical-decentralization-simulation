@@ -15,14 +15,14 @@ BASE_MSP_ARGS = [
     "--slots 10000",
     "--validators 1000",
     "--time_window 10000",
-    "--model raw",
+    "--model MSP",
 ]
 
 BASE_SSP_ARGS = [
     "--slots 10000",
     "--validators 1000",
     "--time_window 10000",
-    "--model mevboost",
+    "--model SSP",
 ]
 
 
@@ -30,19 +30,23 @@ def _tmux(c, cmd, **kwargs):
     """Run a tmux command and return the result."""
     return c.run(f"tmux {cmd}", warn=True, pty=False, hide=True, **kwargs)
 
+
 def _has_session(c, session):
     """Check if a tmux session exists."""
-    r = _tmux(c, f'has-session -t {shlex.quote(session)}')
+    r = _tmux(c, f"has-session -t {shlex.quote(session)}")
     return r.ok
+
 
 def _ensure_session(c, session):
     """Create a tmux session if it does not exist yet."""
     if not _has_session(c, session):
-        _tmux(c, f'new-session -d -s {shlex.quote(session)}')
+        _tmux(c, f"new-session -d -s {shlex.quote(session)}")
+
 
 def _quoted(s: str) -> str:
     """Helper for shell-quoting strings safely."""
     return shlex.quote(s)
+
 
 def _build_cmd(model: str, root: Path, config_path: str, outdir: str, appended_args: list) -> str:
     """Build the command string for one simulation run."""
@@ -54,6 +58,7 @@ def _build_cmd(model: str, root: Path, config_path: str, outdir: str, appended_a
         raise ValueError(f"Unknown model type: {model}")
     # Each command first changes into the parent directory before running
     return f"cd {_quoted(str(root))} && {python_bin} simulation.py " + " ".join(args)
+
 
 @task
 def run_baseline(c, session="simulation-baseline"):
@@ -75,11 +80,11 @@ def run_baseline(c, session="simulation-baseline"):
 
     # Create a new window within the session
     for model in ["SSP", "MSP"]:
-        _tmux(c, f'new-window -t {session} -n {model}')
+        _tmux(c, f"new-window -t {session} -n {model}")
         window = f"{session}:{model}"
 
         config_path = f"params/{model}-baseline.yaml"
-        outdir = f"baseline/{model}/validators_1000_slots_10000"
+        outdir = f"output/baseline/{model}/validators_1000_slots_10000"
 
         # Prepare commands for all cost values
         cmds = [
@@ -89,17 +94,17 @@ def run_baseline(c, session="simulation-baseline"):
         num_jobs += len(cmds)
         
         # Run the first command in the first pane
-        _tmux(c, f'select-window -t {window}')
-        _tmux(c, f'send-keys -t {window}.0 {_quoted(cmds[0])} Enter')
+        _tmux(c, f"select-window -t {window}")
+        _tmux(c, f"send-keys -t {window}.0 {_quoted(cmds[0])} Enter")
 
         # For the rest, split the window and run commands in new panes
         for index, cmd in enumerate(cmds[1:], start=1):
-            _tmux(c, f'split-window -t {window} -v')  # vertical split; use -h for horizontal
-            _tmux(c, f'select-pane -t {window}.{index}')
-            _tmux(c, f'send-keys -t {window}.{index} {_quoted(cmd)} Enter')
+            _tmux(c, f"split-window -t {window} -v")  # vertical split; use -h for horizontal
+            _tmux(c, f"select-pane -t {window}.{index}")
+            _tmux(c, f"send-keys -t {window}.{index} {_quoted(cmd)} Enter")
 
         # Arrange panes in a tiled layout
-        _tmux(c, f'select-layout -t {window} tiled')
+        _tmux(c, f"select-layout -t {window} tiled")
 
     # Print instructions for the user
     print(f"[ok] Started {num_jobs} jobs in tmux session '{session}'.")
@@ -126,25 +131,25 @@ def run_heterogeneous_information_sources(c, session="hetero-info"):
 
     cost = 0.002
     for model in ["SSP", "MSP"]:
-        _tmux(c, f'new-window -t {session} -n {model}')
+        _tmux(c, f"new-window -t {session} -n {model}")
         window = f"{session}:{model}"
         pane_index = 0
 
         for latency_mode in ["latency-aligned", "latency-misaligned"]:
             config_path = f"params/{model}-{latency_mode}.yaml"
-            outdir = f"hetero_info/{model}/validators_1000_slots_10000_cost_{cost}_latency_{latency_mode}"
+            outdir = f"output/hetero_info/{model}/validators_1000_slots_10000_cost_{cost}_latency_{latency_mode}"
 
             cmd = _build_cmd(model, root, config_path, outdir, [f"--cost {cost}", "--info-distribution heterogeneous"])
 
             if pane_index > 0:
-                _tmux(c, f'split-window -t {window} -v')  # vertical split; use -h for horizontal
+                _tmux(c, f"split-window -t {window} -v")  # vertical split; use -h for horizontal
             
-            _tmux(c, f'select-pane -t {window}.{pane_index}')
-            _tmux(c, f'send-keys -t {window}.{pane_index} {_quoted(cmd)} Enter')
+            _tmux(c, f"select-pane -t {window}.{pane_index}")
+            _tmux(c, f"send-keys -t {window}.{pane_index} {_quoted(cmd)} Enter")
             pane_index += 1
             num_jobs += 1
 
-        _tmux(c, f'select-layout -t {window} tiled')
+        _tmux(c, f"select-layout -t {window} tiled")
 
     # Print instructions for the user
     print(f"[ok] Started {num_jobs} jobs in tmux session '{session}'.")
@@ -170,24 +175,24 @@ def run_heterogeneous_validators(c, session="hetero-validators"):
     num_jobs = 0
     
     for model in ["SSP", "MSP"]:
-        _tmux(c, f'new-window -t {session} -n {model}')
+        _tmux(c, f"new-window -t {session} -n {model}")
         window = f"{session}:{model}"
         config_path = f"params/{model}-baseline.yaml"
         pane_index = 0
 
         for cost in [0.0, 0.002]:
-            outdir = f"hetero_validators/{model}/slots_10000_cost_{cost}_validators_heterogeneous"
+            outdir = f"output/hetero_validators/{model}/slots_10000_cost_{cost}_validators_heterogeneous"
             cmd = _build_cmd(model, root, config_path, outdir, [f"--cost {cost}", "--distribution heterogeneous"])
 
             if pane_index > 0:
-                _tmux(c, f'split-window -t {window} -v')  # vertical split; use -h for horizontal
+                _tmux(c, f"split-window -t {window} -v")  # vertical split; use -h for horizontal
 
-            _tmux(c, f'select-window -t {window}.{pane_index}')
-            _tmux(c, f'send-keys -t {window}.{pane_index} {_quoted(cmd)} Enter')
+            _tmux(c, f"select-window -t {window}.{pane_index}")
+            _tmux(c, f"send-keys -t {window}.{pane_index} {_quoted(cmd)} Enter")
             pane_index += 1
             num_jobs += 1
         
-        _tmux(c, f'select-layout -t {window} tiled')
+        _tmux(c, f"select-layout -t {window} tiled")
 
     # Print instructions for the user
     print(f"[ok] Started {num_jobs} jobs in tmux session '{session}'.")
@@ -215,24 +220,24 @@ def run_hetero_both(c, session="hetero-both"):
     cost = 0.002
     
     for model in ["SSP", "MSP"]:
-        _tmux(c, f'new-window -t {session} -n {model}')
+        _tmux(c, f"new-window -t {session} -n {model}")
         window = f"{session}:{model}"
         pane_index = 0
 
         for latency_mode in ["latency-aligned", "latency-misaligned"]:
             config_path = f"params/{model}-{latency_mode}.yaml"
-            outdir = f"hetero_both/{model}/validators_heterogeneous_slots_10000_cost_{cost}_latency_{latency_mode}"
+            outdir = f"output/hetero_both/{model}/validators_heterogeneous_slots_10000_cost_{cost}_latency_{latency_mode}"
             cmd = _build_cmd(model, root, config_path, outdir, [f"--cost {cost}", "--distribution heterogeneous", "--info-distribution heterogeneous"])
 
             if pane_index > 0:
-                _tmux(c, f'split-window -t {window} -v')  # vertical split; use -h for horizontal
+                _tmux(c, f"split-window -t {window} -v")  # vertical split; use -h for horizontal
             
-            _tmux(c, f'select-pane -t {window}.{pane_index}')
-            _tmux(c, f'send-keys -t {window}.{pane_index} {_quoted(cmd)} Enter')
+            _tmux(c, f"select-pane -t {window}.{pane_index}")
+            _tmux(c, f"send-keys -t {window}.{pane_index} {_quoted(cmd)} Enter")
             pane_index += 1
             num_jobs += 1
 
-        _tmux(c, f'select-layout -t {window} tiled')
+        _tmux(c, f"select-layout -t {window} tiled")
 
     # Print instructions for the user
     print(f"[ok] Started {num_jobs} jobs in tmux session '{session}'.")
@@ -260,22 +265,22 @@ def run_different_gammas(c, session="different-gammas"):
     cost = 0.002
     
     for model in ["SSP", "MSP"]:
-        _tmux(c, f'new-window -t {session} -n {model}')
+        _tmux(c, f"new-window -t {session} -n {model}")
         window = f"{session}:{model}"
         config_path = f"params/{model}-baseline.yaml"
 
         pane_index = 0
 
         for gamma in [0.3333, 0.5, 0.6667, 0.8]:
-            outdir = f"different_gammas/{model}/validators_1000_slots_10000_cost_{cost}_gamma_{gamma}"
+            outdir = f"output/different_gammas/{model}/validators_1000_slots_10000_cost_{cost}_gamma_{gamma}"
 
             cmd = _build_cmd(model, root, config_path, outdir, [f"--cost {cost}", f"--gamma {gamma}"])
 
             if pane_index > 0:
-                _tmux(c, f'split-window -t {window} -v')  # vertical split; use -h for horizontal
+                _tmux(c, f"split-window -t {window} -v")  # vertical split; use -h for horizontal
                 
-            _tmux(c, f'select-window -t {window}.{pane_index}')
-            _tmux(c, f'send-keys -t {window}.{pane_index} {_quoted(cmd)} Enter')
+            _tmux(c, f"select-window -t {window}.{pane_index}")
+            _tmux(c, f"send-keys -t {window}.{pane_index} {_quoted(cmd)} Enter")
             pane_index += 1
             num_jobs += 1
 
@@ -305,19 +310,19 @@ def run_eip7782(c, session="eip7782"):
     cost = 0.002
     
     for model in ["SSP", "MSP"]:
-        _tmux(c, f'new-window -t {session} -n {model}')
+        _tmux(c, f"new-window -t {session} -n {model}")
         window = f"{session}:{model}"
         config_path = f"params/{model}-baseline.yaml"
         delta = 6000
         cutoff = 3000
         pane_index = 0
 
-        outdir = f"eip7782/{model}/validators_1000_slots_10000_cost_{cost}_delta_{delta}_cutoff_{cutoff}"
+        outdir = f"output/eip7782/{model}/validators_1000_slots_10000_cost_{cost}_delta_{delta}_cutoff_{cutoff}"
 
         cmd = _build_cmd(model, root, config_path, outdir, [f"--cost {cost}", f"--delta {delta}", f"--cutoff {cutoff}"])
 
-        _tmux(c, f'select-window -t {window}.{pane_index}')
-        _tmux(c, f'send-keys -t {window}.{pane_index} {_quoted(cmd)} Enter')
+        _tmux(c, f"select-window -t {window}.{pane_index}")
+        _tmux(c, f"send-keys -t {window}.{pane_index} {_quoted(cmd)} Enter")
         pane_index += 1
         num_jobs += 1
 
@@ -336,7 +341,7 @@ def attach(c, session="simulation-baseline"):
 def kill(c, session="simulation-baseline"):
     """Kill the tmux session to stop all jobs."""
     if _has_session(c, session):
-        _tmux(c, f'kill-session -t {shlex.quote(session)}')
+        _tmux(c, f"kill-session -t {shlex.quote(session)}")
         print(f"[ok] Killed tmux session '{session}'.")
     else:
         print(f"[info] No tmux session named '{session}' was found.")

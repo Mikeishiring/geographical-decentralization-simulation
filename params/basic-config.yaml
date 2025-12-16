@@ -1,11 +1,11 @@
 simulation_name: simulation_config
-model: mevboost
+model: SSP
 iterations: 1000
 time_granularity_ms: 100
 validators: 1000
 input_folder: data
 output_folder: simulation_config
-time_window: 10
+time_window: 1000
 
 cloud: 0.9
 noncompliant: 1
