@@ -16,8 +16,14 @@ pip install -r requirements.txt
 Run the simulation with homogeneous validators and homogeneous information sources.
 
 ```bash
-cd evaluation
+cd evaluations
 fab run-baseline
+```
+
+Plot the results.
+```bash
+cd plot
+fab plot-baseline
 ```
 
 ### Heterogeneous Information Sources
@@ -27,24 +33,42 @@ Run the simulation with homogeneous validators but heterogeneous information sou
 - `latency-misaligned`: Information sources are placed in regions with high latency (Africa, Oceania, South America).
 
 ```bash
-cd evaluation
+cd evaluations
 fab run-heterogeneous-information-sources
+```
+
+Plot the results.
+```bash
+cd evaluations
+fab plot-heterogeneous-information-sources
 ```
 
 ### Heterogeneous Validators
 Run the simulation with homogeneous information sources but heterogeneous validators. Specifically, the validators are sampled from the [real-world distribution](https://dune.com/data/dune.rig_ef.validator_metadata).
 
 ```bash
-cd evaluation
+cd evaluations
 fab run-heterogeneous-validators
+```
+
+Plot the results.
+```bash
+cd plot
+fab plot-heterogeneous_validators
 ```
 
 ### Both Are Heterogeneous
 Run the simulation with heterogeneous validators and heterogeneous information sources.
 
 ```bash
-cd evaluation
+cd evaluations
 fab run-hetero-both
+```
+
+Polt the results.
+```bash
+cd plot
+fab plot-hetero-both
 ```
 
 ### Other Experiments
@@ -55,14 +79,21 @@ We also test other settings to further understand how consensus changes would af
 
 ```bash
 # test eip-7782
-cd evaluation
-run-eip7782 
+cd evaluations
+fab run-eip7782 
+
+# plot eip-7782
+cd plot
+fab plot-eip7782
 ```
 
 ```bash
 # test different \gamma (consensus threshold)
-cd evaluation
-run-different-gammas
+cd evaluations
+fab run-different-gammas
+
+# plot different \gamma (consensus threshold)
+fab plot-different-gammas
 ```
 </div>
 </details>
