@@ -226,7 +226,7 @@ def simulation(
         (relay_profiles, "relay_names.json"),
         (signal_profiles, "signal_names.json"),
     ]:
-        names = [profile["unique_id"] for profile in profiles]
+        names = [(profile["unique_id"], profile["gcp_region"]) for profile in profiles]
         with open(f"{output_folder}/{output_name}", "w") as f:
             json.dump(names, f)
 
@@ -302,7 +302,6 @@ def simulation(
         ["Slot", "Location_Strategy", "MEV_Captured_Slot"]
     ].to_dict(orient="records")
 
-
     with open(f"{output_folder}/mev_by_slot.json", "w") as f:
         json.dump(mev_by_slot, f)
     with open(f"{output_folder}/estimated_mev_by_slot.json", "w") as f:
@@ -319,10 +318,10 @@ def simulation(
     print("Saved data in JSON files in the output directory.")
     print("Information Sources:")
     if model == 'SSP':
-        print("Signals:")
+        print("Relays:")
         print("\n".join([f"{i['unique_id']} ({i['gcp_region']})" for i in signal_profiles]))
     else:
-        print("Relays:")
+        print("Signals:")
         print("\n".join([f"{r['unique_id']} ({r['gcp_region']})" for r in relay_profiles]))
 
 

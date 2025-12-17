@@ -361,7 +361,7 @@ def plot_cost(c):
 
 
 @task
-def plot_hetero_info(c):
+def plot_heterogeneous_information_sources(c):
     """
     Generate hetero-info plots.
     """
@@ -384,7 +384,7 @@ def plot_hetero_info(c):
 
 
 @task
-def plot_hetero_validator(c):
+def plot_heterogeneous_validators(c):
     """Generate hetero-validator plots."""
     folder_paths = [
         os.path.join(OUTPUT_DIR, "hetero_validators", "SSP", "slots_10000_cost_0.0_validators_heterogeneous"),
@@ -435,7 +435,7 @@ def plot_hetero_both(c):
 
 
 @task
-def plot_gamma(c):
+def plot_different_gammas(c):
     """Generate gamma plots."""
     folder_paths = [
         os.path.join(OUTPUT_DIR, "different_gammas", "SSP", "validators_1000_slots_10000_cost_0.002_gamma_0.3333"),

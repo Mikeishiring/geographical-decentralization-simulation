@@ -19,16 +19,43 @@ import urllib.request
 import os
 
 
+class SphericalSpace:
+    """
+    Sample points on (or near) the unit sphere.
+    distance() returns geodesic distance (great-circle distance).
+    """
+    def distance(self, p1, p2):
+        """
+        Calculates the geodesic distance between two points on a unit sphere.
+        Distance = arc length = arccos(dot(p1,p2)).
+        """
+        dotp = p1[0] * p2[0] + p1[1] * p2[1] + p1[2] * p2[2]
+        # Numerical safety clamp for dot product to be within [-1, 1] due to floating point inaccuracies
+        dotp = max(-1.0, min(1.0, dotp))
+        return math.acos(dotp)
+
+
+    def get_area(self):
+        """Returns the surface area of a unit sphere."""
+        return 4 * np.pi
+
+
+def init_distance_matrix(positions, space):
+    """
+    Build the initial distance matrix for all node pairs.
+    Returns a 2D list (or NumPy array) of shape (n, n).
+    """
+    n = len(positions)
+    dist_matrix = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = space.distance(positions[i], positions[j])
+            dist_matrix[i][j] = d
+            dist_matrix[j][i] = d  # Symmetric matrix
+    return dist_matrix
+
+
 space = SphericalSpace()
-
-
-# --- Helper Function for Distance ---
-# We need this for the density calculation.
-def geodesic_distance(p1, p2):
-    """Calculates the geodesic distance between two points on a unit sphere."""
-    dotp = p1[0] * p2[0] + p1[1] * p2[1] + p1[2] * p2[2]
-    dotp = max(-1.0, min(1.0, dotp))  # Clamp for numerical safety
-    return math.acos(dotp)
 
 
 # --- Pre-load Data ---
@@ -54,7 +81,7 @@ def latlon_to_xyz(lat, lon):
 
 
 def create_app(
-    all_slot_data, relay_data, mev_series, attest_series, failed_block_proposals, proposal_time_series, validator_agent_regions, validator_agent_countries, relay_names
+    all_slot_data, info_data, mev_series, attest_series, failed_block_proposals, proposal_time_series, validator_agent_regions, validator_agent_countries, info_names
 ):
     n_slots = len(all_slot_data)
 
@@ -79,7 +106,7 @@ def create_app(
 
     # relay data
     relay_dist = []
-    relay_positions = relay_data[0] if relay_data else []
+    relay_positions = info_data[0] if info_data else []
     relay_dist_per_slot = []
 
     for i, pts in enumerate(all_slot_data):
@@ -247,14 +274,14 @@ def create_app(
                     z=rz,
                     mode="markers+text",
                     marker=dict(
-                        size=10,
+                        size=5,
                         color="red",
                         symbol="diamond",
                         line=dict(color="black", width=1),
                     ),
-                    text=relay_names,
+                    text=info_names,
                     textposition="top center",
-                    name="Relay",
+                    name="Info Source",
                 )
             )
 
@@ -564,7 +591,7 @@ def create_app(
 
         # -- 3-D view (card 1) --
         fig3d = build_density_fig(
-            all_slot_data[idx], relay_data[idx], dark_mode_enabled
+            all_slot_data[idx], info_data[idx], dark_mode_enabled
         )
         fig3d.update_layout(
             title=f"Geo Tracker", margin=dict(l=15, r=10, b=20, t=40), template=template
@@ -606,7 +633,7 @@ def create_app(
         # Check if there's any relay distance data to plot
         if relay_dist and relay_dist[idx]:
             num_relays = len(relay_dist[idx])
-            for i, relay_name in zip(range(num_relays), relay_names):
+            for i, relay_name in zip(range(num_relays), info_names):
                 # Extract the history for the i-th relay up to the current slot
                 relay_y_data = [slot_data[i] for slot_data in relay_dist[: idx + 1] if i < len(slot_data)]
                 fig_relay_dist.add_trace(
@@ -614,7 +641,7 @@ def create_app(
                 )
 
         fig_relay_dist.update_layout(
-            title="Avg Distance to Relays",
+            title="Avg Distance to Info Sources",
             margin=dict(l=10, r=10, t=30, b=20),
             template=template,
             font=dict(color=plot_text_color),
@@ -728,38 +755,62 @@ if __name__ == "__main__":
         default=8050,
         help="Port to run the Dash app on.",
     )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="SSP",
+        choices=["SSP", "MSP"],
+        help="Model type used in the simulation (SSP or MSP).",
+    )
     args = parser.parse_args()
     
 
     data_path = args.data_dir
-    all_slot_data = load_data(f"{args.output_dir}/data.json")
-    relay_data = load_data(f"{args.output_dir}/relay_data.json")
     mev_series = load_data(f"{args.output_dir}/mev_by_slot.json")
     attest_series = load_data(f"{args.output_dir}/attest_by_slot.json")
     failed_block_proposals = load_data(f"{args.output_dir}/failed_block_proposals.json")
     proposal_time_series = load_data(f"{args.output_dir}/proposal_time_by_slot.json")
+
     validator_agent_regions = load_data(f"{args.output_dir}/region_counter_per_slot.json")
     validator_agent_countries = {}
     region_df = pd.read_csv(f"{data_path}/gcp_regions.csv")
     region_to_country = {}
+    region_to_xyz = {}
     for region, city in zip(region_df["Region"], region_df["location"]):
         region_to_country[region] = city.split(",")[-1].strip() if "," in city else city.strip()
+    for region, x, y, z in zip(region_df["Region"], region_df["x"], region_df["y"], region_df["z"]):
+        region_to_xyz[region] = (x, y, z)
     
-    for slot, region_list in validator_agent_regions.items():
+    all_slot_data = []
+    for slot, region_list in sorted(validator_agent_regions.items(), key=lambda x: int(x[0])):
         country_counter = defaultdict(int)
+        slot_data = []
+
         for region, count in region_list:
             country = region_to_country.get(region, "Unknown")
             country_counter[country] += count
+            xyz = region_to_xyz.get(region, (0.0, 0.0, 0.0))
+            slot_data.extend([xyz] * count)
     
         validator_agent_countries[slot] = Counter(country_counter).most_common()
+        all_slot_data.append(slot_data)
 
     relay_names = load_data(f"{args.output_dir}/relay_names.json")
+    signal_names = load_data(f"{args.output_dir}/signal_names.json")
+    if args.model == "SSP":
+        info_names = [i[0] for i in relay_names]
+        info_data = [region_to_xyz.get(i[1], (0.0, 0.0, 0.0)) for i in relay_names]
+    else:  # MSP
+        info_names = [i[0] for i in signal_names]
+        info_data = [region_to_xyz.get(i[1], (0.0, 0.0, 0.0)) for i in signal_names]
+    
+    info_data = [info_data] * len(all_slot_data)  # replicate for each slot
 
     if not all_slot_data:
         print("Application cannot start because data is missing.")
         exit(1)
     else:
         app = create_app(
-            all_slot_data, relay_data, mev_series, attest_series, failed_block_proposals, proposal_time_series, validator_agent_regions, validator_agent_countries, relay_names=relay_names
+            all_slot_data, info_data, mev_series, attest_series, failed_block_proposals, proposal_time_series, validator_agent_regions, validator_agent_countries, info_names
         )
         app.run(debug=True, port=args.port)
