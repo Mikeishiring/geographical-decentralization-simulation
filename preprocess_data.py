@@ -1,0 +1,408 @@
+import argparse
+import json
+import math
+import pandas as pd
+import re
+from collections import Counter, defaultdict
+from distribution import *
+from measure import *
+
+
+_CONTINENT_RULES = [
+    (r"^us-|^northamerica-", "North America"),
+    (r"^southamerica-",      "South America"),
+    (r"^europe-",            "Europe"),
+    (r"^asia-",              "Asia"),
+    (r"^australia-",         "Oceania"),
+    (r"^me-",                "Middle East"),
+    (r"^africa-",            "Africa"),
+]
+
+
+def to_continent(region: str) -> str:
+    for pat, name in _CONTINENT_RULES:
+        if re.match(pat, region):
+            return name
+    return "Other"
+
+
+
+class SphericalSpace:
+    """
+    Sample points on (or near) the unit sphere.
+    distance() returns geodesic distance (great-circle distance).
+    """
+    def distance(self, p1, p2):
+        """
+        Calculates the geodesic distance between two points on a unit sphere.
+        Distance = arc length = arccos(dot(p1,p2)).
+        """
+        dotp = p1[0] * p2[0] + p1[1] * p2[1] + p1[2] * p2[2]
+        # Numerical safety clamp for dot product to be within [-1, 1] due to floating point inaccuracies
+        dotp = max(-1.0, min(1.0, dotp))
+        return math.acos(dotp)
+
+
+    def get_area(self):
+        """Returns the surface area of a unit sphere."""
+        return 4 * np.pi
+
+
+def init_distance_matrix(positions, space):
+    """
+    Build the initial distance matrix for all node pairs.
+    Returns a 2D list (or NumPy array) of shape (n, n).
+    """
+    n = len(positions)
+    dist_matrix = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = space.distance(positions[i], positions[j])
+            dist_matrix[i][j] = d
+            dist_matrix[j][i] = d  # Symmetric matrix
+    return dist_matrix
+
+
+space = SphericalSpace()
+
+
+def load_data(file_path):
+    """Load data from JSON file."""
+    try:
+        with open(file_path, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"Warning: {file_path} not found.")
+        return []
+
+
+# metrics
+def gini(values):
+    """Compute Gini coefficient"""
+    values = np.array(values, dtype=float)
+    if np.amin(values) < 0:
+        raise ValueError("Values cannot be negative")
+    if np.sum(values) == 0:
+        return 0.0
+    values_sorted = np.sort(values)
+    n = len(values)
+    cumvals = np.cumsum(values_sorted)
+    gini_coeff = (n + 1 - 2 * np.sum(cumvals) / cumvals[-1]) / n
+    return gini_coeff
+
+
+def hhi(values):
+    """Compute Herfindahl–Hirschman Index (HHI)"""
+    values = np.array(values, dtype=float)
+    total = np.sum(values)
+    shares = values / total
+    return np.sum(shares**2)
+
+
+def liveness_coefficient(values):
+    """Compute Liveness Coefficient"""
+    values_sorted = np.sort(values)[::-1]
+    total_value = np.sum(values_sorted)
+    for i, v in enumerate(values_sorted):
+        if np.sum(values_sorted[: i + 1]) >= total_value / 3:
+            return i + 1
+
+
+def compute_paper_metrics(region_counts_per_slot, region_to_country):
+    validator_agent_countries = {}
+    validator_agent_continents = {}
+
+    for slot, region_list in region_counts_per_slot.items():
+        country_counter = defaultdict(int)
+        continent_counter = defaultdict(int)
+        for region, count in region_list:
+            country = region_to_country.get(region, "Unknown")
+            continent = to_continent(region)
+            country_counter[country] += count
+            continent_counter[continent] += count
+
+        validator_agent_countries[slot] = Counter(
+            country_counter
+        ).most_common()
+
+        validator_agent_continents[slot] = Counter(
+            continent_counter
+        ).most_common()
+
+
+    metrics_dfs = []
+
+    initial_num_of_regions = len(region_to_country)
+    initial_num_of_countries = len(set(region_to_country.values()))
+    initial_num_of_continents = len(_CONTINENT_RULES)
+
+    for counts, initial_num in zip(
+        [region_counts_per_slot, validator_agent_countries, validator_agent_continents],
+        [initial_num_of_regions, initial_num_of_countries, initial_num_of_continents],
+    ):
+        metrics = []
+        for slot in counts:
+            count_values = np.array(
+                [count for _, count in counts[slot]], dtype=int
+            )
+            count_values = np.append(
+                count_values, [0] * (initial_num - len(count_values))
+            )
+            gini_value = gini(count_values)
+            hhi_value = hhi(count_values)
+            live_coeff = liveness_coefficient(count_values)
+            metrics.append((int(slot), gini_value, hhi_value, live_coeff))
+        
+        metrics_dfs.append(pd.DataFrame(
+            sorted(metrics, key=lambda x: x[0]),
+            columns=["slot", "gini", "hhi", "liveness"],
+        ))
+        
+    return metrics_dfs
+
+
+def parse_profit(df):
+    value = []
+    df["continent"] = df["gcp_region"].apply(lambda x: to_continent(x))
+    for slot, slot_df in df.groupby("slot"):
+        array = []
+        for _, mr_df in slot_df.groupby("continent"):
+            total_profit = mr_df["mev_offer"].max()
+            array.append(total_profit)
+        
+        # variance
+        value.append({
+            "slot": slot,
+            "variance": pd.Series(array).var(),
+            "std": pd.Series(array).std(),
+            "mean": pd.Series(array).mean(),
+            "cv": pd.Series(array).std() / pd.Series(array).mean() if pd.Series(array).mean() != 0 else 0,
+            "gini": gini(pd.Series(array).values)
+        })
+    return pd.DataFrame(value)
+
+
+def preprocess_slot_counter(validator_agent_regions, region_to_country, region_to_xyz):
+    """Convert region data to country data."""
+    
+    validator_agent_countries = {}
+    
+    for slot, region_list in validator_agent_regions.items():
+        country_counter = defaultdict(int)
+        for region, count in region_list:
+            country = region_to_country.get(region, "Unknown")
+            country_counter[country] += count
+        validator_agent_countries[slot] = Counter(country_counter).most_common()
+    
+    all_slot_data = []
+    for slot, region_list in sorted(validator_agent_regions.items(), key=lambda x: int(x[0])):
+        country_counter = defaultdict(int)
+        slot_data = []
+
+        for region, count in region_list:
+            country = region_to_country.get(region, "Unknown")
+            country_counter[country] += count
+            xyz = region_to_xyz.get(region, (0.0, 0.0, 0.0))
+            slot_data.extend([xyz] * count)
+    
+        validator_agent_countries[slot] = Counter(country_counter).most_common()
+        all_slot_data.append(slot_data)
+    
+    return all_slot_data, validator_agent_countries
+
+
+def precompute_metrics(all_slot_data, mev_series, attest_series, proposal_time_series):
+    """Pre-compute all spatial metrics for the entire simulation."""
+    granularity = 10
+    
+    clusters_hist, total_dist_hist, avg_nnd_hist, nni_hist = [], [], [], []
+    mev_hist, attest_hist, proposal_time_hist = [], [], []
+    
+    # Placeholders for last computed values
+    last_c = last_t = last_a = last_nni = last_mev = last_attest = last_proposal_time = 0.0
+    for i, pts in enumerate(all_slot_data):
+
+        if i % granularity == 0 and len(pts) > 1:
+            dm = init_distance_matrix(pts, space)
+            last_c = cluster_matrix(dm)
+            last_t = total_distance(dm)
+            last_a = average_nearest_neighbor_distance(dm)
+            last_nni = nearest_neighbor_index_spherical(dm, space)[0]
+            last_mev = sum(mev_series[i]) if mev_series and i < len(mev_series) else 0.0
+            last_attest = sum(attest_series[i]) if i < len(attest_series) else 0.0
+            last_proposal_time = (
+                sum(t for t in proposal_time_series[i] if t > 0)
+                if proposal_time_series and i < len(proposal_time_series) and proposal_time_series[i]
+                else 0.0
+            )
+        
+        clusters_hist.append(last_c)
+        total_dist_hist.append(last_t)
+        avg_nnd_hist.append(last_a)
+        nni_hist.append(last_nni)
+        mev_hist.append(last_mev)
+        attest_hist.append(last_attest)
+        proposal_time_hist.append(last_proposal_time)
+    
+    return {
+        'clusters': clusters_hist,
+        'total_distance': total_dist_hist,
+        'avg_nnd': avg_nnd_hist,
+        'nni': nni_hist,
+        'mev': mev_hist,
+        'attestations': attest_hist,
+        'proposal_times': proposal_time_hist
+    }
+
+
+def precompute_info_distances(all_slot_data, info_data):
+    """Pre-compute distances to relays for all slots."""
+    info_dist = []
+    space = SphericalSpace()
+    
+    for i, pts in enumerate(all_slot_data):
+        info_positions = info_data[i] if i < len(info_data) else []
+        if pts and info_positions:
+            info_dist_per_slot = [
+                sum([space.distance(pt, info_pos) for pt in pts]) / len(pts)
+                for info_pos in info_positions
+            ]
+        else:
+            info_dist_per_slot = [0.0] * len(info_positions) if info_positions else []
+        
+        info_dist.append(info_dist_per_slot)
+    
+    return info_dist
+
+
+def make_json_serializable(obj):
+    """Convert numpy types and other non-serializable objects to JSON-compatible types."""
+    if isinstance(obj, (np.integer, np.int64)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float64)):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {k: make_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [make_json_serializable(v) for v in obj]
+    elif isinstance(obj, tuple):
+        return [make_json_serializable(v) for v in obj]
+    else:
+        return obj
+
+
+
+def preprocess_simulation_data(data_dir, output_dir, model="SSP"):
+    """
+    Preprocess all simulation data and create optimized files for static loading.
+    """
+    print("Starting data preprocessing...")
+    
+    # Load raw data
+    print("Loading raw data files...")
+
+    mev_series = load_data(f"{output_dir}/mev_by_slot.json")
+    attest_series = load_data(f"{output_dir}/attest_by_slot.json")
+    failed_block_proposals = load_data(f"{output_dir}/failed_block_proposals.json")
+    proposal_time_series = load_data(f"{output_dir}/proposal_time_by_slot.json")
+    validator_agent_regions = load_data(f"{output_dir}/region_counter_per_slot.json")
+    profits_df = pd.read_csv(f"{output_dir}/region_profits.csv")
+    relay_names = load_data(f"{output_dir}/relay_names.json")
+    signal_names = load_data(f"{output_dir}/signal_names.json")
+
+    region_df = pd.read_csv(f"{data_dir}/gcp_regions.csv")
+    region_to_country = {}
+    region_to_xyz = {}
+    for region, city in zip(region_df["Region"], region_df["location"]):
+        region_to_country[region] = city.split(",")[-1].strip() if "," in city else city.strip()
+    for region, x, y, z in zip(region_df["Region"], region_df["x"], region_df["y"], region_df["z"]):
+        region_to_xyz[region] = (x, y, z)
+
+    # Pre-process region and country data
+    print("Pre-processing region and country data...")
+    all_slot_data, validator_agent_countries = preprocess_slot_counter(validator_agent_regions, region_to_country, region_to_xyz)
+
+    n_slots = len(all_slot_data)
+    print(f"Processing {n_slots} slots...")
+
+    # Pre-compute metrics
+    print("Pre-computing spatial metrics...")
+    precomputed_metrics = precompute_metrics(all_slot_data, mev_series, attest_series, proposal_time_series)
+
+    # Pre-compute paper metrics
+    region_metrics, country_metrics, continent_metrics = compute_paper_metrics(validator_agent_regions, region_to_country)
+    precomputed_metrics["gini"] = continent_metrics["gini"].values.tolist()
+    precomputed_metrics["hhi"] = continent_metrics["hhi"].values.tolist()
+    precomputed_metrics["liveness"] = continent_metrics["liveness"].values.tolist()
+
+    profits_metrics = parse_profit(profits_df)
+    precomputed_metrics["profit_variance"] = profits_metrics["cv"].values.tolist()
+    
+    precomputed_metrics["failed_block_proposals"] = failed_block_proposals
+    
+    # Pre-compute info distances
+    print("Pre-computing info distances...")
+    if model == "SSP":
+        info_names = [i[0] for i in relay_names]
+        info_data = [region_to_xyz.get(i[1], (0.0, 0.0, 0.0)) for i in relay_names]
+        sources = relay_names
+    else:  # MSP
+        info_names = [i[0] for i in signal_names]
+        info_data = [region_to_xyz.get(i[1], (0.0, 0.0, 0.0)) for i in signal_names]
+        sources = signal_names
+    
+    info_distances = precompute_info_distances(all_slot_data, [info_data]*len(all_slot_data))
+    precomputed_metrics["info_avg_distance"] = info_distances
+
+    # Compile all preprocessed data
+    preprocessed_data = {
+        'n_slots': n_slots,
+        'metrics': precomputed_metrics,
+        'sources': sources,
+        'slots': {int(slot): counter for slot, counter in validator_agent_regions.items()},
+    }
+    
+    # Save preprocessed data
+    output_file = f"{output_dir}/preprocessed_data.json"
+    print(f"Saving preprocessed data to {output_file}...")
+    
+    # Convert any numpy types to native Python types for JSON serialization
+    preprocessed_data_serializable = make_json_serializable(preprocessed_data)
+    
+    with open(output_file, 'w') as f:
+        json.dump(preprocessed_data_serializable, f)
+    
+    print("Data preprocessing completed successfully!")
+    return preprocessed_data
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Preprocess simulation data for optimized loading.")
+    parser.add_argument(
+        "--data-dir",
+        "-d",
+        type=str,
+        default="data",
+        help="Path to the data folder containing region data.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        "-o",
+        type=str,
+        default="default-simulation",
+        help="Output directory where simulation results are stored.",
+    )
+    parser.add_argument(
+        "--model",
+        "-m",
+        type=str,
+        default="SSP",
+        choices=["SSP", "MSP"],
+        help="Simulation model type (SSP or MSP).",
+    )
+
+    
+    args = parser.parse_args()
+    preprocess_simulation_data(args.data_dir, args.output_dir, args.model)
