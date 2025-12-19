@@ -166,6 +166,17 @@ let playing = !!SETTINGS.autoplay;
 let slot = 0;
 let stepSize = SETTINGS.step || 1;
 
+let nSlots = 1;
+let FULL_X = [0];
+
+let SPHERE = null;
+
+let RELAY_X = [], RELAY_Y = [], RELAY_Z = [];
+let RELAY_NAMES = [];
+
+let plotsReady = false;
+let globeReady = false;
+
 /* ============================
    Theme helpers for Plotly
    ============================ */
@@ -297,7 +308,40 @@ async function loadData() {
   if (!resp.ok) throw new Error(`Failed to load ${SETTINGS.dataset}`);
   DATA = await resp.json();
   DATA.gcpData = await loadGCPData();
-  document.getElementById('slider').max = Math.max(0, (DATA.n_slots || 1) - 1);
+
+  const gcpXYZ = new Map();
+  for (const [k, v] of DATA.gcpData.entries()) {
+    const x = Number(v.x), y = Number(v.y), z = Number(v.z);
+    if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) {
+      gcpXYZ.set(String(k), [x, y, z]);
+    }
+  }
+  DATA.gcpXYZ = gcpXYZ;
+
+  nSlots = Math.max(
+    1,
+    DATA.n_slots || 0,
+    DATA.metrics?.clusters?.length || 0,
+    DATA.slots?.length || 0
+  );
+  FULL_X = Array.from({ length: nSlots }, (_, i) => i);
+
+  document.getElementById('slider').max = String(Math.max(0, nSlots - 1));
+
+  RELAY_NAMES = (DATA.sources || []).map(s => s[0]);
+  RELAY_X = []; RELAY_Y = []; RELAY_Z = [];
+  for (const src of (DATA.sources || [])) {
+    const region = String(src[1]);
+    const xyz = DATA.gcpXYZ.get(region);
+    if (xyz) {
+      RELAY_X.push(xyz[0]); RELAY_Y.push(xyz[1]); RELAY_Z.push(xyz[2]);
+    } else {
+      RELAY_X.push(0); RELAY_Y.push(0); RELAY_Z.push(0);
+    }
+  }
+
+  const phi = linspace(0, Math.PI, 40), theta = linspace(0, 2*Math.PI, 80);
+  SPHERE = sphereGrid(phi, theta);
 }
 
 async function loadWorldBorders() {
@@ -324,7 +368,7 @@ async function loadWorldBorders() {
       }
       const base = { type: 'scatter3d', mode: 'lines', x: xs, y: ys, z: zs, hoverinfo: 'skip', showlegend: false };
       tracesLight.push({ ...base, line: { width: 1, color: '#888'  } });
-      tracesDark .push({ ...base, line: { width: 1, color: '#aaaa' } });
+      tracesDark .push({ ...base, line: { width: 1, color: '#aaaaaa' } });
     }
   }
   WORLD_BORDER_TRACES = { light: tracesLight, dark: tracesDark };
@@ -336,87 +380,84 @@ async function loadWorldBorders() {
    ============================ */
 function drawGlobe(i) {
   const { slots, meta, sources } = DATA;
+  const xs = [], ys = [], zs = [];
   const pts = [];
   for (const [region, count] of (slots[i] || [])) {
-    const gcpInfo = DATA.gcpData.get(String(region));
-    if (!gcpInfo) continue;
+    const xyz = DATA.gcpXYZ.get(String(region));
+    if (!xyz) continue;
 
-    const x = Number(gcpInfo.x), y = Number(gcpInfo.y), z = Number(gcpInfo.z);
-    // Ignore invalid coordinates
-    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) continue;
-
+    const x = xyz[0], y = xyz[1], z = xyz[2];
     const n = Number(count) || 0;
-    for (let k = 0; k < n; k++) pts.push([x, y, z]);
-  }
-
-  const rels = sources.map(source => {
-    const gcpInfo = DATA.gcpData.get(source[1]);
-    if (gcpInfo) {
-      return [gcpInfo.x, gcpInfo.y, gcpInfo.z];
-    } else {
-      return [0, 0, 0]; // Default to origin if region not found
+    for (let k = 0; k < n; k++) {
+      xs.push(x); ys.push(y); zs.push(z);
+      pts.push([x, y, z]);
     }
-  });
-  const infoNames = sources.map(source => source[0]);
+  }
 
   const dens = calculateDensity(pts, SETTINGS.density_radius || 0.2);
 
-  const validators = {
-    type: 'scatter3d', mode: 'markers',
-    x: pts.map(p => p[0]), y: pts.map(p => p[1]), z: pts.map(p => p[2]),
-    marker: {
-      size: 4,
-      color: dens,
-      colorscale: dark ? 'Plasma' : 'Viridis',
-      showscale: true,
-      colorbar: {
-        title: 'Local Density', x: 1.15, len: 0.7,
-        titlefont: { color: dark ? '#f0f0f0' : '#0b1220' },
-        tickfont:  { color: dark ? '#f0f0f0' : '#0b1220' }
-      }
-    },
-    name: 'Validators'
-  };
+  if (!globeReady) {
+    const validators = {
+      type: 'scatter3d', mode: 'markers',
+      x: xs, y: ys, z: zs,
+      marker: {
+        size: 4,
+        color: dens,
+        colorscale: dark ? 'Plasma' : 'Viridis',
+        showscale: true,
+        colorbar: {
+          title: 'Local Density', x: 1.15, len: 0.7,
+          titlefont: { color: dark ? '#f0f0f0' : '#0b1220' },
+          tickfont:  { color: dark ? '#f0f0f0' : '#0b1220' }
+        }
+      },
+      name: 'Validators'
+    };
 
-  const phi = linspace(0, Math.PI, 40), theta = linspace(0, 2*Math.PI, 80);
-  const {XS, YS, ZS} = sphereGrid(phi, theta);
-  const sphere = {
-    type: 'surface', x: XS, y: YS, z: ZS, showscale: false, opacity: 0.2,
-    colorscale: [[0, dark ? '#444444' : 'lightblue'], [1, dark ? '#444444' : 'lightblue']],
-    hoverinfo: 'skip', name: 'Earth'
-  };
+    const sphere = {
+      type: 'surface', x: SPHERE.XS, y: SPHERE.YS, z: SPHERE.ZS, showscale: false, opacity: 0.2,
+      colorscale: [[0, dark ? '#444444' : 'lightblue'], [1, dark ? '#444444' : 'lightblue']],
+      hoverinfo: 'skip', name: 'Earth'
+    };
 
-  const traces = [validators, sphere];
-
-  if (rels.length) {
-    traces.push({
+    const relays = {
       type: 'scatter3d', mode: 'markers+text',
-      x: rels.map(r => r[0]), y: rels.map(r => r[1]), z: rels.map(r => r[2]),
+      x: RELAY_X, y: RELAY_Y, z: RELAY_Z,
       marker: { size: 10, color: 'red', symbol: 'diamond', line: { color: 'black', width: 1 } },
-      text: infoNames, textposition: 'top center', name: 'Info Sources'
-    });
+      text: RELAY_NAMES, textposition: 'top center', name: 'Info Sources'
+    };
+
+    const traces = [validators, sphere, relays];
+
+    const borders = dark ? WORLD_BORDER_TRACES.dark : WORLD_BORDER_TRACES.light;
+    traces.push(...borders);
+
+    const layout = {
+      ...plotlyTheme(dark, 'Geo Tracker', ''),
+      margin: { l: 15, r: 160, b: 20, t: 40 },
+      uirevision: 'keep-camera',
+      scene: {
+        xaxis: { range: [-1,1], backgroundcolor: dark ? '#1e1e1e' : 'rgba(255,255,255,0.7)',
+                 gridcolor: dark ? '#444444' : '#e0e0e0', showbackground: true, showgrid: true, showticklabels: false, zerolinecolor: dark ? '#666' : '#999' },
+        yaxis: { range: [-1,1], backgroundcolor: dark ? '#1e1e1e' : 'rgba(255,255,255,0.7)',
+                 gridcolor: dark ? '#444444' : '#e0e0e0', showbackground: true, showgrid: true, showticklabels: false, zerolinecolor: dark ? '#666' : '#999' },
+        zaxis: { range: [-1,1], backgroundcolor: dark ? '#1e1e1e' : 'rgba(255,255,255,0.7)',
+                 gridcolor: dark ? '#444444' : '#e0e0e0', showbackground: true, showgrid: true, showticklabels: false, zerolinecolor: dark ? '#666' : '#999' },
+        aspectmode: 'cube'
+      },
+      showlegend: true,
+      legend: { x: 0.02, y: 0.98, bgcolor: dark ? 'rgba(45,45,45,0.7)' : 'rgba(255,255,255,0.7)' }
+    };
+
+    Plotly.newPlot('globe', traces, layout, { displaylogo: false, responsive: true, displayModeBar: false });
+    globeReady = true;
+    return;
   }
 
-  const borders = dark ? WORLD_BORDER_TRACES.dark : WORLD_BORDER_TRACES.light;
-  traces.push(...borders);
-
-  const layout = {
-    ...plotlyTheme(dark, 'Geo Tracker', ''),
-    margin: { l: 15, r: 160, b: 20, t: 40 },
-    scene: {
-      xaxis: { range: [-1,1], backgroundcolor: dark ? '#1e1e1e' : 'rgba(255,255,255,0.7)',
-               gridcolor: dark ? '#444444' : '#e0e0e0', showbackground: true, showgrid: true, showticklabels: false, zerolinecolor: dark ? '#666' : '#999' },
-      yaxis: { range: [-1,1], backgroundcolor: dark ? '#1e1e1e' : 'rgba(255,255,255,0.7)',
-               gridcolor: dark ? '#444444' : '#e0e0e0', showbackground: true, showgrid: true, showticklabels: false, zerolinecolor: dark ? '#666' : '#999' },
-      zaxis: { range: [-1,1], backgroundcolor: dark ? '#1e1e1e' : 'rgba(255,255,255,0.7)',
-               gridcolor: dark ? '#444444' : '#e0e0e0', showbackground: true, showgrid: true, showticklabels: false, zerolinecolor: dark ? '#666' : '#999' },
-      aspectmode: 'cube'
-    },
-    showlegend: true,
-    legend: { x: 0.02, y: 0.98, bgcolor: dark ? 'rgba(45,45,45,0.7)' : 'rgba(255,255,255,0.7)' }
-  };
-
-  Plotly.newPlot('globe', traces, layout, { displaylogo: false, responsive: true });
+  Plotly.restyle('globe', {
+    x: [xs], y: [ys], z: [zs],
+    'marker.color': [dens]
+  }, [0]);
 }
 
 function drawLine(divId, x, y, title, yTitle='') {
@@ -426,7 +467,12 @@ function drawLine(divId, x, y, title, yTitle='') {
     ...plotlyTheme(dark, title, yTitle),
     height: h,
     margin: { l: 60, r: 20, t: 40, b: 40 },
-    hovermode: 'x unified'
+    hovermode: 'x unified',
+    xaxis: {
+      ...(plotlyTheme(dark, title, yTitle).xaxis),
+      autorange: false,
+      range: [0, 0]
+    }
   };
   Plotly.newPlot(divId, [{
     type: 'scatter', mode: 'lines', x, y, line: { width: 2 }
@@ -436,20 +482,18 @@ function drawLine(divId, x, y, title, yTitle='') {
 function drawRelayDist(i) {
   const el = document.getElementById('relaydist');
   const h  = (el.clientHeight || 360) * 0.94;
-  const xs = Array.from({ length: i + 1 }, (_, k) => k);
   const series = DATA.metrics.info_avg_distance || [];
-  const names  = DATA.sources.map(source => source[0]) || [];
+  const names  = RELAY_NAMES || [];
 
   const traces = [];
-  if (series.length) {
-    const m = Math.max(...series.map(arr => (arr || []).length));
-    for (let j = 0; j < m; j++) {
-      const yy = [];
-      for (let t = 0; t <= i; t++) {
-        yy.push((series[t] && series[t][j] != null) ? series[t][j] : null);
-      }
-      traces.push({ type: 'scatter', mode: 'lines', x: xs, y: yy, name: names[j] || `Source ${j}`, line: { width: 2 } });
+  const m = Math.max(names.length, ...(series || []).map(arr => (arr || []).length), 0);
+  for (let j = 0; j < m; j++) {
+    const y = new Array(nSlots).fill(null);
+    for (let t = 0; t < nSlots; t++) {
+      const row = series[t];
+      y[t] = (row && row[j] != null) ? row[j] : null;
     }
+    traces.push({ type: 'scatter', mode: 'lines', x: FULL_X, y, name: names[j] || `Source ${j}`, line: { width: 2 } });
   }
 
   const layout = {
@@ -457,6 +501,11 @@ function drawRelayDist(i) {
     height: h,
     margin: { l: 60, r: 20, t: 40, b: 40 },
     hovermode: 'x unified',
+    xaxis: {
+      ...(plotlyTheme(dark, '', '').xaxis),
+      autorange: false,
+      range: [0, 0]
+    },
     legend: { orientation: 'h', yanchor: 'top', y: -0.25, xanchor: 'center', x: 0.5, font: { size: 11 } }
   };
   Plotly.newPlot('relaydist', traces, layout, { displaylogo: false, responsive: true, displayModeBar: false });
@@ -481,25 +530,52 @@ function infoHTML(i) {
     </div>`;
 }
 
+function updateLineWindows(i) {
+  const range = i <= 0 ? [-1, -0.1] : [0, i];
+  const plot_range = { 'xaxis.range': range };
+  Plotly.relayout('Gini', plot_range);
+  Plotly.relayout('HHI', plot_range);
+  Plotly.relayout('liveness', plot_range);
+  Plotly.relayout('CV', plot_range);
+  Plotly.relayout('clusters', plot_range);
+  Plotly.relayout('totaldist', plot_range);
+  Plotly.relayout('avgnnd', plot_range);
+  Plotly.relayout('nni', plot_range);
+  Plotly.relayout('mev', plot_range);
+  Plotly.relayout('attest', plot_range);
+  Plotly.relayout('failed', plot_range);
+  Plotly.relayout('proposal', plot_range);
+  Plotly.relayout('relaydist', plot_range);
+}
+
 function drawAll() {
   document.getElementById('info').innerHTML = infoHTML(slot);
-  drawGlobe(slot);
-  const xs = Array.from({ length: slot + 1 }, (_, k) => k);
-  const S = DATA.metrics;
-  drawLine('Gini',      xs, S.gini.slice(0, slot + 1), 'Gini Coefficient', 'Gini');
-  drawLine('HHI',     xs, S.hhi.slice(0, slot + 1), 'HHI', 'HHI');
-  drawLine('liveness',  xs, S.liveness.slice(0, slot + 1), 'Liveness Coefficient', 'Liveness Coefficient');
-  drawLine('CV',        xs, S.profit_variance.slice(0, slot + 1), 'Coefficient of Variation', 'CV');
-  drawLine('clusters',  xs, S.clusters.slice(0, slot + 1), 'Clusters', 'Clusters (#)');
-  drawLine('totaldist', xs, S.total_distance.slice(0, slot + 1), 'Total Distance', 'Total Distance');
-  drawLine('avgnnd',    xs, S.avg_nnd.slice(0, slot + 1), 'Avg NND', 'Avg NND');
-  drawLine('nni',       xs, S.nni.slice(0, slot + 1), 'NNI', 'NNI');
-  drawLine('mev',       xs, S.mev.slice(0, slot + 1), 'MEV Earned', 'Block Value');
-  drawLine('attest',    xs, S.attestations.slice(0, slot + 1), 'Attestation Rate %', 'Attestation Rate (%)');
-  drawLine('failed',    xs, (S.failed_block_proposals || []).slice(0, slot + 1), 'Failed Block Proposals', 'Failed Proposals (#)');
-  drawLine('proposal',  xs, S.proposal_times.slice(0, slot + 1), 'Proposal Time (ms)', 'Proposal Time (ms)');
-  drawRelayDist(slot);
   document.getElementById('slider').value = String(slot);
+
+  if (!plotsReady) {
+    drawGlobe(slot);
+
+    const S = DATA.metrics;
+    drawLine('Gini', FULL_X, (S.gini || []).slice(0, nSlots), 'Gini Coefficient', 'Gini');
+    drawLine('HHI', FULL_X, (S.hhi || []).slice(0, nSlots), 'HHI', 'HHI');
+    drawLine('liveness', FULL_X, (S.liveness || []).slice(0, nSlots), 'Liveness Coefficient', 'Liveness Coefficient');
+    drawLine('CV', FULL_X, (S.profit_variance || []).slice(0, nSlots), 'Coefficient of Variation', 'CV');
+    drawLine('clusters', FULL_X, (S.clusters || []).slice(0, nSlots), 'Clusters', 'Clusters (#)');
+    drawLine('totaldist', FULL_X, (S.total_distance || []).slice(0, nSlots), 'Total Distance', 'Total Distance');
+    drawLine('avgnnd', FULL_X, (S.avg_nnd || []).slice(0, nSlots), 'Avg NND', 'Avg NND');
+    drawLine('nni', FULL_X, (S.nni || []).slice(0, nSlots), 'NNI', 'NNI');
+    drawLine('mev', FULL_X, (S.mev || []).slice(0, nSlots), 'MEV Earned', 'Block Value');
+    drawLine('attest', FULL_X, (S.attestations || []).slice(0, nSlots), 'Attestation Rate %', 'Attestation Rate (%)');
+    drawLine('failed', FULL_X, (S.failed_block_proposals || []).slice(0, nSlots), 'Failed Block Proposals', 'Failed Proposals (#)');
+    drawLine('proposal', FULL_X, (S.proposal_times || []).slice(0, nSlots), 'Proposal Time (ms)', 'Proposal Time (ms)');
+
+    drawRelayDist(0);
+
+    plotsReady = true;
+  } else {
+    updateLineWindows(slot);
+    drawGlobe(slot);
+  }
 }
 
 function tick() {
@@ -519,6 +595,8 @@ document.getElementById('step').onchange = (e) => { stepSize = parseInt(e.target
 document.getElementById('theme').onclick = () => {
   dark = !dark;
   document.documentElement.classList.toggle('dark', dark);
+  plotsReady = false;
+  globeReady = false;
   drawAll();
 };
 document.getElementById('slider').oninput = (e) => {
@@ -542,7 +620,7 @@ document.getElementById('slider').oninput = (e) => {
   // Autoplay if requested
   playing = !!SETTINGS.autoplay;
   stepSize = SETTINGS.step || 1;
-  setInterval(tick, 500);
+  setInterval(tick, 250);
 })().catch(err => {
   console.error(err);
   document.body.insertAdjacentHTML('beforeend', `<pre style="color:#ffb4b4;background:#2e1a1a;padding:10px;border-radius:8px">${String(err)}</pre>`);
