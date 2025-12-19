@@ -12,6 +12,7 @@
   <script src="https://cdn.plot.ly/plotly-3.1.0.min.js"></script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
     /* ===== Minimal built-in styles so it looks good even without external CSS ===== */
@@ -97,6 +98,7 @@
       </select>
     </label>
     <input id="slider" type="range" min="0" max="0" step="1" value="0"/>
+    <button id="export" style="margin-right: 4px;">⬇ Export</button>
     <button id="theme">🌓 Theme</button>
   </div>
 
@@ -176,6 +178,10 @@ let RELAY_NAMES = [];
 
 let plotsReady = false;
 let globeReady = false;
+
+let RAW_GEOJSON = null;
+let RAW_GCP_CSV = null;
+let RAW_DATA_JSON = null;
 
 /* ============================
    Theme helpers for Plotly
@@ -275,9 +281,13 @@ function calculateDensity(points, radius = 0.2) {
 async function loadGCPData() {
     const csvUrl = './data/gcp_regions.csv';
 
+    // fetch once so we can also export the same CSV later
+    const resp = await fetch(csvUrl, { cache: 'no-cache' });
+    if (!resp.ok) throw new Error(`Failed to load ${csvUrl}`);
+    RAW_GCP_CSV = await resp.text();
+
     return new Promise((resolve, reject) => {
-        Papa.parse(csvUrl, {
-            download: true,       // Enable file download
+        Papa.parse(RAW_GCP_CSV, {
             header: true,         // Parse headers automatically
             skipEmptyLines: true, // Skip empty lines
             
@@ -306,7 +316,9 @@ async function loadGCPData() {
 async function loadData() {
   const resp = await fetch(SETTINGS.dataset, { cache: 'no-cache' });
   if (!resp.ok) throw new Error(`Failed to load ${SETTINGS.dataset}`);
-  DATA = await resp.json();
+  RAW_DATA_JSON = await resp.text();
+  DATA = JSON.parse(RAW_DATA_JSON);
+
   DATA.gcpData = await loadGCPData();
 
   const gcpXYZ = new Map();
@@ -350,6 +362,7 @@ async function loadWorldBorders() {
   const resp = await fetch(url, { cache: 'force-cache' });
   if (!resp.ok) throw new Error('Failed to load countries.geo.json');
   const gj = await resp.json();
+  RAW_GEOJSON = gj;
 
   const tracesLight = [], tracesDark = [];
   for (const feat of gj.features) {
@@ -580,7 +593,6 @@ function drawAll() {
 
 function tick() {
   if (playing) {
-    const nSlots = DATA.n_slots || 1;
     slot = (slot + stepSize) % nSlots;
     drawAll();
   }
@@ -603,6 +615,49 @@ document.getElementById('slider').oninput = (e) => {
   slot = parseInt(e.target.value, 10) || 0;
   playing = false;
   drawAll();
+};
+
+/* ============================
+   Export button
+   ============================ */
+document.getElementById('export').onclick = async () => {
+  if (!DATA) return;
+
+  const zip = new JSZip();
+  const btn = document.getElementById('export');
+  const originalText = btn.innerText;
+
+  btn.disabled = true;
+
+  try {
+    zip.file("data.json", RAW_DATA_JSON || JSON.stringify(DATA, null, 2));
+
+    // Use the already fetched GeoJSON
+    if (RAW_GEOJSON) {
+      zip.file("countries.geo.json", JSON.stringify(RAW_GEOJSON, null, 2));
+    }
+
+    if (RAW_GCP_CSV) {
+      zip.file("gcp_regions.csv", RAW_GCP_CSV);
+    }
+
+    const content = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(content);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = "geo_simulation.zip";
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error("Export failed", err);
+  } finally {
+    btn.disabled = false;
+  }
 };
 
 /* ============================
