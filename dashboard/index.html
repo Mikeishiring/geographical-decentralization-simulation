@@ -143,6 +143,11 @@
       cursor: pointer;
       transition: transform .08s ease, filter .2s ease;
     }
+    .dataset-row {
+      display: grid;
+      grid-template-columns: 1.2fr 1.2fr 1fr;
+      gap: 12px;
+    }
     .btn:hover { filter: brightness(1.05); }
     .btn:active { transform: translateY(1px); }
     .link { color: var(--muted); text-decoration: none; }
@@ -171,10 +176,22 @@ To make these results accessible without requiring users to re-run large experim
         <div class="grid">
           <div class="item sm-6">
             <label class="label" for="dataset">Dataset</label>
-            <select id="dataset">
-              <option value="" disabled selected>Select a dataset</option>
-              <option value="simulations/test/data.json">test</option>
-            </select>
+            <div class="dataset-row">
+              <select id="ds-folder">
+                <option value="" disabled selected>Dataset</option>
+              </select>
+
+              <select id="ds-sub" disabled>
+                <option value="" disabled selected>Select a paradigm</option>
+              </select>
+
+              <select id="ds-name" disabled>
+                <option value="" disabled selected>Cost</option>
+              </select>
+            </div>
+
+            <!-- This will hold the final relative path you need -->
+            <input id="dataset" type="hidden" value="" />
             <div class="hint">Relative path to your preprocessed data file.</div>
           </div>
           <div class="item sm-3">
@@ -228,9 +245,92 @@ To make these results accessible without requiring users to re-run large experim
 </div>
 
 <script>
+    const DATASETS = {
+      test: {
+        SSP: ["data"]
+      },
+      baseline: {
+        MSP: ["cost_0.0", "cost_0.001", "cost_0.002", "cost_0.003"],
+        SSP: ["cost_0.0", "cost_0.001", "cost_0.002", "cost_0.003"]
+      },
+      heterogeneous_info: {
+        MSP: ["cost_0.002_latency_latency-aligned", "cost_0.002_latency_latency-misaligned"],
+        SSP: ["cost_0.002_latency_latency-aligned", "cost_0.002_latency_latency-misaligned"]
+      },
+      heterogeneous_validator: {
+        MSP: ["cost_0.0_validators_heterogeneous", "cost_0.002_validators_heterogeneous"],
+        SSP: ["cost_0.0_validators_heterogeneous", "cost_0.002_validators_heterogeneous"]
+      },
+      heterogeneous_both: {
+        MSP: ["cost_0.002_latency_latency-aligned", "cost_0.002_latency_latency-misaligned"],
+        SSP: ["cost_0.002_latency_latency-aligned", "cost_0.002_latency_latency-misaligned"]
+      },
+      different_gammas: {
+        MSP: ["cost_0.002_gamma_0.3333", "cost_0.002_gamma_0.5", "cost_0.002_gamma_0.6667", "cost_0.002_gamma_0.8"],
+        SSP: ["cost_0.002_gamma_0.3333", "cost_0.002_gamma_0.5", "cost_0.002_gamma_0.6667", "cost_0.002_gamma_0.8"]
+      },
+      eip7702: {
+        MSP: ["cost_0.002_delta_6000_cutoff_3000"],
+        SSP: ["cost_0.002_delta_6000_cutoff_3000"]
+      }
+    };
+
+  const folderSel = document.getElementById("ds-folder");
+  const subSel = document.getElementById("ds-sub");
+  const nameSel = document.getElementById("ds-name");
+  const hiddenPath = document.getElementById("dataset");
+
+  function setOptions(selectEl, items, placeholderText) {
+    selectEl.innerHTML = "";
+    const ph = document.createElement("option");
+    ph.value = "";
+    ph.disabled = true;
+    ph.selected = true;
+    ph.textContent = placeholderText;
+    selectEl.appendChild(ph);
+
+    for (const it of items) {
+      const opt = document.createElement("option");
+      opt.value = it;
+      opt.textContent = it;
+      selectEl.appendChild(opt);
+    }
+  }
+
+  // init folder options
+  setOptions(folderSel, Object.keys(DATASETS), "Select an evaluation");
+  subSel.disabled = true;
+  nameSel.disabled = true;
+
+  folderSel.addEventListener("change", () => {
+    const folder = folderSel.value;
+    const subs = Object.keys(DATASETS[folder] || {});
+    setOptions(subSel, subs, "Select a paradigm");
+    subSel.disabled = subs.length === 0;
+    nameSel.disabled = true;
+    hiddenPath.value = "";
+  });
+
+  subSel.addEventListener("change", () => {
+    const folder = folderSel.value;
+    const sub = subSel.value;
+    const names = (DATASETS[folder] && DATASETS[folder][sub]) ? DATASETS[folder][sub] : [];
+    setOptions(nameSel, names, "Select a simulation result");
+    nameSel.disabled = names.length === 0;
+    hiddenPath.value = "";
+  });
+
+  nameSel.addEventListener("change", () => {
+    const folder = folderSel.value;
+    const sub = subSel.value;
+    const name = nameSel.value;
+
+    hiddenPath.value = `simulations/${folder}/${sub}/${name}/data.json`;
+  });
+
   const TARGET_PAGE = 'viewer.html';
   function prefillDemo() {
-    document.getElementById('dataset').value = 'test/data.json';
+    document.getElementById('dataset').value = 'simulations/test/SSP/data/data.json';
     document.getElementById('theme').value = 'dark';
     document.getElementById('step').value = '10';
     document.querySelector('input[name="autoplay"][value="on"]').checked = true;

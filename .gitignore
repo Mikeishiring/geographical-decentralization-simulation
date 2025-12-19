@@ -208,8 +208,10 @@ __marimo__/
 
 # Data
 *.json
+!dashboard/simulations/**/*.json
 *.csv
 buckets/*.png
+*.pdf
 
 # Figures
 figures/
