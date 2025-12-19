@@ -11,8 +11,7 @@ from constants import (
     NON_COMPLIANT_VALIDATOR_PERCENTAGE,
 )
 from distribution import LatencyGenerator, GCPLatencyModel
-from signal_agent import SignalAgent, SIGNAL_PROFILES
-from source_agent import RelayAgent, RELAY_PROFILES
+from source_agent import RelayAgent, RELAY_PROFILES, SignalAgent, SIGNAL_PROFILES
 from validator_agent import SSPValidator, MSPValidator, ValidatorType, ValidatorPreference
 
 # --- Basic: Raw Ethereum ---

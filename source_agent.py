@@ -47,6 +47,30 @@ RELAY_PROFILES = [
 ]
 
 
+SIGNAL_PROFILES = [
+    {
+        "unique_id": "us-signal",
+        "gcp_region": "us-east4",
+        "lat": 39.0437,
+        "lon": -77.4874,
+        "utility_function": lambda x: BASE_MEV_AMOUNT * 0.3 + x * MEV_INCREASE_PER_SECOND * 0.3,
+    },
+    {
+        "unique_id": "eu-signal",
+        "gcp_region": "europe-west1",
+        "lat": 50.4577,
+        "lon": 3.8643,
+        "utility_function": lambda x: BASE_MEV_AMOUNT * 0.3 + x * MEV_INCREASE_PER_SECOND * 0.3,
+    },
+    {
+        "unique_id": "as-signal",
+        "gcp_region": "asia-northeast1",
+        "lat": 35.6895,
+        "lon": 139.6917,
+        "utility_function": lambda x: BASE_MEV_AMOUNT * 0.3 + x * MEV_INCREASE_PER_SECOND * 0.3,
+    },
+]
+
 
 class SourceAgent(Agent):
     """
@@ -106,7 +130,7 @@ class SourceAgent(Agent):
 
 
 # --- Singal Agent Class Definition ---
-class SignalAgent(Agent):
+class SignalAgent(SourceAgent):
     """
     A simple Singal Agent that has a region and provides the current best MEV offer.
     """

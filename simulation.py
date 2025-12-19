@@ -317,12 +317,12 @@ def simulation(
 
     print("Saved data in JSON files in the output directory.")
     print("Information Sources:")
-    if model == 'SSP':
+    if model == "SSP":
         print("Relays:")
-        print("\n".join([f"{i['unique_id']} ({i['gcp_region']})" for i in signal_profiles]))
+        print("\n".join([f"{i['unique_id']} ({i['gcp_region']})" for i in relay_profiles]))
     else:
         print("Signals:")
-        print("\n".join([f"{r['unique_id']} ({r['gcp_region']})" for r in relay_profiles]))
+        print("\n".join([f"{r['unique_id']} ({r['gcp_region']})" for r in signal_profiles]))
 
 
 if __name__ == "__main__":

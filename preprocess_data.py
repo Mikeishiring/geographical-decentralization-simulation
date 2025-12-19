@@ -7,6 +7,8 @@ from collections import Counter, defaultdict
 from distribution import *
 from measure import *
 
+from multiprocessing import Pool, cpu_count
+from tqdm import tqdm
 
 _CONTINENT_RULES = [
     (r"^us-|^northamerica-", "North America"),
@@ -211,6 +213,30 @@ def preprocess_slot_counter(validator_agent_regions, region_to_country, region_t
     return all_slot_data, validator_agent_countries
 
 
+def precompute_metrics_per_slot(args):
+    i, pts, space = args
+
+    if len(pts) <= 1:
+        return i, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+
+    dm = init_distance_matrix(pts, space)
+    c = cluster_matrix(dm)
+    t = total_distance(dm)
+    a = average_nearest_neighbor_distance(dm)
+    nni = nearest_neighbor_index_spherical(dm, space)[0]
+
+    # mev = sum(mev_series[i]) if mev_series and i < len(mev_series) else 0.0
+    # attest = sum(attest_series[i]) if i < len(attest_series) else 0.0
+    # proposal_time = (
+    #     sum(x for x in proposal_time_series[i] if x > 0)
+    #     if proposal_time_series and i < len(proposal_time_series) and proposal_time_series[i]
+    #     else 0.0
+    # )
+
+    return i, c, t, a, nni
+
+
+
 def precompute_metrics(all_slot_data, mev_series, attest_series, proposal_time_series):
     """Pre-compute all spatial metrics for the entire simulation."""
     granularity = 10
@@ -220,21 +246,43 @@ def precompute_metrics(all_slot_data, mev_series, attest_series, proposal_time_s
     
     # Placeholders for last computed values
     last_c = last_t = last_a = last_nni = last_mev = last_attest = last_proposal_time = 0.0
-    for i, pts in enumerate(all_slot_data):
 
-        if i % granularity == 0 and len(pts) > 1:
-            dm = init_distance_matrix(pts, space)
-            last_c = cluster_matrix(dm)
-            last_t = total_distance(dm)
-            last_a = average_nearest_neighbor_distance(dm)
-            last_nni = nearest_neighbor_index_spherical(dm, space)[0]
-            last_mev = sum(mev_series[i]) if mev_series and i < len(mev_series) else 0.0
-            last_attest = sum(attest_series[i]) if i < len(attest_series) else 0.0
-            last_proposal_time = (
-                sum(t for t in proposal_time_series[i] if t > 0)
-                if proposal_time_series and i < len(proposal_time_series) and proposal_time_series[i]
-                else 0.0
+    sample_indices = [
+        i for i, pts in enumerate(all_slot_data) if i % granularity == 0 and len(pts) > 1
+    ]
+
+    tasks = [
+        (i, all_slot_data[i], space) for i in sample_indices
+    ]
+
+    print("Starting parallel computation of metrics...")
+    with Pool(processes=min(cpu_count() // 2, 10)) as pool:
+        results = list(
+            tqdm(
+                pool.imap_unordered(precompute_metrics_per_slot, tasks),
+                total=len(tasks),
+                desc="Computing metrics"
             )
+        )
+
+    results.sort(key=lambda x: x[0])
+
+    by_i = {
+        i: (c, t, a, nni) for (i, c, t, a, nni) in results
+    }
+    print("Completed parallel computation of metrics.")
+
+    for i, pts in enumerate(all_slot_data):
+        if i in by_i:
+            last_c, last_t, last_a, last_nni = by_i[i]
+
+        last_mev = sum(mev_series[i]) if mev_series and i < len(mev_series) else 0.0
+        last_attest = sum(attest_series[i]) if i < len(attest_series) else 0.0
+        last_proposal_time = (
+            sum(t for t in proposal_time_series[i] if t > 0)
+            if proposal_time_series and i < len(proposal_time_series) and proposal_time_series[i]
+            else 0.0
+        )
         
         clusters_hist.append(last_c)
         total_dist_hist.append(last_t)
@@ -255,26 +303,44 @@ def precompute_metrics(all_slot_data, mev_series, attest_series, proposal_time_s
     }
 
 
+def precompute_info_distances_per_slot(args):
+    i, pts, info_positions, space = args
+
+    if not pts or not info_positions:
+        return i, [0.0] * len(info_positions)
+
+    info_dist_per_slot = [
+        sum([space.distance(pt, info_pos) for pt in pts]) / len(pts)
+        for info_pos in info_positions
+    ]
+
+    return i, info_dist_per_slot
+
+
 def precompute_info_distances(all_slot_data, info_data):
     """Pre-compute distances to relays for all slots."""
-    info_dist = []
     space = SphericalSpace()
-    
-    for i, pts in enumerate(all_slot_data):
-        info_positions = info_data[i] if i < len(info_data) else []
-        if pts and info_positions:
-            info_dist_per_slot = [
-                sum([space.distance(pt, info_pos) for pt in pts]) / len(pts)
-                for info_pos in info_positions
-            ]
-        else:
-            info_dist_per_slot = [0.0] * len(info_positions) if info_positions else []
-        
-        info_dist.append(info_dist_per_slot)
-    
-    return info_dist
 
+    tasks = [
+        (i, all_slot_data[i], info_data[i] if i < len(info_data) else [], space)
+        for i in range(len(all_slot_data))
+    ]
 
+    print("Starting parallel computation of info distances...")
+    with Pool(processes=min(cpu_count() // 2, 10)) as pool:
+        results = list(
+            tqdm(
+                pool.imap_unordered(precompute_info_distances_per_slot, tasks),
+                total=len(tasks),
+                desc="Computing info distances"
+            )
+        )
+    
+    results.sort(key=lambda x: x[0])
+
+    return [info_dist_per_slot for (i, info_dist_per_slot) in results]
+
+    
 def make_json_serializable(obj):
     """Convert numpy types and other non-serializable objects to JSON-compatible types."""
     if isinstance(obj, (np.integer, np.int64)):
@@ -291,7 +357,6 @@ def make_json_serializable(obj):
         return [make_json_serializable(v) for v in obj]
     else:
         return obj
-
 
 
 def preprocess_simulation_data(data_dir, output_dir, model="SSP"):
