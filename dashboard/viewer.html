@@ -336,14 +336,18 @@ async function loadWorldBorders() {
    ============================ */
 function drawGlobe(i) {
   const { slots, meta, sources } = DATA;
-  const pts = slots[i].map(gcpRegion => {
-    const gcpInfo = DATA.gcpData.get(gcpRegion);
-    if (gcpInfo) {
-      return [gcpInfo.x, gcpInfo.y, gcpInfo.z];
-    } else {
-      return [0, 0, 0]; // Default to origin if region not found
-    }
-  });
+  const pts = [];
+  for (const [region, count] of (slots[i] || [])) {
+    const gcpInfo = DATA.gcpData.get(String(region));
+    if (!gcpInfo) continue;
+
+    const x = Number(gcpInfo.x), y = Number(gcpInfo.y), z = Number(gcpInfo.z);
+    // Ignore invalid coordinates
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) continue;
+
+    const n = Number(count) || 0;
+    for (let k = 0; k < n; k++) pts.push([x, y, z]);
+  }
 
   const rels = sources.map(source => {
     const gcpInfo = DATA.gcpData.get(source[1]);
