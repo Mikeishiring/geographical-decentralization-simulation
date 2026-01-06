@@ -6,7 +6,7 @@ import seaborn as sns
 
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(CUR_DIR, "..", "data")
-FIGURE_DIR = os.path.join(CUR_DIR, "..", "figures")
+FIGURE_DIR = os.path.join(CUR_DIR, "..", "figure")
 OUTPUT_DIR = os.path.join(CUR_DIR, "..", "output")
 
 
@@ -19,22 +19,34 @@ def plot_marginal_benefit_cdf():
     df2 = pd.read_json(os.path.join(SSP_baseline_dir, "utility_increase.json"))
     values2 = df2[0][:1000]
 
+    label_map = {
+        "MSP": "Local",
+        "SSP": "External",
+    }
+
     data = []
     for v in values1:
-        data.append({"value": v, "type": "MSP"})
+        data.append({"value": v, "type": label_map["MSP"]})
     for v in values2:
-        data.append({"value": v, "type": "SSP"})
-    
+        data.append({"value": v, "type": label_map["SSP"]})
+
     df = pd.DataFrame(data)
 
     plt.figure(figsize=(16, 6), dpi=300)
     sns.set_theme(style="whitegrid")
-    ax = sns.ecdfplot(data=df, x="value", hue="type", hue_order=["MSP", "SSP"], linewidth=6.0)
+    ax = sns.ecdfplot(
+        data=df,
+        x="value",
+        hue="type",
+        hue_order=["Local", "External"],
+        linewidth=6.0,
+    )
     sns.move_legend(ax, "lower right", fontsize=24, title_fontsize=32, title=None)
     plt.xlabel("Marginal Benefit", fontsize=32)
     plt.ylabel("CDF", fontsize=32)
     plt.xticks(fontsize=28)
     plt.yticks(fontsize=28)
+
     output_path = os.path.join(FIGURE_DIR, "marginal_benefit.pdf")
     plt.savefig(output_path, bbox_inches="tight")
 

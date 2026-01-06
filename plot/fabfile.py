@@ -321,10 +321,10 @@ def plot_baseline(c):
     ]
 
     names = xlabels = [
-        "$c = 0$ (SSP)",
-        "$c = 0.002$ (SSP)",
-        "$c = 0$ (MSP)",
-        "$c = 0.002$ (MSP)",
+        "$c = 0$ (External)",
+        "$c = 0.002$ (External)",
+        "$c = 0$ (Local)",
+        "$c = 0.002$ (Local)",
     ]
 
     ylabels = [
@@ -346,13 +346,19 @@ def plot_cost(c):
     """Generate cost plots."""
     folder_paths = []
     names = []
-    
+
+    label_map = {
+        "SSP" : "External",
+        "MSP" : "Local",
+    }
+
+
     for paradigm in ["SSP", "MSP"]:
         for cost in ["0.0", "0.001", "0.002", "0.003"]:
             folder_paths.append(
                 os.path.join(OUTPUT_DIR, "baseline", paradigm, f"validators_1000_slots_10000_cost_{cost}")
             )
-            names.append(f"$c = {cost}$ ({paradigm})")
+            names.append(f"$c = {cost}$ ({label_map[paradigm]})")
 
 
     continent_comparision_output_path = os.path.join(FIGURE_DIR, "continent_comparision_cost.pdf")
@@ -373,10 +379,10 @@ def plot_heterogeneous_information_sources(c):
     ]
 
     names = [
-        "latency-aligned (SSP)",
-        "latency-misaligned (SSP)",
-        "latency-aligned (MSP)",
-        "latency-misaligned (MSP)",
+        "latency-aligned (External)",
+        "latency-misaligned (External)",
+        "latency-aligned (Local)",
+        "latency-misaligned (Local)",
     ]
 
     continent_comparision_output_path = os.path.join(FIGURE_DIR, "continent_comparision_hetero_info.pdf")
@@ -394,10 +400,10 @@ def plot_heterogeneous_validators(c):
     ]
 
     names = [
-        "$c = 0$ (SSP)",
-        "$c = 0.002$ (SSP)",
-        "$c = 0$ (MSP)",
-        "$c = 0.002$ (MSP)",
+        "$c = 0$ (External)",
+        "$c = 0.002$ (External)",
+        "$c = 0$ (Local)",
+        "$c = 0.002$ (Local)",
     ]
 
     continent_comparision_output_path = os.path.join(FIGURE_DIR, "continent_comparision_hetero_validator.pdf")
@@ -415,10 +421,10 @@ def plot_hetero_both(c):
     ]
 
     names = xlabels = [
-        "latency-aligned (SSP)",
-        "latency-misaligned (SSP)",
-        "latency-aligned (MSP)",
-        "latency-misaligned (MSP)",
+        "latency-aligned (External)",
+        "latency-misaligned (External)",
+        "latency-aligned (Local)",
+        "latency-misaligned (Local)",
     ]
 
     ylabels = [
@@ -448,7 +454,8 @@ def plot_different_gammas(c):
         os.path.join(OUTPUT_DIR, "different_gammas", "MSP", "validators_1000_slots_10000_cost_0.002_gamma_0.8"),
     ]
 
-    names = [r"$\gamma=1/3$ (SSP)", r"$\gamma=1/2$ (SSP)", r"$\gamma=2/3$ (SSP)", r"$\gamma=4/5$ (SSP)", r"$\gamma=1/3$ (MSP)", r"$\gamma=1/2$ (MSP)", r"$\gamma=2/3$ (MSP)", r"$\gamma=4/5$ (MSP)"]
+    names = [r"$\gamma=1/3$ (External)", r"$\gamma=1/2$ (External)", r"$\gamma=2/3$ (External)", r"$\gamma=4/5$ (External)",
+             r"$\gamma=1/3$ (Local)", r"$\gamma=1/2$ (Local)", r"$\gamma=2/3$ (Local)", r"$\gamma=4/5$ (Local)"]
 
     continent_comparision_output_path = os.path.join(FIGURE_DIR, "continent_comparision_gamma.pdf")
     plot_comparision(folder_paths, names, continent_comparision_output_path)
@@ -465,10 +472,10 @@ def plot_eip7782(c):
     ]
 
     names = [
-        r"$\Delta=12s$ (SSP)",
-        r"$\Delta=6s$ (SSP)",
-        r"$\Delta=12s$ (MSP)",
-        r"$\Delta=6s$ (MSP)"
+        r"$\Delta=12s$ (External)",
+        r"$\Delta=6s$ (External)",
+        r"$\Delta=12s$ (Local)",
+        r"$\Delta=6s$ (Local)"
     ]
 
     continent_comparision_output_path = os.path.join(FIGURE_DIR, "continent_comparision_eip7782.pdf")
