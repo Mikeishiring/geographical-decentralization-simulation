@@ -403,6 +403,7 @@ def simulation(
     collect_full_history=False,
     export_raw_artifacts=True,
     verbose=False,
+    num_proposers_per_slot=1,  # Number of proposers per slot
 ):
     # --- Simulation Execution ---
     random.seed(seed)  # For reproducibility
@@ -443,6 +444,7 @@ def simulation(
         "collect_full_history": collect_full_history,
         "collect_raw_artifacts": export_raw_artifacts,
         "verbose": verbose,
+        "num_proposers_per_slot": num_proposers_per_slot
     }
 
     # --- Create and Run the Model ---
@@ -682,6 +684,12 @@ if __name__ == "__main__":
         action=argparse.BooleanOptionalAction,
         help="Enable verbose slot and migration logging (default: False)",
     )
+    parser.add_argument(
+        "--num_proposers_per_slot",
+        type=int,
+        default=None,
+        help="Number of proposers per slot (default: 1)",
+    )
 
     args = parser.parse_args()
 
@@ -718,10 +726,17 @@ if __name__ == "__main__":
         cost = args.cost if args.cost is not None else config.get("migration_cost", 0.0001)
         seed = args.seed if args.seed is not None else config.get("seed", DEFAULT_SIMULATION_SEED)
 
+        # proposers per slot
+        num_proposers_per_slot = args.num_proposers_per_slot if args.num_proposers_per_slot is not None else config.get("num_proposers_per_slot", 1)
+        if model == "SSP" and num_proposers_per_slot != 1:
+            print("Warning: SSP model only supports 1 proposer per slot. Overriding to 1.")
+            num_proposers_per_slot = 1
+
         if args.output_dir == "default":
             output_folder = os.path.join(
                 output_folder,
-                f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{args.gamma}_delta_{args.delta}_cutoff_{args.cutoff}_seed_{seed}",
+                f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{args.gamma}_delta_{args.delta}_cutoff_{args.cutoff}_seed_{seed}"
+                f"{f'_proposers_{num_proposers_per_slot}' if num_proposers_per_slot != 1 else ''}",
             )
         else:
             output_folder = args.output_dir
@@ -789,6 +804,7 @@ if __name__ == "__main__":
             "fast_mode": fast_mode,
             "cost": cost,
             "seed": seed,
+            "num_proposers_per_slot": num_proposers_per_slot,
             "consensus_settings": vars(consensus_settings),
             "timing_strategies": timing_strategies,
             "location_strategies": location_strategies,
@@ -850,6 +866,7 @@ if __name__ == "__main__":
             seed=seed,
             collect_full_history=args.full_history,
             verbose=args.verbose,
+            num_proposers_per_slot=num_proposers_per_slot
         )
 
         if args.cache_results:

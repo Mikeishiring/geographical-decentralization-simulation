@@ -12,7 +12,13 @@ from constants import (
 )
 from distribution import LatencyGenerator, GCPLatencyModel
 from source_agent import RelayAgent, RELAY_PROFILES, SignalAgent, SIGNAL_PROFILES, RelayType
-from validator_agent import SSPValidator, MSPValidator, ValidatorType, ValidatorPreference
+from validator_agent import (
+    MCPValidator,
+    MSPValidator,
+    SSPValidator,
+    ValidatorPreference,
+    ValidatorType,
+)
 
 # --- Basic: Raw Ethereum ---
 
@@ -40,6 +46,7 @@ class EthereumRawModel(Model):
         collect_full_history=False,
         collect_raw_artifacts=True,
         verbose=False,
+        num_proposers_per_slot=1,
     ):
 
         # Call the base Model constructor
@@ -117,6 +124,10 @@ class EthereumRawModel(Model):
         # --- Setup DataCollector ---
         self.datacollector = self._setup_datacollector() if self.collect_full_history else None
 
+        self.num_proposers_per_slot = num_proposers_per_slot
+        self.current_proposer_agents = []
+        self.current_proposer_agent = None
+
 
     def _setup_datacollector(self):
         """Configures and returns a Mesa DataCollector."""
@@ -134,9 +145,7 @@ class EthereumRawModel(Model):
                 ),
                 "Failed_Block_Proposals": "failed_block_proposals",
                 "Utility_Increase": lambda m: (
-                    m.current_proposer_agent.estimated_profit_increase
-                    if m.current_proposer_agent
-                    else 0.0
+                    sum(p.estimated_profit_increase for p in m.current_proposer_agents or [])
                 ),
             },
             agent_reporters={
@@ -172,9 +181,10 @@ class EthereumRawModel(Model):
                 ),
                 "Failed_Block_Proposals": self.failed_block_proposals,
                 "Utility_Increase": (
-                    self.current_proposer_agent.estimated_profit_increase
-                    if self.current_proposer_agent
-                    else 0.0
+                    sum(
+                        proposer.estimated_profit_increase
+                        for proposer in self.current_proposer_agents or []
+                    )
                 ),
             }
         )
@@ -248,21 +258,31 @@ class EthereumRawModel(Model):
 
         # Select Proposer (must not be migrating)
         available_validators = [v for v in self.validators if not v.is_migrating]
-        if not available_validators:
-            self.current_proposer_agent = None  # No proposer this slot
-            self.current_attesters = []
-            self.current_attester_regions = ()
+        if len(available_validators) < self.num_proposers_per_slot:
+            self.current_proposer_agents = []
+            self.current_proposer_agent = None
+            self.current_attesters = available_validators
+            self.current_attester_regions = tuple(
+                attester.gcp_region for attester in self.current_attesters
+            )
             self.required_attesters_for_supermajority = 0
             self.slot_attester_std_ratios = ()
+            for a in self.current_attesters:
+                a.set_attester_role()
             return
 
-        # Randomly select a Proposer from available validators
-        self.current_proposer_agent = random.choice(available_validators)
+        # Randomly select the proposer(s) from available validators
+        if self.num_proposers_per_slot == 1:
+            self.current_proposer_agent = random.choice(available_validators)
+            self.current_proposer_agents = [self.current_proposer_agent]
+        else:
+            self.current_proposer_agents = random.sample(available_validators, k=self.num_proposers_per_slot)
+            self.current_proposer_agent = self.current_proposer_agents[0]
 
         self.current_attesters = [
             v
             for v in available_validators
-            if v.unique_id != self.current_proposer_agent.unique_id
+            if v.unique_id not in [p.unique_id for p in self.current_proposer_agents]
         ]
         self.current_attester_regions = tuple(
             attester.gcp_region for attester in self.current_attesters
@@ -283,19 +303,23 @@ class EthereumRawModel(Model):
         }
         for attester in self.current_attesters:
             attester.set_attester_role()
-        # Set the Proposer's role and prepare for the slot
-        self.current_proposer_agent.set_proposer_role()
+
+        for proposer in self.current_proposer_agents:
+            proposer.set_proposer_role()
 
 
     def get_current_proposer_agent(self):
         """Helper to get the current proposer from the model for attesters."""
         return self.current_proposer_agent
 
+    def get_current_proposer_agents(self):
+        """Helper to get the current proposers from the model for attesters (MCP setting)."""
+        return self.current_proposer_agents
+
 
     def get_current_attesters(self):
         """Helper to get the current attesters from the model for proposer."""
         return self.current_attesters
-
 
     def step(self):
         """
@@ -308,54 +332,60 @@ class EthereumRawModel(Model):
             if self.verbose:
                 print(f"--- Slot {self.current_slot_idx + 1} Summary ---")
             # --- End of Previous Slot Logic & Rewards ---
-            if (
-                self.current_proposer_agent
-                and self.current_proposer_agent.has_proposed_block
-            ):
-                slot_successful_attestations = sum(
-                    1 for a in self.current_attesters if a.attested_to_proposer_block
-                )
+
+            # MCP-compatible (handles >1 proposers while preserving old behaviour for 1 proposer)
+            if self.current_proposer_agents:
                 attester_count = len(self.current_attesters)
                 required_attesters_for_supermajority = math.ceil(
                     (self.consensus_settings.attestation_threshold) * attester_count
                 )
 
-                # A single-validator run has no attesters after proposer selection.
-                self.current_proposer_agent.attestation_rate = (
-                    100.0
-                    if attester_count == 0
-                    else (slot_successful_attestations / attester_count) * 100
-                )
-
-                if slot_successful_attestations >= required_attesters_for_supermajority:
-                    self.current_proposer_agent.mev_captured = (
-                        self.current_proposer_agent.mev_captured_potential
-                    )
-                    self.total_mev_earned += self.current_proposer_agent.mev_captured
-                    self.current_proposer_agent.total_mev_captured += self.current_proposer_agent.mev_captured
-                    self.supermajority_met_slots += 1
-
-                else:
-                    self.current_proposer_agent.mev_captured = (
-                        0.0  # No reward if supermajority not met
-                    )
-                    
-                    self.failed_block_proposals += 1 # count failed block proposals
+                # Only consider proposers that actually proposed
+                proposers_that_proposed = [p for p in self.current_proposer_agents if p.has_proposed_block]
 
                 # update total MEV captured and consensus rewards
-                for attester in self.current_attesters:
-                    attester.total_consensus_rewards += (
-                        self.consensus_settings.timely_source_reward
-                        + self.consensus_settings.timely_target_reward
-                    )
-                    if (slot_successful_attestations >= required_attesters_for_supermajority and attester.attested_to_proposer_block) \
-                        or (slot_successful_attestations < required_attesters_for_supermajority and not attester.attested_to_proposer_block):
-                        attester.total_consensus_rewards += self.consensus_settings.timely_head_reward
+                # Attesters get timely source+target once if at least one proposer proposed,
+                # and timely head per proposed block if they correctly attested for that block
+                if proposers_that_proposed:
+                    for attester in self.current_attesters:
+                        attester.total_consensus_rewards += (
+                            self.consensus_settings.timely_source_reward
+                            + self.consensus_settings.timely_target_reward
+                        )
 
-                self.proposed_block_times.append(
-                    self.current_proposer_agent.proposed_time_ms
-                )
-                self.total_successful_attestations += slot_successful_attestations
+                # For each proposer, evaluate attestations and rewards for that proposer's block
+                for proposer in proposers_that_proposed:
+                    slot_successful_attestations = sum(
+                        1 for a in self.current_attesters
+                        if a.attested_to_blocks.get(proposer.unique_id, False)
+                    )
+
+                    proposer.attestation_rate = (
+                        100.0
+                        if attester_count == 0
+                        else (slot_successful_attestations / attester_count) * 100
+                    )
+
+                    if slot_successful_attestations >= required_attesters_for_supermajority:
+                        proposer.mev_captured = proposer.mev_captured_potential
+                        self.total_mev_earned += proposer.mev_captured
+                        proposer.total_mev_captured += proposer.mev_captured
+                        self.supermajority_met_slots += 1  # NOTE: in MCP this is per proposer, not per slot
+                    else:
+                        proposer.mev_captured = 0.0  # No reward if supermajority not met
+                        self.failed_block_proposals += 1  # NOTE: in MCP this is per proposer, not per slot
+
+                    # Timely head reward is per proposed block and depends on correctness
+                    for attester in self.current_attesters:
+                        did_attest = attester.attested_to_blocks.get(proposer.unique_id, False)
+                        if (
+                            (slot_successful_attestations >= required_attesters_for_supermajority and did_attest)
+                            or (slot_successful_attestations < required_attesters_for_supermajority and not did_attest)
+                        ):
+                            attester.total_consensus_rewards += self.consensus_settings.timely_head_reward
+
+                    self.proposed_block_times.append(proposer.proposed_time_ms)
+                    self.total_successful_attestations += slot_successful_attestations
 
             self._record_slot_history()
             if self.datacollector is not None:
@@ -458,7 +488,8 @@ class MultiSourceParadigm(EthereumRawModel):
         signal_profiles = kwargs.get('signal_profiles', SIGNAL_PROFILES)
 
         # --- Create Agents ---
-        self.create_validator_agents(MSPValidator)
+        ValidatorCls = MCPValidator if self.num_proposers_per_slot > 1 else MSPValidator
+        self.create_validator_agents(ValidatorCls)
 
         SignalAgent.create_agents(
             model=self,
@@ -491,16 +522,32 @@ class MultiSourceParadigm(EthereumRawModel):
         if self.current_proposer_agent is None:
             self.migration_queue.append(False)
             self.action_reasons.append(("no_available_proposer", None, None))
+            [signal_agent.update_mev_offer() for signal_agent in self.signal_agents]
             return
 
         # moving decision logic here to ensure it happens after proposer is selected
-        prev_gcp_region = self.current_proposer_agent.gcp_region
-        is_migrated, action_reason = self.current_proposer_agent.decide_to_migrate()  # Check if proposer should migrate
-        new_gcp_region = self.current_proposer_agent.gcp_region
-        # Log migration decision
-        self.migration_queue.append(is_migrated)
-        self.action_reasons.append((action_reason, prev_gcp_region, new_gcp_region))
+        any_migrated = False
+        if self.num_proposers_per_slot > 1:
+            # MCP setting
+            # Value from signal sources will depend on number of proposers using it
+            self.signal_user_counts = {s.unique_id: 0 for s in self.signal_agents}
+            for proposer in self.current_proposer_agents:
+                prev_gcp_region = proposer.gcp_region
+                is_migrated, action_reason = proposer.decide_to_migrate(
+                    signal_user_counts=self.signal_user_counts
+                )
+                if is_migrated:
+                    print(f"Proposer {proposer.unique_id} migrated from {prev_gcp_region} to {proposer.gcp_region} for Slot {self.current_slot_idx}")
+                any_migrated = any_migrated or is_migrated
+                self.action_reasons.append((action_reason, prev_gcp_region, proposer.gcp_region))
+        else:
+            prev_gcp_region = self.current_proposer_agent.gcp_region
+            any_migrated, action_reason = self.current_proposer_agent.decide_to_migrate()
+            new_gcp_region = self.current_proposer_agent.gcp_region
+            self.action_reasons.append((action_reason, prev_gcp_region, new_gcp_region))
 
+        self.migration_queue.append(any_migrated)
+        [signal_agent.update_mev_offer() for signal_agent in self.signal_agents]
 
 
 # --- Single-Source Paradigm (SSP) Model ---
@@ -563,12 +610,18 @@ class SingleSourceParadigm(EthereumRawModel):
         if self.current_proposer_agent is None:
             self.migration_queue.append(False)
             self.action_reasons.append(("no_available_proposer", None, None))
+            [relay_agent.update_mev_offer() for relay_agent in self.relay_agents]
             return
 
-        prev_gcp_region = self.current_proposer_agent.gcp_region
-        is_migrated, action_reason = self.current_proposer_agent.decide_to_migrate()  # Check if proposer should migrate
-        new_gcp_region = self.current_proposer_agent.gcp_region
-        # Log migration decision
-        self.migration_queue.append(is_migrated)
-        self.action_reasons.append((action_reason, prev_gcp_region, new_gcp_region))
+        any_migrated = False
+        for proposer in self.current_proposer_agents:
+            prev_gcp_region = proposer.gcp_region
+            is_migrated, action_reason = proposer.decide_to_migrate()    # Check if proposer should migrate
+            new_gcp_region = proposer.gcp_region
+            # Log migration decision
+            any_migrated = any_migrated or is_migrated
+            self.action_reasons.append((action_reason, prev_gcp_region, new_gcp_region))
+
+        self.migration_queue.append(any_migrated)
+        [relay_agent.update_mev_offer() for relay_agent in self.relay_agents]
 
