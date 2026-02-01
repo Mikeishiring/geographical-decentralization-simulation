@@ -47,6 +47,7 @@ class EthereumRawModel(Model):
         collect_raw_artifacts=True,
         verbose=False,
         num_proposers_per_slot=1,
+        proposer_mode=None
     ):
 
         # Call the base Model constructor
@@ -127,6 +128,7 @@ class EthereumRawModel(Model):
         self.num_proposers_per_slot = num_proposers_per_slot
         self.current_proposer_agents = []
         self.current_proposer_agent = None
+        self.proposer_mode = proposer_mode or ("MCP" if num_proposers_per_slot > 1 else "MSP")
 
 
     def _setup_datacollector(self):
@@ -488,7 +490,7 @@ class MultiSourceParadigm(EthereumRawModel):
         signal_profiles = kwargs.get('signal_profiles', SIGNAL_PROFILES)
 
         # --- Create Agents ---
-        ValidatorCls = MCPValidator if self.num_proposers_per_slot > 1 else MSPValidator
+        ValidatorCls = MCPValidator if self.proposer_mode == "MCP" else MSPValidator
         self.create_validator_agents(ValidatorCls)
 
         SignalAgent.create_agents(
@@ -527,7 +529,7 @@ class MultiSourceParadigm(EthereumRawModel):
 
         # moving decision logic here to ensure it happens after proposer is selected
         any_migrated = False
-        if self.num_proposers_per_slot > 1:
+        if self.proposer_mode == "MCP":
             # MCP setting
             # Value from signal sources will depend on number of proposers using it
             self.signal_user_counts = {s.unique_id: 0 for s in self.signal_agents}
