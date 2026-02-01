@@ -404,6 +404,7 @@ def simulation(
     export_raw_artifacts=True,
     verbose=False,
     num_proposers_per_slot=1,  # Number of proposers per slot
+    proposer_mode="MSP"  # Proposer mode, default to "MSP"
 ):
     # --- Simulation Execution ---
     random.seed(seed)  # For reproducibility
@@ -444,7 +445,8 @@ def simulation(
         "collect_full_history": collect_full_history,
         "collect_raw_artifacts": export_raw_artifacts,
         "verbose": verbose,
-        "num_proposers_per_slot": num_proposers_per_slot
+        "num_proposers_per_slot": num_proposers_per_slot,
+        "proposer_mode": proposer_mode
     }
 
     # --- Create and Run the Model ---
@@ -691,6 +693,16 @@ if __name__ == "__main__":
         help="Number of proposers per slot (default: 1)",
     )
 
+    parser.add_argument(
+        "--proposer-mode",
+        "--proposer_mode",
+        type=str,
+        default=None,
+        choices=["MSP", "MCP"],
+        help="Proposer mode: MSP (sum signals) or MCP (choose best signal). "
+             "(default: MSP)",
+    )
+
     args = parser.parse_args()
 
     try:
@@ -732,11 +744,21 @@ if __name__ == "__main__":
             print("Warning: SSP model only supports 1 proposer per slot. Overriding to 1.")
             num_proposers_per_slot = 1
 
+        proposer_mode = (
+            args.proposer_mode
+            if args.proposer_mode is not None
+            else config.get("proposer_mode", "MSP")
+        )
+
+        if num_proposers_per_slot > 1 and proposer_mode == "MSP":
+            proposer_mode = "MCP"
+
         if args.output_dir == "default":
             output_folder = os.path.join(
                 output_folder,
                 f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{args.gamma}_delta_{args.delta}_cutoff_{args.cutoff}_seed_{seed}"
-                f"{f'_proposers_{num_proposers_per_slot}' if num_proposers_per_slot != 1 else ''}",
+                f"{f'_proposers_{num_proposers_per_slot}' if num_proposers_per_slot != 1 else ''}"
+                f"{f'_mode_{proposer_mode.lower()}' if proposer_mode != 'MSP' else ''}",
             )
         else:
             output_folder = args.output_dir
@@ -805,6 +827,7 @@ if __name__ == "__main__":
             "cost": cost,
             "seed": seed,
             "num_proposers_per_slot": num_proposers_per_slot,
+            "proposer_mode": proposer_mode,
             "consensus_settings": vars(consensus_settings),
             "timing_strategies": timing_strategies,
             "location_strategies": location_strategies,
@@ -866,7 +889,8 @@ if __name__ == "__main__":
             seed=seed,
             collect_full_history=args.full_history,
             verbose=args.verbose,
-            num_proposers_per_slot=num_proposers_per_slot
+            num_proposers_per_slot=num_proposers_per_slot,
+            proposer_mode=proposer_mode
         )
 
         if args.cache_results:
