@@ -323,12 +323,33 @@ class EthereumRawModel(Model):
         """Helper to get the current attesters from the model for proposer."""
         return self.current_attesters
 
+    def _all_attesters_done_for_slot(self):
+        """Return True once the current slot has no more attestation work left."""
+        if not self.current_proposer_agent:
+            return True
+        if not self.current_attesters:
+            return True
+        return all(attester.has_attested for attester in self.current_attesters)
+
+
+    def _fast_forward_to_next_slot_boundary(self):
+        """Skip idle post-attestation steps by jumping to the next slot boundary."""
+        steps_per_slot = (
+            self.consensus_settings.slot_duration_ms
+            // self.consensus_settings.time_granularity_ms
+        )
+        next_slot_boundary = ((self.steps // steps_per_slot) + 1) * steps_per_slot
+        self.steps = next_slot_boundary - 1
     def step(self):
         """
         Advance the simulation by one step (TIME_GRANULARITY_MS).
         """
+        current_slot_time_ms_inner = (
+            self.steps * self.consensus_settings.time_granularity_ms
+        ) % self.consensus_settings.slot_duration_ms
+
         # Determine if we are at the start of a new logical slot
-        is_new_slot_start = (self.steps * self.consensus_settings.time_granularity_ms) % self.consensus_settings.slot_duration_ms == 0
+        is_new_slot_start = current_slot_time_ms_inner == 0
 
         if is_new_slot_start and self.steps > 0:  # Avoid re-setup for time 0
             if self.verbose:
@@ -399,6 +420,12 @@ class EthereumRawModel(Model):
         # --- Validators perform their step actions ---
         for validator in self.validator_step_order:
             validator.step()
+
+        if (
+            current_slot_time_ms_inner > self.consensus_settings.attestation_time_ms
+            and self._all_attesters_done_for_slot()
+        ):
+            self._fast_forward_to_next_slot_boundary()
 
         # Condition to stop simulation if no validators are migrating within the time window
         if len(self.migration_queue) == self.migration_queue.maxlen and not any(self.migration_queue):
