@@ -275,9 +275,6 @@ def evaluate_threshold_fast(
         threshold,
         required_attesters
     ):
-        if not broadcast_latencies:
-            return 0.0
-
         zero_latency_count, zero_std_latencies, valid_mu, valid_sigma = (
             prepare_threshold_evaluation_inputs(broadcast_latencies, broadcast_stds)
         )
@@ -299,19 +296,21 @@ def find_min_threshold_fast(
         threshold_high=4000.0,
         tolerance=1.0
     ):
-        # The binary search logic is already efficient. The main speedup comes
-        # from calling the fast version of evaluate_threshold.
+        prepared_inputs = prepare_threshold_evaluation_inputs(
+            broadcast_latencies,
+            broadcast_stds,
+        )
+
         while threshold_high - threshold_low > tolerance:
             mid = (threshold_low + threshold_high) / 2
             if mid <= 0: # Avoid getting stuck at 0
                 threshold_low = tolerance
                 continue
             
-            prob = evaluate_threshold_fast( # Call the fast version!
-                broadcast_latencies,
-                broadcast_stds,
+            prob = evaluate_prepared_threshold_fast(
+                prepared_inputs,
                 threshold=mid,
-                required_attesters=required_attesters
+                required_attesters=required_attesters,
             )
 
             if prob >= target_prob:

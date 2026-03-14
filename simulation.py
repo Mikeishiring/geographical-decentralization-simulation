@@ -461,14 +461,13 @@ def simulation(
         else:
             model_standard = MultiSourceParadigm(**model_params_standard_nomig)
 
-        for _ in range(TOTAL_TIME_STEPS):
+        while model_standard.steps < TOTAL_TIME_STEPS:
             model_standard.step()
             if not model_standard.running:
                 print(
                     f"Stopping simulation as no validators moved within the time window ({time_window})."
                 )
                 break
-        
         if model_standard.running:
             print(
                 f"Stopping simulation after reaching the maximum time steps: {TOTAL_TIME_STEPS}."
