@@ -150,18 +150,6 @@ class EthereumRawModel(Model):
                     sum(p.estimated_profit_increase for p in m.current_proposer_agents or [])
                 ),
             },
-            agent_reporters={
-                "Role": "role",
-                "Slot": "current_slot_idx",
-                "MEV_Captured_Slot": "mev_captured",  # MEV actually earned in the last slot
-                "Estimated_Profit": "estimated_profit",  # Estimated profit before migration
-                "Attestation_Rate": "attestation_rate",  # Percentage of successful attestations
-                "Proposal Time": "proposed_time_ms",  # Time when the block was proposed,
-                "Location_Strategy": lambda v: (
-                    v.location_strategy["type"] if v.role == "proposer" else "none"
-                ),
-                "GCP_Region": "gcp_region",
-            },
         )
 
 
@@ -253,9 +241,6 @@ class EthereumRawModel(Model):
 
         # Reset all validators for the new slot
         for validator in self.validators:
-            validator.current_slot_idx = (
-                self.current_slot_idx
-            )  # Pass current slot index for migration logic
             validator.reset_for_new_slot()  # Handles cooldown, completes migrations, resets ephemeral state
 
         # Select Proposer (must not be migrating)

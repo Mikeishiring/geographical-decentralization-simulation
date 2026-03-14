@@ -10,7 +10,6 @@ import shutil
 import time
 import traceback
 import yaml  # Import yaml library
-from collections import defaultdict, Counter
 
 from constants import LinearMEVUtility
 from consensus import ConsensusSettings
@@ -479,7 +478,7 @@ def simulation(
         print("\n--- Final Results Summary ---")
         print(f"Total Slots: {model_standard.current_slot_idx + 1}")
         print(f"Total MEV Earned: {model_standard.total_mev_earned:.4f} ETH")
-        completed_slots = max(model_standard.current_slot_idx, 1)
+        completed_slots = max(model_standard.current_slot_idx + 1, 1)
         print(
             f"Avg MEV Earned per Slot: {model_standard.total_mev_earned / completed_slots:.4f} ETH"
         )
@@ -494,7 +493,6 @@ def simulation(
                 json.dump(names, f)
 
         export_payloads = build_export_payloads(model_standard)
-
         gcp_region_profits = pd.DataFrame(model_standard.region_profits)
         gcp_region_profits.to_csv(f"{output_folder}/region_profits.csv", index=False)
 
@@ -503,7 +501,6 @@ def simulation(
 
         with open(f"{output_folder}/supermajority_success.json", "w") as f:
             json.dump(export_payloads["supermajority_success"], f)
-
         with open(f"{output_folder}/failed_block_proposals.json", "w") as f:
             json.dump(export_payloads["failed_block_proposals"], f)
 
@@ -545,17 +542,21 @@ def simulation(
             with open(f"{output_folder}/proposal_time_by_slot.json", "w") as f:
                 json.dump(export_payloads["proposal_time_by_slot"], f)
 
-        if export_raw_artifacts:
-            with open(f"{output_folder}/mev_by_slot.json", "w") as f:
-                json.dump(export_payloads["mev_by_slot"], f)
-            with open(f"{output_folder}/estimated_mev_by_slot.json", "w") as f:
-                json.dump(export_payloads["estimated_mev_by_slot"], f)
-            with open(f"{output_folder}/attest_by_slot.json", "w") as f:
-                json.dump(export_payloads["attest_by_slot"], f)
-            with open(f"{output_folder}/proposal_time_by_slot.json", "w") as f:
-                json.dump(export_payloads["proposal_time_by_slot"], f)
-            with open(f"{output_folder}/region_counter_per_slot.json", "w") as f:
-                json.dump(export_payloads["region_counter_per_slot"], f)
+        summary = {
+            "simulation_name": simulation_name,
+            "seed": seed,
+            "model": model,
+            "proposer_mode": proposer_mode,
+            "num_proposers_per_slot": num_proposers_per_slot,
+            "total_slots": model_standard.current_slot_idx + 1,
+            "total_mev_earned": model_standard.total_mev_earned,
+            "avg_mev_per_slot": (
+                model_standard.total_mev_earned / max(model_standard.current_slot_idx + 1, 1)
+            ),
+            "failed_block_proposals_total": model_standard.failed_block_proposals,
+        }
+        with open(f"{output_folder}/summary.json", "w") as f:
+            json.dump(summary, f)
 
         print("Saved data in JSON files in the output directory.")
         print("Information Sources:")
