@@ -41,6 +41,7 @@ class EthereumRawModel(Model):
         time_window=10,
         fast_mode=False,
         cost=0.0001,
+        latency_std_dev_ratio=0.5,
         validator_cloud_percentage=CLOUD_VALIDATOR_PERCENTAGE,
         validator_noncompliant_percentage=NON_COMPLIANT_VALIDATOR_PERCENTAGE,
         collect_full_history=False,
@@ -65,6 +66,7 @@ class EthereumRawModel(Model):
         self.cost = cost
         self.validator_cloud_percentage = validator_cloud_percentage
         self.validator_noncompliant_percentage = validator_noncompliant_percentage
+        self.latency_std_dev_ratio = latency_std_dev_ratio
 
         # Consensus parameters
         self.consensus_settings = consensus_settings
@@ -278,7 +280,9 @@ class EthereumRawModel(Model):
             self.consensus_settings.attestation_threshold
             * len(self.current_attesters)
         )
-        self.slot_attester_std_ratios = tuple([0.5] * len(self.current_attesters))
+        self.slot_attester_std_ratios = tuple(
+            [self.latency_std_dev_ratio] * len(self.current_attesters)
+        )
         self.slot_sorted_attester_latencies = {
             region: tuple(
                 sorted(

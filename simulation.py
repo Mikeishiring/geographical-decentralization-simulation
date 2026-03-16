@@ -398,6 +398,7 @@ def simulation(
     time_window,  # Time window for migration checks
     fast_mode=False,  # Fast mode for latency computation
     cost=0.0001,  # Cost for migration, default to 0.0001
+    latency_std_dev_ratio=0.5,
     seed=DEFAULT_SIMULATION_SEED,
     collect_full_history=False,
     export_raw_artifacts=True,
@@ -445,7 +446,8 @@ def simulation(
         "collect_raw_artifacts": export_raw_artifacts,
         "verbose": verbose,
         "num_proposers_per_slot": num_proposers_per_slot,
-        "proposer_mode": proposer_mode
+        "latency_std_dev_ratio": latency_std_dev_ratio,
+        "proposer_mode": proposer_mode,
     }
 
     # --- Create and Run the Model ---
@@ -546,6 +548,7 @@ def simulation(
             "simulation_name": simulation_name,
             "seed": seed,
             "model": model,
+            "latency_std_dev_ratio": latency_std_dev_ratio,
             "proposer_mode": proposer_mode,
             "num_proposers_per_slot": num_proposers_per_slot,
             "total_slots": model_standard.current_slot_idx + 1,
@@ -702,6 +705,12 @@ if __name__ == "__main__":
         help="Proposer mode: MSP (sum signals) or MCP (choose best signal). "
              "(default: MSP)",
     )
+    parser.add_argument(
+        "--latency-std-dev-ratio",
+        type=float,
+        default=None,
+        help="Latency sampling standard deviation as a fraction of mean latency (default: YAML value or 0.5)",
+    )
 
     args = parser.parse_args()
 
@@ -737,6 +746,13 @@ if __name__ == "__main__":
         # cost for migration
         cost = args.cost if args.cost is not None else config.get("migration_cost", 0.0001)
         seed = args.seed if args.seed is not None else config.get("seed", DEFAULT_SIMULATION_SEED)
+        latency_std_dev_ratio = (
+            args.latency_std_dev_ratio
+            if args.latency_std_dev_ratio is not None
+            else config.get("latency_std_dev_ratio", 0.5)
+        )
+        if latency_std_dev_ratio < 0:
+            raise ValueError("latency_std_dev_ratio must be non-negative")
 
         # proposers per slot
         num_proposers_per_slot = args.num_proposers_per_slot if args.num_proposers_per_slot is not None else config.get("num_proposers_per_slot", 1)
@@ -757,6 +773,7 @@ if __name__ == "__main__":
             output_folder = os.path.join(
                 output_folder,
                 f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{args.gamma}_delta_{args.delta}_cutoff_{args.cutoff}_seed_{seed}"
+                f"{f'_latstd_{latency_std_dev_ratio}' if latency_std_dev_ratio != 0.5 else ''}"
                 f"{f'_proposers_{num_proposers_per_slot}' if num_proposers_per_slot != 1 else ''}"
                 f"{f'_mode_{proposer_mode.lower()}' if proposer_mode != 'MSP' else ''}",
             )
@@ -826,6 +843,7 @@ if __name__ == "__main__":
             "fast_mode": fast_mode,
             "cost": cost,
             "seed": seed,
+            "latency_std_dev_ratio": latency_std_dev_ratio,
             "num_proposers_per_slot": num_proposers_per_slot,
             "proposer_mode": proposer_mode,
             "consensus_settings": vars(consensus_settings),
@@ -886,6 +904,7 @@ if __name__ == "__main__":
             time_window=time_window,
             fast_mode=fast_mode,
             cost=cost,
+            latency_std_dev_ratio=latency_std_dev_ratio,
             seed=seed,
             collect_full_history=args.full_history,
             verbose=args.verbose,
