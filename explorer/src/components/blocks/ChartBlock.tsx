@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { motion } from 'framer-motion'
-import { BLOCK_COLORS, SPRING } from '../../lib/theme'
+import { BLOCK_COLORS, SPRING, SPRING_SOFT } from '../../lib/theme'
 import type { ChartBlock as ChartBlockType } from '../../types/blocks'
 
 interface ChartBlockProps {
@@ -122,13 +122,13 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
           {areaD && (
             <motion.path d={areaD} fill={`url(#${gradientId})`}
               initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, ease: 'easeOut', delay: 0.16 }} />
+              transition={{ ...SPRING_SOFT, delay: 0.16 }} />
           )}
 
           <motion.path d={pathD} fill="none" stroke="#2563EB" strokeWidth={2}
             strokeLinecap="round" strokeLinejoin="round"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.72, ease: 'easeOut' }} />
+            transition={SPRING_SOFT} />
 
           {points.map((p, i) => (
             <g key={`${p.label}-${i}`}>
@@ -184,7 +184,7 @@ function BarChart({
             key={`${d.label}-${i}`}
             onMouseEnter={() => setHoveredIndex(i)}
             onMouseLeave={() => setHoveredIndex(null)}
-            className="transition-opacity duration-150"
+            className="transition-opacity"
             style={{ opacity: isDimmed ? 0.4 : 1 }}
           >
             <div className="flex items-baseline justify-between gap-3 mb-1">
@@ -201,7 +201,7 @@ function BarChart({
                 initial={{ width: 0 }}
                 animate={{ width: `${(Math.abs(d.value) / maxValue) * 100}%` }}
                 transition={{ ...SPRING, delay: i * 0.04 }}
-                className="absolute inset-y-0 left-0 rounded-full transition-shadow duration-150"
+                className="absolute inset-y-0 left-0 rounded-full transition-shadow"
                 style={{
                   backgroundColor: barColor,
                   boxShadow: isHovered ? `0 0 8px ${barColor}40` : 'none',
