@@ -26,17 +26,17 @@ export function InsightBlock({ block }: InsightBlockProps) {
     <motion.div
       {...HOVER_LIFT}
       className={cn(
-        'bg-white border border-border-subtle rounded-xl p-5 border-l-[3px] topo-bg',
+        'bg-white border border-border-subtle rounded-xl p-5 border-l-2 topo-bg',
         emphasisStyles[emphasis],
       )}
     >
       {block.title && (
-        <h3 className="flex items-center gap-2 text-base font-semibold text-text-primary mb-3">
-          <span className={cn('w-2 h-2 rounded-full shrink-0', dotColors[emphasis])} />
+        <h3 className="flex items-center gap-2 text-[0.9375rem] font-medium text-text-primary mb-2.5">
+          <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', dotColors[emphasis])} />
           {block.title}
         </h3>
       )}
-      <p className="text-[15px] leading-[1.7] text-text-body font-serif">
+      <p className="text-[0.875rem] leading-[1.65] text-text-body font-serif">
         <InlineMarkdown text={block.text} />
       </p>
     </motion.div>

@@ -11,18 +11,18 @@ export function StatBlock({ block }: StatBlockProps) {
   return (
     <motion.div
       {...HOVER_LIFT}
-      className="bg-white border border-border-subtle rounded-xl p-5 topo-bg relative overflow-hidden group geo-accent-bar transition-shadow hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+      className="bg-white border border-border-subtle rounded-xl p-5 topo-bg relative overflow-hidden group geo-accent-bar"
     >
       {/* Faint coordinate corner — reveals on hover */}
-      <span aria-hidden="true" className="coord-label absolute top-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity ">
+      <span aria-hidden="true" className="coord-label absolute top-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
         §
       </span>
 
-      <div className="text-4xl font-bold tabular-nums tracking-tight text-text-primary leading-none transition-transform  group-hover:scale-[1.02] origin-left">
+      <div className="text-[1.75rem] font-semibold tabular-nums tracking-[-0.02em] text-text-primary leading-none">
         {block.value}
       </div>
       {block.sentiment && <span className="sr-only">({block.sentiment})</span>}
-      <div className="text-sm font-medium text-text-primary mt-2">
+      <div className="text-[0.8125rem] font-medium text-text-primary mt-2.5">
         {block.label}
       </div>
       {block.sublabel && (
@@ -32,8 +32,7 @@ export function StatBlock({ block }: StatBlockProps) {
       )}
       {block.delta && (
         <div className={cn(
-          'inline-flex items-center gap-1.5 mt-3 text-xs font-medium transition-opacity ',
-          'opacity-70 group-hover:opacity-100',
+          'inline-flex items-center gap-1.5 mt-3 text-xs font-medium',
           block.sentiment === 'positive' && 'text-success',
           block.sentiment === 'negative' && 'text-danger',
           (!block.sentiment || block.sentiment === 'neutral') && 'text-muted',
