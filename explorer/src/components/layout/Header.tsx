@@ -36,6 +36,12 @@ export function Header() {
               <span className="text-text-faint"> · </span>
               <span className="text-text-faint">arXiv:2509.21475</span>
             </motion.p>
+            <motion.p
+              variants={STAGGER_ITEM}
+              className="text-[0.6875rem] leading-5 text-text-faint mt-2 ml-[18px] max-w-xl"
+            >
+              Interactive paper edition with published results, exact reproduction paths, and human-authored community notes.
+            </motion.p>
           </motion.div>
 
           <motion.div variants={STAGGER_ITEM} className="flex items-center gap-2 shrink-0 pt-0.5">
