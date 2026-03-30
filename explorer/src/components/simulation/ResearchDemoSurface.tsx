@@ -93,6 +93,7 @@ export function ResearchDemoSurface({
   const [paperLens, setPaperLens] = useState<'evidence' | 'theory' | 'methods'>('evidence')
   const [assistantDraft, setAssistantDraft] = useState('')
   const [comparePath, setComparePath] = useState('')
+  const [audienceMode, setAudienceMode] = useState<'reader' | 'reviewer' | 'researcher'>('reader')
   const viewerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -454,6 +455,108 @@ export function ResearchDemoSurface({
       : `Compare ${selectedDataset.result} against ${comparisonDataset.result} with the map, timeline, and current paper lens.`
   }, [comparisonDataset, selectedDataset, selectedMetadata])
 
+  const viewPresets = [
+    {
+      id: 'presentation' as const,
+      label: 'Presentation',
+      description: 'Animated paper walkthrough.',
+      theme: 'dark' as const,
+      step: 10 as const,
+      autoplay: true,
+      lens: 'evidence' as const,
+    },
+    {
+      id: 'analysis' as const,
+      label: 'Analysis',
+      description: 'Manual inspection with dense reads.',
+      theme: 'light' as const,
+      step: 1 as const,
+      autoplay: false,
+      lens: 'methods' as const,
+    },
+    {
+      id: 'theory' as const,
+      label: 'Theory',
+      description: 'Assumption-first reading mode.',
+      theme: 'auto' as const,
+      step: 10 as const,
+      autoplay: false,
+      lens: 'theory' as const,
+    },
+    {
+      id: 'compare' as const,
+      label: 'Compare',
+      description: 'Position one replay against another.',
+      theme: 'light' as const,
+      step: 10 as const,
+      autoplay: false,
+      lens: 'evidence' as const,
+    },
+  ] as const
+
+  const matchedViewPreset = useMemo(
+    () => viewPresets.find(preset =>
+      preset.theme === theme
+      && preset.step === step
+      && preset.autoplay === autoplay
+      && preset.lens === paperLens,
+    ) ?? null,
+    [autoplay, paperLens, step, theme],
+  )
+
+  const audienceProfiles = [
+    {
+      id: 'reader' as const,
+      label: 'Reader',
+      description: 'Paper-first walkthrough.',
+      preset: 'presentation' as const,
+    },
+    {
+      id: 'reviewer' as const,
+      label: 'Reviewer',
+      description: 'Comparison and methods posture.',
+      preset: 'compare' as const,
+    },
+    {
+      id: 'researcher' as const,
+      label: 'Researcher',
+      description: 'Manual analytical inspection.',
+      preset: 'analysis' as const,
+    },
+  ] as const
+
+  const currentViewSummary = useMemo(() => {
+    const playbackLabel = autoplay ? 'autoplay on' : 'manual scrub'
+    const compareLabel = comparisonDataset
+      ? `comparison loaded against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm}`
+      : 'single-scenario focus'
+
+    return `${audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode with ${matchedViewPreset?.label ?? 'Custom'} stack: ${themeLabel(theme)} theme, step ${step}, ${playbackLabel}, ${paperLens} lens, ${compareLabel}.`
+  }, [audienceMode, audienceProfiles, autoplay, comparisonDataset, matchedViewPreset, paperLens, step, theme])
+
+  const applyViewPreset = (presetId: (typeof viewPresets)[number]['id']) => {
+    const preset = viewPresets.find(entry => entry.id === presetId)
+    if (!preset) return
+
+    setTheme(preset.theme)
+    setStep(preset.step)
+    setAutoplay(preset.autoplay)
+    setPaperLens(preset.lens)
+
+    if (preset.id === 'compare' && comparisonCandidates[0]) {
+      setComparePath(current => current || comparisonCandidates[0]!.path)
+    }
+  }
+
+  const applyAudienceMode = (mode: (typeof audienceProfiles)[number]['id']) => {
+    setAudienceMode(mode)
+    const profile = audienceProfiles.find(entry => entry.id === mode)
+    if (!profile) return
+    applyViewPreset(profile.preset)
+  }
+
+  const splitCompareActive = matchedViewPreset?.id === 'compare' && !!comparisonDataset
+
   const paperNotes = useMemo(() => {
     const notes = [
       {
@@ -497,8 +600,8 @@ export function ResearchDemoSurface({
         role: 'system',
         label: 'Context',
         body: comparisonDataset
-          ? `Ground answers in ${scenarioLabel} and optionally contrast against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} / ${comparisonDataset.result}.`
-          : `Ground answers in ${scenarioLabel}.`,
+          ? `Ground answers in ${scenarioLabel} and optionally contrast against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} / ${comparisonDataset.result}. ${currentViewSummary}`
+          : `Ground answers in ${scenarioLabel}. ${currentViewSummary}`,
       },
       {
         role: 'user',
@@ -511,10 +614,9 @@ export function ResearchDemoSurface({
         body: previewAnswer,
       },
     ] as const
-  }, [assistantDraft, comparisonDataset, paperLens, selectedDataset, selectedMetadata])
+  }, [assistantDraft, comparisonDataset, currentViewSummary, paperLens, selectedDataset, selectedMetadata])
 
   useEffect(() => {
-    setPaperLens('evidence')
     setAssistantDraft(assistantPrompts[0]?.prompt ?? '')
   }, [assistantPrompts, selectedDataset?.path])
 
@@ -740,23 +842,61 @@ export function ResearchDemoSurface({
                   The precomputed result is rendered immediately. Change the dataset or playback controls and the canvas rebinds without sending the reader back through a launcher flow.
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                <span className="lab-chip">{activeViewer.dataset.evaluation}</span>
-                <span className="lab-chip">{activeViewer.dataset.paradigm}</span>
-                <span className="lab-chip">{activeViewer.dataset.result}</span>
-                <span className="lab-chip">{themeLabel(theme)} theme</span>
-                <span className="lab-chip">step {step}</span>
-              </div>
-            </div>
-            </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                      <span className="lab-chip">{activeViewer.dataset.evaluation}</span>
+                      <span className="lab-chip">{activeViewer.dataset.paradigm}</span>
+                      <span className="lab-chip">{activeViewer.dataset.result}</span>
+                      <span className="lab-chip">{audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode</span>
+                      <span className="lab-chip">{matchedViewPreset?.label ?? 'Custom'} preset</span>
+                      <span className="lab-chip">{themeLabel(theme)} theme</span>
+                      <span className="lab-chip">step {step}</span>
+                    </div>
+                  </div>
+                </div>
           </div>
 
-          <PublishedDatasetViewer
-            key={`${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
-            viewerBaseUrl={viewerBaseUrl}
-            dataset={activeViewer.dataset}
-            initialSettings={activeViewer.settings}
-          />
+          {splitCompareActive && comparisonDataset ? (
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="space-y-3">
+                <div className="rounded-xl border border-accent bg-white px-4 py-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Primary published replay</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">
+                    {activeViewer.dataset.evaluation} · {activeViewer.dataset.paradigm}
+                  </div>
+                  <div className="mt-1 text-xs text-muted">{activeViewer.dataset.result}</div>
+                </div>
+                <PublishedDatasetViewer
+                  key={`primary:${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
+                  viewerBaseUrl={viewerBaseUrl}
+                  dataset={activeViewer.dataset}
+                  initialSettings={activeViewer.settings}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Comparison published replay</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">
+                    {comparisonDataset.evaluation} · {comparisonDataset.paradigm}
+                  </div>
+                  <div className="mt-1 text-xs text-muted">{comparisonDataset.result}</div>
+                </div>
+                <PublishedDatasetViewer
+                  key={`compare:${comparisonDataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
+                  viewerBaseUrl={viewerBaseUrl}
+                  dataset={comparisonDataset}
+                  initialSettings={activeViewer.settings}
+                />
+              </div>
+            </div>
+          ) : (
+            <PublishedDatasetViewer
+              key={`${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
+              viewerBaseUrl={viewerBaseUrl}
+              dataset={activeViewer.dataset}
+              initialSettings={activeViewer.settings}
+            />
+          )}
         </section>
       )}
 
@@ -838,9 +978,51 @@ export function ResearchDemoSurface({
           </div>
 
           <div className="lab-stage p-5">
-            <div className="text-xs text-muted mb-1">Playback posture</div>
+            <div className="text-xs text-muted mb-1">View settings</div>
             <div className="text-sm text-text-primary mb-4">
-              These controls shape the embedded preview first. The standalone viewer mirrors the same posture.
+              The published canvas, paper lens, assistant context, and comparison posture should all read from the same settings stack.
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs text-muted mb-1.5 block">Audience mode</label>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {audienceProfiles.map(profile => (
+                  <button
+                    key={profile.id}
+                    onClick={() => applyAudienceMode(profile.id)}
+                    className={cn(
+                      'rounded-xl border px-3 py-3 text-left transition-colors',
+                      audienceMode === profile.id
+                        ? 'border-accent bg-white'
+                        : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
+                    )}
+                  >
+                    <div className="text-xs font-medium text-text-primary">{profile.label}</div>
+                    <div className="mt-1 text-[11px] leading-5 text-muted">{profile.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs text-muted mb-1.5 block">Presets</label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {viewPresets.map(preset => (
+                  <button
+                    key={preset.id}
+                    onClick={() => applyViewPreset(preset.id)}
+                    className={cn(
+                      'rounded-xl border px-3 py-3 text-left transition-colors',
+                      matchedViewPreset?.id === preset.id
+                        ? 'border-accent bg-white'
+                        : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
+                    )}
+                  >
+                    <div className="text-xs font-medium text-text-primary">{preset.label}</div>
+                    <div className="mt-1 text-[11px] leading-5 text-muted">{preset.description}</div>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -888,6 +1070,26 @@ export function ResearchDemoSurface({
                       )}
                     >
                       {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+              <div>
+                <label className="text-xs text-muted mb-1.5 block">Reading lens</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {paperLenses.map(lens => (
+                    <button
+                      key={lens.id}
+                      onClick={() => setPaperLens(lens.id)}
+                      className={cn(
+                        'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                        paperLens === lens.id
+                          ? 'border-accent bg-white text-accent'
+                          : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
+                      )}
+                    >
+                      {lens.label}
                     </button>
                   ))}
                 </div>
@@ -895,8 +1097,24 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-3">
-              <div className="text-xs text-text-faint">Current viewer payload</div>
-              <div className="mt-1 break-all text-sm font-medium text-text-primary">
+              <div className="text-xs text-text-faint">Current view stack</div>
+              <div className="mt-1 text-sm font-medium text-text-primary">
+                {matchedViewPreset?.label ?? 'Custom'} preset
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted">
+                <span className="lab-chip">{audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode</span>
+                <span className="lab-chip">{themeLabel(theme)} theme</span>
+                <span className="lab-chip">step {step}</span>
+                <span className="lab-chip">{autoplay ? 'Autoplay on' : 'Manual scrub'}</span>
+                <span className="lab-chip">{paperLens} lens</span>
+                {comparisonDataset ? (
+                  <span className="lab-chip">vs {comparisonDataset.evaluation}</span>
+                ) : null}
+              </div>
+              <div className="mt-3 text-xs leading-5 text-muted">
+                {currentViewSummary}
+              </div>
+              <div className="mt-3 break-all text-sm font-medium text-text-primary">
                 {selectedDataset?.path ?? 'Choose a dataset'}
               </div>
               <div className="mt-2 text-xs text-muted">
@@ -1047,8 +1265,10 @@ export function ResearchDemoSurface({
                     <span className="lab-chip">{selectedDataset?.paradigm ?? 'No mode'}</span>
                     <span className="lab-chip">{selectedDataset?.result ?? 'No result'}</span>
                     <span className="lab-chip">{selectedDataset?.sourceRole ?? 'No source role'}</span>
+                    <span className="lab-chip">{matchedViewPreset?.label ?? 'Custom'} preset</span>
                     <span className="lab-chip">{themeLabel(theme)} theme</span>
                     <span className="lab-chip">step {step}</span>
+                    <span className="lab-chip">{paperLens} lens</span>
                   </div>
                   <div className="mt-3 text-xs leading-5 text-muted">
                     When backend wiring lands, this draft can be executed against the selected published payload, slot metrics, and future theory annotations.
@@ -1096,6 +1316,20 @@ export function ResearchDemoSurface({
                 <div className="text-xs text-muted mb-1">Comparison desk</div>
                 <div className="text-sm text-text-primary">
                   Put the active published replay beside another checked-in scenario so the paper can highlight tradeoffs instead of presenting one curve in isolation.
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => applyViewPreset('compare')}
+                    className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Activate split compare
+                  </button>
+                  <button
+                    onClick={() => applyAudienceMode('reviewer')}
+                    className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Switch to reviewer mode
+                  </button>
                 </div>
 
                 <div className="mt-4">
