@@ -6,7 +6,7 @@ export function ShimmerLoading() {
   return (
     <div className="space-y-3">
       {/* Stat row skeleton */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[0, 1, 2].map(i => (
           <motion.div
             key={`stat-${i}`}
