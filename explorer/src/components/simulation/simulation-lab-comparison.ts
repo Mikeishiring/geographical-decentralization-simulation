@@ -206,7 +206,7 @@ export function buildSimulationLabUrl(options: {
 
   const url = new URL(window.location.href)
   url.searchParams.set('tab', 'results')
-  if (options.surfaceMode === 'research' && !options.currentJobId) {
+  if (!options.currentJobId) {
     url.searchParams.delete('simulationSurface')
   } else {
     url.searchParams.set('simulationSurface', options.surfaceMode)
