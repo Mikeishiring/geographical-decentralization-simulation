@@ -88,25 +88,37 @@ export function ExactSimulationAnalyticsPanel({
       {exactAnalyticsPayload ? (
         <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-xl border border-accent/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.92))] px-4 py-3 xl:col-span-2">
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Analytics posture</div>
-                <div className="mt-1 text-sm font-medium text-text-primary">
-                  Read the exact run like a dataset: choose one view, bind it to a slot, then compare against a frozen foil.
+            <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">How to read this desk</div>
+            <div className="mt-1 text-sm font-medium text-text-primary">
+              Treat the exact run like a publication artifact: evidence first, comparison second, takeaway last.
+            </div>
+            <div className="mt-3 grid gap-2 md:grid-cols-3">
+              {[
+                {
+                  title: '1. Pick one stable read',
+                  detail: 'Open one dashboard and stay in that posture.',
+                },
+                {
+                  title: '2. Inspect a slot directly',
+                  detail: 'Bind cards and comparisons to one moment in the run.',
+                },
+                {
+                  title: '3. Compare before publishing',
+                  detail: 'Add the closest foil, then decide whether it is worth a public note.',
+                },
+              ].map(item => (
+                <div key={item.title} className="rounded-xl border border-white/70 bg-white/80 px-3 py-2.5">
+                  <div className="text-sm font-medium text-text-primary">{item.title}</div>
+                  <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2 text-xs text-muted">
-                <span className="lab-chip bg-white/85">Evidence first</span>
-                <span className="lab-chip bg-white/85">Slot-bound</span>
-                <span className="lab-chip bg-white/85">Frozen foil optional</span>
-              </div>
+              ))}
             </div>
           </div>
 
-          <div className="rounded-xl border border-border-subtle bg-white px-4 py-3">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Named dashboards</div>
+          <div className="rounded-xl border border-rule bg-white px-4 py-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Named dashboards</div>
             <div className="mt-1 text-xs leading-5 text-muted">
-              Reusable reads over the same payload.
+              These are reusable dashboard reads over the same exact-run payload, so you can move between stable analysis postures instead of rebuilding the query each time.
             </div>
             <div className="mt-3 grid gap-2 md:grid-cols-2">
               {dashboardPresets.map(preset => {
@@ -129,8 +141,8 @@ export function ExactSimulationAnalyticsPanel({
                     className={cn(
                       'rounded-xl border px-3 py-2.5 transition-colors',
                       presetActive
-                        ? 'border-accent bg-[#FAFAF8]'
-                        : 'border-border-subtle bg-white',
+                        ? 'border-accent bg-surface-active'
+                        : 'border-rule bg-white',
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -139,7 +151,7 @@ export function ExactSimulationAnalyticsPanel({
                         <div className="mt-1 text-xs leading-5 text-muted">{preset.note}</div>
                       </div>
                       {presetActive ? (
-                        <span className="rounded-full bg-accent px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white">
+                        <span className="rounded-full bg-accent px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-white">
                           Live
                         </span>
                       ) : null}
@@ -151,14 +163,14 @@ export function ExactSimulationAnalyticsPanel({
                           onAnalyticsMetricChange(preset.analyticsMetric)
                           onAnalyticsCompareModeChange(preset.analyticsCompareMode)
                         }}
-                        className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                        className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                       >
                         Open dashboard
                       </button>
                       <button
                         onClick={() => onCopyShareUrl(presetUrl)}
                         disabled={!presetUrl}
-                        className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         Copy link
                       </button>
@@ -177,7 +189,7 @@ export function ExactSimulationAnalyticsPanel({
                   Slot {slot + 1} of {totalSlots.toLocaleString()}
                 </div>
                 <div className="mt-1 text-xs leading-5 text-muted">
-                  Cards and comparisons stay pinned to this exact point in the run.
+                  Scrub the exact run directly from the analytics desk. The cards, sources, and comparison table stay bound to this slot.
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -217,13 +229,13 @@ export function ExactSimulationAnalyticsPanel({
             </div>
           </div>
 
-          <div className="rounded-xl border border-border-subtle bg-white px-4 py-3 xl:col-span-2">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Published foil</div>
+          <div className="rounded-xl border border-rule bg-white px-4 py-3 xl:col-span-2">
+            <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Published foil</div>
             <div className="mt-1 text-sm font-medium text-text-primary">
               {selectedComparisonDataset ? formatPublishedDatasetLabel(selectedComparisonDataset) : 'No published scenario selected'}
             </div>
             <div className="mt-1 text-xs leading-5 text-muted">
-              {selectedComparisonDataset?.metadata?.description ?? 'Choose a checked-in dataset to compare the exact run against frozen paper evidence.'}
+              {selectedComparisonDataset?.metadata?.description ?? 'Choose a checked-in paper dataset so the exact run can be compared against frozen evidence in the same desk.'}
             </div>
 
             <label className="mt-3 block text-xs text-muted">
@@ -291,7 +303,7 @@ export function ExactSimulationAnalyticsPanel({
             </div>
 
             <div className="mt-3 text-xs leading-5 text-muted">
-              Shared links preserve the active foil, query view, and slot posture.
+              Shared exact-analytics links preserve the active foil dataset, analytics view, and slot posture.
             </div>
           </div>
         </div>
