@@ -444,7 +444,7 @@ export function PublishedReplayCompanionPanel({
   )
 
   return (
-    <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
+    <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Replay companion</div>
@@ -464,7 +464,7 @@ export function PublishedReplayCompanionPanel({
             'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
             canAsk
               ? 'bg-accent text-white hover:bg-accent/85'
-              : 'cursor-not-allowed border border-border-subtle bg-surface-active text-muted',
+              : 'cursor-not-allowed border border-rule bg-surface-active text-muted',
           )}
         >
           {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
@@ -472,7 +472,7 @@ export function PublishedReplayCompanionPanel({
         </button>
       </div>
 
-      <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+      <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Live context</div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
           <span className="lab-chip">{datasetLabel(dataset)}</span>
@@ -509,7 +509,7 @@ export function PublishedReplayCompanionPanel({
                     submitQuestion(prompt)
                   }}
                   disabled={mutation.isPending || !isAnthropicEnabled}
-                  className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:bg-surface-active disabled:text-muted"
+                  className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:bg-surface-active disabled:text-muted"
                 >
                   {prompt}
                 </button>
@@ -520,13 +520,13 @@ export function PublishedReplayCompanionPanel({
       </div>
 
       {disabledReason ? (
-        <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-3 text-xs leading-5 text-muted">
+        <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-3 text-xs leading-5 text-muted">
           {disabledReason}
         </div>
       ) : null}
 
       {autoRunQuestion?.trim() && !latestThreadEntry && !mutation.isPending ? (
-        <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-3 text-xs leading-5 text-muted">
+        <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-3 text-xs leading-5 text-muted">
           Shared replay query detected. The companion will run it as soon as the replay context is ready.
         </div>
       ) : null}
@@ -539,7 +539,7 @@ export function PublishedReplayCompanionPanel({
 
       {mutation.isPending ? (
         <div className="mt-4 grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
-          <div className="rounded-[1.1rem] border border-border-subtle bg-[#FAFAF8] p-4">
+          <div className="rounded-[1.1rem] border border-rule bg-surface-active p-4">
             <div className="lab-skeleton lab-skeleton-line w-1/3" />
             <div className="mt-3 space-y-3">
               <div className="lab-skeleton lab-skeleton-line w-full" />
@@ -554,13 +554,13 @@ export function PublishedReplayCompanionPanel({
       {response ? (
         <div className="mt-4 space-y-4">
           {activeQuestion ? (
-            <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+            <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Latest replay question</div>
               <div className="mt-2 text-sm leading-6 text-text-primary">{activeQuestion}</div>
             </div>
           ) : null}
 
-          <div className="rounded-[1.1rem] border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+          <div className="rounded-[1.1rem] border border-rule bg-surface-active px-4 py-4">
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Evidence used</div>
             <div className="mt-2 text-xs leading-5 text-muted">
               Start from the replay posture and the linked source material. The assistant interpretation stays secondary.
@@ -591,7 +591,7 @@ export function PublishedReplayCompanionPanel({
           </div>
 
           {supportingBlocks.length > 0 ? (
-            <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+            <div className="rounded-xl border border-rule bg-white px-4 py-4">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Reading discipline</div>
               <div className="mt-4">
                 <BlockCanvas blocks={supportingBlocks} showExport={false} />
@@ -599,7 +599,7 @@ export function PublishedReplayCompanionPanel({
             </div>
           ) : null}
 
-          <div className="rounded-[1.25rem] border border-border-subtle bg-white px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+          <div className="rounded-[1.25rem] border border-rule bg-white px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Assistant interpretation</div>
@@ -609,7 +609,7 @@ export function PublishedReplayCompanionPanel({
               </div>
               <button
                 onClick={() => setShowInterpretation(current => !current)}
-                className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                className="inline-flex items-center gap-2 rounded-full border border-rule bg-surface-active px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
               >
                 {showInterpretation ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                 {showInterpretation ? 'Hide interpretation' : 'Show interpretation'}
@@ -627,14 +627,14 @@ export function PublishedReplayCompanionPanel({
                 ) : null}
               </div>
             ) : (
-              <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-3 text-xs leading-5 text-muted">
+              <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-3 text-xs leading-5 text-muted">
                 Interpretation hidden. Expand only after checking the evidence and source links above.
               </div>
             )}
           </div>
 
           {response.followUps.length > 0 ? (
-            <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+            <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Follow-up prompts</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {response.followUps.map(prompt => (
@@ -644,7 +644,7 @@ export function PublishedReplayCompanionPanel({
                       onQuestionChange(prompt)
                       submitQuestion(prompt)
                     }}
-                    className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                   >
                     {prompt}
                   </button>
@@ -654,18 +654,18 @@ export function PublishedReplayCompanionPanel({
           ) : null}
 
           {previousThreadEntries.length > 0 ? (
-            <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+            <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Replay thread</div>
               <div className="mt-3 space-y-3">
                 {previousThreadEntries.map((entry, index) => (
-                  <div key={`${entry.question}-${index}`} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+                  <div key={`${entry.question}-${index}`} className="rounded-xl border border-rule bg-white px-4 py-4">
                     <div className="text-xs font-medium text-text-primary">{entry.question}</div>
                     <div className="mt-2 text-xs leading-5 text-muted">{entry.response.summary}</div>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-text-faint">
                       <span>{entry.answeredContext}</span>
                       <button
                         onClick={() => onQuestionChange(entry.question)}
-                        className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1 text-[11px] font-medium text-text-primary transition-colors hover:border-border-hover"
+                        className="rounded-full border border-rule bg-surface-active px-3 py-1 text-[11px] font-medium text-text-primary transition-colors hover:border-border-hover"
                       >
                         Reuse question
                       </button>

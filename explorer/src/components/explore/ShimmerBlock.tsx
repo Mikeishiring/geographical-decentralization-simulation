@@ -13,7 +13,7 @@ export function ShimmerLoading() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...SPRING, delay: i * 0.06 }}
-            className="bg-white border border-border-subtle rounded-xl p-4"
+            className="bg-white border border-rule rounded-xl p-4"
           >
             <div className="shimmer h-8 w-16 rounded bg-[#F0F0EE] mb-2" />
             <div className="shimmer h-3 w-24 rounded bg-[#F0F0EE] mb-1" />
@@ -27,7 +27,7 @@ export function ShimmerLoading() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...SPRING, delay: 0.18 }}
-        className="bg-white border border-border-subtle rounded-xl p-4 border-l-[3px] border-l-accent"
+        className="bg-white border border-rule rounded-xl p-4 border-l-[3px] border-l-accent"
       >
         <div className="shimmer h-4 w-48 rounded bg-[#F0F0EE] mb-3" />
         <div className="shimmer h-3 w-full rounded bg-[#F0F0EE] mb-2" />
@@ -40,7 +40,7 @@ export function ShimmerLoading() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...SPRING, delay: 0.24 }}
-        className="bg-white border border-border-subtle rounded-xl p-4"
+        className="bg-white border border-rule rounded-xl p-4"
       >
         <div className="shimmer h-4 w-40 rounded bg-[#F0F0EE] mb-4" />
         <div className="flex gap-4">

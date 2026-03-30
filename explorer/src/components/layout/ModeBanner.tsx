@@ -27,7 +27,7 @@ const toneClasses: Record<ModeTone, { dot: string; border: string; bg: string }>
   },
   interpretation: {
     dot: 'bg-text-faint',
-    border: 'border-border-subtle',
+    border: 'border-rule',
     bg: 'bg-white',
   },
 }

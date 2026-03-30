@@ -7,13 +7,6 @@ export const SPRING_SNAPPY = { type: 'spring' as const, stiffness: 360, damping:
 /** Instant transition — used when prefers-reduced-motion is active */
 export const INSTANT = { duration: 0 } as const
 
-/** Hover lift preset — barely-there elevation, Agentation-inspired restraint */
-export const HOVER_LIFT = {
-  whileHover: { y: -0.5, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' },
-  whileTap: { scale: 0.995 },
-  transition: SPRING_SOFT,
-} as const
-
 /** Stagger children preset for scroll-triggered reveals */
 export const STAGGER_CONTAINER = {
   hidden: {},

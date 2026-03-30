@@ -335,9 +335,9 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
       </section>
 
       {/* ── Sticky reading-mode bar ── */}
-      <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-border-subtle sm:-mx-6 sm:px-6">
+      <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-0.5 rounded-lg border border-border-subtle bg-[#FAFAF8] p-1">
+          <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1">
             {(Object.keys(MODE_META) as ReaderMode[]).map(mode => {
               const meta = MODE_META[mode]
               const Icon = meta.icon
@@ -391,7 +391,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                 'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors',
                 guideOpen
                   ? 'border-accent/30 bg-accent/5 text-accent'
-                  : 'border-border-subtle text-muted hover:text-text-primary hover:border-border-hover',
+                  : 'border-rule text-muted hover:text-text-primary hover:border-border-hover',
               )}
             >
               {guideOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -576,16 +576,16 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                 </div>
 
                 {section.blocks.length > 0 && (
-                  <div className="mt-8 rounded-lg border border-border-subtle bg-[#FAFAF8] p-5">
+                  <div className="mt-8 rounded-lg border border-rule bg-surface-active p-5">
                     <BlockCanvas blocks={section.blocks} showExport={false} />
                   </div>
                 )}
 
                 {index < PAPER_SECTIONS.length - 1 && (
                   <div className="mt-12 flex items-center gap-4">
-                    <hr className="flex-1 border-border-subtle" />
+                    <hr className="flex-1 border-rule" />
                     <span className="text-[10px] font-mono text-text-faint tracking-widest uppercase">{PAPER_SECTIONS[index + 1]?.number}</span>
-                    <hr className="flex-1 border-border-subtle" />
+                    <hr className="flex-1 border-rule" />
                   </div>
                 )}
               </motion.section>
@@ -616,7 +616,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         {/* TOC sidebar */}
         {!focusMode && (
           <aside className="hidden xl:block xl:sticky xl:top-40 xl:self-start">
-          <div className="border border-border-subtle rounded-lg p-4">
+          <div className="border border-rule rounded-lg p-4">
             <span className="text-xs text-muted">Sections</span>
             <nav className="mt-3 space-y-1">
               {PAPER_SECTIONS.map(section => (
@@ -648,7 +648,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         <div className="space-y-12">
           {/* Focus mode section indicator */}
           {focusMode && (
-            <div className="sticky top-40 z-10 rounded-lg border border-border-subtle bg-white/95 backdrop-blur-sm px-4 py-2.5">
+            <div className="sticky top-40 z-10 rounded-lg border border-rule bg-white/95 backdrop-blur-sm px-4 py-2.5">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-xs font-mono text-accent">{activeSection.number}</span>
@@ -681,12 +681,12 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                 viewport={{ once: true, amount: 0.15 }}
                 transition={SPRING}
                 className={cn(
-                  'group scroll-mt-40 rounded-lg border border-border-subtle bg-white p-5 transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] sm:p-6',
+                  'group scroll-mt-40 rounded-lg border border-rule bg-white p-5 transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] sm:p-6',
                   focusMode && 'mx-auto max-w-5xl',
                 )}
               >
                 {/* Section header */}
-                <div className="mb-6 border-b border-border-subtle pb-5">
+                <div className="mb-6 border-b border-rule pb-5">
                   <div className="flex items-baseline gap-3">
                     <span className="text-xs font-mono text-accent tabular-nums">{section.number}</span>
                     <button
@@ -736,7 +736,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                   </div>
 
                   <div className={cn(focusMode ? 'space-y-4' : 'xl:col-span-5 space-y-4', figuresFirst && 'xl:order-1')}>
-                    <div className="border border-border-subtle rounded-md p-4 bg-[#FAFAF8]">
+                    <div className="border border-rule rounded-md p-4 bg-surface-active">
                       <BlockCanvas blocks={section.blocks} showExport={false} />
                     </div>
                     <p className="px-1 text-xs leading-6 text-muted">
