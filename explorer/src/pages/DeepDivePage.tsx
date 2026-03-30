@@ -75,26 +75,27 @@ export function DeepDivePage() {
     <div>
       {/* Page header */}
       <div className="mb-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-              <span className="text-xs text-muted">Paper deep dive</span>
-            </div>
-            <h1 className="text-lg font-semibold text-text-primary">
-              Argument, paradoxes, and caveats.
+            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper deep dive</span>
+            <h1 className="mt-1 text-lg font-semibold text-text-primary">
+              Argument, paradoxes, and caveats
             </h1>
+            <p className="mt-1 text-[0.8125rem] text-muted">
+              Ten sections from model design through limitations — expand any to see the evidence blocks.
+            </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-3 shrink-0 pt-1">
             <button
               onClick={expandAll}
-              className="rounded-md border border-rule px-3 py-1.5 text-xs text-muted transition-colors hover:border-border-hover hover:text-text-primary"
+              className="text-[0.8125rem] text-muted transition-colors hover:text-text-primary"
             >
               Expand all
             </button>
+            <span className="text-rule">·</span>
             <button
               onClick={collapseAll}
-              className="rounded-md border border-rule px-3 py-1.5 text-xs text-muted transition-colors hover:border-border-hover hover:text-text-primary"
+              className="text-[0.8125rem] text-muted transition-colors hover:text-text-primary"
             >
               Collapse all
             </button>
@@ -151,7 +152,7 @@ export function DeepDivePage() {
                 className="w-full px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
               >
                 <div className="flex items-start gap-3">
-                  <span className="mt-0.5 w-8 shrink-0 text-xs font-mono text-accent">
+                  <span className="mt-0.5 w-8 shrink-0 text-[0.6875rem] font-mono text-accent">
                     {section.number}
                   </span>
                   <div className="min-w-0 flex-1">

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SNAPPY } from '../../lib/theme'
 
-export type TabId = 'explore' | 'paper' | 'results' | 'community'
+export type TabId = 'explore' | 'paper' | 'results' | 'community' | 'agent'
 
 interface TabNavProps {
   activeTab: TabId
@@ -17,6 +17,7 @@ const tabs: { id: TabId; label: string; shortLabel: string; hint: string }[] = [
   { id: 'paper', label: 'Paper', shortLabel: 'Paper', hint: 'Full paper with reading guide & argument map' },
   { id: 'results', label: 'Results', shortLabel: 'Results', hint: 'Published replay workspace and exact-run reproduction' },
   { id: 'community', label: 'Community', shortLabel: 'Community', hint: 'Published human notes over paper and exact-run evidence' },
+  { id: 'agent', label: 'Agent Lab', shortLabel: 'Agent', hint: 'Autonomous research loop: question → simulation → interpretation → next hypothesis' },
 ]
 
 export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {

@@ -18,6 +18,9 @@ import { STUDY_CONTEXT, SIMULATION_COPILOT_CONTEXT, PUBLISHED_REPLAY_COPILOT_CON
 import { buildTools } from './catalog.ts'
 import { SimulationRuntime, parseSimulationRequest, type SimulationRequest } from './simulation-runtime.ts'
 import { ExplorationStore, normalizeQuery, type ExplorationSurface, type ListOptions } from './exploration-store.ts'
+import { AgentLoopStore } from './agent-loop-store.ts'
+import { AgentLoopOrchestrator } from './agent-loop-orchestrator.ts'
+import { AGENT_LOOP_DEFAULTS } from './agent-loop-types.ts'
 import { OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../src/data/default-blocks.ts'
 import { GCP_REGIONS } from '../src/data/gcp-regions.ts'
 import {
@@ -212,6 +215,7 @@ const exploreRateLimit = createRateLimitMiddleware('explore', 60_000, 24)
 const simulationCopilotRateLimit = createRateLimitMiddleware('simulation-copilot', 60_000, 18)
 const publishedReplayCopilotRateLimit = createRateLimitMiddleware('published-replay-copilot', 60_000, 18)
 const simulationSubmitRateLimit = createRateLimitMiddleware('simulations', 60_000, 10)
+const agentLoopRateLimit = createRateLimitMiddleware('agent-loop', 60_000, 8)
 
 const app = express()
 app.set('trust proxy', true)
@@ -227,6 +231,10 @@ const simulationCopilotTools = allTools.filter(
 const renderBlocksTool = allTools.find(tool => tool.name === 'render_blocks') ?? null
 const simulationRuntime = new SimulationRuntime()
 const explorationStore = new ExplorationStore()
+const agentLoopStore = new AgentLoopStore()
+const agentLoopOrchestrator = client
+  ? new AgentLoopOrchestrator(client, agentLoopStore, simulationRuntime, anthropicModel)
+  : null
 const publishedReplayDatasetCache = new Map<string, PublishedReplayPayload>()
 const publishedRegionLookup = new Map(GCP_REGIONS.map(region => [region.id, region] as const))
 
@@ -3717,6 +3725,157 @@ app.post('/api/explorations/:id/editorial', (req, res) => {
 
   res.json(updated)
 })
+
+// --- Agent Loop (Stage 5) routes ---
+
+app.post('/api/agent-loop/sessions', agentLoopRateLimit, async (req, res) => {
+  if (!agentLoopOrchestrator) {
+    res.status(503).json({ error: 'Agent loop requires an Anthropic API key.' })
+    return
+  }
+
+  const { question, maxSteps } = req.body as { question?: string; maxSteps?: number }
+  const trimmed = question?.trim() ?? ''
+  if (trimmed.length < AGENT_LOOP_DEFAULTS.minQuestionLength) {
+    res.status(400).json({
+      error: `Research question must be at least ${AGENT_LOOP_DEFAULTS.minQuestionLength} characters.`,
+    })
+    return
+  }
+  if (trimmed.length > AGENT_LOOP_DEFAULTS.maxQuestionLength) {
+    res.status(400).json({
+      error: `Research question must be under ${AGENT_LOOP_DEFAULTS.maxQuestionLength} characters.`,
+    })
+    return
+  }
+
+  try {
+    agentLoopStore.abandonStale()
+    const session = agentLoopStore.createSession(trimmed, maxSteps)
+    const updated = agentLoopStore.addStep(session.id, trimmed)
+    const firstStep = updated.steps[0]
+    if (firstStep) {
+      void agentLoopOrchestrator.analyzeAndPropose(
+        session.id,
+        firstStep.id,
+        '',
+      )
+    }
+    res.status(201).json({ session: updated })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to create agent session.'
+    res.status(429).json({ error: message })
+  }
+})
+
+app.get('/api/agent-loop/sessions', (_req, res) => {
+  res.json({ sessions: agentLoopStore.listSessions() })
+})
+
+app.get('/api/agent-loop/sessions/:sessionId', (req, res) => {
+  const session = agentLoopStore.getSession(req.params.sessionId)
+  if (!session) {
+    res.status(404).json({ error: 'Agent session not found.' })
+    return
+  }
+  res.json({ session })
+})
+
+app.post('/api/agent-loop/sessions/:sessionId/steps/:stepId/approve', agentLoopRateLimit, (req, res) => {
+  if (!agentLoopOrchestrator) {
+    res.status(503).json({ error: 'Agent loop requires an Anthropic API key.' })
+    return
+  }
+
+  const session = agentLoopStore.getSession(req.params.sessionId)
+  if (!session) {
+    res.status(404).json({ error: 'Agent session not found.' })
+    return
+  }
+
+  const step = session.steps.find((s) => s.id === req.params.stepId)
+  if (!step) {
+    res.status(404).json({ error: 'Agent step not found.' })
+    return
+  }
+  if (step.phase !== 'awaiting_approval') {
+    res.status(409).json({ error: `Step is in phase "${step.phase}", not awaiting approval.` })
+    return
+  }
+
+  const { config } = req.body as { config?: Record<string, unknown> }
+  const approvedConfig = config
+    ? parseSimulationRequest(config)
+    : step.proposedConfig
+
+  if (!approvedConfig) {
+    res.status(400).json({ error: 'No config available to approve.' })
+    return
+  }
+
+  try {
+    agentLoopOrchestrator.submitSimulation(
+      req.params.sessionId,
+      req.params.stepId,
+      approvedConfig,
+    )
+    const updated = agentLoopStore.getSession(req.params.sessionId)
+    res.json({ session: updated })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Simulation submission failed.'
+    res.status(500).json({ error: message })
+  }
+})
+
+app.post('/api/agent-loop/sessions/:sessionId/steps/:stepId/reject', agentLoopRateLimit, async (req, res) => {
+  if (!agentLoopOrchestrator) {
+    res.status(503).json({ error: 'Agent loop requires an Anthropic API key.' })
+    return
+  }
+
+  const session = agentLoopStore.getSession(req.params.sessionId)
+  if (!session) {
+    res.status(404).json({ error: 'Agent session not found.' })
+    return
+  }
+
+  const step = session.steps.find((s) => s.id === req.params.stepId)
+  if (!step) {
+    res.status(404).json({ error: 'Agent step not found.' })
+    return
+  }
+
+  const { feedback } = req.body as { feedback?: string }
+  const trimmedFeedback = feedback?.trim()?.slice(0, AGENT_LOOP_DEFAULTS.maxFeedbackLength) ?? ''
+
+  try {
+    void agentLoopOrchestrator.reanalyzeWithFeedback(
+      req.params.sessionId,
+      req.params.stepId,
+      trimmedFeedback,
+    )
+    const updated = agentLoopStore.getSession(req.params.sessionId)
+    res.json({ session: updated })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Re-analysis failed.'
+    res.status(500).json({ error: message })
+  }
+})
+
+app.post('/api/agent-loop/sessions/:sessionId/complete', (req, res) => {
+  try {
+    const updated = agentLoopStore.updateStatus(req.params.sessionId, 'completed')
+    res.json({ session: updated })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to complete session.'
+    res.status(404).json({ error: message })
+  }
+})
+
+// Periodic stale session cleanup
+setInterval(() => {
+  agentLoopStore.abandonStale()
+}, 5 * 60 * 1000)
 
 // --- Static file serving for production (Railway serves both API + SPA) ---
 
