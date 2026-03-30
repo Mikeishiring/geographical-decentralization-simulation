@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link2, FileText } from 'lucide-react'
 import { cn } from '../lib/cn'
-import { DEFAULT_BLOCKS, OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../data/default-blocks'
+import { OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../data/default-blocks'
 import { PAPER_SECTIONS } from '../data/paper-sections'
 import { ContributionComposer } from '../components/community/ContributionComposer'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
@@ -12,7 +12,6 @@ import { QueryHistory, type HistoryEntry } from '../components/explore/QueryHist
 import { ShimmerLoading } from '../components/explore/ShimmerBlock'
 import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, listExplorations, publishExploration, type Exploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
-import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
 import type { TabId } from '../components/layout/TabNav'
@@ -557,7 +556,6 @@ export function FindingsPage({
               <motion.button
                 key={card.id}
                 onClick={() => handleTopicClick(card)}
-                layout
                 whileTap={{ scale: 0.985 }}
                 transition={SPRING}
                 aria-label={card.title}
@@ -825,27 +823,8 @@ export function FindingsPage({
             )}
             <FollowUpPrompts title={promptSectionTitle} prompts={promptOptions} onSelect={handleQuery} />
           </motion.div>
-        ) : (
-          <motion.div
-            key="default"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={SPRING}
-          >
-            <BlockCanvas blocks={DEFAULT_BLOCKS} />
-            <FollowUpPrompts title={promptSectionTitle} prompts={promptOptions} onSelect={handleQuery} />
-          </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
-
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Read the full paper', hint: 'Canonical paper text with the editorial guide', onClick: () => onTabChange('paper') },
-          { label: 'Open simulation', hint: 'Inspect published scenarios or run a fresh exact experiment', onClick: () => onTabChange('results') },
-          { label: 'Browse community notes', hint: 'See public human-authored responses to paper readings and exact runs', onClick: () => onTabChange('community') },
-        ]} />
-      )}
     </div>
   )
 }

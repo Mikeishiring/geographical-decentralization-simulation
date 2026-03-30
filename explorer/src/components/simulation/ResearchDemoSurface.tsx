@@ -2210,7 +2210,7 @@ export function ResearchDemoSurface({
         <div className="border-b border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-5 py-4">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-4xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
+              <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-text-primary">
                 Published Simulation Viewer
               </div>
               <h2 className="mt-3 text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
@@ -2322,7 +2322,7 @@ export function ResearchDemoSurface({
                         {primaryCanvasAnnotations.map(note => (
                           <div key={note.title} className="max-w-[18rem] rounded-xl border border-white/10 bg-[#0F172A]/72 px-3 py-2.5 text-white shadow-lg backdrop-blur-md">
                             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-300">{note.title}</div>
-                            <div className="mt-1.5 text-[11px] leading-5 text-white/85">{note.body}</div>
+                            <div className="mt-1.5 text-[0.6875rem] leading-5 text-white/85">{note.body}</div>
                           </div>
                         ))}
                       </div>
@@ -2352,7 +2352,7 @@ export function ResearchDemoSurface({
                         {comparisonCanvasAnnotations.map(note => (
                           <div key={note.title} className="max-w-[18rem] rounded-xl border border-white/10 bg-[#0F172A]/72 px-3 py-2.5 text-white shadow-lg backdrop-blur-md">
                             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-300">{note.title}</div>
-                            <div className="mt-1.5 text-[11px] leading-5 text-white/85">{note.body}</div>
+                            <div className="mt-1.5 text-[0.6875rem] leading-5 text-white/85">{note.body}</div>
                           </div>
                         ))}
                       </div>
@@ -2375,7 +2375,7 @@ export function ResearchDemoSurface({
                     {primaryCanvasAnnotations.map(note => (
                       <div key={note.title} className="max-w-[18rem] rounded-xl border border-white/10 bg-[#0F172A]/72 px-3 py-2.5 text-white shadow-lg backdrop-blur-md">
                         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-300">{note.title}</div>
-                        <div className="mt-1.5 text-[11px] leading-5 text-white/85">{note.body}</div>
+                        <div className="mt-1.5 text-[0.6875rem] leading-5 text-white/85">{note.body}</div>
                       </div>
                     ))}
                   </div>
@@ -2636,7 +2636,7 @@ export function ResearchDemoSurface({
                   Scenario switching, reading controls, share state, and authored routes live here when you need them.
                 </div>
               </div>
-              <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+              <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[0.6875rem] font-medium text-text-primary">
                 Open when needed
               </div>
             </summary>
@@ -3311,7 +3311,7 @@ export function ResearchDemoSurface({
                           Keep note-taking and public publishing available without leaving them expanded across the full page.
                         </div>
                       </div>
-                      <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                      <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[0.6875rem] font-medium text-text-primary">
                         Open when needed
                       </div>
                     </summary>

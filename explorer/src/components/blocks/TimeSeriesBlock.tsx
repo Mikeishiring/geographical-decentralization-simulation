@@ -272,14 +272,14 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                     y1={sy}
                     x2={svgW - padding.right}
                     y2={sy}
-                    stroke="#E8E8E6"
+                    stroke="var(--color-rule)"
                     strokeWidth={0.5}
                   />
                   <text
                     x={padding.left - 6}
                     y={sy + 3}
                     textAnchor="end"
-                    className="fill-[#6B7280] text-[9px]"
+                    className="fill-muted text-[9px]"
                   >
                     {formatSeriesNumber(tick)}
                   </text>
@@ -295,7 +295,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                   x={sx}
                   y={svgH - 5}
                   textAnchor="middle"
-                  className="fill-[#6B7280] text-[9px]"
+                  className="fill-muted text-[9px]"
                 >
                   {tick}
                 </text>
@@ -307,7 +307,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 x={12}
                 y={padding.top + chartH / 2}
                 textAnchor="middle"
-                className="fill-[#6B7280] text-[9px]"
+                className="fill-muted text-[9px]"
                 transform={`rotate(-90, 12, ${padding.top + chartH / 2})`}
               >
                 {block.yLabel}
@@ -319,7 +319,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 x={padding.left + chartW / 2}
                 y={svgH - 2}
                 textAnchor="middle"
-                className="fill-[#6B7280] text-[9px]"
+                className="fill-muted text-[9px]"
               >
                 {block.xLabel}
               </text>
@@ -424,7 +424,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                     x={sx}
                     y={padding.top - 5}
                     textAnchor="middle"
-                    className="fill-[#8B5E4D] text-[8px]"
+                    className="fill-accent-warm text-[8px]"
                   >
                     {annotation.label}
                   </text>
@@ -467,7 +467,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                     x={0}
                     y={-14}
                     textAnchor="middle"
-                    className="fill-[#0F172A] text-[7px] font-medium"
+                    className="fill-text-primary text-[7px] font-medium"
                   >
                     {notePin.label}
                   </text>
