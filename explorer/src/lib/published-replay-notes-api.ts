@@ -3,8 +3,15 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL
   : '/api'
 
 export type PublishedReplayNoteIntent = 'observation' | 'question' | 'theory' | 'methods'
+export type PublishedReplayNoteStatus = 'open' | 'resolved'
 export type PublishedReplayPaperLens = 'evidence' | 'theory' | 'methods'
 export type PublishedReplayAudienceMode = 'reader' | 'reviewer' | 'researcher'
+
+export interface PublishedReplayNoteReply {
+  readonly id: string
+  readonly text: string
+  readonly createdAt: string
+}
 
 export interface PublishedReplayNote {
   readonly id: string
@@ -19,10 +26,12 @@ export interface PublishedReplayNote {
   readonly paperLens: PublishedReplayPaperLens
   readonly audienceMode: PublishedReplayAudienceMode
   readonly intent: PublishedReplayNoteIntent
+  readonly status: PublishedReplayNoteStatus
   readonly anchorKind?: 'general' | 'region' | 'metric' | 'comparison' | null
   readonly anchorKey?: string | null
   readonly anchorLabel?: string | null
   readonly note: string
+  readonly replies: readonly PublishedReplayNoteReply[]
   readonly contextLabel?: string | null
   readonly createdAt: string
 }
@@ -49,6 +58,14 @@ export interface CreatePublishedReplayNoteRequest extends ListPublishedReplayNot
   readonly contextLabel?: string | null
 }
 
+interface AddPublishedReplayNoteReplyRequest {
+  readonly reply: string
+}
+
+interface UpdatePublishedReplayNoteStatusRequest {
+  readonly status: PublishedReplayNoteStatus
+}
+
 async function parseApiError(res: Response, fallback: string): Promise<Error> {
   const body = await res.json().catch(() => ({ error: res.statusText })) as Record<string, unknown>
   return new Error(typeof body.error === 'string' ? body.error : fallback)
@@ -69,9 +86,30 @@ function normalizeNote(raw: Record<string, unknown>): PublishedReplayNote | null
   const paperLens = raw.paperLens
   const audienceMode = raw.audienceMode
   const intent = raw.intent
+  const status = raw.status
   if (paperLens !== 'evidence' && paperLens !== 'theory' && paperLens !== 'methods') return null
   if (audienceMode !== 'reader' && audienceMode !== 'reviewer' && audienceMode !== 'researcher') return null
   if (intent !== 'observation' && intent !== 'question' && intent !== 'theory' && intent !== 'methods') return null
+  if (status !== 'open' && status !== 'resolved') return null
+
+  const replies = Array.isArray(raw.replies)
+    ? raw.replies.flatMap(reply => {
+        if (!reply || typeof reply !== 'object') return []
+        const candidate = reply as Record<string, unknown>
+        if (
+          typeof candidate.id !== 'string'
+          || typeof candidate.text !== 'string'
+          || typeof candidate.createdAt !== 'string'
+        ) {
+          return []
+        }
+        return [{
+          id: candidate.id,
+          text: candidate.text,
+          createdAt: candidate.createdAt,
+        }]
+      })
+    : []
 
   return {
     id: raw.id,
@@ -86,6 +124,7 @@ function normalizeNote(raw: Record<string, unknown>): PublishedReplayNote | null
     paperLens,
     audienceMode,
     intent,
+    status,
     anchorKind:
       raw.anchorKind === 'region' || raw.anchorKind === 'metric' || raw.anchorKind === 'comparison' || raw.anchorKind === 'general'
         ? raw.anchorKind
@@ -93,6 +132,7 @@ function normalizeNote(raw: Record<string, unknown>): PublishedReplayNote | null
     anchorKey: typeof raw.anchorKey === 'string' ? raw.anchorKey : null,
     anchorLabel: typeof raw.anchorLabel === 'string' ? raw.anchorLabel : null,
     note: raw.note,
+    replies,
     contextLabel: typeof raw.contextLabel === 'string' ? raw.contextLabel : null,
     createdAt: raw.createdAt,
   }
@@ -149,6 +189,58 @@ export async function createPublishedReplayNote(
 
   if (!note) {
     throw new Error('The replay note API returned an invalid note payload.')
+  }
+
+  return note
+}
+
+export async function addPublishedReplayNoteReply(
+  noteId: string,
+  request: AddPublishedReplayNoteReplyRequest,
+): Promise<PublishedReplayNote> {
+  const res = await fetch(`${API_BASE}/published-replay-notes/${encodeURIComponent(noteId)}/replies`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+
+  if (!res.ok) {
+    throw await parseApiError(res, `Failed to save replay note reply: ${res.statusText}`)
+  }
+
+  const raw = await res.json().catch(() => ({})) as Record<string, unknown>
+  const note = raw.note && typeof raw.note === 'object'
+    ? normalizeNote(raw.note as Record<string, unknown>)
+    : null
+
+  if (!note) {
+    throw new Error('The replay note reply API returned an invalid note payload.')
+  }
+
+  return note
+}
+
+export async function updatePublishedReplayNoteStatus(
+  noteId: string,
+  request: UpdatePublishedReplayNoteStatusRequest,
+): Promise<PublishedReplayNote> {
+  const res = await fetch(`${API_BASE}/published-replay-notes/${encodeURIComponent(noteId)}/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+
+  if (!res.ok) {
+    throw await parseApiError(res, `Failed to update replay note status: ${res.statusText}`)
+  }
+
+  const raw = await res.json().catch(() => ({})) as Record<string, unknown>
+  const note = raw.note && typeof raw.note === 'object'
+    ? normalizeNote(raw.note as Record<string, unknown>)
+    : null
+
+  if (!note) {
+    throw new Error('The replay note status API returned an invalid note payload.')
   }
 
   return note
