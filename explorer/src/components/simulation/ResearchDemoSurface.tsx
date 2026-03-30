@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowUpRight } from 'lucide-react'
 import { ContributionComposer } from '../community/ContributionComposer'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import type { TabId } from '../layout/TabNav'
@@ -2381,7 +2380,7 @@ export function ResearchDemoSurface({
                     applyAudienceMode('reader')
                     setPaperLens('evidence')
                   }}
-                  className="rounded-2xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                  className="rounded-2xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
                 >
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">1. Read the scenario</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">Set an evidence-first posture</div>
@@ -2402,7 +2401,7 @@ export function ResearchDemoSurface({
                       )
                     }
                   }}
-                  className="rounded-2xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                  className="rounded-2xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
                 >
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">2. Test a comparison</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">Open the foil and ask one grounded question</div>
@@ -2422,7 +2421,7 @@ export function ResearchDemoSurface({
                       true,
                     )
                   }}
-                  className="rounded-2xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                  className="rounded-2xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
                 >
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">3. Trace the mechanism</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">Bind the replay to the paper framing</div>
@@ -2437,7 +2436,7 @@ export function ResearchDemoSurface({
                   className={cn(
                     'rounded-2xl border px-4 py-4 text-left transition-all',
                     onOpenExactLab
-                      ? 'border-border-subtle bg-white hover:-translate-y-0.5 hover:border-border-hover'
+                      ? 'border-border-subtle bg-white hover:border-border-hover'
                       : 'cursor-not-allowed border-border-subtle bg-surface-active text-muted',
                   )}
                 >
@@ -2455,7 +2454,7 @@ export function ResearchDemoSurface({
 
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 {heroSnapshotCards.map(card => (
-                  <div key={card.label} className="rounded-2xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                  <div key={card.label} className="rounded-2xl border border-border-subtle bg-surface-active px-4 py-4">
                     <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
                     <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
                     <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
@@ -2474,7 +2473,7 @@ export function ResearchDemoSurface({
         >
           <div className="space-y-4">
             <div className="lab-stage overflow-hidden p-0">
-              <div className="border-b border-border-subtle bg-[#FAFAF8] px-5 py-4">
+              <div className="border-b border-border-subtle bg-surface-active px-5 py-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                   <div>
                     <div className="text-xs text-muted mb-1">Live published canvas</div>
@@ -2530,7 +2529,7 @@ export function ResearchDemoSurface({
                   </div>
 
                   <div className="space-y-3">
-                    <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                    <div className="rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
                       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison published replay</div>
                       <div className="mt-2 text-sm font-medium text-text-primary">
                         {comparisonDataset.evaluation} · {comparisonDataset.paradigm}
@@ -2604,7 +2603,7 @@ export function ResearchDemoSurface({
                         <button
                           key={`findings-${item.label}`}
                           onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
-                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-all hover:border-border-hover"
                         >
                           {item.label}
                         </button>
@@ -2614,7 +2613,7 @@ export function ResearchDemoSurface({
                 </div>
 
                 <div className="space-y-3 bg-white px-5 py-5">
-                  <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                  <div className="rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
                     <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Current posture</div>
                     <div className="mt-2 text-sm leading-6 text-text-primary">{currentViewSummary}</div>
                   </div>
@@ -2683,7 +2682,7 @@ export function ResearchDemoSurface({
                         'rounded-xl border px-4 py-3 text-left transition-colors',
                         isActive
                           ? 'border-accent bg-white'
-                          : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
+                          : 'border-border-subtle bg-surface-active hover:border-border-hover hover:bg-white',
                       )}
                     >
                       <div className="flex flex-wrap gap-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
@@ -2717,7 +2716,7 @@ export function ResearchDemoSurface({
                         'rounded-xl border px-3 py-3 text-left transition-colors',
                         audienceMode === profile.id
                           ? 'border-accent bg-white'
-                          : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
+                          : 'border-border-subtle bg-surface-active hover:border-border-hover hover:bg-white',
                       )}
                     >
                       <div className="text-xs font-medium text-text-primary">{profile.label}</div>
@@ -2738,7 +2737,7 @@ export function ResearchDemoSurface({
                         'rounded-xl border px-3 py-3 text-left transition-colors',
                         matchedViewPreset?.id === preset.id
                           ? 'border-accent bg-white'
-                          : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
+                          : 'border-border-subtle bg-surface-active hover:border-border-hover hover:bg-white',
                       )}
                     >
                       <div className="text-xs font-medium text-text-primary">{preset.label}</div>
@@ -2788,26 +2787,26 @@ export function ResearchDemoSurface({
               <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
                 <button
                   onClick={handleFillDemoValues}
-                  className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  className="rounded-full border border-border-subtle bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
                   Load reference view
                 </button>
                 <button
                   onClick={() => void handleCopyShareUrl()}
-                  className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  className="rounded-full border border-border-subtle bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
                   Copy share link
                 </button>
                 <button
                   onClick={() => applyViewPreset('compare')}
-                  className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  className="rounded-full border border-border-subtle bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
                   Activate split compare
                 </button>
                 <a
                   href={paperSectionUrl || undefined}
                   className={cn(
-                    'rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-center text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                    'rounded-full border border-border-subtle bg-surface-active px-3 py-2 text-center text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
                     !paperSectionUrl && 'pointer-events-none opacity-60',
                   )}
                 >
@@ -2889,7 +2888,7 @@ export function ResearchDemoSurface({
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-3">
+            <div className="mt-4 rounded-xl border border-border-subtle bg-surface-active px-4 py-3">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Dataset path</div>
               <div className="mt-2 break-all text-sm font-medium text-text-primary">
                 {selectedDataset?.path ?? 'Choose a dataset'}
@@ -2917,7 +2916,7 @@ export function ResearchDemoSurface({
                       'rounded-xl border px-3 py-3 text-left transition-colors',
                       audienceMode === profile.id
                         ? 'border-accent bg-white'
-                        : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
+                        : 'border-border-subtle bg-surface-active hover:border-border-hover hover:bg-white',
                     )}
                   >
                     <div className="text-xs font-medium text-text-primary">{profile.label}</div>
@@ -2938,7 +2937,7 @@ export function ResearchDemoSurface({
                       'rounded-xl border px-3 py-3 text-left transition-colors',
                       matchedViewPreset?.id === preset.id
                         ? 'border-accent bg-white'
-                        : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
+                        : 'border-border-subtle bg-surface-active hover:border-border-hover hover:bg-white',
                     )}
                   >
                     <div className="text-xs font-medium text-text-primary">{preset.label}</div>
@@ -3051,7 +3050,7 @@ export function ResearchDemoSurface({
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+            <div className="mt-4 rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
               <div className="text-xs text-text-faint">Share this reading view</div>
               <div className="mt-2 text-xs leading-5 text-muted">
                 The link preserves the scenario, audience mode, reading lens, replay question, paper anchor, and current slot posture.
@@ -3089,7 +3088,7 @@ export function ResearchDemoSurface({
               <div className="text-xs text-text-faint">Saved views</div>
               <div className="mt-3 grid gap-3">
                 {savedWorkspaceViews.map(view => (
-                  <div key={view.id} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                  <div key={view.id} className="rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <div className="text-sm font-medium text-text-primary">{view.label}</div>
@@ -3127,7 +3126,7 @@ export function ResearchDemoSurface({
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     onClick={() => void handleCopyShareUrl()}
-                    className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                    className="rounded-full border border-border-subtle bg-surface-active px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                   >
                     Export current state
                   </button>
@@ -3137,7 +3136,7 @@ export function ResearchDemoSurface({
                       href={view.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                      className="rounded-full border border-border-subtle bg-surface-active px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                     >
                       {view.label}
                     </a>
@@ -3153,7 +3152,7 @@ export function ResearchDemoSurface({
               </div>
               <div className="mt-3 space-y-3">
                 {chapterRoutes.map(chapter => (
-                  <div key={chapter.id} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                  <div key={chapter.id} className="rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <div className="text-sm font-medium text-text-primary">{chapter.label}</div>
@@ -3238,7 +3237,7 @@ export function ResearchDemoSurface({
                   <div className="mt-2 text-sm leading-6 text-text-primary">{activePaperLens?.body}</div>
                   <div className="mt-4 space-y-2">
                     {activePaperLens?.points.map(point => (
-                      <div key={point} className="rounded-lg bg-[#FAFAF8] px-3 py-2 text-xs leading-5 text-muted">
+                      <div key={point} className="rounded-lg bg-surface-active px-3 py-2 text-xs leading-5 text-muted">
                         {point}
                       </div>
                     ))}
@@ -3273,7 +3272,7 @@ export function ResearchDemoSurface({
                           key={`${item.label}:${item.prompt}`}
                           onClick={() => handlePrimeReplayQuestion(item.prompt)}
                           className={cn(
-                            'rounded-full border px-3 py-1.5 text-xs font-medium transition-all hover:-translate-y-0.5',
+                            'rounded-full border px-3 py-1.5 text-xs font-medium transition-all',
                             assistantDraft.trim() === item.prompt.trim()
                               ? 'border-accent bg-white text-accent'
                               : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
@@ -3318,7 +3317,7 @@ export function ResearchDemoSurface({
                           className={cn(
                             'rounded-full px-4 py-2 text-xs font-medium transition-all',
                             assistantDraft.trim()
-                              ? 'bg-[#0F172A] text-white hover:-translate-y-0.5'
+                              ? 'bg-[#0F172A] text-white'
                               : 'cursor-not-allowed border border-border-subtle bg-surface-active text-muted',
                           )}
                         >
@@ -3326,7 +3325,7 @@ export function ResearchDemoSurface({
                         </button>
                         <button
                           onClick={handleFocusViewer}
-                          className="rounded-full border border-border-subtle bg-white px-4 py-2 text-xs font-medium text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                          className="rounded-full border border-border-subtle bg-white px-4 py-2 text-xs font-medium text-text-primary transition-all hover:border-border-hover"
                         >
                           Back to live replay
                         </button>
@@ -3335,7 +3334,7 @@ export function ResearchDemoSurface({
                             setAssistantDraft('')
                             setPendingAutoReplayQuestion('')
                           }}
-                          className="rounded-full border border-border-subtle bg-white px-4 py-2 text-xs font-medium text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                          className="rounded-full border border-border-subtle bg-white px-4 py-2 text-xs font-medium text-text-primary transition-all hover:border-border-hover"
                         >
                           Clear draft
                         </button>
@@ -3343,7 +3342,7 @@ export function ResearchDemoSurface({
                     </div>
 
                     {selectedPaperSection ? (
-                      <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                      <div className="rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                           <div>
                             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Section evidence preview</div>
@@ -3428,7 +3427,7 @@ export function ResearchDemoSurface({
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                    <div className="rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
                       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{activeAudienceBrief.title}</div>
                       <div className="mt-2 text-sm leading-6 text-text-primary">{activeAudienceBrief.summary}</div>
                       <div className="mt-4 space-y-2">
@@ -3455,7 +3454,7 @@ export function ResearchDemoSurface({
                         <a
                           href={paperSectionUrl || undefined}
                           className={cn(
-                            'rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                            'rounded-full border border-border-subtle bg-surface-active px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
                             !paperSectionUrl && 'pointer-events-none opacity-60',
                           )}
                         >
@@ -3472,7 +3471,7 @@ export function ResearchDemoSurface({
                               'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                               selectedPaperSection?.id === section.id
                                 ? 'border-accent bg-white text-accent'
-                                : 'border-border-subtle bg-[#FAFAF8] text-text-primary hover:border-border-hover',
+                                : 'border-border-subtle bg-surface-active text-text-primary hover:border-border-hover',
                             )}
                           >
                             {section.number} {section.title}
@@ -3547,7 +3546,7 @@ export function ResearchDemoSurface({
                         'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                         analyticsView === view.id
                           ? 'border-accent bg-white text-accent'
-                          : 'border-border-subtle bg-[#FAFAF8] text-text-primary hover:border-border-hover',
+                          : 'border-border-subtle bg-surface-active text-text-primary hover:border-border-hover',
                       )}
                     >
                       {view.label}
@@ -3555,7 +3554,7 @@ export function ResearchDemoSurface({
                   ))}
                 </div>
 
-                <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                <div className="mt-4 rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
                   <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Query framing</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">
                     {analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics'} query
@@ -3637,7 +3636,7 @@ export function ResearchDemoSurface({
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                  <div className="rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
                     <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison scenario</div>
                     <div className="mt-2 text-sm font-medium text-text-primary">
                       {comparisonDataset ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}` : 'No comparison'}
@@ -3682,7 +3681,7 @@ export function ResearchDemoSurface({
                   })}
                 </div>
 
-                <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                <div className="mt-4 rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison readout</div>
                   <div className="mt-2 text-sm leading-6 text-text-primary">{comparisonNarrative}</div>
                 </div>
@@ -3706,8 +3705,7 @@ export function ResearchDemoSurface({
                     disabled={!selectedDataset}
                     className="inline-flex items-center justify-center gap-2 rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Open standalone viewer
-                    <ArrowUpRight className="h-4 w-4" />
+                    Open standalone viewer →
                   </button>
                   <a
                     href={datasetUrl ?? undefined}
@@ -3749,7 +3747,7 @@ export function ResearchDemoSurface({
                 </div>
 
                 {showConfig && selectionConfig && (
-                  <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] p-4">
+                  <div className="mt-4 rounded-xl border border-border-subtle bg-surface-active p-4">
                     <div className="text-xs text-muted mb-2">Selection config</div>
                     <pre className="overflow-x-auto text-xs text-text-primary">{selectionConfig}</pre>
                   </div>
@@ -3777,7 +3775,7 @@ export function ResearchDemoSurface({
                 </div>
                 <div className="mt-4 space-y-3">
                   {paperNotes.map(note => (
-                    <div key={note.title} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                    <div key={note.title} className="rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
                       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{note.title}</div>
                       <div className="mt-2 text-sm leading-6 text-text-primary">{note.body}</div>
                     </div>

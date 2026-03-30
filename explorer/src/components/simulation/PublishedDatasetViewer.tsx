@@ -630,7 +630,7 @@ function PublishedGeoCard({
         </div>
 
         <div className="space-y-3">
-          <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] p-4">
+          <div className="rounded-xl border border-border-subtle bg-surface-active p-4">
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Top regions</div>
             <div className="mt-3 space-y-2.5">
               {topRegions.map(region => {
@@ -1258,7 +1258,7 @@ export function PublishedDatasetViewer({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button disabled={slotLocked} onClick={() => setPlaying(previous => !previous)} className={cn('inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:border disabled:border-border-subtle disabled:bg-surface-active disabled:text-muted disabled:hover:translate-y-0', playing ? 'bg-accent text-white shadow-[0_16px_30px_rgba(37,99,235,0.18)]' : 'border border-border-subtle bg-white text-text-primary hover:border-border-hover')}>
+            <button disabled={slotLocked} onClick={() => setPlaying(previous => !previous)} className={cn('inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:border disabled:border-border-subtle disabled:bg-surface-active disabled:text-muted disabled:hover:translate-y-0', playing ? 'bg-accent text-white shadow-[0_16px_30px_rgba(37,99,235,0.18)]' : 'border border-border-subtle bg-white text-text-primary hover:border-border-hover')}>
               {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
               {playing ? 'Pause' : 'Play'}
             </button>
@@ -1268,7 +1268,7 @@ export function PublishedDatasetViewer({
                 setSlotLocked(previous => !previous)
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all hover:-translate-y-0.5',
+                'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all',
                 slotLocked
                   ? 'bg-[#0F172A] text-white shadow-[0_16px_30px_rgba(15,23,42,0.16)]'
                   : 'border border-border-subtle bg-white text-text-primary hover:border-border-hover',
@@ -1282,7 +1282,7 @@ export function PublishedDatasetViewer({
               Reset
             </button>
             {[1, 10, 50].map(option => (
-              <button key={option} onClick={() => setStepSize(option as 1 | 10 | 50)} className={cn('rounded-xl border px-3.5 py-2.5 text-xs font-medium transition-all hover:-translate-y-0.5', stepSize === option ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent shadow-[0_12px_24px_rgba(37,99,235,0.08)]' : 'border-border-subtle bg-white text-text-primary hover:border-border-hover')}>
+              <button key={option} onClick={() => setStepSize(option as 1 | 10 | 50)} className={cn('rounded-xl border px-3.5 py-2.5 text-xs font-medium transition-all', stepSize === option ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent shadow-[0_12px_24px_rgba(37,99,235,0.08)]' : 'border-border-subtle bg-white text-text-primary hover:border-border-hover')}>
                 Step {option}
               </button>
             ))}

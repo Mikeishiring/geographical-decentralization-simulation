@@ -927,7 +927,7 @@ export function SimulationLabPage({
             <button
               key={preset.label}
               onClick={() => applyPreset(preset.config)}
-              className="lab-option-card text-left px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-border-hover hover:shadow-[0_14px_34px_rgba(15,23,42,0.08)]"
+              className="lab-option-card text-left px-4 py-4 transition-colors hover:border-border-hover"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>

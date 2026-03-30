@@ -609,7 +609,7 @@ function ExplorationCard({
             className="overflow-hidden"
           >
             <div className="border-t border-border-subtle p-4">
-              <div className="mb-4 rounded-lg border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-xs text-muted">
+              <div className="mb-4 rounded-lg border border-border-subtle bg-surface-active px-3 py-2 text-xs text-muted">
                 <span className="font-medium text-text-primary">Truth boundary:</span>{' '}
                 {exploration.publication.published
                   ? 'This is a published human-authored note layered on top of a reading or exact-run artifact.'
