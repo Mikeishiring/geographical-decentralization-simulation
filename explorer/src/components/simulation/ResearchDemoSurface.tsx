@@ -1652,26 +1652,6 @@ export function ResearchDemoSurface({
     setAutoplay(true)
   }
 
-  const interactionModes = [
-    {
-      title: 'Instant published replay',
-      description: 'For this paper, readers land on published evidence immediately instead of starting from a launcher screen.',
-    },
-    {
-      title: 'Configurable simulator depth',
-      description: 'Interaction can deepen progressively. Keep published playback accessible, then let power users move into smaller live simulation controls.',
-    },
-    {
-      title: 'Question and theory layers',
-      description: 'This workspace can support theory walk-throughs and question drafting without displacing the published replay itself.',
-    },
-  ] as const
-
-  const workspaceSupports = [
-    'Shareable linked views that preserve scenario, question, paper anchor, and slot posture.',
-    'Replay-backed questioning that stays grounded in the selected published dataset and canonical paper section.',
-    'Theory and methods reading modes that stay aligned to the same evidence surface.',
-  ] as const
   if (catalogError) {
     return (
       <div className="lab-stage p-5">

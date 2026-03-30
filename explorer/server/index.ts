@@ -320,6 +320,13 @@ interface PublishedReplayViewerSnapshotContext {
 }
 
 type PublishedReplayNoteIntent = 'observation' | 'question' | 'theory' | 'methods'
+type PublishedReplayNoteStatus = 'open' | 'resolved'
+
+interface PublishedReplayNoteReply {
+  id: string
+  text: string
+  createdAt: string
+}
 
 interface PublishedReplayNote {
   id: string
@@ -334,10 +341,12 @@ interface PublishedReplayNote {
   paperLens: 'evidence' | 'theory' | 'methods'
   audienceMode: 'reader' | 'reviewer' | 'researcher'
   intent: PublishedReplayNoteIntent
+  status: PublishedReplayNoteStatus
   anchorKind?: 'general' | 'region' | 'metric' | 'comparison' | null
   anchorKey?: string | null
   anchorLabel?: string | null
   note: string
+  replies: PublishedReplayNoteReply[]
   contextLabel?: string | null
   createdAt: string
 }
@@ -359,6 +368,14 @@ interface CreatePublishedReplayNoteRequest {
   anchorLabel?: string | null
   note?: string | null
   contextLabel?: string | null
+}
+
+interface AddPublishedReplayNoteReplyRequest {
+  reply?: string | null
+}
+
+interface UpdatePublishedReplayNoteStatusRequest {
+  status?: PublishedReplayNoteStatus | null
 }
 
 interface PublishedReplayCopilotResponse {
@@ -386,6 +403,10 @@ const PUBLISHED_REPLAY_NOTE_INTENTS = new Set<PublishedReplayNoteIntent>([
   'question',
   'theory',
   'methods',
+])
+const PUBLISHED_REPLAY_NOTE_STATUSES = new Set<PublishedReplayNoteStatus>([
+  'open',
+  'resolved',
 ])
 const PUBLISHED_REPLAY_NOTE_ANCHOR_KINDS = new Set([
   'general',
@@ -1638,6 +1659,23 @@ function buildPublishedReplayNoteThreadKey(args: {
     args.paperLens,
     args.audienceMode,
   ])
+}
+
+function findPublishedReplayNoteById(
+  noteId: string,
+): { threadKey: string; notes: PublishedReplayNote[]; note: PublishedReplayNote; index: number } | null {
+  for (const [threadKey, notes] of publishedReplayNotesStore.entries()) {
+    const index = notes.findIndex(note => note.id === noteId)
+    if (index >= 0) {
+      return {
+        threadKey,
+        notes,
+        note: notes[index]!,
+        index,
+      }
+    }
+  }
+  return null
 }
 
 async function buildPublishedReplayContext(
@@ -2925,10 +2963,12 @@ app.post('/api/published-replay-notes', (req, res) => {
     paperLens,
     audienceMode,
     intent,
+    status: 'open',
     anchorKind,
     anchorKey: request.anchorKey?.trim() || null,
     anchorLabel: request.anchorLabel?.trim() || null,
     note,
+    replies: [],
     contextLabel: request.contextLabel?.trim() || null,
     createdAt: new Date().toISOString(),
   }
@@ -2937,6 +2977,83 @@ app.post('/api/published-replay-notes', (req, res) => {
   publishedReplayNotesStore.set(threadKey, [nextNote, ...existing].slice(0, 100))
 
   res.status(201).json({ note: nextNote })
+})
+
+app.post('/api/published-replay-notes/:noteId/replies', (req, res) => {
+  const noteId = typeof req.params.noteId === 'string' ? req.params.noteId : ''
+  const request = req.body as AddPublishedReplayNoteReplyRequest
+  const reply = request.reply?.trim()
+
+  if (!noteId) {
+    res.status(400).json({ error: 'A note id is required.' })
+    return
+  }
+  if (!reply) {
+    res.status(400).json({ error: 'Reply text is required.' })
+    return
+  }
+  if (reply.length > 1200) {
+    res.status(400).json({ error: 'Keep note replies under 1200 characters.' })
+    return
+  }
+
+  const located = findPublishedReplayNoteById(noteId)
+  if (!located) {
+    res.status(404).json({ error: 'Replay note not found.' })
+    return
+  }
+
+  const updatedNote: PublishedReplayNote = {
+    ...located.note,
+    replies: [
+      ...located.note.replies,
+      {
+        id: randomUUID(),
+        text: reply,
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  }
+
+  const nextNotes = [...located.notes]
+  nextNotes[located.index] = updatedNote
+  publishedReplayNotesStore.set(located.threadKey, nextNotes)
+
+  res.status(201).json({ note: updatedNote })
+})
+
+app.post('/api/published-replay-notes/:noteId/status', (req, res) => {
+  const noteId = typeof req.params.noteId === 'string' ? req.params.noteId : ''
+  const request = req.body as UpdatePublishedReplayNoteStatusRequest
+  const status = request.status && PUBLISHED_REPLAY_NOTE_STATUSES.has(request.status)
+    ? request.status
+    : null
+
+  if (!noteId) {
+    res.status(400).json({ error: 'A note id is required.' })
+    return
+  }
+  if (!status) {
+    res.status(400).json({ error: 'A valid note status is required.' })
+    return
+  }
+
+  const located = findPublishedReplayNoteById(noteId)
+  if (!located) {
+    res.status(404).json({ error: 'Replay note not found.' })
+    return
+  }
+
+  const updatedNote: PublishedReplayNote = {
+    ...located.note,
+    status,
+  }
+
+  const nextNotes = [...located.notes]
+  nextNotes[located.index] = updatedNote
+  publishedReplayNotesStore.set(located.threadKey, nextNotes)
+
+  res.json({ note: updatedNote })
 })
 
 app.post('/api/simulation-copilot', simulationCopilotRateLimit, async (req, res) => {
