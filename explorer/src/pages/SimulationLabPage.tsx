@@ -24,7 +24,6 @@ import {
   buildAnalyticsBlocks,
   buildAnalyticsMetricCards,
   clampSlotIndex,
-  parseAnalyticsDeckView,
   totalSlotsFromPayload,
   type AnalyticsDeckView,
   type PublishedAnalyticsPayload,
@@ -41,19 +40,13 @@ import {
   getSimulationOverviewBundle,
   submitSimulationCopilot,
   submitSimulationForClient,
-  type SimulationArtifact,
   type SimulationCopilotResponse,
   type SimulationConfig,
   type SimulationJob,
-  type SimulationManifest,
-  type SimulationOverviewBundle,
 } from '../lib/simulation-api'
 import type { Block, SourceBlock } from '../types/blocks'
 import type { SimulationArtifactBundle } from '../types/simulation-view'
 import type {
-  PublishedDatasetRecommendation,
-  ResearchCatalog,
-  ResearchDatasetEntry,
   RunnerStatus,
   SurfaceMode,
   WorkerFailure,
