@@ -28,7 +28,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
   }, [activeTab])
 
   return (
-    <div className="sticky top-0 z-20 border-b border-border-subtle bg-white/95 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="sticky top-0 z-20 border-b border-border-subtle bg-white/92 backdrop-blur-lg">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto hide-scrollbar">
         <nav className="flex gap-0.5 min-w-max" role="tablist" aria-label="Explorer sections">
           {tabs.map(tab => {
@@ -62,7 +62,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                   aria-selected={isActive}
                   tabIndex={isActive ? 0 : -1}
                   className={cn(
-                    'relative flex items-center gap-1.5 px-3.5 py-3 text-sm transition-colors',
+                    'relative flex items-center gap-1.5 px-3 py-2.5 text-[0.8125rem] transition-colors',
                     isActive
                       ? 'text-text-primary font-medium'
                       : 'text-muted hover:text-text-primary',
@@ -109,9 +109,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                       transition={SPRING_SNAPPY}
                       className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-30 whitespace-nowrap pointer-events-none"
                     >
-                      <div className="relative rounded-lg bg-[#111827]/90 backdrop-blur-md border border-white/10 px-3 py-1.5 text-[11px] text-white/90 shadow-xl">
-                        {/* Arrow */}
-                        <div className="absolute -top-[5px] left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 bg-[#111827]/90 border-l border-t border-white/10" />
+                      <div className="relative rounded-md bg-[#111]/92 px-2.5 py-1.5 text-[0.6875rem] text-white/85 shadow-lg">
                         {tab.hint}
                       </div>
                     </motion.div>

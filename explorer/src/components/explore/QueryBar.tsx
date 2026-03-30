@@ -104,16 +104,16 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
   }
 
   return (
-    <div className="rounded-xl border border-border-subtle bg-[#F4F4F2] px-5 py-6 sm:px-8 sm:py-8 shadow-sm">
+    <div className="rounded-xl border border-rule bg-canvas px-5 py-6 sm:px-8 sm:py-8">
       <div className={cn(
         'bg-white border border-border-subtle rounded-xl transition-all',
-        isEnabled && 'focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 focus-within:shadow-[0_2px_12px_rgba(37,99,235,0.06)]',
+        isEnabled && 'focus-within:border-accent/30 focus-within:ring-2 focus-within:ring-accent/10',
       )}>
-        <div className="flex items-center gap-3 px-4 py-3.5">
+        <div className="flex items-center gap-3 px-4 py-3">
           {loading ? (
             <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent" />
           ) : (
-            <Search className="w-4 h-4 text-muted shrink-0" />
+            <Search className="w-4 h-4 text-muted/60 shrink-0" />
           )}
           <input
             ref={inputRef}
@@ -124,12 +124,12 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
             placeholder={placeholder}
             disabled={!isEnabled}
             aria-label="Search the paper"
-            className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-muted outline-none disabled:opacity-50"
+            className="flex-1 bg-transparent text-[0.8125rem] text-text-primary placeholder:text-muted/70 outline-none disabled:opacity-50"
           />
           {query.trim() && isEnabled && (
             <button
               onClick={handleSubmit}
-              className="px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-medium hover:bg-accent/90 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-accent text-white text-[0.75rem] font-medium hover:bg-accent/90 transition-colors"
             >
               Ask guide
             </button>
@@ -146,12 +146,9 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
             transition={SPRING}
             className="mt-3"
           >
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="text-[11px] uppercase tracking-[0.12em] text-text-faint">
+            <div className="mb-3">
+              <span className="text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                 Best first prompts
-              </span>
-              <span className="text-[11px] text-text-faint">
-                Click to fill the question box
               </span>
             </div>
 
@@ -163,12 +160,12 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
                   animate={{ opacity: 1 }}
                   transition={{ ...SPRING, delay: i * 0.04 }}
                   onClick={() => handleChip(group.prompt)}
-                  className="rounded-xl border border-border-subtle bg-white px-3 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                  className="group rounded-lg border border-rule bg-white px-3 py-2.5 text-left transition-all hover:border-border-hover"
                 >
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint transition-colors group-hover:text-muted">
                     {group.label}
                   </div>
-                  <div className="mt-1 text-xs leading-5 text-text-primary">
+                  <div className="mt-1 text-xs leading-5 text-text-body transition-colors group-hover:text-text-primary">
                     {group.prompt}
                   </div>
                 </motion.button>
@@ -192,12 +189,11 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
             </span>
           </div>
         ) : (
-          <div className="space-y-1 text-center">
-            <p className="text-[11px] text-text-faint">
+          <div className="text-center">
+            <p className="text-[0.6875rem] text-text-faint leading-relaxed">
               {helperText ?? 'Ask about a mechanism, paradox, or comparison. The guide stays tied to the paper.'}
-            </p>
-            <p className="text-[11px] text-text-faint">
-              This box drafts or reopens a reading. Public community notes are a separate publish step.
+              <span className="text-rule"> · </span>
+              This box drafts or reopens a reading.
             </p>
           </div>
         )}

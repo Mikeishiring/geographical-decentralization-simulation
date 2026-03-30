@@ -824,6 +824,8 @@ export function SimulationLabPage({
         <ResearchDemoSurface
           catalogScriptUrl={`${APP_BASE_URL}/research-demo/assets/research-catalog.js`}
           viewerBaseUrl={`${APP_BASE_URL}/research-demo`}
+          onOpenCommunityExploration={onOpenCommunityExploration}
+          onTabChange={onTabChange}
         />
       ) : (
         <>

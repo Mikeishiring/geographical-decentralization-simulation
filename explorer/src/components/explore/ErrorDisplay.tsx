@@ -1,4 +1,4 @@
-import { AlertCircle, RefreshCw, KeyRound } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import type { ExploreError } from '../../lib/api'
 
 interface ErrorDisplayProps {
@@ -12,40 +12,39 @@ export function ErrorDisplay({ error, onRetry }: ErrorDisplayProps) {
   const isNetwork = error.status === 0
   const isMissingConfig = error.status === 503 && error.error.includes('Anthropic API is not configured')
 
+  const title = isRateLimit
+    ? 'Rate limit reached'
+    : isAuth || isMissingConfig
+      ? 'API key not configured'
+      : isNetwork
+        ? 'Cannot reach API server'
+        : 'Something went wrong'
+
+  const detail = isRateLimit
+    ? 'Too many requests. Wait a moment and try again.'
+    : isAuth || isMissingConfig
+      ? 'Set ANTHROPIC_API_KEY in explorer/.env or the server environment to enable fresh guided readings. Curated and history matches still work without it.'
+      : isNetwork
+        ? 'Make sure the API server is running (npx tsx server/index.ts).'
+        : error.error
+
   return (
-    <div className="bg-white border border-border-subtle rounded-xl p-6 text-center">
-      <div className="flex justify-center mb-3">
-        {isAuth || isMissingConfig ? (
-          <KeyRound className="w-8 h-8 text-muted" />
-        ) : (
-          <AlertCircle className="w-8 h-8 text-muted" />
-        )}
+    <div className="rounded-xl border border-rule bg-white px-5 py-6">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+        <h3 className="text-[0.8125rem] font-medium text-text-primary">
+          {title}
+        </h3>
       </div>
 
-      <h3 className="text-sm font-medium text-text-primary mb-1">
-        {isRateLimit
-          ? 'Rate limit reached'
-          : isAuth || isMissingConfig
-            ? 'API key not configured'
-            : isNetwork
-              ? 'Cannot reach API server'
-              : 'Something went wrong'}
-      </h3>
-
-      <p className="text-xs text-muted mb-4 max-w-sm mx-auto">
-        {isRateLimit
-          ? 'Too many requests. Wait a moment and try again.'
-          : isAuth || isMissingConfig
-            ? 'Set ANTHROPIC_API_KEY in explorer/.env or the server environment to enable fresh guided readings. Curated and history matches still work without it.'
-            : isNetwork
-              ? 'Make sure the API server is running (npx tsx server/index.ts).'
-              : error.error}
+      <p className="text-[0.8125rem] leading-[1.6] text-muted max-w-md">
+        {detail}
       </p>
 
       {!isAuth && !isMissingConfig && (
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border-subtle text-text-primary hover:bg-surface-active transition-colors"
+          className="mt-4 inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-text-primary hover:text-accent transition-colors"
         >
           <RefreshCw className="w-3 h-3" />
           Try again
