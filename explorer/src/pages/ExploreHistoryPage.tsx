@@ -121,7 +121,7 @@ export function ExploreHistoryPage({
 
       {onTabChange && (
         <Wayfinder links={[
-          { label: 'Ask a new question', hint: 'Curated lenses & AI exploration', onClick: () => onTabChange('findings') },
+          { label: 'Ask a new question', hint: 'Curated lenses & AI exploration', onClick: () => onTabChange('explore') },
           { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
         ]} />
       )}
@@ -401,7 +401,7 @@ function EmptyState({
                 Read the paper
               </button>
               <button
-                onClick={() => onTabChange('simulation')}
+                onClick={() => onTabChange('results')}
                 className="rounded-md border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
                 Open published results

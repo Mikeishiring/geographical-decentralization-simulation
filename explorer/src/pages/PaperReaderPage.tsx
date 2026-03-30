@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { ArrowUpRight, Eye, EyeOff, Link2, Quote } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowUpRight, Eye, EyeOff, Link2, Quote, ChevronDown, LayoutList } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { ModeBanner } from '../components/layout/ModeBanner'
-import { Wayfinder } from '../components/layout/Wayfinder'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SOFT } from '../lib/theme'
-import { PAPER_METADATA, PAPER_SECTIONS } from '../data/paper-sections'
+import { PAPER_METADATA, PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
 import type { TabId } from '../components/layout/TabNav'
 
 interface PaperNarrative {
@@ -109,10 +108,46 @@ const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   },
 }
 
-export function PaperReaderPage({ onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
-  const [readerMode, setReaderMode] = useState<'editorial' | 'focus'>(() => {
+type ReaderMode = 'editorial' | 'focus' | 'argument-map'
+
+function summarizeSection(section: PaperSection): string[] {
+  const tags: string[] = []
+  if (section.id === 'se4a-attestation') tags.push('best paradox')
+  if (section.id === 'se2-distribution') tags.push('starting-state effect')
+  if (section.id === 'limitations') tags.push('confidence boundary')
+  if (section.id === 'discussion') tags.push('design implications')
+  const blockTypes = new Set(section.blocks.map(block => block.type))
+  if (blockTypes.has('chart') || blockTypes.has('timeseries')) tags.push('charts')
+  if (blockTypes.has('table')) tags.push('tables')
+  if (blockTypes.has('comparison')) tags.push('comparisons')
+  if (section.blocks.some(block => block.type === 'insight' && block.emphasis === 'surprising')) {
+    tags.push('surprising result')
+  }
+  if (section.blocks.some(block => block.type === 'caveat')) tags.push('caveat')
+  return tags.slice(0, 3)
+}
+
+function sectionEntryLine(section: PaperSection): string {
+  const lines: Record<string, string> = {
+    'system-model': 'Start here for the core mechanism: how latency turns geography into payoff.',
+    'simulation-design': 'Start here for the model boundary: what is simplified, fixed, and directly measured.',
+    'baseline-results': 'Start here for the baseline claim that both paradigms centralize without exotic assumptions.',
+    'se1-source-placement': 'Start here for the infrastructure-placement flip that helps one paradigm while hurting the other.',
+    'se2-distribution': 'Start here if you want to ask whether starting geography matters more than paradigm choice.',
+    'se3-joint': 'Start here for the transient dip and the warning against overreading it as mitigation.',
+    'se4a-attestation': 'Start here for the paper\'s sharpest paradox: the same gamma change pushes SSP and MSP in opposite directions.',
+    'se4b-slots': 'Start here for the fairness-versus-geography distinction under shorter slots.',
+    discussion: 'Start here for design implications without overstating what the model has solved.',
+    limitations: 'Start here for the confidence boundary of the model.',
+  }
+  return lines[section.id] ?? section.description
+}
+
+export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
+  const [readerMode, setReaderMode] = useState<ReaderMode>(() => {
     const stored = window.localStorage.getItem('paper-reader-mode')
-    return stored === 'focus' ? 'focus' : 'editorial'
+    if (stored === 'focus' || stored === 'argument-map') return stored
+    return 'editorial'
   })
   const [activeSectionId, setActiveSectionId] = useState<string>(() => {
     const initialHash = window.location.hash.replace('#', '')
@@ -122,6 +157,22 @@ export function PaperReaderPage({ onTabChange }: { onTabChange?: (tab: TabId) =>
   })
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
   const focusMode = readerMode === 'focus'
+  const argumentMapMode = readerMode === 'argument-map'
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(
+    () => new Set(PAPER_SECTIONS.length > 0 ? [PAPER_SECTIONS[0].id] : []),
+  )
+
+  const toggleSection = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const expandAll = () => setExpandedIds(new Set(PAPER_SECTIONS.map(s => s.id)))
+  const collapseAll = () => setExpandedIds(new Set())
 
   useEffect(() => {
     window.localStorage.setItem('paper-reader-mode', readerMode)
@@ -235,13 +286,38 @@ export function PaperReaderPage({ onTabChange }: { onTabChange?: (tab: TabId) =>
           <div className="border border-border-subtle rounded-lg p-5">
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs text-muted">Reading guide</span>
-              <button
-                onClick={() => setReaderMode(current => (current === 'editorial' ? 'focus' : 'editorial'))}
-                className="inline-flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-text-primary"
-              >
-                {focusMode ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                {focusMode ? 'Editorial mode' : 'Focus mode'}
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setReaderMode('editorial')}
+                  className={cn(
+                    'px-2 py-1 rounded text-[11px] transition-colors',
+                    readerMode === 'editorial' ? 'bg-surface-active text-text-primary' : 'text-muted hover:text-text-primary',
+                  )}
+                >
+                  <Eye className="h-3 w-3 inline mr-1" />
+                  Read
+                </button>
+                <button
+                  onClick={() => setReaderMode('focus')}
+                  className={cn(
+                    'px-2 py-1 rounded text-[11px] transition-colors',
+                    readerMode === 'focus' ? 'bg-surface-active text-text-primary' : 'text-muted hover:text-text-primary',
+                  )}
+                >
+                  <EyeOff className="h-3 w-3 inline mr-1" />
+                  Focus
+                </button>
+                <button
+                  onClick={() => setReaderMode('argument-map')}
+                  className={cn(
+                    'px-2 py-1 rounded text-[11px] transition-colors',
+                    readerMode === 'argument-map' ? 'bg-surface-active text-text-primary' : 'text-muted hover:text-text-primary',
+                  )}
+                >
+                  <LayoutList className="h-3 w-3 inline mr-1" />
+                  Map
+                </button>
+              </div>
             </div>
             <div className="mt-3 text-sm text-text-primary">{PAPER_METADATA.citation}</div>
 
@@ -259,7 +335,7 @@ export function PaperReaderPage({ onTabChange }: { onTabChange?: (tab: TabId) =>
               <div>
                 <div className="text-xs text-muted">Truth boundary</div>
                 <div className="mt-1 text-sm font-medium text-text-primary">
-                  {focusMode ? 'Focused, paper-backed' : 'Editorial, paper-backed'}
+                  {argumentMapMode ? 'Argument map' : focusMode ? 'Focused, paper-backed' : 'Editorial, paper-backed'}
                 </div>
               </div>
             </div>
@@ -305,6 +381,112 @@ export function PaperReaderPage({ onTabChange }: { onTabChange?: (tab: TabId) =>
       </motion.section>
 
       <hr className="border-rule" />
+
+      {argumentMapMode ? (
+        /* ── Argument Map View ── */
+        <div>
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-text-primary">
+                Argument, paradoxes, and caveats
+              </h2>
+              <p className="mt-1 text-xs text-muted">
+                Expandable claims organized by paper section
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={expandAll}
+                className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-muted transition-colors hover:border-border-hover hover:text-text-primary"
+              >
+                Expand all
+              </button>
+              <button
+                onClick={collapseAll}
+                className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-muted transition-colors hover:border-border-hover hover:text-text-primary"
+              >
+                Collapse all
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {PAPER_SECTIONS.map(section => {
+              const isExpanded = expandedIds.has(section.id)
+              const summaryTags = summarizeSection(section)
+              return (
+                <motion.div
+                  key={section.id}
+                  layout
+                  whileHover={{ y: -1 }}
+                  className="overflow-hidden rounded-lg border border-border-subtle bg-white"
+                >
+                  <button
+                    onClick={() => toggleSection(section.id)}
+                    className="w-full px-4 py-4 text-left transition-colors hover:bg-surface-active"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 w-8 shrink-0 text-xs font-mono text-accent">
+                        {section.number}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="truncate text-sm font-medium text-text-primary">
+                              {section.title}
+                            </h3>
+                            <p className="mt-1 text-xs text-muted">
+                              {section.description}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted">
+                              {section.blocks.length} blocks
+                            </span>
+                            <motion.div
+                              animate={{ rotate: isExpanded ? 180 : 0 }}
+                              transition={SPRING}
+                            >
+                              <ChevronDown className="h-4 w-4 shrink-0 text-text-faint" />
+                            </motion.div>
+                          </div>
+                        </div>
+                        {summaryTags.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {summaryTags.map(tag => (
+                              <span key={`${section.id}-${tag}`} className="text-xs text-muted">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={SPRING}
+                        className="overflow-hidden"
+                      >
+                        <div className="border-t border-border-subtle px-4 pb-4 pt-3">
+                          <div className="mb-4 rounded-md border border-border-subtle bg-[#FAFAF8] px-3 py-3 text-xs text-muted">
+                            <span className="font-medium text-text-primary">Start here if:</span> {sectionEntryLine(section)}
+                          </div>
+                          <BlockCanvas blocks={section.blocks} />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
 
       <div className={cn('grid gap-8', focusMode ? 'xl:grid-cols-[minmax(0,1fr)]' : 'xl:grid-cols-[220px_minmax(0,1fr)]')}>
         {/* TOC sidebar */}
@@ -566,12 +748,8 @@ export function PaperReaderPage({ onTabChange }: { onTabChange?: (tab: TabId) =>
         </div>
       </div>
 
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Drill into sections', hint: 'Accordion view with all argument blocks', onClick: () => onTabChange('deep-dive') },
-          { label: 'Run a simulation', hint: 'Test parameters with the exact model', onClick: () => onTabChange('simulation') },
-        ]} />
       )}
+
     </div>
   )
 }
