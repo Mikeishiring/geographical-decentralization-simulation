@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowUpRight, ArrowLeft, ArrowRight, Eye, Link2, Quote, ChevronDown, ChevronUp, LayoutList, FileText, BookOpen, Check } from 'lucide-react'
+import { ArrowUpRight, ArrowLeft, ArrowRight, Eye, Link2, Quote, ChevronDown, LayoutList, FileText, BookOpen, Check } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { ModeBanner } from '../components/layout/ModeBanner'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY, HOVER_LIFT } from '../lib/theme'
-import { PAPER_METADATA, PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
+import { PAPER_METADATA, PAPER_SECTIONS, type PaperSection, type Author } from '../data/paper-sections'
 import type { TabId } from '../components/layout/TabNav'
 
 interface PaperNarrative {
@@ -179,7 +179,6 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
       : PAPER_SECTIONS[0].id
   })
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
-  const [guideOpen, setGuideOpen] = useState(false)
   const focusMode = readerMode === 'focus'
   const argumentMapMode = readerMode === 'argument-map'
   const paperMode = readerMode === 'paper'
@@ -283,147 +282,106 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         tone="editorial"
       />
 
-      {/* Paper title hero */}
-      <motion.section
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={SPRING_SOFT}
-        className="max-w-4xl"
-      >
-        <h1 className="text-3xl font-medium leading-tight text-text-primary font-serif sm:text-4xl">
-          {PAPER_METADATA.title}
-        </h1>
-        <p className="mt-2 text-sm text-muted">{PAPER_METADATA.citation}</p>
-        <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted font-serif">
-          {PAPER_METADATA.abstract}
-        </p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          {PAPER_METADATA.keyClaims.map(claim => (
-            <span
-              key={claim}
-              className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-text-primary"
-            >
-              {claim}
-            </span>
-          ))}
-        </div>
-      </motion.section>
+      {/* ── Two-column layout: content + sticky sidebar ── */}
+      <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_260px]">
 
-      {/* ── Sticky reading-mode bar ── */}
-      <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-border-subtle sm:-mx-6 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-0.5 rounded-lg border border-border-subtle bg-[#FAFAF8] p-1">
-            {(Object.keys(MODE_META) as ReaderMode[]).map(mode => {
-              const meta = MODE_META[mode]
-              const Icon = meta.icon
-              const isActive = readerMode === mode
-              return (
-                <motion.button
-                  key={mode}
-                  onClick={() => setReaderMode(mode)}
-                  title={meta.detail}
-                  whileTap={{ scale: 0.96 }}
-                  transition={SPRING_SNAPPY}
-                  className={cn(
-                    'relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors',
-                    isActive
-                      ? 'text-text-primary font-medium'
-                      : 'text-muted hover:text-text-primary',
-                  )}
+        {/* ── Main content column ── */}
+        <div className="min-w-0 space-y-12">
+
+          {/* Paper title hero */}
+          <motion.section
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={SPRING_SOFT}
+          >
+            <h1 className="text-3xl font-medium leading-tight text-text-primary font-serif sm:text-4xl">
+              {PAPER_METADATA.title}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+              {PAPER_METADATA.authors.map((author: Author) => (
+                author.url ? (
+                  <a
+                    key={author.name}
+                    href={author.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-accent hover:underline"
+                  >
+                    {author.name}
+                  </a>
+                ) : (
+                  <span key={author.name} className="text-sm text-text-body">{author.name}</span>
+                )
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-muted">arXiv:2509.21475 · 2025</p>
+            <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted font-serif">
+              {PAPER_METADATA.abstract}
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {PAPER_METADATA.keyClaims.map(claim => (
+                <span
+                  key={claim}
+                  className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-text-primary"
                 >
-                  {isActive && (
-                    <motion.span
-                      layoutId="mode-pill"
-                      className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-black/[0.04]"
+                  {claim}
+                </span>
+              ))}
+            </div>
+          </motion.section>
+
+          {/* ── Sticky mode bar (compact, above content) ── */}
+          <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-border-subtle sm:-mx-6 sm:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-0.5 rounded-lg border border-border-subtle bg-[#FAFAF8] p-1">
+                {(Object.keys(MODE_META) as ReaderMode[]).map(mode => {
+                  const meta = MODE_META[mode]
+                  const Icon = meta.icon
+                  const isActive = readerMode === mode
+                  return (
+                    <motion.button
+                      key={mode}
+                      onClick={() => setReaderMode(mode)}
+                      title={meta.detail}
+                      whileTap={{ scale: 0.96 }}
                       transition={SPRING_SNAPPY}
+                      className={cn(
+                        'relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors',
+                        isActive
+                          ? 'text-text-primary font-medium'
+                          : 'text-muted hover:text-text-primary',
+                      )}
+                    >
+                      {isActive && (
+                        <motion.span
+                          layoutId="mode-pill"
+                          className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-black/[0.04]"
+                          transition={SPRING_SNAPPY}
+                        />
+                      )}
+                      <span className="relative flex items-center gap-1.5">
+                        <Icon className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">{meta.label}</span>
+                      </span>
+                    </motion.button>
+                  )
+                })}
+              </div>
+
+              {!argumentMapMode && !paperMode && (
+                <div className="hidden sm:flex items-center gap-2 text-xs text-muted">
+                  <span>{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
+                  <div className="h-1 w-20 overflow-hidden rounded-full bg-[#E8E8E6]">
+                    <motion.div
+                      className="h-full rounded-full bg-accent"
+                      animate={{ width: `${progressPercent}%` }}
+                      transition={SPRING_SOFT}
                     />
-                  )}
-                  <span className="relative flex items-center gap-1.5">
-                    <Icon className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">{meta.label}</span>
-                  </span>
-                </motion.button>
-              )
-            })}
-          </div>
-
-          <div className="flex items-center gap-3">
-            {!argumentMapMode && !paperMode && (
-              <div className="hidden sm:flex items-center gap-2 text-xs text-muted">
-                <span>{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
-                <div className="h-1 w-20 overflow-hidden rounded-full bg-[#E8E8E6]">
-                  <motion.div
-                    className="h-full rounded-full bg-accent"
-                    animate={{ width: `${progressPercent}%` }}
-                    transition={SPRING_SOFT}
-                  />
+                  </div>
                 </div>
-              </div>
-            )}
-            <button
-              onClick={() => setGuideOpen(prev => !prev)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors',
-                guideOpen
-                  ? 'border-accent/30 bg-accent/5 text-accent'
-                  : 'border-border-subtle text-muted hover:text-text-primary hover:border-border-hover',
               )}
-            >
-              {guideOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              Guide
-            </button>
+            </div>
           </div>
-        </div>
-
-        {/* Collapsible reading guide panel */}
-        <AnimatePresence>
-          {guideOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={SPRING}
-              className="overflow-hidden"
-            >
-              <div className="grid gap-6 pt-4 sm:grid-cols-3">
-                <div>
-                  <div className="text-xs font-medium text-text-primary">Recommended path</div>
-                  <div className="mt-2 space-y-1.5">
-                    {[
-                      { id: 'se4a-attestation', label: 'SE4a attestation threshold' },
-                      { id: 'se2-distribution', label: 'SE2 starting geography' },
-                      { id: 'limitations', label: 'Limitations (truth boundary)' },
-                    ].map((entry, i) => (
-                      <a key={entry.id} href={`#${entry.id}`} onClick={() => setActiveSectionId(entry.id)} className="block text-sm text-muted hover:text-accent transition-colors">
-                        <span className="text-xs text-accent mr-1">{i + 1}.</span> {entry.label}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs font-medium text-text-primary">Current mode</div>
-                  <p className="mt-2 text-sm text-muted">{MODE_META[readerMode].detail}</p>
-                </div>
-                <div>
-                  <div className="text-xs font-medium text-text-primary">References & artifacts</div>
-                  <div className="mt-2 space-y-1.5">
-                    {PAPER_METADATA.references.map(ref => (
-                      <a key={ref.label} href={ref.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted hover:text-accent transition-colors">
-                        {ref.label} <ArrowUpRight className="h-3 w-3" />
-                      </a>
-                    ))}
-                    {_onTabChange && (
-                      <button onClick={() => _onTabChange('results')} className="flex items-center gap-1.5 text-sm text-muted hover:text-accent transition-colors">
-                        Simulation results <ArrowUpRight className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
 
       {argumentMapMode ? (
         /* ── Argument Map View ── */
@@ -599,39 +557,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         </motion.div>
       ) : (
 
-      <motion.div key={focusMode ? 'focus' : 'editorial'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }} className={cn('grid gap-8', focusMode ? 'xl:grid-cols-[minmax(0,1fr)]' : 'xl:grid-cols-[220px_minmax(0,1fr)]')}>
-        {/* TOC sidebar */}
-        {!focusMode && (
-          <aside className="hidden xl:block xl:sticky xl:top-40 xl:self-start">
-          <div className="border border-border-subtle rounded-lg p-4">
-            <span className="text-xs text-muted">Sections</span>
-            <nav className="mt-3 space-y-1">
-              {PAPER_SECTIONS.map(section => (
-                <a
-                  key={section.id}
-                  href={`#${section.id}`}
-                  onClick={() => setActiveSectionId(section.id)}
-                  className={cn(
-                    'block rounded-md px-3 py-2 text-sm transition-colors',
-                    activeSectionId === section.id
-                      ? 'bg-surface-active text-text-primary'
-                      : 'text-muted hover:bg-surface-active hover:text-text-primary',
-                  )}
-                >
-                  <div className={cn(
-                    'text-xs',
-                    activeSectionId === section.id ? 'text-accent' : 'text-muted',
-                  )}>
-                    {section.number}
-                  </div>
-                  <div className="mt-0.5 leading-snug">{section.title}</div>
-                </a>
-              ))}
-            </nav>
-          </div>
-          </aside>
-        )}
-
+      <motion.div key={focusMode ? 'focus' : 'editorial'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}>
         <div className="space-y-12">
           {/* Focus mode section indicator */}
           {focusMode && (
@@ -789,6 +715,149 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
       </motion.div>
 
       )}
+
+        </div>{/* end main content column */}
+
+        {/* ── Sticky sidebar ── */}
+        <aside className="hidden xl:block">
+          <div className="sticky top-[7.5rem] space-y-6">
+
+            {/* Section TOC */}
+            {!argumentMapMode && (
+              <nav>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-muted">Sections</span>
+                <div className="mt-2 space-y-0.5">
+                  {PAPER_SECTIONS.map(section => (
+                    <a
+                      key={section.id}
+                      href={`#${section.id}`}
+                      onClick={() => setActiveSectionId(section.id)}
+                      className={cn(
+                        'flex items-baseline gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors',
+                        activeSectionId === section.id
+                          ? 'bg-surface-active text-text-primary'
+                          : 'text-muted hover:bg-surface-active hover:text-text-primary',
+                      )}
+                    >
+                      <span className={cn(
+                        'shrink-0 font-mono text-[10px] tabular-nums',
+                        activeSectionId === section.id ? 'text-accent' : 'text-text-faint',
+                      )}>
+                        {section.number}
+                      </span>
+                      <span className="leading-snug">{section.title}</span>
+                    </a>
+                  ))}
+                </div>
+              </nav>
+            )}
+
+            {/* Progress */}
+            {!argumentMapMode && !paperMode && (
+              <div>
+                <div className="flex items-center justify-between text-[10px] text-muted">
+                  <span>{activeSectionIndex + 1} of {PAPER_SECTIONS.length}</span>
+                  <span>{Math.round(progressPercent)}%</span>
+                </div>
+                <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-[#E8E8E6]">
+                  <motion.div
+                    className="h-full rounded-full bg-accent"
+                    animate={{ width: `${progressPercent}%` }}
+                    transition={SPRING_SOFT}
+                  />
+                </div>
+              </div>
+            )}
+
+            <hr className="border-border-subtle" />
+
+            {/* Start with */}
+            <div>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted">Start with</span>
+              <div className="mt-2 space-y-2.5">
+                {[
+                  { id: 'se4a-attestation', label: 'SE4a attestation threshold', why: 'The same protocol lever pushes SSP and MSP in opposite geographic directions.' },
+                  { id: 'se2-distribution', label: 'SE2 starting geography', why: 'How much of the result is already baked into the real Ethereum map?' },
+                  { id: 'limitations', label: 'Limitations', why: 'Where the model\'s confidence boundary sits.' },
+                ].map((entry, i) => (
+                  <a
+                    key={entry.id}
+                    href={`#${entry.id}`}
+                    onClick={() => setActiveSectionId(entry.id)}
+                    className="group/start block rounded-md transition-colors"
+                  >
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-[10px] font-mono text-accent">{i + 1}.</span>
+                      <span className="text-xs font-medium text-text-primary group-hover/start:text-accent transition-colors">
+                        {entry.label}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 pl-4 text-[11px] leading-relaxed text-muted">{entry.why}</p>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <hr className="border-border-subtle" />
+
+            {/* Authors */}
+            <div>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted">Authors</span>
+              <div className="mt-2 space-y-1.5">
+                {PAPER_METADATA.authors.map((author: Author) => (
+                  <div key={author.name} className="flex items-baseline justify-between gap-2">
+                    {author.url ? (
+                      <a
+                        href={author.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-text-primary hover:text-accent transition-colors"
+                      >
+                        {author.name}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-text-primary">{author.name}</span>
+                    )}
+                    {author.role && (
+                      <span className="text-[10px] text-muted truncate">{author.role}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <hr className="border-border-subtle" />
+
+            {/* References */}
+            <div>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted">References</span>
+              <div className="mt-2 space-y-1.5">
+                {PAPER_METADATA.references.map(ref => (
+                  <a
+                    key={ref.label}
+                    href={ref.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-muted hover:text-accent transition-colors"
+                  >
+                    {ref.label} <ArrowUpRight className="h-3 w-3" />
+                  </a>
+                ))}
+                {_onTabChange && (
+                  <button
+                    onClick={() => _onTabChange('results')}
+                    className="flex items-center gap-1.5 text-xs text-muted hover:text-accent transition-colors"
+                  >
+                    Published results <ArrowUpRight className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </aside>
+
+      </div>{/* end two-column grid */}
 
     </div>
   )

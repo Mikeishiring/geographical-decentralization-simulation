@@ -8,10 +8,22 @@ export interface PaperSection {
   readonly blocks: readonly Block[]
 }
 
+export interface Author {
+  readonly name: string
+  readonly role?: string
+  readonly url?: string
+}
+
 export const PAPER_METADATA = {
   title: 'Geography Drives Blockchain Centralization',
   subtitle: 'An editorial reading layer over Yang, Oz, Wu, and Zhang (2025).',
   citation: 'Yang, Oz, Wu, Zhang (2025) · arXiv:2509.21475',
+  authors: [
+    { name: 'Sen Yang', role: 'Yale University', url: 'https://scholar.google.com/citations?user=7mGQ22cAAAAJ' },
+    { name: 'Burak Öz', role: 'TU Munich', url: 'https://scholar.google.com/citations?user=_YL_ZSIAAAAJ' },
+    { name: 'Fei Wu' },
+    { name: 'Fan Zhang', role: 'Yale University', url: 'https://scholar.google.com/citations?user=YTokrfkAAAAJ' },
+  ] as readonly Author[],
   abstract: 'The paper models validators as geographically mobile agents who optimize for MEV capture and consensus latency. Even under simplified assumptions, both SSP and MSP push validators toward a small set of low-latency regions, with different mechanisms and sensitivities.',
   keyClaims: [
     'Both SSP and MSP make geography part of block-building economics, not just network background.',
