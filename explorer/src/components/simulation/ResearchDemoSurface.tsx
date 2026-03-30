@@ -90,7 +90,6 @@ export function ResearchDemoSurface({
   const [step, setStep] = useState<1 | 10 | 50>(1)
   const [autoplay, setAutoplay] = useState(true)
   const [showConfig, setShowConfig] = useState(false)
-  const [activeViewer, setActiveViewer] = useState<ViewerLaunch | null>(null)
   const viewerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -240,10 +239,17 @@ export function ResearchDemoSurface({
     [catalog],
   )
 
-  useEffect(() => {
-    if (!activeViewer) return
-    viewerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [activeViewer])
+  const activeViewer = useMemo<ViewerLaunch | null>(() => {
+    if (!selectedDataset) return null
+    return {
+      dataset: selectedDataset,
+      settings: {
+        theme,
+        step,
+        autoplay,
+      },
+    }
+  }, [autoplay, selectedDataset, step, theme])
 
   const viewerUrl = useMemo(() => {
     if (!selectedDataset) return null
@@ -304,18 +310,10 @@ export function ResearchDemoSurface({
     }
   }
 
-  const handleInspectViewer = () => {
-    if (!selectedDataset) return
-
+  const handleFocusViewer = () => {
+    if (!activeViewer) return
     persistViewerSettings()
-    setActiveViewer({
-      dataset: selectedDataset,
-      settings: {
-        theme,
-        step,
-        autoplay,
-      },
-    })
+    viewerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const handleFillDemoValues = () => {
@@ -406,13 +404,42 @@ export function ResearchDemoSurface({
         </div>
       </div>
 
+      {activeViewer && (
+        <section ref={viewerRef} className="space-y-3">
+          <div className="lab-stage p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="text-xs text-muted mb-1">Published preview</div>
+                <div className="text-sm text-text-primary">
+                  The precomputed result is revealed immediately in-app. Change the dataset or playback controls and this surface rebinds to the new published payload.
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                <span className="lab-chip">{activeViewer.dataset.evaluation}</span>
+                <span className="lab-chip">{activeViewer.dataset.paradigm}</span>
+                <span className="lab-chip">{activeViewer.dataset.result}</span>
+                <span className="lab-chip">{themeLabel(theme)} theme</span>
+                <span className="lab-chip">step {step}</span>
+              </div>
+            </div>
+          </div>
+
+          <PublishedDatasetViewer
+            key={`${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
+            viewerBaseUrl={viewerBaseUrl}
+            dataset={activeViewer.dataset}
+            initialSettings={activeViewer.settings}
+          />
+        </section>
+      )}
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
         <div className="lab-stage p-5">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div>
               <div className="text-xs text-muted mb-1">Dataset selection</div>
               <div className="text-sm text-text-primary">
-                Keep the frozen selector, but inspect it inside our own shell.
+                Keep the frozen selector, but keep the published render visible inside our own shell from the start.
               </div>
             </div>
             <button
@@ -502,7 +529,7 @@ export function ResearchDemoSurface({
         <div className="lab-stage p-5">
           <div className="text-xs text-muted mb-1">Viewer options</div>
           <div className="text-sm text-text-primary mb-4">
-            The in-app viewer keeps our styling. These settings still feed the standalone fallback.
+            These controls drive the live embedded preview first. The standalone fallback mirrors the same published payload and timeline posture.
           </div>
 
           <div className="grid gap-4">
@@ -627,7 +654,7 @@ export function ResearchDemoSurface({
         <div className="lab-stage p-5">
           <div className="text-xs text-muted mb-1">Launch</div>
           <div className="text-sm text-text-primary">
-            Keep the default handoff inside this app, or explicitly open the frozen legacy viewer and source artifacts.
+            The default path is now the live embedded preview above. Use these actions when you want to jump back to it, open the frozen standalone view, or inspect source artifacts.
           </div>
           <div className="mt-2 text-xs text-muted">
             These links stay on the frozen published dataset contract. They do not generate a new simulation.
@@ -635,11 +662,11 @@ export function ResearchDemoSurface({
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <button
-              onClick={handleInspectViewer}
+              onClick={handleFocusViewer}
               disabled={!selectedDataset}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Inspect in app
+              Jump to live preview
             </button>
             <button
               onClick={handleLaunchViewer}
@@ -697,16 +724,6 @@ export function ResearchDemoSurface({
         </div>
       </div>
 
-      {activeViewer && (
-        <section ref={viewerRef}>
-          <PublishedDatasetViewer
-            viewerBaseUrl={viewerBaseUrl}
-            dataset={activeViewer.dataset}
-            initialSettings={activeViewer.settings}
-            onClose={() => setActiveViewer(null)}
-          />
-        </section>
-      )}
     </div>
   )
 }

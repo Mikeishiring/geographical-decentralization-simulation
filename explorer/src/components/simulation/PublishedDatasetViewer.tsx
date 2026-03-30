@@ -37,7 +37,7 @@ interface PublishedDatasetViewerProps {
   readonly viewerBaseUrl: string
   readonly dataset: ResearchDatasetEntry
   readonly initialSettings: PublishedViewerSettings
-  readonly onClose: () => void
+  readonly onClose?: () => void
 }
 
 interface PublishedMetrics {
@@ -694,13 +694,15 @@ export function PublishedDatasetViewer({
                 <ExternalLink className="h-3.5 w-3.5" />
                 Open standalone viewer
               </button>
-              <button
-                onClick={onClose}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary hover:border-border-hover transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-                Hide viewer
-              </button>
+              {onClose ? (
+                <button
+                  onClick={onClose}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary hover:border-border-hover transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Hide viewer
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
