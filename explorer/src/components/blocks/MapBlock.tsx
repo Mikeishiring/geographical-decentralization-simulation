@@ -273,11 +273,11 @@ export function MapBlock({ block }: MapBlockProps) {
                     {/* Breathing halo for top regions */}
                     {isTop && (
                       <motion.circle
-                        cx={x} cy={y} r={radius * 2.5}
+                        cx={x} cy={y} r={radius * 2.2}
                         fill="none"
                         stroke={color}
                         strokeWidth={0.6}
-                        initial={{ opacity: 0 }}
+                        initial={{ opacity: 0, r: radius * 2.2 }}
                         animate={{
                           opacity: [0.06, 0.14, 0.06],
                           r: [radius * 2.2, radius * 2.8, radius * 2.2],

@@ -730,6 +730,7 @@ export function ResearchDemoSurface({
         autoplay,
         paperLens,
         audienceMode,
+        analyticsView,
         comparePath: comparePath || null,
         paperSectionId: selectedPaperSection?.id ?? null,
         replayQuestion: assistantDraft || null,
@@ -739,6 +740,7 @@ export function ResearchDemoSurface({
       metadata: selectedDataset.metadata ?? {},
     }, null, 2)
   }, [
+    analyticsView,
     assistantDraft,
     audienceMode,
     autoplay,
@@ -1243,6 +1245,340 @@ export function ResearchDemoSurface({
     comparisonViewerSnapshot?.slotIndex ?? initialWorkspaceState.compareFocusSlot ?? 0,
     comparisonAnalyticsTotalSlots,
   )
+  const analyticsViewOptions = useMemo(() => ([
+    {
+      id: 'concentration' as const,
+      label: 'Concentration',
+      description: 'Gini, HHI, and region compression over time.',
+    },
+    {
+      id: 'latency' as const,
+      label: 'Latency',
+      description: 'Liveness, proposal timing, and failure posture.',
+    },
+    {
+      id: 'economics' as const,
+      label: 'Economics',
+      description: 'MEV, attestation output, and cluster behavior.',
+    },
+    {
+      id: 'geography' as const,
+      label: 'Geography',
+      description: 'Active-region spread and top-region rank tables.',
+    },
+  ] as const), [])
+  const analyticsMetricCards = useMemo<AnalyticsMetricCard[]>(() => {
+    if (!primaryAnalyticsPayload) return []
+
+    const metrics = primaryAnalyticsPayload.metrics ?? {}
+    const finalSlot = Math.max(0, primaryAnalyticsTotalSlots - 1)
+    const currentTopRegion = topRegionsForSlot(primaryAnalyticsPayload, primaryAnalyticsSlot, 1)[0] ?? null
+    const finalTopRegion = topRegionsForSlot(primaryAnalyticsPayload, finalSlot, 1)[0] ?? null
+
+    switch (analyticsView) {
+      case 'latency':
+        return [
+          {
+            label: 'Current liveness',
+            value: formatPercentValue(readMetricValue(metrics.liveness, primaryAnalyticsSlot)),
+            detail: `Exact value at slot ${primaryAnalyticsSlot + 1}.`,
+          },
+          {
+            label: 'Current proposal time',
+            value: formatOptionalMilliseconds(readMetricValue(metrics.proposal_times, primaryAnalyticsSlot)),
+            detail: `Proposal timing at slot ${primaryAnalyticsSlot + 1}.`,
+          },
+          {
+            label: 'Final failed proposals',
+            value: readMetricValue(metrics.failed_block_proposals, finalSlot)?.toLocaleString() ?? 'N/A',
+            detail: 'Frozen final-slot failure count.',
+          },
+          {
+            label: 'Final liveness',
+            value: formatPercentValue(readMetricValue(metrics.liveness, finalSlot)),
+            detail: 'Replay endpoint for network liveness.',
+          },
+        ]
+      case 'economics':
+        return [
+          {
+            label: 'Current MEV',
+            value: formatOptionalEth(readMetricValue(metrics.mev, primaryAnalyticsSlot)),
+            detail: `Exact MEV value at slot ${primaryAnalyticsSlot + 1}.`,
+          },
+          {
+            label: 'Final MEV',
+            value: formatOptionalEth(readMetricValue(metrics.mev, finalSlot)),
+            detail: 'Replay endpoint for value capture.',
+          },
+          {
+            label: 'Current attestation',
+            value: readMetricValue(metrics.attestations, primaryAnalyticsSlot)?.toLocaleString() ?? 'N/A',
+            detail: `Attestation count at slot ${primaryAnalyticsSlot + 1}.`,
+          },
+          {
+            label: 'Final clusters',
+            value: readMetricValue(metrics.clusters, finalSlot)?.toLocaleString() ?? 'N/A',
+            detail: 'Final geographic cluster count.',
+          },
+        ]
+      case 'geography':
+        return [
+          {
+            label: 'Current active regions',
+            value: activeRegionCountAtSlot(primaryAnalyticsPayload, primaryAnalyticsSlot).toLocaleString(),
+            detail: `Regions with non-zero validators at slot ${primaryAnalyticsSlot + 1}.`,
+          },
+          {
+            label: 'Final active regions',
+            value: activeRegionCountAtSlot(primaryAnalyticsPayload, finalSlot).toLocaleString(),
+            detail: 'Replay endpoint for geographic spread.',
+          },
+          {
+            label: 'Current leader',
+            value: currentTopRegion?.label ?? 'N/A',
+            detail: currentTopRegion ? `${formatNumber(currentTopRegion.share, 1)}% share.` : 'No dominant region.',
+          },
+          {
+            label: 'Final leader',
+            value: finalTopRegion?.label ?? 'N/A',
+            detail: finalTopRegion ? `${formatNumber(finalTopRegion.share, 1)}% share.` : 'No dominant region.',
+          },
+        ]
+      case 'concentration':
+      default:
+        return [
+          {
+            label: 'Current Gini',
+            value: readMetricValue(metrics.gini, primaryAnalyticsSlot) != null
+              ? formatNumber(readMetricValue(metrics.gini, primaryAnalyticsSlot) ?? 0, 3)
+              : 'N/A',
+            detail: `Concentration at slot ${primaryAnalyticsSlot + 1}.`,
+          },
+          {
+            label: 'Final Gini',
+            value: readMetricValue(metrics.gini, finalSlot) != null
+              ? formatNumber(readMetricValue(metrics.gini, finalSlot) ?? 0, 3)
+              : 'N/A',
+            detail: 'Replay endpoint for concentration.',
+          },
+          {
+            label: 'Current HHI',
+            value: readMetricValue(metrics.hhi, primaryAnalyticsSlot) != null
+              ? formatNumber(readMetricValue(metrics.hhi, primaryAnalyticsSlot) ?? 0, 3)
+              : 'N/A',
+            detail: `HHI at slot ${primaryAnalyticsSlot + 1}.`,
+          },
+          {
+            label: 'Active regions now',
+            value: activeRegionCountAtSlot(primaryAnalyticsPayload, primaryAnalyticsSlot).toLocaleString(),
+            detail: 'How many regions still retain validators.',
+          },
+        ]
+    }
+  }, [analyticsView, primaryAnalyticsPayload, primaryAnalyticsSlot, primaryAnalyticsTotalSlots])
+  const analyticsBlocks = useMemo<readonly Block[]>(() => {
+    if (!primaryAnalyticsPayload || !selectedDataset) return []
+
+    const metrics = primaryAnalyticsPayload.metrics ?? {}
+    const finalSlot = Math.max(0, primaryAnalyticsTotalSlots - 1)
+    const currentTopRegions = topRegionsForSlot(primaryAnalyticsPayload, primaryAnalyticsSlot, 5)
+    const finalTopRegions = topRegionsForSlot(primaryAnalyticsPayload, finalSlot, 5)
+    const blocks: Block[] = [
+      {
+        type: 'source',
+        refs: [
+          {
+            label: 'Analytics view',
+            section: analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics desk',
+            url: shareUrl || undefined,
+          },
+          {
+            label: 'Published dataset JSON',
+            section: selectedDataset.path,
+            url: datasetUrl || undefined,
+          },
+          ...(sourceUrl ? [{
+            label: 'Dataset source file',
+            section: selectedDataset.path,
+            url: sourceUrl,
+          }] : []),
+          ...(selectedPaperSection ? [{
+            label: 'Canonical paper section',
+            section: `${selectedPaperSection.number} ${selectedPaperSection.title}`,
+            url: paperSectionUrl || undefined,
+          }] : []),
+          ...(comparisonDataset && comparisonDatasetUrl ? [{
+            label: 'Comparison dataset JSON',
+            section: comparisonDataset.path,
+            url: comparisonDatasetUrl,
+          }] : []),
+        ],
+      },
+    ]
+
+    if (analyticsView === 'concentration') {
+      blocks.push(
+        {
+          type: 'timeseries',
+          title: 'Concentration query',
+          series: [
+            { label: 'Gini', data: sampleSeries(metrics.gini), color: '#C2553A' },
+            { label: 'HHI', data: sampleSeries(metrics.hhi), color: '#2563EB' },
+          ],
+          xLabel: 'Slot',
+          yLabel: 'Index',
+          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
+        },
+        {
+          type: 'timeseries',
+          title: 'Active-region spread',
+          series: [
+            { label: 'Active regions', data: sampleActiveRegionsSeries(primaryAnalyticsPayload), color: '#0F766E' },
+          ],
+          xLabel: 'Slot',
+          yLabel: 'Regions',
+          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
+        },
+      )
+    }
+
+    if (analyticsView === 'latency') {
+      blocks.push(
+        {
+          type: 'timeseries',
+          title: 'Liveness query',
+          series: [
+            { label: 'Liveness', data: sampleSeries(metrics.liveness), color: '#16A34A' },
+          ],
+          xLabel: 'Slot',
+          yLabel: 'Percent',
+          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
+        },
+        {
+          type: 'timeseries',
+          title: 'Proposal-time query',
+          series: [
+            { label: 'Proposal time', data: sampleSeries(metrics.proposal_times), color: '#D97706' },
+          ],
+          xLabel: 'Slot',
+          yLabel: 'Milliseconds',
+          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
+        },
+      )
+    }
+
+    if (analyticsView === 'economics') {
+      blocks.push(
+        {
+          type: 'timeseries',
+          title: 'MEV query',
+          series: [
+            { label: 'MEV', data: sampleSeries(metrics.mev), color: '#2563EB' },
+          ],
+          xLabel: 'Slot',
+          yLabel: 'ETH',
+          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
+        },
+        {
+          type: 'timeseries',
+          title: 'Attestation output',
+          series: [
+            { label: 'Attestations', data: sampleSeries(metrics.attestations), color: '#0F766E' },
+          ],
+          xLabel: 'Slot',
+          yLabel: 'Count',
+          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
+        },
+      )
+    }
+
+    if (analyticsView === 'geography') {
+      blocks.push(
+        {
+          type: 'timeseries',
+          title: 'Geographic spread query',
+          series: [
+            { label: 'Active regions', data: sampleActiveRegionsSeries(primaryAnalyticsPayload), color: '#7C3AED' },
+          ],
+          xLabel: 'Slot',
+          yLabel: 'Regions',
+          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
+        },
+        {
+          type: 'table',
+          title: 'Current vs final top regions',
+          headers: ['Rank', `Slot ${primaryAnalyticsSlot + 1}`, 'Final slot'],
+          rows: Array.from({ length: Math.max(currentTopRegions.length, finalTopRegions.length, 3) }, (_, index) => [
+            `#${index + 1}`,
+            currentTopRegions[index]
+              ? `${currentTopRegions[index]!.label} (${formatNumber(currentTopRegions[index]!.share, 1)}%)`
+              : 'N/A',
+            finalTopRegions[index]
+              ? `${finalTopRegions[index]!.label} (${formatNumber(finalTopRegions[index]!.share, 1)}%)`
+              : 'N/A',
+          ]),
+        },
+      )
+    }
+
+    if (comparisonDataset && comparisonAnalyticsPayload) {
+      const compareMetrics = comparisonAnalyticsPayload.metrics ?? {}
+      const compareCurrentSlot = comparisonAnalyticsSlot
+      const compareTopRegion = topRegionsForSlot(comparisonAnalyticsPayload, compareCurrentSlot, 1)[0] ?? null
+      blocks.push({
+        type: 'table',
+        title: 'Current query comparison',
+        headers: ['Metric', 'Active replay', 'Comparison replay'],
+        rows: analyticsView === 'latency'
+          ? [
+              ['Liveness', formatPercentValue(readMetricValue(metrics.liveness, primaryAnalyticsSlot)), formatPercentValue(readMetricValue(compareMetrics.liveness, compareCurrentSlot))],
+              ['Proposal time', formatOptionalMilliseconds(readMetricValue(metrics.proposal_times, primaryAnalyticsSlot)), formatOptionalMilliseconds(readMetricValue(compareMetrics.proposal_times, compareCurrentSlot))],
+              ['Failed proposals', readMetricValue(metrics.failed_block_proposals, primaryAnalyticsSlot)?.toLocaleString() ?? 'N/A', readMetricValue(compareMetrics.failed_block_proposals, compareCurrentSlot)?.toLocaleString() ?? 'N/A'],
+            ]
+          : analyticsView === 'economics'
+            ? [
+                ['MEV', formatOptionalEth(readMetricValue(metrics.mev, primaryAnalyticsSlot)), formatOptionalEth(readMetricValue(compareMetrics.mev, compareCurrentSlot))],
+                ['Attestations', readMetricValue(metrics.attestations, primaryAnalyticsSlot)?.toLocaleString() ?? 'N/A', readMetricValue(compareMetrics.attestations, compareCurrentSlot)?.toLocaleString() ?? 'N/A'],
+                ['Clusters', readMetricValue(metrics.clusters, primaryAnalyticsSlot)?.toLocaleString() ?? 'N/A', readMetricValue(compareMetrics.clusters, compareCurrentSlot)?.toLocaleString() ?? 'N/A'],
+              ]
+            : analyticsView === 'geography'
+              ? [
+                  ['Active regions', activeRegionCountAtSlot(primaryAnalyticsPayload, primaryAnalyticsSlot).toLocaleString(), activeRegionCountAtSlot(comparisonAnalyticsPayload, compareCurrentSlot).toLocaleString()],
+                  ['Leading region', currentTopRegions[0]?.label ?? 'N/A', compareTopRegion?.label ?? 'N/A'],
+                  ['Leading share', currentTopRegions[0] ? `${formatNumber(currentTopRegions[0]!.share, 1)}%` : 'N/A', compareTopRegion ? `${formatNumber(compareTopRegion.share, 1)}%` : 'N/A'],
+                ]
+              : [
+                  ['Gini', readMetricValue(metrics.gini, primaryAnalyticsSlot) != null ? formatNumber(readMetricValue(metrics.gini, primaryAnalyticsSlot) ?? 0, 3) : 'N/A', readMetricValue(compareMetrics.gini, compareCurrentSlot) != null ? formatNumber(readMetricValue(compareMetrics.gini, compareCurrentSlot) ?? 0, 3) : 'N/A'],
+                  ['HHI', readMetricValue(metrics.hhi, primaryAnalyticsSlot) != null ? formatNumber(readMetricValue(metrics.hhi, primaryAnalyticsSlot) ?? 0, 3) : 'N/A', readMetricValue(compareMetrics.hhi, compareCurrentSlot) != null ? formatNumber(readMetricValue(compareMetrics.hhi, compareCurrentSlot) ?? 0, 3) : 'N/A'],
+                  ['Active regions', activeRegionCountAtSlot(primaryAnalyticsPayload, primaryAnalyticsSlot).toLocaleString(), activeRegionCountAtSlot(comparisonAnalyticsPayload, compareCurrentSlot).toLocaleString()],
+                ],
+      })
+    }
+
+    return blocks
+  }, [
+    analyticsView,
+    analyticsViewOptions,
+    comparisonAnalyticsPayload,
+    comparisonAnalyticsSlot,
+    comparisonDataset,
+    comparisonDatasetUrl,
+    datasetUrl,
+    paperSectionUrl,
+    primaryAnalyticsPayload,
+    primaryAnalyticsSlot,
+    primaryAnalyticsTotalSlots,
+    selectedDataset,
+    selectedPaperSection,
+    shareUrl,
+    sourceUrl,
+  ])
+  const analyticsStatusMessage = primaryAnalyticsQuery.isLoading
+    ? 'Loading exact analytics queries from the published dataset...'
+    : primaryAnalyticsQuery.isError
+      ? (primaryAnalyticsQuery.error as Error).message
+      : null
 
   const handleCopyShareUrl = async (targetUrl = shareUrl) => {
     if (!targetUrl || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
