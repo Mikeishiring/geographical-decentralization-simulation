@@ -65,7 +65,18 @@ function isManifestOverviewBundle(
   return Boolean(bundle && 'bytes' in bundle)
 }
 
-const APP_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
+function resolveAppBaseUrl(): string {
+  const configuredBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
+  if (configuredBaseUrl) return configuredBaseUrl
+  if (typeof window === 'undefined') return ''
+
+  const { protocol, hostname } = window.location
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return `${protocol}//${hostname}:3201`
+  }
+
+  return ''
+}
 
 function formatEthValue(value: number): string {
   return `${value.toFixed(4)} ETH`
@@ -399,6 +410,7 @@ export function SimulationLabPage({
   onOpenCommunityExploration?: (explorationId: string) => void
   onTabChange?: (tab: TabId) => void
 } = {}) {
+  const appBaseUrl = resolveAppBaseUrl()
   const queryClient = useQueryClient()
   const [surfaceMode, setSurfaceMode] = useState<'research' | 'lab'>('research')
   const [config, setConfig] = useState<SimulationConfig>({ ...DEFAULT_CONFIG })
@@ -822,9 +834,10 @@ export function SimulationLabPage({
 
       {surfaceMode === 'research' ? (
         <ResearchDemoSurface
-          catalogScriptUrl={`${APP_BASE_URL}/research-demo/assets/research-catalog.js`}
-          viewerBaseUrl={`${APP_BASE_URL}/research-demo`}
+          catalogScriptUrl={`${appBaseUrl}/research-demo/assets/research-catalog.js`}
+          viewerBaseUrl={`${appBaseUrl}/research-demo`}
           onOpenCommunityExploration={onOpenCommunityExploration}
+          onOpenExactLab={() => setSurfaceMode('lab')}
           onTabChange={onTabChange}
         />
       ) : (

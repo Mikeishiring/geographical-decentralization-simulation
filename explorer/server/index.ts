@@ -1639,6 +1639,7 @@ function normalizePublishedAudienceMode(
 }
 
 function toNonNegativeInteger(value: unknown): number | null {
+  if (value == null || value === '') return null
   const numeric = typeof value === 'number' ? value : Number(value)
   return Number.isInteger(numeric) && numeric >= 0 ? numeric : null
 }
@@ -1817,6 +1818,8 @@ function buildPublishedReplayEvidenceBlocks(
   focusSnapshot: ReturnType<typeof buildPublishedSlotSummary>,
   compareFocusSnapshot?: ReturnType<typeof buildPublishedSlotSummary>,
 ): Block[] {
+  const normalizedDatasetPath = request.datasetPath?.replace(/\\/g, '/')
+  const normalizedComparePath = request.comparePath?.replace(/\\/g, '/')
   const dominantRegionLabel = focusSnapshot.dominantRegion
     ? `${focusSnapshot.dominantRegion.city ?? focusSnapshot.dominantRegion.regionId} leads with ${focusSnapshot.dominantRegion.count} of ${focusSnapshot.totalValidators} validators`
     : 'No dominant region is available for the active slot.'
@@ -1832,6 +1835,32 @@ function buildPublishedReplayEvidenceBlocks(
       value: focusSnapshot.dominantRegion ? `${formatMetricNumber(focusSnapshot.dominantRegion.share, 1)}%` : 'N/A',
       label: 'Dominant region share',
       sublabel: dominantRegionLabel,
+    },
+    {
+      type: 'source',
+      refs: [
+        {
+          label: 'Published replay dataset',
+          section: request.datasetLabel?.trim() || normalizedDatasetPath || 'active replay',
+          url: normalizedDatasetPath
+            ? `https://github.com/syang-ng/geographical-decentralization-simulation/blob/main/dashboard/${normalizedDatasetPath}`
+            : undefined,
+        },
+        ...(request.paperSectionLabel
+          ? [{
+              label: 'Canonical paper section',
+              section: request.paperSectionLabel,
+              url: 'https://arxiv.org/abs/2509.21475',
+            }]
+          : []),
+        ...(normalizedComparePath
+          ? [{
+              label: 'Comparison replay dataset',
+              section: request.compareLabel?.trim() || normalizedComparePath,
+              url: `https://github.com/syang-ng/geographical-decentralization-simulation/blob/main/dashboard/${normalizedComparePath}`,
+            }]
+          : []),
+      ],
     },
   ]
 

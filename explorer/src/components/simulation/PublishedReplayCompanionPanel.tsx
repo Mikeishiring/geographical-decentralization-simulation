@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Loader2, Sparkles } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, Sparkles } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
+import { SourceBlock } from '../blocks/SourceBlock'
 import { cn } from '../../lib/cn'
 import { getApiHealth } from '../../lib/api'
 import {
@@ -9,6 +10,7 @@ import {
   type PublishedReplayCopilotResponse,
   type PublishedReplayViewerSnapshotContext,
 } from '../../lib/published-replay-api'
+import type { Block, SourceBlock as SourceBlockData } from '../../types/blocks'
 import type { PublishedViewerSnapshot } from './PublishedDatasetViewer'
 
 interface DatasetRef {
@@ -44,6 +46,12 @@ interface PublishedReplayCompanionPanelProps {
   readonly currentViewSummary: string
   readonly viewerSnapshot: PublishedViewerSnapshot | null
   readonly comparisonViewerSnapshot: PublishedViewerSnapshot | null
+  readonly replayQueryUrl?: string | null
+  readonly datasetArtifactUrl?: string | null
+  readonly datasetSourceUrl?: string | null
+  readonly comparisonArtifactUrl?: string | null
+  readonly comparisonSourceUrl?: string | null
+  readonly paperSectionUrl?: string | null
   readonly autoRunQuestion?: string | null
   readonly onAutoRunHandled?: () => void
   readonly onResponseChange?: (payload: {
@@ -122,6 +130,25 @@ function toSnapshotContext(
   }
 }
 
+function isEvidenceBlock(block: Block): boolean {
+  return (
+    block.type === 'stat'
+    || block.type === 'table'
+    || block.type === 'comparison'
+    || block.type === 'chart'
+    || block.type === 'map'
+    || block.type === 'timeseries'
+  )
+}
+
+function isSourceBlock(block: Block): block is SourceBlockData {
+  return block.type === 'source'
+}
+
+function isInterpretationBlock(block: Block): boolean {
+  return block.type === 'insight'
+}
+
 export function PublishedReplayCompanionPanel({
   question,
   onQuestionChange,
@@ -133,6 +160,12 @@ export function PublishedReplayCompanionPanel({
   currentViewSummary,
   viewerSnapshot,
   comparisonViewerSnapshot,
+  replayQueryUrl,
+  datasetArtifactUrl,
+  datasetSourceUrl,
+  comparisonArtifactUrl,
+  comparisonSourceUrl,
+  paperSectionUrl,
   autoRunQuestion,
   onAutoRunHandled,
   onResponseChange,
@@ -144,6 +177,7 @@ export function PublishedReplayCompanionPanel({
   })
   const [answeredContext, setAnsweredContext] = useState<string | null>(null)
   const [replayThread, setReplayThread] = useState<readonly ReplayThreadEntry[]>([])
+  const [showInterpretation, setShowInterpretation] = useState(false)
   const autoRunSignatureRef = useRef<string | null>(null)
 
   const quickPrompts = useMemo(() => {
@@ -236,6 +270,7 @@ export function PublishedReplayCompanionPanel({
     resetReplayMutation()
     setReplayThread([])
     setAnsweredContext(null)
+    setShowInterpretation(false)
     autoRunSignatureRef.current = null
     onResponseChange?.(null)
   }, [audienceMode, comparisonDataset?.path, dataset?.path, onResponseChange, paperLens, paperSection?.id, resetReplayMutation])
@@ -249,7 +284,12 @@ export function PublishedReplayCompanionPanel({
 
   useEffect(() => {
     const normalizedQuestion = autoRunQuestion?.trim() ?? ''
-    if (!normalizedQuestion || !dataset || mutation.isPending || !isAnthropicEnabled) return
+    if (!normalizedQuestion) {
+      autoRunSignatureRef.current = null
+      return
+    }
+
+    if (!dataset || mutation.isPending || !isAnthropicEnabled) return
 
     const signature = [
       dataset.path,
@@ -265,7 +305,7 @@ export function PublishedReplayCompanionPanel({
     if (autoRunSignatureRef.current === signature) return
 
     autoRunSignatureRef.current = signature
-    mutation.mutate(normalizedQuestion)
+    submitQuestion(normalizedQuestion)
     onAutoRunHandled?.()
   }, [
     audienceMode,
@@ -279,6 +319,7 @@ export function PublishedReplayCompanionPanel({
     onAutoRunHandled,
     paperLens,
     paperSection?.id,
+    submitQuestion,
     viewerSnapshot?.slotIndex,
   ])
 
@@ -300,6 +341,107 @@ export function PublishedReplayCompanionPanel({
       ? mutation.variables
       : question.trim()
     : latestThreadEntry?.question ?? question.trim()
+
+  useEffect(() => {
+    if (!response) return
+    setShowInterpretation(false)
+  }, [latestThreadEntry?.question, response])
+
+  const combinedSourceBlock = useMemo<SourceBlockData | null>(() => {
+    if (!dataset && !response) return null
+
+    const refs: SourceBlockData['refs'] = []
+    const replaySlotLabel = viewerSnapshot ? `slot ${viewerSnapshot.slotNumber.toLocaleString()}` : 'active replay posture'
+
+    if (replayQueryUrl) {
+      refs.push({
+        label: 'Replay query view',
+        section: replaySlotLabel,
+        url: replayQueryUrl,
+      })
+    }
+
+    if (dataset?.path) {
+      refs.push({
+        label: 'Published dataset JSON',
+        section: dataset.path,
+        url: datasetArtifactUrl || datasetSourceUrl || undefined,
+      })
+    }
+
+    if (dataset?.path && datasetSourceUrl && datasetArtifactUrl && datasetSourceUrl !== datasetArtifactUrl) {
+      refs.push({
+        label: 'Dataset source file',
+        section: dataset.path,
+        url: datasetSourceUrl,
+      })
+    }
+
+    if (paperSection) {
+      refs.push({
+        label: 'Canonical paper section',
+        section: `${paperSection.number} ${paperSection.title}`,
+        url: paperSectionUrl || undefined,
+      })
+    }
+
+    if (comparisonDataset?.path) {
+      refs.push({
+        label: 'Comparison dataset JSON',
+        section: comparisonDataset.path,
+        url: comparisonArtifactUrl || comparisonSourceUrl || undefined,
+      })
+    }
+
+    if (comparisonDataset?.path && comparisonSourceUrl && comparisonArtifactUrl && comparisonSourceUrl !== comparisonArtifactUrl) {
+      refs.push({
+        label: 'Comparison source file',
+        section: comparisonDataset.path,
+        url: comparisonSourceUrl,
+      })
+    }
+
+    for (const block of response?.blocks ?? []) {
+      if (!isSourceBlock(block)) continue
+      refs.push(...block.refs)
+    }
+
+    const dedupedRefs = refs.filter((ref, index, all) =>
+      all.findIndex(candidate =>
+        candidate.label === ref.label
+        && candidate.section === ref.section
+        && candidate.url === ref.url,
+      ) === index,
+    )
+
+    return dedupedRefs.length > 0
+      ? { type: 'source', refs: dedupedRefs }
+      : null
+  }, [
+    comparisonArtifactUrl,
+    comparisonDataset,
+    comparisonSourceUrl,
+    dataset,
+    datasetArtifactUrl,
+    datasetSourceUrl,
+    paperSection,
+    paperSectionUrl,
+    replayQueryUrl,
+    response,
+    viewerSnapshot,
+  ])
+  const evidenceBlocks = useMemo(
+    () => (response?.blocks ?? []).filter(isEvidenceBlock),
+    [response],
+  )
+  const interpretationBlocks = useMemo(
+    () => (response?.blocks ?? []).filter(isInterpretationBlock),
+    [response],
+  )
+  const supportingBlocks = useMemo(
+    () => (response?.blocks ?? []).filter(block => block.type === 'caveat'),
+    [response],
+  )
 
   return (
     <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
@@ -418,6 +560,23 @@ export function PublishedReplayCompanionPanel({
             </div>
           ) : null}
 
+          <div className="rounded-[1.1rem] border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Evidence used</div>
+            <div className="mt-2 text-xs leading-5 text-muted">
+              Start from the replay posture and the linked source material. The assistant interpretation stays secondary.
+            </div>
+            {combinedSourceBlock ? (
+              <div className="mt-4">
+                <SourceBlock block={combinedSourceBlock} />
+              </div>
+            ) : null}
+            {evidenceBlocks.length > 0 ? (
+              <div className="mt-4">
+                <BlockCanvas blocks={evidenceBlocks} showExport={false} />
+              </div>
+            ) : null}
+          </div>
+
           <div className="rounded-[1.1rem] border border-warning/25 bg-warning/7 px-4 py-4">
             <div className="flex items-center gap-1.5 text-xs font-medium text-text-primary">
               <span className="h-1.5 w-1.5 rounded-full bg-warning" />
@@ -431,16 +590,48 @@ export function PublishedReplayCompanionPanel({
             </div>
           </div>
 
-          <div className="rounded-[1.25rem] border border-border-subtle bg-white/90 px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Replay-backed answer</div>
-            <div className="mt-2 text-sm leading-6 text-text-primary">{response.summary}</div>
+          {supportingBlocks.length > 0 ? (
+            <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Reading discipline</div>
+              <div className="mt-4">
+                <BlockCanvas blocks={supportingBlocks} showExport={false} />
+              </div>
+            </div>
+          ) : null}
+
+          <div className="rounded-[1.25rem] border border-border-subtle bg-white px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Assistant interpretation</div>
+                <div className="mt-2 text-xs leading-5 text-muted">
+                  Collapsed by default so the replay evidence and source material lead the reading.
+                </div>
+              </div>
+              <button
+                onClick={() => setShowInterpretation(current => !current)}
+                className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+              >
+                {showInterpretation ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {showInterpretation ? 'Hide interpretation' : 'Show interpretation'}
+              </button>
+            </div>
             <div className="mt-3 text-xs text-muted">
               {response.cached ? 'Reused cached replay context' : 'Fresh replay-context answer'}
               {response.model ? ` · ${response.model}` : ''}
             </div>
+            {showInterpretation ? (
+              <div className="mt-4 space-y-4">
+                <div className="text-sm leading-6 text-text-primary">{response.summary}</div>
+                {interpretationBlocks.length > 0 ? (
+                  <BlockCanvas blocks={interpretationBlocks} showExport={false} />
+                ) : null}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-3 text-xs leading-5 text-muted">
+                Interpretation hidden. Expand only after checking the evidence and source links above.
+              </div>
+            )}
           </div>
-
-          <BlockCanvas blocks={response.blocks} />
 
           {response.followUps.length > 0 ? (
             <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
