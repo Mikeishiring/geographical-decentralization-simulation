@@ -1346,6 +1346,7 @@ export function SimulationLabPage({
   const showPendingRunSurface = Boolean(currentJobId)
     && !manifest
     && (status === 'submitting' || status === 'queued' || status === 'running' || status === 'completed')
+  const showSurfaceOptions = surfaceMode === 'lab' || Boolean(currentJobId)
   const surfaceOptions = [
     {
       id: 'research' as const,
@@ -1371,52 +1372,60 @@ export function SimulationLabPage({
           <div className="min-w-0">
             <h1 className="text-base font-semibold text-text-primary">Simulation</h1>
             <p className="mt-1 text-xs leading-5 text-muted">
-              Start from published evidence unless you already know you need a fresh exact run.
+              The published paper replay opens first. The exact lab stays secondary until you explicitly leave the paper-backed surface.
             </p>
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          {surfaceOptions.map(option => {
-            const isActive = surfaceMode === option.id
-            return (
-              <button
-                key={option.id}
-                onClick={() => setSurfaceMode(option.id)}
-                className={cn(
-                  'rounded-2xl border px-4 py-4 text-left transition-all',
-                  isActive
-                    ? 'border-accent bg-white shadow-[0_18px_34px_rgba(15,23,42,0.06)]'
-                    : 'border-border-subtle bg-[#FAFAF8] hover:-translate-y-0.5 hover:border-border-hover hover:bg-white',
-                )}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{option.eyebrow}</div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">{option.title}</div>
-                  </div>
-                  {isActive ? (
-                    <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-white">
-                      Active
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-2 text-xs leading-5 text-muted">{option.detail}</div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {option.chips.map(chip => (
-                    <span key={chip} className="lab-chip">
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-              </button>
-            )
-          })}
-        </div>
+        {showSurfaceOptions ? (
+          <>
+            <div className="grid gap-3 md:grid-cols-2">
+              {surfaceOptions.map(option => {
+                const isActive = surfaceMode === option.id
+                return (
+                  <button
+                    key={option.id}
+                    onClick={() => setSurfaceMode(option.id)}
+                    className={cn(
+                      'rounded-2xl border px-4 py-4 text-left transition-all',
+                      isActive
+                        ? 'border-accent bg-white shadow-[0_18px_34px_rgba(15,23,42,0.06)]'
+                        : 'border-border-subtle bg-[#FAFAF8] hover:-translate-y-0.5 hover:border-border-hover hover:bg-white',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{option.eyebrow}</div>
+                        <div className="mt-2 text-sm font-medium text-text-primary">{option.title}</div>
+                      </div>
+                      {isActive ? (
+                        <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-white">
+                          Active
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 text-xs leading-5 text-muted">{option.detail}</div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {option.chips.map(chip => (
+                        <span key={chip} className="lab-chip">
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
 
-        <div className="text-xs leading-5 text-muted">
-          Published scenarios keep the paper, analytics, and replay guide on one fixed evidence surface. The exact lab is for reproducing or extending the research with a fresh bounded run.
-        </div>
+            <div className="text-xs leading-5 text-muted">
+              Published scenarios keep the paper, analytics, and replay guide on one fixed evidence surface. The exact lab is for reproducing or extending the research with a fresh bounded run.
+            </div>
+          </>
+        ) : (
+          <div className="rounded-2xl border border-rule bg-surface-active px-4 py-4 text-xs leading-5 text-muted">
+            This page now lands directly on the published paper workspace with the replay already visible. You only move into the exact lab if you explicitly ask for a fresh bounded run.
+          </div>
+        )}
       </div>
 
       {surfaceMode === 'research' ? (

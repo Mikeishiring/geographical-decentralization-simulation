@@ -2028,13 +2028,13 @@ export function ResearchDemoSurface({
             </div>
             <div className="mt-6 flex flex-wrap gap-2">
               <span className="lab-chip">Instant preview</span>
-              <span className="lab-chip">Configurable simulator depth</span>
+              <span className="lab-chip">Published analytics desk</span>
               <span className="lab-chip">Theory-ready paper companion</span>
             </div>
 
             <div className="mt-8">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Use this workspace</div>
-              <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 <button
                   onClick={() => {
                     applyAudienceMode('reader')
@@ -2089,28 +2089,29 @@ export function ResearchDemoSurface({
                     Shift into the theory lens and ask a section-grounded question so the answer stays attached to the canonical argument.
                   </div>
                 </button>
-
-                <button
-                  onClick={onOpenExactLab}
-                  disabled={!onOpenExactLab}
-                  className={cn(
-                    'rounded-2xl border px-4 py-4 text-left transition-all',
-                    onOpenExactLab
-                      ? 'border-rule bg-white hover:border-border-hover'
-                      : 'cursor-not-allowed border-rule bg-surface-active text-muted',
-                  )}
-                >
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">4. Reproduce it exactly</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">Jump to the exact-run lab</div>
-                  <div className="mt-2 text-xs leading-5 text-muted">
-                    Use the published replay to orient yourself first, then move into the exact engine only when you need a fresh bounded run.
-                  </div>
-                </button>
               </div>
 
               <div className="mt-3 text-xs leading-5 text-muted">
                 These controls adjust the current workspace. They do not generate a new page or silently rerun the full simulation.
               </div>
+
+              {onOpenExactLab ? (
+                <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-rule bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Secondary path</div>
+                    <div className="mt-2 text-sm font-medium text-text-primary">Need a fresh bounded experiment?</div>
+                    <div className="mt-2 text-xs leading-5 text-muted">
+                      Stay in the published replay unless you specifically need a new exact run. The paper workspace is the primary surface.
+                    </div>
+                  </div>
+                  <button
+                    onClick={onOpenExactLab}
+                    className="inline-flex shrink-0 items-center justify-center rounded-full border border-rule bg-surface-active px-4 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover hover:bg-white"
+                  >
+                    Open exact lab
+                  </button>
+                </div>
+              ) : null}
 
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 {heroSnapshotCards.map(card => (
@@ -2475,10 +2476,10 @@ export function ResearchDemoSurface({
               </div>
 
               <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4 text-xs leading-5 text-muted">
-                New experiments still live on the exact-run surface. This rail stays tied to the published, precomputed evidence.
+                This rail stays tied to checked-in published evidence. Changing the selectors rebinds the replay and analytics desk without sending you through a new simulation flow.
               </div>
             </div>
-          </aside>
+            </aside>
         </section>
       )}
 
