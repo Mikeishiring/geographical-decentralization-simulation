@@ -103,8 +103,8 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id={gradientId} x1="0%" x2="0%" y1="0%" y2="100%">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="#2563EB" stopOpacity="0.01" />
+              <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.01" />
             </linearGradient>
           </defs>
 
@@ -112,12 +112,12 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
             const y = padding.top + chartH * (1 - frac)
             return (
               <line key={frac} x1={padding.left} y1={y} x2={width - padding.right} y2={y}
-                stroke="#E8E8E6" strokeWidth={0.5} />
+                stroke="var(--color-rule)" strokeWidth={0.5} />
             )
           })}
 
           <line x1={padding.left} y1={baselineY} x2={width - padding.right} y2={baselineY}
-            stroke="#CBD5E1" strokeWidth={0.8} />
+            stroke="var(--color-meridian)" strokeWidth={0.8} />
 
           {areaD && (
             <motion.path d={areaD} fill={`url(#${gradientId})`}
@@ -125,7 +125,7 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
               transition={{ ...SPRING_SOFT, delay: 0.16 }} />
           )}
 
-          <motion.path d={pathD} fill="none" stroke="#2563EB" strokeWidth={2}
+          <motion.path d={pathD} fill="none" stroke="var(--color-accent)" strokeWidth={2}
             strokeLinecap="round" strokeLinejoin="round"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
             transition={SPRING_SOFT} />
@@ -133,7 +133,7 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
           {points.map((p, i) => (
             <g key={`${p.label}-${i}`}>
               <circle cx={p.x} cy={p.y} r={i === points.length - 1 ? 3.5 : 2}
-                fill="white" stroke="#2563EB" strokeWidth={1.5} />
+                fill="white" stroke="var(--color-accent)" strokeWidth={1.5} />
               {labelIndices.has(i) && (
                 <text x={p.x} y={height - 5} textAnchor="middle"
                   className="fill-muted text-[9px]" fontFamily="var(--font-mono)">
@@ -175,7 +175,7 @@ function BarChart({
       {data.map((d, i) => {
         const barColor = d.category
           ? (categoryColors.get(d.category) ?? BLOCK_COLORS[i % BLOCK_COLORS.length])
-          : (d.value >= 0 ? '#2563EB' : '#DC2626')
+          : (d.value >= 0 ? 'var(--color-accent)' : 'var(--color-danger)')
         const isHovered = hoveredIndex === i
         const isDimmed = hoveredIndex !== null && !isHovered
 
