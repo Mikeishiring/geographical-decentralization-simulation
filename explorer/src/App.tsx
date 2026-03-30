@@ -3,12 +3,11 @@ import { Header } from './components/layout/Header'
 import { TabNav, type TabId } from './components/layout/TabNav'
 import { Footer } from './components/layout/Footer'
 import { FindingsPage } from './pages/FindingsPage'
-import { ExploreHistoryPage } from './pages/ExploreHistoryPage'
 import { PaperReaderPage } from './pages/PaperReaderPage'
 import { SimulationLabPage } from './pages/SimulationLabPage'
 import { cn } from './lib/cn'
 
-const VALID_TABS: readonly TabId[] = ['explore', 'history', 'paper', 'results']
+const VALID_TABS: readonly TabId[] = ['explore', 'paper', 'results']
 
 interface ExplorerRouteState {
   readonly tab: TabId
@@ -19,15 +18,15 @@ interface ExplorerRouteState {
 function getInitialTab(): TabId {
   const params = new URLSearchParams(window.location.search)
   const raw = params.get('tab')
-  const migrated = raw === 'findings' ? 'explore'
+  // Support legacy tab IDs from old URLs
+  const migrated = raw === 'findings' || raw === 'history' ? 'explore'
     : raw === 'deep-dive' ? 'paper'
     : raw === 'simulation' ? 'results'
     : raw
   const tab = migrated as TabId | null
   if (tab && VALID_TABS.includes(tab)) return tab
-  if (params.get('eid')) return 'history'
-  if (params.get('q')) return 'explore'
-  return 'explore'
+  if (params.get('q') || params.get('eid')) return 'explore'
+  return 'paper'
 }
 
 function getInitialQuery(): string | null {
@@ -49,7 +48,7 @@ function readRouteState(): ExplorerRouteState {
 function writeRouteState(next: ExplorerRouteState, replace = false) {
   const url = new URL(window.location.href)
 
-  if (next.tab === 'explore') {
+  if (next.tab === 'paper') {
     url.searchParams.delete('tab')
   } else {
     url.searchParams.set('tab', next.tab)
@@ -104,11 +103,7 @@ function App() {
   }, [syncFromLocation])
 
   const handleTabChange = useCallback((tab: TabId) => {
-    applyRouteState({
-      tab,
-      query: tab === 'explore' ? sharedQuery : null,
-      explorationId: null,
-    }, false)
+    applyRouteState({ tab, query: sharedQuery, explorationId: null }, false)
   }, [applyRouteState, sharedQuery])
 
   const handleFindingsQueryChange = useCallback((query: string | null) => {
@@ -117,10 +112,6 @@ function App() {
 
   const handleExplorationIdChange = useCallback((explorationId: string | null) => {
     applyRouteState({ tab: 'explore', query: null, explorationId }, false)
-  }, [applyRouteState])
-
-  const handleOpenCommunityExploration = useCallback((explorationId: string) => {
-    applyRouteState({ tab: 'history', query: null, explorationId }, false)
   }, [applyRouteState])
 
   return (
@@ -145,16 +136,6 @@ function App() {
             isActive={activeTab === 'explore'}
             onQueryChange={handleFindingsQueryChange}
             onExplorationIdChange={handleExplorationIdChange}
-            onOpenCommunityExploration={handleOpenCommunityExploration}
-            onTabChange={handleTabChange}
-          />
-        </div>
-
-        <div hidden={activeTab !== 'history'} aria-hidden={activeTab !== 'history'}>
-          <ExploreHistoryPage
-            initialExplorationId={sharedExplorationId}
-            onGoToFindings={() => handleTabChange('explore')}
-            onOpenQuery={query => applyRouteState({ tab: 'explore', query, explorationId: null }, false)}
             onTabChange={handleTabChange}
           />
         </div>
@@ -164,10 +145,7 @@ function App() {
         </div>
 
         <div hidden={activeTab !== 'results'} aria-hidden={activeTab !== 'results'}>
-          <SimulationLabPage
-            onOpenCommunityExploration={handleOpenCommunityExploration}
-            onTabChange={handleTabChange}
-          />
+          <SimulationLabPage onTabChange={handleTabChange} />
         </div>
       </main>
 
