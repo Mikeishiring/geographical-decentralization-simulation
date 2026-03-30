@@ -115,13 +115,15 @@ class SourceAgent(Agent):
         return self.current_mev_offer
 
 
-    def get_mev_offer_at_time(self, time_ms):
+    def get_mev_offer_at_time(self, time_ms, users=1):
         """
         Returns the MEV offer at a specific time in milliseconds.
         This is useful for Proposers to query the Signal for MEV offers.
         """
+        users = max(users, 1)  # Ensure at least one user to avoid division by zero
         time_in_seconds = time_ms / 1000
-        return self.utility_function(time_in_seconds)
+        base = self.utility_function(time_in_seconds)
+        return base / users
 
 
     def step(self):

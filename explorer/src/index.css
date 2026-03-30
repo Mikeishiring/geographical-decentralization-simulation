@@ -208,7 +208,6 @@ body {
   background: linear-gradient(90deg, rgba(37,99,235,0.34), rgba(194,85,58,0.26), rgba(22,163,74,0.18));
   pointer-events: none;
 }
-
 .lab-input-shell {
   position: relative;
   border: 1px solid rgba(229, 227, 223, 0.9);
@@ -405,6 +404,17 @@ body {
   border-radius: 2px 2px 0 0;
 }
 
+/* ── Reduced motion — respect OS preference ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .dot-pulse { animation: none; }
+}
+
 /* Light scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -422,20 +432,49 @@ body {
   border-radius: 4px;
 }
 
+/* Focus ring on dark backgrounds (map, chart canvases) */
+[class*="bg-[#0"] :focus-visible,
+[class*="bg-[#1"] :focus-visible {
+  outline-color: rgba(255, 255, 255, 0.6);
+}
+
 /* ── Subtle warm card hover glow ── */
 .card-hover {
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 .card-hover:hover {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   border-color: var(--color-border-hover);
 }
 
-/* ── Smooth all interactive elements ── */
+/* ── Smooth all interactive elements — unified 120ms timing ── */
 button, a, [role="tab"], [role="button"] {
   transition-property: color, background-color, border-color, opacity, box-shadow;
-  transition-duration: 150ms;
-  transition-timing-function: ease;
+  transition-duration: 120ms;
+  transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ── Shimmer — directional sweep for skeleton placeholders ── */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 62%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.8s ease-in-out infinite;
+}
+@keyframes shimmer-sweep {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
 /* ── Skip-to-content link ── */

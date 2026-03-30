@@ -13,7 +13,7 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
 
   if (block.left.items.length === 0 && block.right.items.length === 0) {
     return (
-      <div className="bg-white border border-border-subtle rounded-lg p-5">
+      <div className="bg-white border border-border-subtle rounded-xl p-5">
         <h3 className="text-base font-semibold text-text-primary mb-4 font-serif">{block.title}</h3>
         <div className="text-center text-xs text-muted py-4">No comparison data available</div>
       </div>
@@ -23,7 +23,7 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
   return (
     <motion.div
       {...HOVER_LIFT}
-      className="bg-white border border-border-subtle rounded-lg p-5 topo-bg"
+      className="bg-white border border-border-subtle rounded-xl p-5 topo-bg"
     >
       <h3 className="text-base font-semibold text-text-primary mb-4 font-serif">
         {block.title}
@@ -35,14 +35,14 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
           onMouseEnter={() => setHoveredSide('left')}
           onMouseLeave={() => setHoveredSide(null)}
           className={cn(
-            'pb-4 sm:pb-0 sm:pr-5 border-b sm:border-b-0 border-border-subtle rounded-md transition-colors duration-150',
+            'pb-4 sm:pb-0 sm:pr-5 border-b sm:border-b-0 border-border-subtle rounded-md transition-colors',
             hoveredSide === 'left' && 'bg-accent/[0.03]',
             hoveredSide === 'right' && 'opacity-60',
           )}
         >
           <div className="flex items-center gap-2 text-sm font-medium text-text-primary mb-3">
             <span className={cn(
-              'w-2.5 h-2.5 rounded-full bg-accent transition-shadow duration-150',
+              'w-2.5 h-2.5 rounded-full bg-accent transition-shadow',
               hoveredSide === 'left' && 'shadow-[0_0_6px_rgba(37,99,235,0.3)]',
             )} />
             {block.left.label}
@@ -62,14 +62,14 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
           onMouseEnter={() => setHoveredSide('right')}
           onMouseLeave={() => setHoveredSide(null)}
           className={cn(
-            'pt-4 sm:pt-0 sm:pl-5 rounded-md transition-colors duration-150',
+            'pt-4 sm:pt-0 sm:pl-5 rounded-md transition-colors',
             hoveredSide === 'right' && 'bg-accent-warm/[0.03]',
             hoveredSide === 'left' && 'opacity-60',
           )}
         >
           <div className="flex items-center gap-2 text-sm font-medium text-text-primary mb-3">
             <span className={cn(
-              'w-2.5 h-2.5 rounded-full bg-accent-warm transition-shadow duration-150',
+              'w-2.5 h-2.5 rounded-full bg-accent-warm transition-shadow',
               hoveredSide === 'right' && 'shadow-[0_0_6px_rgba(194,85,58,0.3)]',
             )} />
             {block.right.label}

@@ -5,12 +5,14 @@ import { Footer } from './components/layout/Footer'
 import { FindingsPage } from './pages/FindingsPage'
 import { cn } from './lib/cn'
 
-const VALID_TABS: readonly TabId[] = ['explore', 'paper', 'results']
+const VALID_TABS: readonly TabId[] = ['explore', 'paper', 'results', 'community']
 const PAPER_TAB: TabId = 'paper'
 const RESULTS_TAB: TabId = 'results'
+const COMMUNITY_TAB: TabId = 'community'
 
 const loadPaperReaderPageModule = () => import('./pages/PaperReaderPage')
 const loadSimulationLabPageModule = () => import('./pages/SimulationLabPage')
+const loadExploreHistoryPageModule = () => import('./pages/ExploreHistoryPage')
 
 const PaperReaderPage = lazy(async () => {
   const module = await loadPaperReaderPageModule()
@@ -20,6 +22,11 @@ const PaperReaderPage = lazy(async () => {
 const SimulationLabPage = lazy(async () => {
   const module = await loadSimulationLabPageModule()
   return { default: module.SimulationLabPage }
+})
+
+const ExploreHistoryPage = lazy(async () => {
+  const module = await loadExploreHistoryPageModule()
+  return { default: module.ExploreHistoryPage }
 })
 
 interface ExplorerRouteState {
@@ -32,9 +39,10 @@ function getInitialTab(): TabId {
   const params = new URLSearchParams(window.location.search)
   const raw = params.get('tab')
   // Support legacy tab IDs from old URLs
-  const migrated = raw === 'findings' || raw === 'history' ? 'explore'
+  const migrated = raw === 'findings' ? 'explore'
     : raw === 'deep-dive' ? 'paper'
     : raw === 'simulation' ? 'results'
+    : raw === 'history' ? 'community'
     : raw
   const tab = migrated as TabId | null
   if (tab && VALID_TABS.includes(tab)) return tab
@@ -93,6 +101,10 @@ function preloadTab(tab: TabId) {
   }
   if (tab === RESULTS_TAB) {
     void loadSimulationLabPageModule()
+    return
+  }
+  if (tab === COMMUNITY_TAB) {
+    void loadExploreHistoryPageModule()
   }
 }
 
@@ -119,6 +131,7 @@ function App() {
     explore: initialRoute.tab === 'explore',
     paper: initialRoute.tab === PAPER_TAB,
     results: initialRoute.tab === RESULTS_TAB,
+    community: initialRoute.tab === COMMUNITY_TAB,
   })
 
   const applyRouteState = useCallback((next: ExplorerRouteState, replace = false) => {
@@ -154,7 +167,7 @@ function App() {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      ;([PAPER_TAB, RESULTS_TAB] as const)
+      ;([PAPER_TAB, RESULTS_TAB, COMMUNITY_TAB] as const)
         .filter(tab => tab !== activeTab)
         .forEach(preloadTab)
     }, 1200)
