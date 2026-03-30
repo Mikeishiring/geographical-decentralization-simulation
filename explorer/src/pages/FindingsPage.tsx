@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, ArrowLeft, ArrowUpRight, Link2, FileText } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Link2, FileText } from 'lucide-react'
 import { cn } from '../lib/cn'
 import { DEFAULT_BLOCKS, OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../data/default-blocks'
 import { ContributionComposer } from '../components/community/ContributionComposer'
