@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ArrowUpDown, ThumbsUp, ThumbsDown, Tag, ChevronDown, ChevronUp, BookOpen, Users, Sparkles, Link2 } from 'lucide-react'
+import { Search, ArrowUpDown, ThumbsUp, ThumbsDown, Tag, ChevronDown, ChevronUp, Users, Sparkles, Link2 } from 'lucide-react'
 import { getExploration, listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { ModeBanner } from '../components/layout/ModeBanner'
@@ -58,8 +58,13 @@ export function ExploreHistoryPage({
   const queryClient = useQueryClient()
 
   const { data: explorations = [], isLoading } = useQuery({
-    queryKey: ['explorations', sort, search],
-    queryFn: () => listExplorations({ sort, search: search || undefined, limit: 120 }),
+    queryKey: ['explorations', sort, search, 'published'],
+    queryFn: () => listExplorations({
+      sort,
+      search: search || undefined,
+      limit: 120,
+      publishedOnly: true,
+    }),
   })
 
   const deepLinkedExplorationQuery = useQuery({
@@ -77,7 +82,7 @@ export function ExploreHistoryPage({
       const previous = queryClient.getQueryData<Exploration[]>(['explorations', sort, search, 'published'])
 
       queryClient.setQueryData<Exploration[]>(
-        ['explorations', sort, search],
+        ['explorations', sort, search, 'published'],
         old => old?.map(entry => (entry.id === id ? { ...entry, votes: entry.votes + delta } : entry)) ?? [],
       )
 
@@ -95,12 +100,19 @@ export function ExploreHistoryPage({
 
   const toggleSort = () => setSort(previous => (previous === 'recent' ? 'top' : 'recent'))
   const toggleExpand = (id: string) => setExpandedId(previous => (previous === id ? null : id))
+  const deepLinkedExploration = deepLinkedExplorationQuery.data ?? null
+  const deepLinkedPublishedExploration = deepLinkedExploration?.publication.published
+    ? deepLinkedExploration
+    : null
+  const hiddenDraftExploration = deepLinkedExploration && !deepLinkedExploration.publication.published
+    ? deepLinkedExploration
+    : null
   const displayedExplorations = useMemo(() => (
-    deepLinkedExplorationQuery.data
-      && !explorations.some(exploration => exploration.id === deepLinkedExplorationQuery.data!.id)
-      ? [deepLinkedExplorationQuery.data, ...explorations]
+    deepLinkedPublishedExploration
+      && !explorations.some(exploration => exploration.id === deepLinkedPublishedExploration.id)
+      ? [deepLinkedPublishedExploration, ...explorations]
       : explorations
-  ), [deepLinkedExplorationQuery.data, explorations])
+  ), [deepLinkedPublishedExploration, explorations])
 
   useEffect(() => {
     if (!initialExplorationId || !displayedExplorations.some(exploration => exploration.id === initialExplorationId)) {
@@ -137,13 +149,14 @@ export function ExploreHistoryPage({
   const communityContributions = displayedExplorations.filter(exploration =>
     exploration.publication.published && !featuredIds.has(exploration.id),
   )
-  const readingArchive = displayedExplorations.filter(exploration => !exploration.publication.published)
+  const publishedReadingNotes = displayedExplorations.filter(exploration => exploration.surface === 'reading')
+  const publishedSimulationNotes = displayedExplorations.filter(exploration => exploration.surface === 'simulation')
 
   if ((isLoading || deepLinkedExplorationQuery.isLoading) && displayedExplorations.length === 0) {
     return <LoadingSkeleton />
   }
 
-  if (displayedExplorations.length === 0 && !search && !deepLinkedExplorationQuery.isLoading) {
+  if (displayedExplorations.length === 0 && !search && !deepLinkedExplorationQuery.isLoading && !hiddenDraftExploration) {
     return <EmptyState onGoToFindings={onGoToFindings} onTabChange={onTabChange} />
   }
 
@@ -151,30 +164,47 @@ export function ExploreHistoryPage({
     <div className="space-y-6">
       <ModeBanner
         eyebrow="Mode"
-        title="Community contributions plus the reading archive"
-        detail="Fresh readings and exact-run notes are saved privately first. Only notes with an intentional title and takeaway become community contributions, so the public surface reflects human framing rather than raw model exhaust."
+        title="Community contributions"
+        detail="Only intentionally published notes appear here. Findings and Simulation can save secondary context, but the public surface is reserved for human-authored titles and takeaways layered over paper-backed readings or exact-run artifacts."
         tone="editorial"
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <SummaryCard
           icon={<Users className="h-4 w-4 text-accent" />}
-          label="Published contributions"
-          value={communityContributions.length + featuredContributions.length}
-          detail="Intentional notes with human-authored framing."
+          label="Published reading notes"
+          value={publishedReadingNotes.length}
+          detail="Human-framed notes that started from Findings or a saved reading."
         />
         <SummaryCard
           icon={<Sparkles className="h-4 w-4 text-warning" />}
+          label="Published exact-run notes"
+          value={publishedSimulationNotes.length}
+          detail="Community framing layered on top of simulation manifests and artifacts."
+        />
+        <SummaryCard
+          icon={<Sparkles className="h-4 w-4 text-accent-warm" />}
           label="Featured or verified"
           value={featuredContributions.length}
           detail="Researcher-verified or editorially surfaced notes."
         />
-        <SummaryCard
-          icon={<BookOpen className="h-4 w-4 text-success" />}
-          label="Reading archive"
-          value={readingArchive.length}
-          detail="Saved readings and exact-run notes that are not public."
-        />
+      </div>
+
+      <div className="rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,246,242,0.96))] px-4 py-4">
+        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Publishing standard</div>
+        <div className="mt-2 grid gap-3 md:grid-cols-3">
+          {[
+            {
+              title: 'Lead with observation',
+              detail: 'Start from what the paper, chart, or exact run actually shows before adding your interpretation.',
+            },
+            {
+              title: 'Label the inference',
+              detail: 'Treat design advice and intuition as your reading of the evidence, not as new facts emitted by the system.',
+            },
+            {
+              title: 'Publish intentionally',
+              detail: 'The public surface should contain notes with a real title and takeaway, not raw system output.',
             },
           ].map(item => (
             <div key={item.title} className="rounded-lg border border-border-subtle bg-white px-3 py-3">
@@ -192,6 +222,37 @@ export function ExploreHistoryPage({
         onToggleSort={toggleSort}
       />
 
+      {hiddenDraftExploration && (
+        <div className="rounded-xl border border-warning/30 bg-warning/6 px-4 py-4">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Not on the public surface</div>
+          <div className="mt-1 text-sm font-medium text-text-primary">
+            This link points to saved context, not a published community note.
+          </div>
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-muted">
+            Unpublished readings stay off the Community page until someone adds a human-authored title and takeaway.
+            Reopen it in its original surface if you want to review or publish it intentionally.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {hiddenDraftExploration.surface === 'reading' && onOpenQuery && (
+              <button
+                onClick={() => onOpenQuery(hiddenDraftExploration.query)}
+                className="rounded-md border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+              >
+                Open in Findings
+              </button>
+            )}
+            {hiddenDraftExploration.surface === 'simulation' && onTabChange && (
+              <button
+                onClick={() => onTabChange('results')}
+                className="rounded-md border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+              >
+                Open Simulation
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {displayedExplorations.length === 0 && search ? (
         <NoResults search={search} />
       ) : (
@@ -205,7 +266,7 @@ export function ExploreHistoryPage({
             onToggleExpand={toggleExpand}
             onVote={delta => voteMutation.mutate(delta)}
             onOpenQuery={onOpenQuery}
-            onOpenSimulation={onTabChange ? () => onTabChange('simulation') : undefined}
+            onOpenSimulation={onTabChange ? () => onTabChange('results') : undefined}
             onShare={handleShare}
             sharedId={sharedId}
             deepLinkedExplorationId={initialExplorationId}
@@ -221,28 +282,19 @@ export function ExploreHistoryPage({
             onToggleExpand={toggleExpand}
             onVote={delta => voteMutation.mutate(delta)}
             onOpenQuery={onOpenQuery}
-            onOpenSimulation={onTabChange ? () => onTabChange('simulation') : undefined}
+            onOpenSimulation={onTabChange ? () => onTabChange('results') : undefined}
             onShare={handleShare}
             sharedId={sharedId}
             deepLinkedExplorationId={initialExplorationId}
             emptyMessage="No published contributions match the current filters yet."
           />
+        </div>
+      )}
 
-          <ContributionSection
-            eyebrow="Archive"
-            title="Reading archive"
-            detail="Saved readings and exact-run notes that remain secondary context until someone intentionally publishes them."
-            explorations={readingArchive}
-            expandedId={expandedId}
-            onToggleExpand={toggleExpand}
-            onVote={undefined}
-            onOpenQuery={onOpenQuery}
-            onOpenSimulation={onTabChange ? () => onTabChange('simulation') : undefined}
-            onShare={undefined}
-            sharedId={sharedId}
-            deepLinkedExplorationId={initialExplorationId}
-            emptyMessage="No saved readings match the current filters."
-          />
+      {onTabChange && (
+        <Wayfinder links={[
+          { label: 'Ask the paper', hint: 'Curated lenses, implications, and guided readings', onClick: () => onTabChange('explore') },
+          { label: 'Run exact experiments', hint: 'Use the simulation lab, then publish a note intentionally', onClick: () => onTabChange('results') },
           { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
         ]} />
       )}
@@ -355,19 +407,24 @@ function HistoryHeader({
   readonly onToggleSort: () => void
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row">
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-        <input
-          type="text"
-          value={search}
-          onChange={event => onSearchChange(event.target.value)}
-          placeholder="Search community notes and saved readings..."
-          className={cn(
-            'w-full rounded-lg border border-border-subtle bg-white py-2.5 pl-10 pr-4 text-sm',
-            'text-text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent',
-          )}
-        />
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+      <div className="flex-1">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            type="text"
+            value={search}
+            onChange={event => onSearchChange(event.target.value)}
+            placeholder="Search titles, takeaways, authors, paradigms, scenarios, or metrics..."
+            className={cn(
+              'w-full rounded-lg border border-border-subtle bg-white py-2.5 pl-10 pr-4 text-sm',
+              'text-text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent',
+            )}
+          />
+        </div>
+        <p className="mt-2 text-xs text-muted">
+          Search checks published note titles, human takeaways, authors, paradigm tags, scenario tags, and note text.
+        </p>
       </div>
 
       <button
@@ -534,6 +591,18 @@ function ExplorationCard({
                 </div>
               )}
 
+              <div className="mb-4 rounded-lg border border-border-subtle bg-white px-3 py-3">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Source surface</div>
+                <div className="mt-1 text-sm font-medium text-text-primary">
+                  {exploration.surface === 'simulation' ? 'Exact run with manifest and artifacts' : 'Guided reading anchored to the paper'}
+                </div>
+                <div className="mt-1 text-xs leading-5 text-muted">
+                  {exploration.surface === 'simulation'
+                    ? 'Reopen the Simulation surface when you need the exact run context behind this note: manifest fields, overview bundles, export archive, and raw artifacts.'
+                    : 'Reopen Findings when you want to keep questioning the paper-backed reading that led to this note and branch into follow-up prompts.'}
+                </div>
+              </div>
+
               <BlockCanvas blocks={exploration.blocks} />
 
               <div className="mt-4 flex flex-wrap gap-2">
@@ -542,7 +611,7 @@ function ExplorationCard({
                     onClick={() => onOpenQuery(exploration.query)}
                     className="rounded-md border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
                   >
-                    Reopen in Findings
+                    Continue in Findings
                   </button>
                 )}
 
@@ -551,7 +620,7 @@ function ExplorationCard({
                     onClick={onOpenSimulation}
                     className="rounded-md border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
                   >
-                    Open Simulation
+                    Inspect in Simulation
                   </button>
                 )}
 
@@ -561,7 +630,7 @@ function ExplorationCard({
                     className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
                   >
                     <Link2 className="h-3.5 w-3.5" />
-                    {shareCopied ? 'Link copied' : 'Copy note link'}
+                    {shareCopied ? 'Link copied' : 'Copy community link'}
                   </button>
                 )}
               </div>
@@ -659,8 +728,8 @@ function EmptyState({
     <div className="space-y-6">
       <ModeBanner
         eyebrow="Mode"
-        title="Community contributions plus the reading archive"
-        detail="This page becomes useful after people publish intentional notes from Findings or the Simulation Lab. Saved readings remain secondary until someone adds a human-authored title and takeaway."
+        title="Community contributions"
+        detail="This page becomes useful after people publish intentional notes from Findings or the Simulation Lab. The public feed is for human-framed notes, not saved drafts."
         tone="editorial"
       />
 
@@ -683,12 +752,12 @@ function EmptyState({
             <>
               <button
                 onClick={() => onTabChange('paper')}
-                className="rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                className="rounded-md border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
                 Read the paper
               </button>
               <button
-                onClick={() => onTabChange('simulation')}
+                onClick={() => onTabChange('results')}
                 className="rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
                 Open Simulation
@@ -719,7 +788,7 @@ function NoResults({ search }: { readonly search: string }) {
     <div className="rounded-xl border border-border-subtle bg-white px-4 py-8 text-center">
       <div className="text-sm font-medium text-text-primary">No matches for “{search}”</div>
       <p className="mt-2 text-sm text-muted">
-        Try a paradigm, scenario family, metric, or contributor name instead.
+        Try a paradigm, scenario family, metric, paper term, or contributor name instead.
       </p>
     </div>
   )

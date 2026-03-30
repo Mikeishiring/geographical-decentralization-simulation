@@ -67,10 +67,10 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
     text: 'Higher γ (attestation threshold) → SSP centralizes **MORE** but MSP centralizes **LESS**. In SSP, tighter timing amplifies latency sensitivity — reducing proposer-relay latency yields larger marginal MEV. In MSP, a higher threshold forces proposers to balance attester proximity (quorum) vs signal proximity (value), and these point in **different geographic directions**, dispersing rather than concentrating validators. This is the only protocol parameter with opposite effects across paradigms.',
   },
 
-  // Row 5: Real Ethereum validator distribution across GCP regions
+  // Row 5: Validator distribution across the 40 GCP regions used in the paper
   {
     type: 'map',
-    title: 'Ethereum Validator Distribution — Real Node Counts',
+    title: 'Validator Estimates by GCP Region (Paper Simulation Grid)',
     regions: GCP_REGIONS.map(r => ({
       name: r.id,
       lat: r.lat,
@@ -78,7 +78,13 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
       value: VALIDATOR_COUNTS[r.id] ?? 0,
       label: r.city.split(',')[0],
     })),
-    unit: 'validators',
+    unit: 'validators (est.)',
+  },
+
+  // Row 5b: Map data caveat
+  {
+    type: 'caveat',
+    text: 'These are estimated validator counts mapped to the 40 GCP regions used in the paper\'s simulation grid, not exact node locations. Real validators run on diverse infrastructure; GCP regions serve as a geographic proxy for the latency measurements the model uses.',
   },
 
   // Row 6a: Caveat

@@ -44,8 +44,37 @@ export function TimeSeriesBlock({ block }: TimeSeriesBlockProps) {
     const latest = series.data[series.data.length - 1]
     return latest ? [{ label: series.label, value: latest.y }] : []
   })
+  const seriesSnapshots = block.series.flatMap((series, index) => {
+    const first = series.data[0]
+    const latest = series.data[series.data.length - 1]
+    if (!first || !latest) return []
+    return [{
+      label: series.label,
+      color: series.color ?? BLOCK_COLORS[index % BLOCK_COLORS.length],
+      first: first.y,
+      latest: latest.y,
+      peak: Math.max(...series.data.map(point => point.y)),
+      delta: latest.y - first.y,
+    }]
+  })
   const highestValue = Math.max(...allPoints.map(point => point.y))
   const pointStep = Math.max(1, Math.floor(Math.max(...block.series.map(series => series.data.length)) / 18))
+  const hoverReadout = hover
+    ? block.series.flatMap((series, index) => {
+        const nearest = series.data.reduce((best, point) => {
+          if (best === null) return point
+          return Math.abs(point.x - hover.x) < Math.abs(best.x - hover.x) ? point : best
+        }, null as TimeSeriesBlockType['series'][number]['data'][number] | null)
+        if (!nearest) return []
+        return [{
+          label: series.label,
+          value: nearest.y,
+          x: nearest.x,
+          color: series.color ?? BLOCK_COLORS[index % BLOCK_COLORS.length],
+        }]
+      })
+    : []
+  const hoverSlot = hoverReadout[0]?.x ?? null
 
   function toSvg(x: number, y: number) {
     return {
@@ -116,6 +145,65 @@ export function TimeSeriesBlock({ block }: TimeSeriesBlockProps) {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {seriesSnapshots.map(snapshot => (
+            <div
+              key={`snapshot-${snapshot.label}`}
+              className="rounded-2xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,242,238,0.88))] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]"
+            >
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: snapshot.color }} />
+                <div className="text-xs font-medium text-text-primary">{snapshot.label}</div>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+                <div>
+                  <div className="uppercase tracking-[0.12em] text-text-faint">Start</div>
+                  <div className="mt-1 font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.first)}</div>
+                </div>
+                <div>
+                  <div className="uppercase tracking-[0.12em] text-text-faint">Peak</div>
+                  <div className="mt-1 font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.peak)}</div>
+                </div>
+                <div>
+                  <div className="uppercase tracking-[0.12em] text-text-faint">Delta</div>
+                  <div className="mt-1 font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.delta)}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,245,241,0.9))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Integrity</div>
+            <div className="mt-1 text-sm font-medium text-text-primary">
+              Raw slot series, full ordering, no smoothing.
+            </div>
+            <div className="mt-1 text-xs text-muted">
+              Hover the chart to inspect exact values at the nearest emitted slot.
+            </div>
+          </div>
+          {hoverSlot != null && (
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {hoverReadout.map(point => (
+                <div
+                  key={`${point.label}-${point.x}`}
+                  className="rounded-xl border border-border-subtle bg-white/92 px-3 py-2 shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: point.color }} />
+                    <span className="text-[10px] uppercase tracking-[0.14em] text-text-faint">Slot {point.x}</span>
+                  </div>
+                  <div className="mt-1 text-xs font-medium text-text-primary">{point.label}</div>
+                  <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
+                    {formatSeriesNumber(point.value)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-border-subtle bg-[radial-gradient(circle_at_15%_0%,rgba(59,130,246,0.1),transparent_28%),radial-gradient(circle_at_85%_0%,rgba(194,85,58,0.08),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,242,238,0.84))] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.84)]">
@@ -221,6 +309,18 @@ export function TimeSeriesBlock({ block }: TimeSeriesBlockProps) {
               </text>
             )}
 
+            {hover && (
+              <line
+                x1={hover.svgX}
+                y1={padding.top}
+                x2={hover.svgX}
+                y2={padding.top + chartH}
+                stroke="rgba(37,99,235,0.28)"
+                strokeDasharray="4 4"
+                strokeWidth={1}
+              />
+            )}
+
             {block.series.map((series, index) => {
               const color = series.color ?? BLOCK_COLORS[index % BLOCK_COLORS.length]
               const coordinates = series.data.map(point => toSvg(point.x, point.y))
@@ -232,6 +332,13 @@ export function TimeSeriesBlock({ block }: TimeSeriesBlockProps) {
                 ? `${pathD} L ${coordinates[coordinates.length - 1].sx} ${baselineY} L ${coordinates[0].sx} ${baselineY} Z`
                 : ''
               const latest = coordinates[coordinates.length - 1]
+              const hoveredPoint = hover
+                ? series.data.reduce((best, point) => {
+                    if (best === null) return point
+                    return Math.abs(point.x - hover.x) < Math.abs(best.x - hover.x) ? point : best
+                  }, null as TimeSeriesBlockType['series'][number]['data'][number] | null)
+                : null
+              const hoveredCoordinate = hoveredPoint ? toSvg(hoveredPoint.x, hoveredPoint.y) : null
 
               return (
                 <g key={series.label}>
@@ -269,6 +376,16 @@ export function TimeSeriesBlock({ block }: TimeSeriesBlockProps) {
                   ))}
                   {latest && (
                     <circle cx={latest.sx} cy={latest.sy} r={4} fill="white" stroke={color} strokeWidth={1.5} />
+                  )}
+                  {hoveredCoordinate && (
+                    <circle
+                      cx={hoveredCoordinate.sx}
+                      cy={hoveredCoordinate.sy}
+                      r={5.5}
+                      fill="white"
+                      stroke={color}
+                      strokeWidth={2}
+                    />
                   )}
                 </g>
               )
