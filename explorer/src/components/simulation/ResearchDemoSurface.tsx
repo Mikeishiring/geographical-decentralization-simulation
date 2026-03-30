@@ -895,6 +895,14 @@ export function ResearchDemoSurface({
     }),
   })
   const currentSlotNotes = currentSlotNotesQuery.data ?? []
+  const primarySlotNotes = useMemo(
+    () => currentSlotNotes.filter(note => note.anchorKind !== 'comparison'),
+    [currentSlotNotes],
+  )
+  const comparisonSlotNotes = useMemo(
+    () => currentSlotNotes.filter(note => note.anchorKind === 'comparison'),
+    [currentSlotNotes],
+  )
 
   const buildWorkspaceUrl = (overrides?: Partial<{
     selectedEvaluation: string
@@ -1786,7 +1794,8 @@ export function ResearchDemoSurface({
                         initialSettings={activeViewer.settings}
                         initialSlotIndex={initialWorkspaceState.focusSlot}
                         onStateChange={setViewerSnapshot}
-                        annotationNotes={currentSlotNotes}
+                        annotationNotes={primarySlotNotes}
+                        anchorScope="primary"
                       />
                     </div>
                   </div>
@@ -1815,7 +1824,8 @@ export function ResearchDemoSurface({
                     initialSettings={activeViewer.settings}
                     initialSlotIndex={initialWorkspaceState.compareFocusSlot}
                     onStateChange={setComparisonViewerSnapshot}
-                    annotationNotes={[]}
+                    annotationNotes={comparisonSlotNotes}
+                    anchorScope="comparison"
                   />
                     </div>
                   </div>
@@ -1837,7 +1847,8 @@ export function ResearchDemoSurface({
                     initialSettings={activeViewer.settings}
                     initialSlotIndex={initialWorkspaceState.focusSlot}
                     onStateChange={setViewerSnapshot}
-                    annotationNotes={currentSlotNotes}
+                    annotationNotes={primarySlotNotes}
+                    anchorScope="primary"
                   />
                 </div>
               )}
