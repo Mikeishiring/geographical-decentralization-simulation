@@ -13,6 +13,39 @@ import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, publishExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
 import { NodeConstellation } from '../components/decorative/NodeConstellation'
 import { ModeBanner } from '../components/layout/ModeBanner'
+import { Wayfinder } from '../components/layout/Wayfinder'
+import { SPRING } from '../lib/theme'
+import { blocksToMarkdown } from '../lib/export'
+import type { TabId } from '../components/layout/TabNav'
+
+function upsertHistory(previous: HistoryEntry[], next: HistoryEntry): HistoryEntry[] {
+  return [
+    next,
+    ...previous.filter(entry => entry.query !== next.query),
+  ].slice(0, 8)
+}
+
+const dotColor: Record<string, string> = {
+  curated: 'bg-success',
+  history: 'bg-warning',
+  generated: 'bg-accent',
+}
+
+function fallbackCuratedProvenance(label: string, detail: string): ExploreProvenance {
+  return {
+    source: 'curated',
+    label,
+    detail,
+    canonical: true,
+  }
+}
+
+export function FindingsPage({
+  initialQuery = null,
+  initialExplorationId = null,
+  isActive = true,
+  onQueryChange,
+  onExplorationIdChange,
   onTabChange,
 }: {
   initialQuery?: string | null
@@ -398,39 +431,6 @@ import { ModeBanner } from '../components/layout/ModeBanner'
         </div>
       </div>
 
-      {!showAi && !showTopic && onTabChange && (
-        <div className="mb-8 grid gap-3 lg:grid-cols-3">
-          <button
-            onClick={() => onTabChange('paper')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-          >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Read first</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Open the paper guide</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Start here if you want the cleanest paper-backed overview before asking a question.
-            </div>
-          </button>
-
-          <button
-            onClick={() => onTabChange('simulation')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-          >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Verify with data</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Open published results</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Use the frozen researcher datasets when you want the canonical scenarios rather than an interpretation.
-            </div>
-          </button>
-
-          <div className="rounded-xl border border-accent/20 bg-[linear-gradient(180deg,rgba(37,99,235,0.05),rgba(255,255,255,0.96))] px-4 py-4">
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Ask here</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Use Findings for bounded questions</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Great questions compare paradigms, isolate a mechanism, or ask where confidence should stop.
-            </div>
-          </div>
-        </div>
-      )}
 
       <QueryHistory
         entries={history}
@@ -515,25 +515,6 @@ import { ModeBanner } from '../components/layout/ModeBanner'
             )
           })}
         </div>
-
-        {policyCard && !showAi && !showTopic && (
-          <div className="mt-4 rounded-xl border border-warning/30 bg-warning/6 px-4 py-4">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Protocol and policy lens</div>
-            <div className="mt-1 text-sm font-medium text-text-primary">
-              Read the paper as a design-tradeoff argument, not only as a mechanism explainer.
-            </div>
-            <p className="mt-1 max-w-2xl text-xs text-muted">
-              Shorter slots, threshold tuning, and infrastructure geography all shift incentives differently. The paper is stronger on diagnosis than on a single validated fix.
-            </p>
-            <button
-              onClick={() => handleTopicClick(policyCard)}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent transition-colors hover:text-accent/80"
-            >
-              Open implications lens
-              <ArrowRight className="h-3 w-3" />
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="topo-divider mb-6" />
@@ -573,7 +554,7 @@ import { ModeBanner } from '../components/layout/ModeBanner'
               </a>
               {onTabChange && (
                 <button
-                  onClick={() => onTabChange('simulation')}
+                  onClick={() => onTabChange('results')}
                   className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
                 >
                   <span>Open published results</span>
@@ -583,34 +564,7 @@ import { ModeBanner } from '../components/layout/ModeBanner'
             </div>
           </div>
         </div>
-      )}
-
-      <QueryHistory
-        entries={history}
-        onSelect={handleHistorySelect}
-        activeQuery={activeQuery ?? undefined}
-      />
-
-      {/* Active lens / AI response area — only when exploring */}
-      {(showAi || showTopic) && (
-        <>
-          <div className="topo-divider mb-6" />
-
-          <div className="mb-5">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <h2 className="text-base font-semibold text-text-primary font-serif truncate">
-                {heading}
-              </h2>
-              <div className="flex items-center gap-1.5 text-xs text-muted shrink-0">
-                <span className={cn('w-1.5 h-1.5 rounded-full', dotColor[displayProvenance.source] ?? 'bg-accent')} />
-                {evidencePath}
-              </div>
-            </div>
-
-            <p className="text-xs text-muted">{interpretationBoundary}</p>
-          </div>
-        </>
-      )}
+      </div>
 
       <AnimatePresence mode="wait">
         {loading ? (
@@ -671,12 +625,12 @@ import { ModeBanner } from '../components/layout/ModeBanner'
                 defaultTakeaway={readingPublishTakeaway}
                 helperText={readingPublishHelper}
               publishLabel="Publish human-authored note"
-              successLabel="Published human-authored note"
-              viewPublishedLabel="Open Community"
+              successLabel="Note published"
+              viewPublishedLabel="View published"
               published={currentReadingPublished}
               isPublishing={publishMutation.isPending}
               error={(publishMutation.error as Error | null)?.message ?? null}
-              onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
+              onViewPublished={onTabChange ? () => onTabChange('explore') : undefined}
               onPublish={payload => publishMutation.mutate({
                 contextKey: readingPublishContextKey,
                 ...payload,
@@ -721,12 +675,12 @@ import { ModeBanner } from '../components/layout/ModeBanner'
                 defaultTakeaway={readingPublishTakeaway}
                 helperText={readingPublishHelper}
                 publishLabel="Publish human-authored note"
-                successLabel="Published human-authored note"
-                viewPublishedLabel="Open Community"
+                successLabel="Note published"
+                viewPublishedLabel="View published"
                 published={currentReadingPublished}
                 isPublishing={publishMutation.isPending}
                 error={(publishMutation.error as Error | null)?.message ?? null}
-                onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
+                onViewPublished={onTabChange ? () => onTabChange('explore') : undefined}
                 onPublish={payload => publishMutation.mutate({
                   contextKey: readingPublishContextKey,
                   ...payload,
@@ -788,9 +742,7 @@ import { ModeBanner } from '../components/layout/ModeBanner'
       {onTabChange && (
         <Wayfinder links={[
           { label: 'Read the full paper', hint: 'Editorial reading guide with annotations', onClick: () => onTabChange('paper') },
-          { label: 'See community notes', hint: 'Published contributions and the reading archive', onClick: () => onTabChange('history') },
-          { label: 'Drill into sections', hint: 'Accordion view of every argument & block', onClick: () => onTabChange('deep-dive') },
-          { label: 'Run a simulation', hint: 'Test parameters with the exact model', onClick: () => onTabChange('simulation') },
+          { label: 'Run a simulation', hint: 'Test parameters with the exact model', onClick: () => onTabChange('results') },
         ]} />
       )}
     </div>

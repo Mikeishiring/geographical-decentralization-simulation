@@ -20,7 +20,6 @@ import {
 import { createExploration, getApiHealth, publishExploration } from '../lib/api'
 import { downloadSimulationExportArchive } from '../lib/simulation-export'
 import { ModeBanner } from '../components/layout/ModeBanner'
-import { Wayfinder } from '../components/layout/Wayfinder'
 import type { TabId } from '../components/layout/TabNav'
 import { cn } from '../lib/cn'
 import {
@@ -811,8 +810,8 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
           eyebrow="Mode"
           title={surfaceMode === 'research' ? 'Published research results' : 'Experimental exact run'}
           detail={surfaceMode === 'research'
-            ? 'This side stays on the frozen researcher datasets and viewer contract. It is for reproducing the published scenarios, not inventing new ones.'
-            : 'This side runs fresh exact simulations with the same engine, but only some configurations map directly onto the published experiment catalog.'}
+            ? 'Browse the published simulation results exactly as they appear in the paper.'
+            : 'Run fresh simulations with the same engine. Some configurations match published scenarios for direct comparison.'}
           tone={surfaceMode === 'research' ? 'canonical' : 'experimental'}
         />
       </div>
@@ -825,15 +824,15 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
       ) : (
         <>
       <div className="lab-stage-hero p-6 mb-6">
-        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.9fr]">
+        <div className="flex flex-col gap-5">
           <div>
-            <div className="lab-section-title">Experimental Runner</div>
+            <div className="lab-section-title">Run your own simulation</div>
             <h2 className="mt-3 max-w-3xl text-2xl font-semibold tracking-tight text-text-primary sm:text-[2rem]">
-              Run fresh exact simulations inside our shell and let the explorer grow into the result surface.
+              Configure and run the same simulation engine used in the paper.
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-              The lab stays on the canonical engine, but the experience now behaves like a premium instrument panel:
-              configure the run, watch the queue and execution state, and inspect the manifest and artifacts without any hard context switch.
+              Choose a paradigm, set the network size and parameters, then launch a simulation.
+              Results appear here with the same charts and data as the published scenarios.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {paperScenarioLabels(config).map(label => (
@@ -845,37 +844,13 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="lab-option-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Default posture</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Fast iteration first</div>
-              <div className="mt-2 text-xs leading-5 text-muted">
-                Starts smaller than the paper catalog so the exact loop stays responsive while you tune the scenario.
-              </div>
-            </div>
-            <div className="lab-option-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Paper-scale ceiling</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">1,000 validators · 10,000 slots</div>
-              <div className="mt-2 text-xs leading-5 text-muted">
-                Matches the upper scale of the published frozen runs when you want closer comparability.
-              </div>
-            </div>
-            <div className="lab-option-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Current config</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">
-                {config.paradigm} · {config.validators.toLocaleString()} validators
-              </div>
-              <div className="mt-2 text-xs leading-5 text-muted">
-                {config.slots.toLocaleString()} slots, {formatEthValue(config.migrationCost)} migration cost, {config.slotTime}s slot time.
-              </div>
-            </div>
-            <div className="lab-option-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Comparability</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">{paperComparability.title}</div>
-              <div className="mt-2 text-xs leading-5 text-muted">
-                {paperComparability.detail}
-              </div>
-            </div>
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              {config.paradigm} · {config.validators.toLocaleString()} validators · {config.slots.toLocaleString()} slots
+            </span>
+            <span className="text-border-subtle">|</span>
+            <span>{paperComparability.title}</span>
           </div>
         </div>
       </div>
@@ -984,17 +959,17 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
           {simulationPublishContextKey && (
             <ContributionComposer
               key={simulationPublishContextKey}
-              sourceLabel="Publish this exact run as a community note"
+              sourceLabel="Share your findings from this run"
               defaultTitle={simulationPublishTitle}
               defaultTakeaway={simulationPublishTakeaway}
-              helperText="Only intentionally published exact-run notes appear on the community surface. Add your own title and takeaway so the public note reflects what you saw in the artifacts, not just raw assistant phrasing."
-              publishLabel="Publish human-authored note"
-              successLabel="Published human-authored note"
-              viewPublishedLabel="Open Community"
+              helperText="Add a title and your interpretation of the results. Published notes appear on the Explore tab for others to reference."
+              publishLabel="Publish note"
+              successLabel="Note published"
+              viewPublishedLabel="View published"
               published={publishedSimulationKey === simulationPublishContextKey}
               isPublishing={publishMutation.isPending}
               error={(publishMutation.error as Error | null)?.message ?? null}
-              onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
+              onViewPublished={onTabChange ? () => onTabChange('explore') : undefined}
               onPublish={payload => publishMutation.mutate({
                 contextKey: simulationPublishContextKey,
                 ...payload,
@@ -1006,13 +981,6 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
         </>
       )}
 
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Explore findings', hint: 'Curated lenses & AI interpretation', onClick: () => onTabChange('findings') },
-          { label: 'See community notes', hint: 'Published readings and exact-run notes', onClick: () => onTabChange('history') },
-          { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
-        ]} />
-      )}
     </div>
   )
 }

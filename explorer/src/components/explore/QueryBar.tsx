@@ -62,7 +62,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
       )}>
         <div className="flex items-center gap-3 px-4 py-3.5">
           {loading ? (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent" />
+            <Loader2 className="w-4 h-4 text-accent shrink-0 animate-spin" />
           ) : (
             <Search className="w-4 h-4 text-muted shrink-0" />
           )}
@@ -87,14 +87,14 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
         </div>
       </div>
 
-      {/* Suggested prompts */}
+      {/* Example chips */}
       {!disabled && !loading && (
         <AnimatePresence>
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={SPRING}
-            className="mt-3"
+            className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mt-3 justify-center text-xs text-muted"
           >
             <div className="mb-2 flex items-center justify-between gap-3">
               <span className="text-[11px] uppercase tracking-[0.12em] text-text-faint">

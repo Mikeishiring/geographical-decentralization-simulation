@@ -101,7 +101,6 @@ function App() {
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [syncFromLocation])
-
   const handleTabChange = useCallback((tab: TabId) => {
     applyRouteState({ tab, query: sharedQuery, explorationId: null }, false)
   }, [applyRouteState, sharedQuery])

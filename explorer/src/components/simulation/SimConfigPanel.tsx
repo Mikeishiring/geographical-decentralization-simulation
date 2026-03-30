@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { ArrowDown, Ban, LoaderCircle, Play, RotateCcw, Sparkles } from 'lucide-react'
+import { Ban, Play, RotateCcw, Sparkles } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING } from '../../lib/theme'
 import type { SimulationConfig } from '../../lib/simulation-api'
@@ -22,26 +22,26 @@ const THRESHOLD_OPTIONS = [
 ] as const
 
 const VALIDATOR_ANCHORS: readonly NumericAnchor[] = [
-  { label: '1', value: 1, hint: 'debug' },
-  { label: '100', value: 100, hint: 'test' },
+  { label: '1', value: 1, hint: 'minimal' },
+  { label: '100', value: 100, hint: 'quick' },
   { label: '250', value: 250 },
   { label: '500', value: 500 },
-  { label: '1,000', value: 1000, hint: 'paper' },
+  { label: '1,000', value: 1000, hint: 'paper scale' },
 ]
 
 const SLOT_ANCHORS: readonly NumericAnchor[] = [
-  { label: '1', value: 1, hint: 'smoke' },
-  { label: '100', value: 100, hint: 'fast' },
-  { label: '1,000', value: 1000, hint: 'lab' },
+  { label: '1', value: 1, hint: 'minimal' },
+  { label: '100', value: 100, hint: 'quick' },
+  { label: '1,000', value: 1000, hint: 'moderate' },
   { label: '5,000', value: 5000 },
-  { label: '10,000', value: 10000, hint: 'paper' },
+  { label: '10,000', value: 10000, hint: 'paper scale' },
 ]
 
 const MIGRATION_COST_ANCHORS: readonly NumericAnchor[] = [
-  { label: '0', value: 0, hint: 'none' },
-  { label: '0.0001', value: 0.0001, hint: 'lab' },
+  { label: '0', value: 0, hint: 'free' },
+  { label: '0.0001', value: 0.0001, hint: 'low' },
   { label: '0.001', value: 0.001 },
-  { label: '0.002', value: 0.002, hint: 'paper' },
+  { label: '0.002', value: 0.002, hint: 'paper default' },
   { label: '0.003', value: 0.003 },
 ] as const
 
@@ -75,8 +75,6 @@ interface SimConfigPanelProps {
   readonly onCancel: () => void
   readonly paperScenarioLabels: readonly string[]
   readonly paperComparability: PaperComparability
-  readonly runnerStatus: 'idle' | 'submitting' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
-  readonly onJumpToRunner?: () => void
 }
 
 export function SimConfigPanel({
@@ -89,49 +87,26 @@ export function SimConfigPanel({
   onCancel,
   paperScenarioLabels,
   paperComparability,
-  runnerStatus,
-  onJumpToRunner,
 }: SimConfigPanelProps) {
   const validatorsOnAnchor = isAnchorValue(config.validators, VALIDATOR_ANCHORS)
   const slotsOnAnchor = isAnchorValue(config.slots, SLOT_ANCHORS)
   const migrationCostOnAnchor = isAnchorValue(config.migrationCost, MIGRATION_COST_ANCHORS)
   const inputClassName = 'lab-input-shell w-full rounded-xl px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/10'
-  const anchorButtonClassName = 'lab-option-card min-w-0 rounded-xl px-2.5 py-2 text-center transition-all hover:-translate-y-0.5 hover:border-border-hover'
-  const segmentButtonClassName = 'lab-option-card min-w-0 rounded-xl px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover'
-  const runIsActive = runnerStatus === 'submitting' || runnerStatus === 'queued' || runnerStatus === 'running'
-  const runButtonLabel = runnerStatus === 'submitting'
-    ? 'Submitting exact run…'
-    : runnerStatus === 'queued'
-      ? 'Queued for execution'
-      : runnerStatus === 'running'
-        ? 'Running exact simulation'
-        : 'Run Exact Simulation'
-  const statusChipLabel = runnerStatus === 'submitting'
-    ? 'Launching now'
-    : runnerStatus === 'queued'
-      ? 'Runner queued'
-      : runnerStatus === 'running'
-        ? 'Runner live'
-        : runnerStatus === 'completed'
-          ? 'Results ready'
-          : runnerStatus === 'failed'
-            ? 'Needs retry'
-            : runnerStatus === 'cancelled'
-              ? 'Run cancelled'
-              : 'Ready'
+  const anchorButtonClassName = 'lab-option-card rounded-xl px-2.5 py-2 text-center transition-all hover:-translate-y-0.5 hover:border-border-hover'
+  const segmentButtonClassName = 'lab-option-card flex-1 rounded-xl px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover'
 
   return (
     <div className="lab-stage p-0 mb-6">
       <div className="lab-stage-hero mx-3 mt-3 p-5">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
-            <div className="lab-section-title">Run Design</div>
+            <div className="lab-section-title">Configuration</div>
             <div className="mt-3 text-xl font-semibold tracking-tight text-text-primary sm:text-[1.6rem]">
-              Shape the exact scenario before you spend the runtime.
+              Set up your simulation scenario.
             </div>
             <div className="mt-3 text-sm leading-6 text-muted">
-              The surface stays literal to the exact simulator, but the controls are grouped so you can read the scenario,
-              scale, and timing posture without scanning a flat form.
+              Choose a paradigm, network size, and timing parameters. Use the presets above for common paper scenarios,
+              or customize each value below.
             </div>
           </div>
 
@@ -160,7 +135,7 @@ export function SimConfigPanel({
           <label className="text-xs text-muted mb-1.5 block">
             Paradigm
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex gap-2">
             {(['SSP', 'MSP'] as const).map(paradigm => (
               <button
                 key={paradigm}
@@ -235,7 +210,7 @@ export function SimConfigPanel({
               {config.validators.toLocaleString()}
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          <div className="grid grid-cols-5 gap-2">
             {VALIDATOR_ANCHORS.map(option => (
               <button
                 key={option.value}
@@ -280,7 +255,7 @@ export function SimConfigPanel({
               {config.slots.toLocaleString()}
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          <div className="grid grid-cols-5 gap-2">
             {SLOT_ANCHORS.map(option => (
               <button
                 key={option.value}
@@ -335,7 +310,7 @@ export function SimConfigPanel({
               <span>0.005</span>
             </div>
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+          <div className="mt-3 grid grid-cols-5 gap-2">
             {MIGRATION_COST_ANCHORS.map(option => (
               <button
                 key={option.value}
@@ -365,7 +340,7 @@ export function SimConfigPanel({
           <label className="text-xs text-muted mb-1.5 block">
             Attestation Threshold (γ)
           </label>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <div className="flex gap-2">
             {THRESHOLD_OPTIONS.map(option => (
               <button
                 key={option.label}
@@ -378,7 +353,7 @@ export function SimConfigPanel({
                 )}
               >
                 <div className="text-sm font-medium">{option.label}</div>
-                <div className="mt-1 text-[10px] uppercase tracking-[0.08em] opacity-70">gamma</div>
+                <div className="mt-1 text-[10px] uppercase tracking-[0.12em] opacity-70">threshold</div>
               </button>
             ))}
           </div>
@@ -388,7 +363,7 @@ export function SimConfigPanel({
           <label className="text-xs text-muted mb-1.5 block">
             Slot Time (Δ)
           </label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="flex gap-2">
             {SLOT_OPTIONS.map(option => (
               <button
                 key={option.label}
@@ -408,13 +383,13 @@ export function SimConfigPanel({
         </div>
       </div>
 
-      <div className="mx-3 mb-3 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mx-3 mb-3 grid gap-4 xl:grid-cols-[1fr_auto]">
         <div className="lab-stage-soft p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="lab-section-title">Timing And Research Alignment</div>
+              <div className="lab-section-title">Timing &amp; Paper Alignment</div>
               <div className="mt-2 text-sm font-medium text-text-primary">
-                Tune the consensus window and keep the research boundary explicit.
+                How closely does this configuration match the published paper scenarios?
               </div>
             </div>
             <div
@@ -462,52 +437,45 @@ export function SimConfigPanel({
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Best for parity</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Match a published scenario</div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Reproducing paper results</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Start from a preset</div>
               <div className="mt-1 text-xs leading-5 text-muted">
-                Start from a paper-aligned preset, keep the paper anchors, then compare against the published results surface.
+                Pick a paper-aligned preset above and compare your results against the published data.
               </div>
             </div>
             <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Best for iteration</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Use the fast default</div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Quick exploration</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Keep runs small first</div>
               <div className="mt-1 text-xs leading-5 text-muted">
-                Stay near `1,000` slots while probing ideas, then scale up only when the question is worth the runtime.
+                Use fewer slots for faster iteration, then scale up when you find something interesting.
               </div>
             </div>
             <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Best for sharing</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Publish only after review</div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Sharing findings</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Add your interpretation</div>
               <div className="mt-1 text-xs leading-5 text-muted">
-                Community notes should summarize what the artifacts show in your own words, not just mirror raw outputs.
+                When publishing, summarize what the results show in your own words rather than just the raw data.
               </div>
             </div>
           </div>
         </div>
 
-        <div className="lab-stage-dark p-5">
-          <div className="lab-loading-orb" data-state={runIsActive ? 'active' : 'idle'} />
+        <div className="lab-stage-dark p-5 xl:min-w-[320px]">
+          <div className="lab-loading-orb" />
           <div className="text-[0.68rem] uppercase tracking-[0.16em] text-slate-400">Run controls</div>
-          <div className="mt-3 text-lg font-semibold text-white">Launch the exact engine when the scenario is locked.</div>
+          <div className="mt-3 text-lg font-semibold text-white">Ready to launch when your scenario is set.</div>
           <div className="mt-2 text-sm leading-6 text-slate-300">
-            Reset returns to the fast default posture. Cancel becomes active once the job reaches the queue or starts executing.
-          </div>
-
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[11px] font-medium text-slate-100">
-            <span className={cn('h-2 w-2 rounded-full', runIsActive ? 'bg-sky-300 animate-pulse' : runnerStatus === 'completed' ? 'bg-emerald-300' : 'bg-slate-400')} />
-            {statusChipLabel}
+            Reset restores default parameters. Cancel stops a running or queued simulation.
           </div>
 
           <div className="mt-4 rounded-xl border border-white/10 bg-white/6 px-4 py-4">
-            <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Recommended next move</div>
+            <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Suggested approach</div>
             <div className="mt-2 text-sm font-medium text-white">
-              {runIsActive
-                ? 'The live runner is active below. Stay with the queue and execution surface until the manifest lands.'
-                : paperComparability.tone === 'canonical'
-                ? 'Run this, then compare it against the published results surface.'
+              {paperComparability.tone === 'canonical'
+                ? 'This matches a published scenario — compare your results directly.'
                 : paperComparability.tone === 'editorial'
-                  ? 'Run this as a paper-scale extension, not as a one-to-one published comparison.'
-                  : 'Use this to learn fast, then promote the question to paper scale if it matters.'}
+                  ? 'Similar to published scenarios but not an exact match — treat as an extension.'
+                  : 'Exploratory configuration — useful for quick iteration before scaling up.'}
             </div>
           </div>
 
@@ -516,26 +484,15 @@ export function SimConfigPanel({
               onClick={onSubmit}
               whileTap={{ scale: 0.98 }}
               transition={SPRING}
-              disabled={isSubmitting || runnerStatus === 'queued' || runnerStatus === 'running'}
+              disabled={isSubmitting}
               className={cn(
                 'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
-                runIsActive && 'shadow-[0_0_0_1px_rgba(148,197,255,0.28),0_18px_40px_rgba(37,99,235,0.18)]',
                 'bg-white text-slate-950 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60',
               )}
             >
-              {runIsActive ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-              {runButtonLabel}
+              <Play className="h-4 w-4" />
+              {isSubmitting ? 'Submitting…' : 'Run Exact Simulation'}
             </motion.button>
-
-            {onJumpToRunner && runIsActive && (
-              <button
-                onClick={onJumpToRunner}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/8 px-4 py-2.5 text-xs text-slate-100 transition-colors hover:bg-white/12"
-              >
-                <ArrowDown className="h-3.5 w-3.5" />
-                Jump to live runner
-              </button>
-            )}
 
             <div className="grid gap-3 sm:grid-cols-2">
               <button
