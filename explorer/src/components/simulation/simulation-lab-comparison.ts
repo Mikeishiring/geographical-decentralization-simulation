@@ -1,4 +1,10 @@
-import { clampSlotIndex, type AnalyticsDeckView, type PublishedAnalyticsPayload } from './simulation-analytics'
+import {
+  clampSlotIndex,
+  type AnalyticsCompareMode,
+  type AnalyticsDeckView,
+  type AnalyticsQueryMetric,
+  type PublishedAnalyticsPayload,
+} from './simulation-analytics'
 import type {
   NumericCatalogOption,
   PublishedDatasetRecommendation,
@@ -199,6 +205,8 @@ export function buildSimulationLabUrl(options: {
   readonly surfaceMode: SurfaceMode
   readonly currentJobId: string | null
   readonly analyticsView: AnalyticsDeckView
+  readonly analyticsMetric: AnalyticsQueryMetric
+  readonly analyticsCompareMode: AnalyticsCompareMode
   readonly analyticsSlot: number | null
   readonly comparisonPath: string | null
 }): string | null {
@@ -215,6 +223,8 @@ export function buildSimulationLabUrl(options: {
   if (options.currentJobId) {
     url.searchParams.set('simulationJob', options.currentJobId)
     url.searchParams.set('exactAnalytics', options.analyticsView)
+    url.searchParams.set('exactMetric', options.analyticsMetric)
+    url.searchParams.set('exactCompareMode', options.analyticsCompareMode)
     if (typeof options.analyticsSlot === 'number' && options.analyticsSlot > 0) {
       url.searchParams.set('exactSlot', String(options.analyticsSlot))
     } else {
@@ -228,6 +238,8 @@ export function buildSimulationLabUrl(options: {
   } else {
     url.searchParams.delete('simulationJob')
     url.searchParams.delete('exactAnalytics')
+    url.searchParams.delete('exactMetric')
+    url.searchParams.delete('exactCompareMode')
     url.searchParams.delete('exactSlot')
     url.searchParams.delete('exactCompare')
   }

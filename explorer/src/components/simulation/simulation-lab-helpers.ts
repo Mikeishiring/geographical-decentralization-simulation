@@ -1,4 +1,8 @@
-import { parseAnalyticsDeckView } from './simulation-analytics'
+import {
+  parseAnalyticsCompareMode,
+  parseAnalyticsDeckView,
+  parseAnalyticsQueryMetric,
+} from './simulation-analytics'
 import type { InitialSimulationLabState, SurfaceMode } from './simulation-lab-types'
 
 export function resolveAppBaseUrl(): string {
@@ -33,6 +37,8 @@ export function readInitialSimulationLabState(): InitialSimulationLabState {
     surfaceMode: parseSurfaceMode(params.get('simulationSurface')) ?? (jobId ? 'lab' : 'research'),
     jobId,
     analyticsView: parseAnalyticsDeckView(params.get('exactAnalytics')),
+    analyticsMetric: parseAnalyticsQueryMetric(params.get('exactMetric')),
+    analyticsCompareMode: parseAnalyticsCompareMode(params.get('exactCompareMode')),
     analyticsSlot: parseOptionalSlotIndex(params.get('exactSlot')),
     comparisonPath: params.get('exactCompare') ?? undefined,
   }
