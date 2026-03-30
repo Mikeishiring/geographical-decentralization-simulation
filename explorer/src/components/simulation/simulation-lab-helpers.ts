@@ -35,7 +35,7 @@ export function readInitialSimulationLabState(): InitialSimulationLabState {
   const jobId = params.get('simulationJob') ?? undefined
   const requestedSurfaceMode = parseSurfaceMode(params.get('simulationSurface'))
   return {
-    surfaceMode: jobId ? (requestedSurfaceMode ?? 'lab') : 'research',
+    surfaceMode: requestedSurfaceMode ?? (jobId ? 'lab' : 'research'),
     jobId,
     analyticsView: parseAnalyticsDeckView(params.get('exactAnalytics')),
     analyticsMetric: parseAnalyticsQueryMetric(params.get('exactMetric')),
