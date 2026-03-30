@@ -2002,7 +2002,7 @@ export function ResearchDemoSurface({
     return (
       <div className="lab-stage p-5">
         <div className="py-12 text-sm text-muted text-center">
-          Loading published research workspace…
+          Loading published paper replay…
         </div>
       </div>
     )
@@ -2014,10 +2014,10 @@ export function ResearchDemoSurface({
         <div className="grid xl:grid-cols-[minmax(0,1.25fr)_360px]">
           <div className="p-6 md:p-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-text-primary">
-              Published Research Demo
+              Published Paper Replay
             </div>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight text-text-primary">
-              Interactive paper workspace for geographical decentralization
+              Read the paper through a live replay workspace
             </h2>
             <div className="mt-4 max-w-4xl space-y-3 text-sm leading-6 text-muted">
               {introParagraphs.map(paragraph => (
@@ -2025,13 +2025,13 @@ export function ResearchDemoSurface({
               ))}
             </div>
             <div className="mt-6 flex flex-wrap gap-2">
-              <span className="lab-chip">Instant preview</span>
-              <span className="lab-chip">Published analytics desk</span>
-              <span className="lab-chip">Theory-ready paper companion</span>
+              <span className="lab-chip">Replay already live</span>
+              <span className="lab-chip">Paper-linked analytics</span>
+              <span className="lab-chip">Section-aware notes</span>
             </div>
 
             <div className="mt-8">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Use this workspace</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Read from evidence</div>
               <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 <button
                   onClick={() => {
@@ -2040,8 +2040,8 @@ export function ResearchDemoSurface({
                   }}
                   className="rounded-2xl border border-rule bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
                 >
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">1. Read the scenario</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">Set an evidence-first posture</div>
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">1. Start with the replay</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">Hold on the visible evidence first</div>
                   <div className="mt-2 text-xs leading-5 text-muted">
                     Keep the published replay on screen and start with geography, concentration, and liveness before asking for interpretation.
                   </div>
@@ -2061,8 +2061,8 @@ export function ResearchDemoSurface({
                   }}
                   className="rounded-2xl border border-rule bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
                 >
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">2. Test a comparison</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">Open the foil and ask one grounded question</div>
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">2. Compare a foil</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">Open the comparison posture and ask one grounded question</div>
                   <div className="mt-2 text-xs leading-5 text-muted">
                     This turns on the comparison posture and, when a foil is available, immediately asks the replay guide to explain the material delta.
                   </div>
@@ -2081,7 +2081,7 @@ export function ResearchDemoSurface({
                   }}
                   className="rounded-2xl border border-rule bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
                 >
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">3. Trace the mechanism</div>
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">3. Tie it to the paper</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">Bind the replay to the paper framing</div>
                   <div className="mt-2 text-xs leading-5 text-muted">
                     Shift into the theory lens and ask a section-grounded question so the answer stays attached to the canonical argument.
@@ -2410,7 +2410,7 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="lab-stage p-5">
-              <div className="text-xs text-muted mb-1">Selection anchor</div>
+              <div className="text-xs text-muted mb-1">Current paper scenario</div>
               <div className="text-sm text-text-primary">
                 {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'Awaiting dataset'}
               </div>
@@ -2430,19 +2430,19 @@ export function ResearchDemoSurface({
                   onClick={handleFillDemoValues}
                   className="rounded-full border border-rule bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
-                  Load reference view
+                  Reset opening view
                 </button>
                 <button
                   onClick={() => void handleCopyShareUrl()}
                   className="rounded-full border border-rule bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
-                  Copy share link
+                  Copy paper view
                 </button>
                 <button
                   onClick={() => applyViewPreset('compare')}
                   className="rounded-full border border-rule bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
-                  Activate split compare
+                  Compare with foil
                 </button>
                 <a
                   href={paperSectionUrl || undefined}
@@ -2451,7 +2451,7 @@ export function ResearchDemoSurface({
                     !paperSectionUrl && 'pointer-events-none opacity-60',
                   )}
                 >
-                  Open paper section
+                  Jump to paper section
                 </a>
               </div>
 
@@ -2468,17 +2468,11 @@ export function ResearchDemoSurface({
           <div className="lab-stage p-5">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <div className="text-xs text-muted mb-1">Scenario selector</div>
+                <div className="text-xs text-muted mb-1">Published scenario</div>
                 <div className="text-sm text-text-primary">
-                  Switch among frozen published scenarios without leaving the main canvas.
+                  Swap among published paper scenarios while keeping the replay on screen.
                 </div>
               </div>
-              <button
-                onClick={handleFillDemoValues}
-                className="text-xs text-muted transition-colors hover:text-text-primary"
-              >
-                Load reference view
-              </button>
             </div>
 
             <div className="space-y-4">
@@ -2496,7 +2490,7 @@ export function ResearchDemoSurface({
               </div>
 
               <div>
-                <label className="text-xs text-muted mb-1.5 block">Block building</label>
+                <label className="text-xs text-muted mb-1.5 block">Paradigm</label>
                 <div className="grid grid-cols-2 gap-2">
                   {paradigmOptions.map(option => (
                     <button
@@ -2516,7 +2510,7 @@ export function ResearchDemoSurface({
               </div>
 
               <div>
-                <label className="text-xs text-muted mb-1.5 block">Result</label>
+                <label className="text-xs text-muted mb-1.5 block">Scenario variant</label>
                 <select
                   value={selectedResult}
                   onChange={event => setSelectedResult(event.target.value)}
@@ -2530,24 +2524,24 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-3">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Dataset path</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Published dataset</div>
               <div className="mt-2 break-all text-sm font-medium text-text-primary">
                 {selectedDataset?.path ?? 'Choose a dataset'}
               </div>
               <div className="mt-2 text-xs text-muted">
-                Switching Local versus External changes which published scenario you are reading. It does not rerun the simulation.
+                Changing these selectors swaps the active paper scenario while keeping the replay and analytics desk bound to one checked-in dataset.
               </div>
             </div>
           </div>
 
           <div className="lab-stage p-5">
-            <div className="text-xs text-muted mb-1">View settings</div>
+            <div className="text-xs text-muted mb-1">Reading posture</div>
             <div className="text-sm text-text-primary mb-4">
-              These settings keep the replay, reading lens, question drafting, and comparison posture aligned.
+              These controls keep the replay, paper lens, and comparison posture aligned while you read.
             </div>
 
             <div className="mb-4">
-              <label className="text-xs text-muted mb-1.5 block">Audience mode</label>
+              <label className="text-xs text-muted mb-1.5 block">Reading mode</label>
               <div className="grid gap-2 sm:grid-cols-3">
                 {audienceProfiles.map(profile => (
                   <button
@@ -3370,7 +3364,7 @@ export function ResearchDemoSurface({
                       rel="noreferrer"
                       className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover sm:col-span-2"
                     >
-                      Open standalone replay viewer
+                      Open replay catalog
                     </a>
                   </div>
 

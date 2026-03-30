@@ -1347,6 +1347,10 @@ export function SimulationLabPage({
     && !manifest
     && (status === 'submitting' || status === 'queued' || status === 'running' || status === 'completed')
   const showSurfaceOptions = surfaceMode === 'lab' || Boolean(currentJobId)
+  const pageTitle = surfaceMode === 'research' ? 'Published Replay' : 'Simulation'
+  const pageSubtitle = surfaceMode === 'research'
+    ? 'The paper-backed replay is already live. Adjust scenario, playback, and analytics directly in-page.'
+    : 'Configure and inspect a bounded exact run.'
   const surfaceOptions = [
     {
       id: 'research' as const,
@@ -1370,9 +1374,9 @@ export function SimulationLabPage({
         <div className="flex min-w-0 items-start gap-2.5 lg:items-center">
           <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent lg:mt-0" />
           <div className="min-w-0">
-            <h1 className="text-base font-semibold text-text-primary">Simulation</h1>
+            <h1 className="text-base font-semibold text-text-primary">{pageTitle}</h1>
             <p className="mt-1 text-xs leading-5 text-muted">
-              The published paper replay is the default experience. Exact-run tools only appear when you open a specific lab session.
+              {pageSubtitle}
             </p>
           </div>
         </div>
