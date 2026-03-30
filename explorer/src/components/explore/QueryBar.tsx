@@ -179,7 +179,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
         {loading ? (
           <div
             aria-live="polite"
-            className="flex items-center justify-center gap-1.5 text-[11px] text-text-faint"
+            className="flex items-center justify-center gap-1.5 text-[0.6875rem] text-text-faint"
           >
             <Loader2 className="h-3 w-3 animate-spin text-accent" />
             <span>
@@ -200,7 +200,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
       </div>
 
       {disabled && disabledReason && (
-        <p className="text-[11px] text-text-faint text-center mt-1.5">
+        <p className="text-[0.6875rem] text-text-faint text-center mt-1.5">
           {disabledReason}
         </p>
       )}

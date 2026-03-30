@@ -72,10 +72,10 @@ export function ContributionComposer({
           <p className="mt-1 max-w-2xl text-xs text-muted">
             {helperText}
           </p>
-          <p className="mt-2 max-w-2xl text-[11px] text-text-faint">
+          <p className="mt-2 max-w-2xl text-[0.6875rem] text-text-faint">
             Published notes are human-authored framing layers over paper-backed readings or exact-run artifacts. They are not raw model output dumps.
           </p>
-          <p className="mt-1 max-w-2xl text-[11px] text-text-faint">
+          <p className="mt-1 max-w-2xl text-[0.6875rem] text-text-faint">
             To publish, edit the draft title or takeaway so the note reflects your own read of the evidence.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -141,7 +141,7 @@ export function ContributionComposer({
                 rows={3}
                 className="min-h-[88px] w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
               />
-              <div className="mt-1 text-[11px] text-text-faint">
+              <div className="mt-1 text-[0.6875rem] text-text-faint">
                 Write this in your own words. Summarize what the source shows, not what an assistant guessed.
               </div>
             </div>
@@ -172,7 +172,7 @@ export function ContributionComposer({
             </button>
 
             {!hasIntentionalEdit && (
-              <div className="rounded-lg border border-rule bg-surface-active px-3 py-2 text-[11px] leading-5 text-text-faint">
+              <div className="rounded-lg border border-rule bg-surface-active px-3 py-2 text-[0.6875rem] leading-5 text-text-faint">
                 Edit the title or takeaway before publishing. Default draft text is a starting point, not the public artifact.
               </div>
             )}
