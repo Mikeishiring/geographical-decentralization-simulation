@@ -125,6 +125,7 @@ export const OVERVIEW_CARD: TopicCard = {
     'Why is Ethereum geography not neutral in these models?',
     'Why does gamma push SSP and MSP in opposite directions?',
     'Does starting geography matter more than paradigm choice?',
+    'What does this imply for protocol design and infrastructure policy?',
     'What changes under shorter slots: geography or fairness?',
     'Where should confidence stop in this model?',
   ],
@@ -172,6 +173,40 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
         emphasis: 'key-finding',
         title: 'Key mechanical difference',
         text: 'SSP evaluates all (region, relay) pairs and picks the single best. MSP sums all signal offers per region — the value function is additive over sources, creating a fundamentally different optimization landscape.',
+      },
+    ],
+  },
+  {
+    id: 'policy-implications',
+    title: 'What does this imply for protocol design?',
+    description: 'A first-pass policy and infrastructure lens without pretending the paper has already settled the recommendation.',
+    prompts: [
+      'What does this imply for protocol design and infrastructure policy?',
+      'What are the paper-backed policy implications here?',
+      'Which levers look infrastructural versus protocol-level?',
+      'Why is this paper more diagnostic than prescriptive?',
+    ],
+    blocks: [
+      {
+        type: 'table',
+        title: 'Design and Policy Lens',
+        headers: ['Lever', 'Paper-backed reading', 'Why restraint matters'],
+        rows: [
+          ['Shorter slots', 'Raises payoff inequality more clearly than it changes the geographic map', 'Not evidence that slot reduction solves or reverses centralization'],
+          ['Attestation threshold', 'Can tighten SSP concentration while loosening MSP concentration', 'The same protocol lever does not generalize across paradigms'],
+          ['Relay / source placement', 'Infrastructure geography changes concentration pressure directly', 'This is partly an ecosystem and operator-coordination problem, not just a core-protocol one'],
+          ['Diversity incentives', 'Could counteract concentration pressure in principle', 'The paper does not validate a production-ready incentive design'],
+        ],
+      },
+      {
+        type: 'insight',
+        emphasis: 'key-finding',
+        title: 'Diagnosis first, recommendation second',
+        text: 'The strongest policy claim is diagnostic: Ethereum geography is shaped by timing rules plus infrastructure placement, so "neutral" protocol changes can still redistribute advantage toward low-latency regions. The paper is strongest when it explains where the pressure comes from, not when it speculates about one definitive fix.',
+      },
+      {
+        type: 'caveat',
+        text: 'Treat the mitigation table as a menu of research directions, not as validated prescriptions. The model measures concentration pressure; it does not prove which intervention is safest or most effective in production Ethereum.',
       },
     ],
   },

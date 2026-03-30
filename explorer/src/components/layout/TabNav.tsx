@@ -13,7 +13,7 @@ interface TabNavProps {
 
 const tabs: { id: TabId; label: string; shortLabel: string; hint: string }[] = [
   { id: 'findings', label: 'Findings', shortLabel: 'Findings', hint: 'Curated entry points & AI exploration' },
-  { id: 'history', label: 'Explore History', shortLabel: 'History', hint: 'Past explorations & community votes' },
+  { id: 'history', label: 'Community', shortLabel: 'Community', hint: 'Published contributions and the reading archive' },
   { id: 'paper', label: 'Paper', shortLabel: 'Paper', hint: 'Full paper with editorial reading guide' },
   { id: 'deep-dive', label: 'Deep Dive', shortLabel: 'Deep Dive', hint: 'Section-by-section argument & blocks' },
   { id: 'simulation', label: 'Simulation', shortLabel: 'Simulation', hint: 'Published results plus exact parameter experiments' },

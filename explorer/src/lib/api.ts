@@ -6,6 +6,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL
   : '/api'
 
 export type ExploreSource = 'curated' | 'history' | 'generated'
+export type ExplorationSurface = 'reading' | 'simulation'
 
 export interface ExploreProvenance {
   readonly source: ExploreSource
@@ -166,6 +167,16 @@ export interface Exploration {
   readonly paradigmTags: readonly string[]
   readonly experimentTags: readonly string[]
   readonly verified: boolean
+  readonly surface: ExplorationSurface
+  readonly publication: {
+    readonly published: boolean
+    readonly title: string
+    readonly takeaway: string
+    readonly author: string
+    readonly publishedAt: string | null
+    readonly featured: boolean
+    readonly editorNote: string
+  }
 }
 
 interface RawExploration {
@@ -182,6 +193,16 @@ interface RawExploration {
   readonly paradigmTags: string[]
   readonly experimentTags: string[]
   readonly verified: boolean
+  readonly surface: ExplorationSurface
+  readonly publication: {
+    readonly published: boolean
+    readonly title: string
+    readonly takeaway: string
+    readonly author: string
+    readonly publishedAt: string | null
+    readonly featured: boolean
+    readonly editorNote: string
+  }
 }
 
 function parseExploration(raw: RawExploration): Exploration {
@@ -195,11 +216,19 @@ export async function listExplorations(options?: {
   sort?: 'recent' | 'top'
   limit?: number
   search?: string
+  publishedOnly?: boolean
+  featuredOnly?: boolean
+  surface?: ExplorationSurface
+  verifiedOnly?: boolean
 }): Promise<Exploration[]> {
   const params = new URLSearchParams()
   if (options?.sort) params.set('sort', options.sort)
   if (options?.limit) params.set('limit', String(options.limit))
   if (options?.search) params.set('search', options.search)
+  if (typeof options?.publishedOnly === 'boolean') params.set('published', String(options.publishedOnly))
+  if (typeof options?.featuredOnly === 'boolean') params.set('featured', String(options.featuredOnly))
+  if (options?.surface) params.set('surface', options.surface)
+  if (typeof options?.verifiedOnly === 'boolean') params.set('verified', String(options.verifiedOnly))
 
   const qs = params.toString()
   const url = `${API_BASE}/explorations${qs ? `?${qs}` : ''}`
@@ -231,6 +260,51 @@ export async function voteExploration(id: string, delta: 1 | -1): Promise<Explor
 
   if (!res.ok) {
     throw new Error(`Failed to vote: ${res.statusText}`)
+  }
+
+  const raw = (await res.json()) as RawExploration
+  return parseExploration(raw)
+}
+
+export async function createExploration(input: {
+  query: string
+  summary: string
+  blocks: readonly Block[]
+  followUps?: readonly string[]
+  model?: string
+  cached?: boolean
+  surface?: ExplorationSurface
+}): Promise<Exploration> {
+  const res = await fetch(`${API_BASE}/explorations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+
+  if (!res.ok) {
+    throw new Error(`Failed to create exploration: ${res.statusText}`)
+  }
+
+  const raw = (await res.json()) as RawExploration
+  return parseExploration(raw)
+}
+
+export async function publishExploration(
+  id: string,
+  input: {
+    title: string
+    takeaway: string
+    author?: string
+  },
+): Promise<Exploration> {
+  const res = await fetch(`${API_BASE}/explorations/${encodeURIComponent(id)}/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+
+  if (!res.ok) {
+    throw new Error(`Failed to publish exploration: ${res.statusText}`)
   }
 
   const raw = (await res.json()) as RawExploration

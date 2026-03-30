@@ -5,7 +5,6 @@ import { Footer } from './components/layout/Footer'
 import { FindingsPage } from './pages/FindingsPage'
 import { ExploreHistoryPage } from './pages/ExploreHistoryPage'
 import { PaperReaderPage } from './pages/PaperReaderPage'
-import { SimulationLabPage } from './pages/SimulationLabPage'
 import { cn } from './lib/cn'
 
 const preloadDeepDivePage = async () => {
@@ -15,6 +14,15 @@ const preloadDeepDivePage = async () => {
 
 const DeepDivePage = lazy(async () => ({
   default: await preloadDeepDivePage(),
+}))
+
+const preloadSimulationLabPage = async () => {
+  const module = await import('./pages/SimulationLabPage')
+  return module.SimulationLabPage
+}
+
+const SimulationLabPage = lazy(async () => ({
+  default: await preloadSimulationLabPage(),
 }))
 
 const VALID_TABS: readonly TabId[] = ['findings', 'history', 'paper', 'deep-dive', 'simulation']
@@ -116,6 +124,7 @@ function App() {
   useEffect(() => {
     const prewarm = () => {
       void preloadDeepDivePage()
+      void preloadSimulationLabPage()
     }
 
     if (typeof window.requestIdleCallback === 'function') {
@@ -189,9 +198,13 @@ function App() {
           </div>
         )}
 
-        <div hidden={activeTab !== 'simulation'} aria-hidden={activeTab !== 'simulation'}>
-          <SimulationLabPage onTabChange={handleTabChange} />
-        </div>
+        {shouldRenderLazyTab('simulation') && (
+          <div hidden={activeTab !== 'simulation'} aria-hidden={activeTab !== 'simulation'}>
+            <Suspense fallback={<TabLoading title="Loading Simulation" description="Preparing the published-results selector and exact-run controls." />}>
+              <SimulationLabPage onTabChange={handleTabChange} />
+            </Suspense>
+          </div>
+        )}
       </main>
 
       <Footer />

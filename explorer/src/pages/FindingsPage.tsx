@@ -1,15 +1,16 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, ArrowLeft, Link2, FileText } from 'lucide-react'
 import { cn } from '../lib/cn'
 import { DEFAULT_BLOCKS, OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../data/default-blocks'
+import { ContributionComposer } from '../components/community/ContributionComposer'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { QueryBar } from '../components/explore/QueryBar'
 import { QueryHistory, type HistoryEntry } from '../components/explore/QueryHistory'
 import { ShimmerLoading } from '../components/explore/ShimmerBlock'
 import { ErrorDisplay } from '../components/explore/ErrorDisplay'
-import { explore, getApiHealth, getExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
+import { createExploration, explore, getApiHealth, getExploration, publishExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
 import { NodeConstellation } from '../components/decorative/NodeConstellation'
 import { ModeBanner } from '../components/layout/ModeBanner'
 import { Wayfinder } from '../components/layout/Wayfinder'
@@ -54,6 +55,7 @@ export function FindingsPage({
   onExplorationIdChange?: (explorationId: string | null) => void
   onTabChange?: (tab: TabId) => void
 }) {
+  const queryClient = useQueryClient()
   const [activeTopic, setActiveTopic] = useState<TopicCard | null>(null)
 
   const [aiResponse, setAiResponse] = useState<ExploreResponse | null>(null)
@@ -63,6 +65,7 @@ export function FindingsPage({
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [shareState, setShareState] = useState<'idle' | 'copied'>('idle')
   const [exportState, setExportState] = useState<'idle' | 'copied'>('idle')
+  const [publishedContextKey, setPublishedContextKey] = useState<string | null>(null)
   const lastSyncedQueryRef = useRef<string | null>(initialQuery)
   const lastSyncedEidRef = useRef<string | null>(initialExplorationId)
 
@@ -74,7 +77,72 @@ export function FindingsPage({
     refetchInterval: isActive ? 30_000 : false,
   })
 
+  const publishMutation = useMutation({
+    mutationFn: async (input: {
+      contextKey: string
+      title: string
+      takeaway: string
+      author: string
+    }) => {
+      if (aiResponse) {
+        let explorationId = aiResponse.provenance.explorationId
+        if (!explorationId) {
+          const created = await createExploration({
+            query: activeQuery ?? aiResponse.summary,
+            summary: aiResponse.summary,
+            blocks: aiResponse.blocks,
+            followUps: aiResponse.followUps,
+            model: aiResponse.model,
+            cached: aiResponse.cached,
+            surface: 'reading',
+          })
+          explorationId = created.id
+        }
+
+        return await publishExploration(explorationId, {
+          title: input.title,
+          takeaway: input.takeaway,
+          author: input.author || undefined,
+        })
+      }
+
+      if (activeTopic) {
+        const created = await createExploration({
+          query: activeTopic.title,
+          summary: activeTopic.description,
+          blocks: activeTopic.blocks,
+          followUps: activeTopic.prompts,
+          model: '',
+          cached: false,
+          surface: 'reading',
+        })
+
+        return await publishExploration(created.id, {
+          title: input.title,
+          takeaway: input.takeaway,
+          author: input.author || undefined,
+        })
+      }
+
+      throw new Error('There is no active reading to publish.')
+    },
+    onSuccess: (published, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ['explorations'] })
+      setPublishedContextKey(variables.contextKey)
+      setAiResponse(previous => previous
+        ? {
+            ...previous,
+            provenance: {
+              ...previous.provenance,
+              explorationId: published.id,
+            },
+          }
+        : previous)
+    },
+  })
+
   const handleTopicClick = (card: TopicCard) => {
+    publishMutation.reset()
     lastSyncedQueryRef.current = null
     lastSyncedEidRef.current = null
     setAiResponse(null)
@@ -87,6 +155,7 @@ export function FindingsPage({
   }
 
   const handleBackToOverview = () => {
+    publishMutation.reset()
     lastSyncedQueryRef.current = null
     lastSyncedEidRef.current = null
     setActiveTopic(null)
@@ -104,6 +173,7 @@ export function FindingsPage({
       readonly syncRoute?: boolean
     },
   ) => {
+    publishMutation.reset()
     if (options?.syncRoute !== false) {
       lastSyncedQueryRef.current = query
       onQueryChange?.(query)
@@ -135,9 +205,10 @@ export function FindingsPage({
     } else {
       setError(result.error)
     }
-  }, [history, onExplorationIdChange, onQueryChange])
+  }, [history, onExplorationIdChange, onQueryChange, publishMutation])
 
   const handleHistorySelect = useCallback((entry: HistoryEntry) => {
+    publishMutation.reset()
     lastSyncedQueryRef.current = entry.query
     lastSyncedEidRef.current = entry.response.provenance.explorationId ?? null
     setActiveTopic(null)
@@ -147,7 +218,7 @@ export function FindingsPage({
     setLoading(false)
     onQueryChange?.(entry.query)
     onExplorationIdChange?.(entry.response.provenance.explorationId ?? null)
-  }, [onExplorationIdChange, onQueryChange])
+  }, [onExplorationIdChange, onQueryChange, publishMutation])
 
   const handleRetry = useCallback(() => {
     if (activeQuery) handleQuery(activeQuery)
@@ -194,6 +265,7 @@ export function FindingsPage({
       try {
         const exploration = await getExploration(initialExplorationId)
         onExplorationIdChange?.(exploration.id)
+        setPublishedContextKey(exploration.publication.published ? `reading:${exploration.query}` : null)
         setActiveQuery(exploration.query)
         setAiResponse({
           summary: exploration.summary,
@@ -203,8 +275,10 @@ export function FindingsPage({
           cached: exploration.cached,
           provenance: {
             source: 'history',
-            label: 'Shared exploration',
-            detail: `Deep-linked exploration ${exploration.id}`,
+            label: exploration.publication.published ? 'Community contribution' : 'Saved reading',
+            detail: exploration.publication.published
+              ? `Deep-linked published contribution ${exploration.id}`
+              : `Deep-linked saved reading ${exploration.id}`,
             canonical: false,
             explorationId: exploration.id,
           },
@@ -278,14 +352,34 @@ export function FindingsPage({
     ? aiResponse.followUps
     : activeTopic?.prompts ?? OVERVIEW_CARD.prompts
   const promptSectionTitle = aiResponse ? 'Keep exploring' : 'Try one of these questions'
+  const policyCard = TOPIC_CARDS.find(card => card.id === 'policy-implications') ?? null
+  const readingPublishContextKey = aiResponse
+    ? `reading:${activeQuery ?? aiResponse.summary}`
+    : showTopic && activeTopic
+      ? `topic:${activeTopic.id}`
+      : null
+  const readingPublishTitle = aiResponse
+    ? activeQuery ?? aiResponse.summary
+    : showTopic && activeTopic
+      ? activeTopic.title
+      : ''
+  const readingPublishTakeaway = aiResponse
+    ? aiResponse.summary
+    : showTopic && activeTopic
+      ? activeTopic.description
+      : ''
+  const readingPublishHelper = aiResponse
+    ? 'Add your own title and takeaway before publishing. This turns a guided reading into an intentional community note instead of dumping raw model output into the feed.'
+    : 'Publishing a curated lens still requires your own title and takeaway. Community notes should carry a human-authored framing layer, not just the default card.'
+  const currentReadingPublished = readingPublishContextKey !== null && publishedContextKey === readingPublishContextKey
 
   return (
     <div>
       <div className="mb-5">
         <ModeBanner
           eyebrow="Mode"
-          title="Curated questions plus AI interpretation"
-          detail="Use this page for bounded, paper-backed questions. The responses can synthesize and interpret, but the paper and published results remain the canonical sources."
+          title="Curated questions, implications, and guided readings"
+          detail="Use this page for bounded, paper-backed questions. The responses can synthesize and interpret, but the paper and published results remain the canonical sources, and only intentionally published notes enter the community surface."
           tone="interpretation"
         />
       </div>
@@ -301,7 +395,7 @@ export function FindingsPage({
           Start with the paper’s sharpest questions.
         </h1>
         <p className="mt-2 text-sm text-muted max-w-2xl leading-relaxed">
-          Curated lenses for the stakes, paradoxes, and model limitations. Then ask a bounded question.
+          Curated lenses for the stakes, protocol tradeoffs, paradoxes, and model limitations. Then ask a bounded question.
         </p>
 
         <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-muted">
@@ -338,6 +432,25 @@ export function FindingsPage({
 
       {/* Topic cards */}
       <div className="mb-8">
+        {policyCard && (
+          <div className="mb-4 rounded-xl border border-warning/30 bg-warning/6 px-4 py-4">
+            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Protocol and policy lens</div>
+            <div className="mt-1 text-sm font-medium text-text-primary">
+              Read the paper as a design-tradeoff argument, not only as a mechanism explainer.
+            </div>
+            <p className="mt-1 max-w-2xl text-xs text-muted">
+              This lens pulls the implications angle into the top-level Findings flow: shorter slots, threshold tuning, and infrastructure geography all shift incentives differently, and the paper is stronger on diagnosis than on a single validated fix.
+            </p>
+            <button
+              onClick={() => handleTopicClick(policyCard)}
+              className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent transition-colors hover:text-accent/80"
+            >
+              Open implications lens
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
         <div className="mb-3 flex items-center justify-between">
           <span className="text-xs text-muted">
             Start with a lens
@@ -462,6 +575,23 @@ export function FindingsPage({
               </button>
             </div>
 
+            {readingPublishContextKey && (
+              <ContributionComposer
+                key={readingPublishContextKey}
+                sourceLabel="Turn this reading into an intentional community note"
+                defaultTitle={readingPublishTitle}
+                defaultTakeaway={readingPublishTakeaway}
+                helperText={readingPublishHelper}
+                published={currentReadingPublished}
+                isPublishing={publishMutation.isPending}
+                error={(publishMutation.error as Error | null)?.message ?? null}
+                onPublish={payload => publishMutation.mutate({
+                  contextKey: readingPublishContextKey,
+                  ...payload,
+                })}
+              />
+            )}
+
             {aiResponse.followUps.length > 0 && (
               <div className="mt-6 pt-4 border-t border-rule">
                 <span className="text-xs text-muted mb-2 block">
@@ -491,6 +621,22 @@ export function FindingsPage({
             transition={SPRING}
           >
             <BlockCanvas blocks={activeTopic.blocks} />
+            {readingPublishContextKey && (
+              <ContributionComposer
+                key={readingPublishContextKey}
+                sourceLabel="Publish this curated lens as a community reading"
+                defaultTitle={readingPublishTitle}
+                defaultTakeaway={readingPublishTakeaway}
+                helperText={readingPublishHelper}
+                published={currentReadingPublished}
+                isPublishing={publishMutation.isPending}
+                error={(publishMutation.error as Error | null)?.message ?? null}
+                onPublish={payload => publishMutation.mutate({
+                  contextKey: readingPublishContextKey,
+                  ...payload,
+                })}
+              />
+            )}
             {promptOptions.length > 0 && (
               <div className="mt-6 pt-4 border-t border-rule">
                 <span className="text-xs text-muted mb-2 block">
