@@ -23,6 +23,51 @@ interface UseSimulationArtifactViewOptions {
   readonly manifest: SimulationManifest | null
 }
 
+const EXACT_CHART_ARTIFACT_SPECS = [
+  {
+    artifactName: 'avg_mev.json',
+    label: 'Average MEV',
+    description: 'Cumulative average MEV earned per slot.',
+    kind: 'timeseries' as const,
+  },
+  {
+    artifactName: 'supermajority_success.json',
+    label: 'Supermajority Success',
+    description: 'Cumulative successful supermajority rate across slots.',
+    kind: 'timeseries' as const,
+  },
+  {
+    artifactName: 'failed_block_proposals.json',
+    label: 'Failed Block Proposals',
+    description: 'Cumulative failed proposal count.',
+    kind: 'timeseries' as const,
+  },
+  {
+    artifactName: 'utility_increase.json',
+    label: 'Utility Increase',
+    description: 'Per-slot proposer utility increase after migration.',
+    kind: 'timeseries' as const,
+  },
+  {
+    artifactName: 'proposal_time_avg.json',
+    label: 'Average Proposal Time',
+    description: 'Per-slot average proposal time derived from the raw slot traces.',
+    kind: 'timeseries' as const,
+  },
+  {
+    artifactName: 'attestation_sum.json',
+    label: 'Attestation Sum',
+    description: 'Per-slot aggregate attestation values derived from the raw slot traces.',
+    kind: 'timeseries' as const,
+  },
+] as const
+
+function parseNumericSeries(rawText: string): readonly number[] {
+  const values = JSON.parse(rawText) as unknown
+  if (!Array.isArray(values)) return []
+  return values.map(value => (typeof value === 'number' && Number.isFinite(value) ? value : 0))
+}
+
 export function useSimulationArtifactView({
   currentJobId,
   manifest,
@@ -100,6 +145,32 @@ export function useSimulationArtifactView({
     staleTime: Infinity,
   })
   const selectedArtifactRawText = artifactQuery.data ?? null
+
+  const exactChartQueries = useQueries({
+    queries: EXACT_CHART_ARTIFACT_SPECS.map(spec => {
+      const artifact = manifest?.artifacts.find(candidate => candidate.name === spec.artifactName) ?? null
+      return {
+        queryKey: ['simulation-chart-artifact', currentJobId, spec.artifactName, artifact?.sha256 ?? ''],
+        queryFn: async () => parseNumericSeries(await getSimulationArtifact(currentJobId!, spec.artifactName)),
+        enabled: Boolean(currentJobId && artifact),
+        staleTime: Infinity,
+      }
+    }),
+  })
+
+  const exactChartSeries = EXACT_CHART_ARTIFACT_SPECS.flatMap((spec, index) => {
+    const values = exactChartQueries[index]?.data
+    return values && values.length > 0
+      ? [{
+          artifactName: spec.artifactName,
+          label: spec.label,
+          description: spec.description,
+          kind: spec.kind,
+          values,
+        }]
+      : []
+  })
+  const isExactChartDeckLoading = exactChartQueries.some(query => query.isLoading || query.isFetching)
 
   useEffect(() => {
     if (!selectedArtifact || !selectedArtifactRawText || !workerRef.current) {
@@ -180,6 +251,8 @@ export function useSimulationArtifactView({
 
   return {
     artifactQuery,
+    exactChartSeries,
+    isExactChartDeckLoading,
     isOverviewLoading,
     isParsing,
     onSelectArtifact,
