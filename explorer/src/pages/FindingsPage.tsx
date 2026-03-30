@@ -40,6 +40,19 @@ function fallbackCuratedProvenance(label: string, detail: string): ExploreProven
   }
 }
 
+function summarizeTopicCard(card: TopicCard): readonly string[] {
+  const tags: string[] = []
+  const blockTypes = new Set(card.blocks.map(block => block.type))
+  if (blockTypes.has('chart') || blockTypes.has('timeseries')) tags.push('charts')
+  if (blockTypes.has('table')) tags.push('data table')
+  if (blockTypes.has('comparison')) tags.push('comparison')
+  if (card.blocks.some(block => block.type === 'insight' && block.emphasis === 'surprising')) {
+    tags.push('surprising')
+  }
+  if (card.blocks.some(block => block.type === 'caveat')) tags.push('caveat')
+  return tags.slice(0, 3)
+}
+
 export function FindingsPage({
   initialQuery = null,
   initialExplorationId = null,
@@ -472,6 +485,17 @@ export function FindingsPage({
                 <p className="text-xs text-muted leading-relaxed line-clamp-2 mb-2">
                   {card.description}
                 </p>
+                <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                  <span className="text-[10px] text-text-faint">{card.blocks.length} blocks</span>
+                  {summarizeTopicCard(card).map(tag => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-border-subtle px-1.5 py-0.5 text-[10px] text-text-faint"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
                 <span className={cn(
                   'flex items-center gap-1 text-xs',
                   isActive ? 'text-accent' : 'text-text-faint',
@@ -530,7 +554,7 @@ export function FindingsPage({
           </button>
 
           <button
-            onClick={() => onTabChange('history')}
+            onClick={() => onTabChange('community')}
             className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
           >
             <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">See what others found</div>
@@ -667,7 +691,7 @@ export function FindingsPage({
                 onViewPublished={publishedExplorationId && onOpenCommunityExploration
                   ? () => onOpenCommunityExploration(publishedExplorationId)
                   : onTabChange
-                    ? () => onTabChange('history')
+                    ? () => onTabChange('community')
                     : undefined}
                 onPublish={payload => publishMutation.mutate({
                   contextKey: readingPublishContextKey,
@@ -721,7 +745,7 @@ export function FindingsPage({
                 onViewPublished={publishedExplorationId && onOpenCommunityExploration
                   ? () => onOpenCommunityExploration(publishedExplorationId)
                   : onTabChange
-                    ? () => onTabChange('history')
+                    ? () => onTabChange('community')
                     : undefined}
                 onPublish={payload => publishMutation.mutate({
                   contextKey: readingPublishContextKey,
