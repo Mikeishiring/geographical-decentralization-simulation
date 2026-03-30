@@ -87,22 +87,14 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
         </div>
       </div>
 
-<<<<<<< Updated upstream
-      {/* Example chips */}
-=======
       {/* Suggested prompts */}
->>>>>>> Stashed changes
       {!disabled && !loading && (
         <AnimatePresence>
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={SPRING}
-<<<<<<< Updated upstream
-            className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mt-3 justify-center text-xs text-muted"
-=======
             className="mt-3"
->>>>>>> Stashed changes
           >
             <div className="mb-2 flex items-center justify-between gap-3">
               <span className="text-[11px] uppercase tracking-[0.12em] text-text-faint">

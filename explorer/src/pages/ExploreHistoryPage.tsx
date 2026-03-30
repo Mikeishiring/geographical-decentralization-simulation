@@ -363,18 +363,7 @@ function ContributionSection({
           </AnimatePresence>
         </motion.div>
       )}
-<<<<<<< Updated upstream
-
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Ask a new question', hint: 'Curated lenses & AI exploration', onClick: () => onTabChange('explore') },
-          { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
-        ]} />
-      )}
-    </div>
-=======
     </section>
->>>>>>> Stashed changes
   )
 }
 
@@ -715,29 +704,20 @@ function EmptyState({
             </button>
           )}
           {onTabChange && (
-<<<<<<< Updated upstream
             <>
               <button
                 onClick={() => onTabChange('paper')}
-                className="rounded-md border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                className="rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
                 Read the paper
               </button>
               <button
-                onClick={() => onTabChange('results')}
-                className="rounded-md border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                onClick={() => onTabChange('simulation')}
+                className="rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
-                Open published results
+                Open Simulation
               </button>
             </>
-=======
-            <button
-              onClick={() => onTabChange('simulation')}
-              className="rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
-            >
-              Open Simulation
-            </button>
->>>>>>> Stashed changes
           )}
         </div>
       </div>
