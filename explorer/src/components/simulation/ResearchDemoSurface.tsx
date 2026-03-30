@@ -909,38 +909,6 @@ export function ResearchDemoSurface({
     return notes
   }, [assistantDraft, paperLens, selectedDataset, selectedMetadata])
 
-  const assistantTranscript = useMemo(() => {
-    const scenarioLabel = selectedDataset
-      ? `${selectedDataset.evaluation} / ${selectedDataset.paradigm} / ${selectedDataset.result}`
-      : 'the active published result'
-
-    const previewAnswer = paperLens === 'theory'
-      ? `Anchor the explanation in migration cost ${formatEth(selectedMetadata?.cost)}, delta ${formatMilliseconds(selectedMetadata?.delta)}, cutoff ${formatMilliseconds(selectedMetadata?.cutoff)}, and gamma ${typeof selectedMetadata?.gamma === 'number' ? formatNumber(selectedMetadata.gamma, 4) : 'N/A'}. Use the replay to show how those assumptions shape the mechanism.`
-      : paperLens === 'methods'
-        ? 'Start by clarifying that this page is replaying a checked-in published payload. Then explain how to use the selector rail, playback posture, and standalone artifacts without confusing them for a fresh large simulation run.'
-        : 'Begin with the map and concentration charts, then move to latency and liveness as the slot progression advances. Use the replay to explain what visibly changes rather than summarizing the paper abstractly.'
-
-    return [
-      {
-        role: 'system',
-        label: 'Context',
-        body: comparisonDataset
-          ? `Ground answers in ${scenarioLabel} and optionally contrast against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} / ${comparisonDataset.result}. ${currentViewSummary}`
-          : `Ground answers in ${scenarioLabel}. ${currentViewSummary}`,
-      },
-      {
-        role: 'user',
-        label: 'Draft prompt',
-        body: assistantDraft || 'Ask the paper about the selected published run.',
-      },
-      {
-        role: 'assistant',
-        label: 'Preview answer',
-        body: previewAnswer,
-      },
-    ] as const
-  }, [assistantDraft, comparisonDataset, currentViewSummary, paperLens, selectedDataset, selectedMetadata])
-
   const primaryCanvasAnnotations = useMemo(() => {
     if (!selectedDataset) return []
 
@@ -1096,27 +1064,6 @@ export function ResearchDemoSurface({
     setAutoplay(true)
   }
 
-  const interactionModes = [
-    {
-      title: 'Instant published replay',
-      description: 'For this paper, readers land on published evidence immediately instead of starting from a launcher screen.',
-    },
-    {
-      title: 'Configurable simulator depth',
-      description: 'Interaction can deepen progressively. Keep published playback accessible, then let power users move into smaller live simulation controls.',
-    },
-    {
-      title: 'Question and theory layers',
-      description: 'This workspace can support theory walk-throughs and question drafting without displacing the published replay itself.',
-    },
-  ] as const
-
-  const workspaceSupports = [
-    'Shareable linked views that preserve scenario, lens, and comparison state.',
-    'Question drafting that stays grounded in the selected published replay.',
-    'Theory and methods reading modes that stay aligned to the same evidence surface.',
-  ] as const
-
   if (catalogError) {
     return (
       <div className="lab-stage p-5">
@@ -1157,35 +1104,6 @@ export function ResearchDemoSurface({
               <span className="lab-chip">Instant preview</span>
               <span className="lab-chip">Configurable simulator depth</span>
               <span className="lab-chip">Theory-ready paper companion</span>
-            </div>
-          </div>
-
-          <div className="border-t border-border-subtle bg-[#FAFAF8] p-6 xl:border-l xl:border-t-0">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Workspace posture</div>
-            <div className="mt-4 grid gap-3">
-              <div className="lab-lens-card px-4 py-4">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Current selection</div>
-                <div className="mt-2 text-sm font-medium text-text-primary">
-                  {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'Awaiting dataset'}
-                </div>
-                <div className="mt-1 text-xs text-muted">
-                  {selectedDataset?.result ?? 'Choose a result to inspect the frozen published path.'}
-                </div>
-              </div>
-              <div className="lab-lens-card px-4 py-4">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Surface</div>
-                <div className="mt-2 text-sm font-medium text-text-primary">Published results first</div>
-                <div className="mt-1 text-xs text-muted">
-                  Readers land on the rendered evidence immediately. The launcher becomes a control rail, not the destination.
-                </div>
-              </div>
-              <div className="lab-lens-card px-4 py-4">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Viewer posture</div>
-                <div className="mt-2 text-sm font-medium text-text-primary">{themeLabel(theme)} theme · step {step}</div>
-                <div className="mt-1 text-xs text-muted">
-                  {autoplay ? 'Autoplay enabled for quick playback.' : 'Manual slot scrubbing for deliberate inspection.'}
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -1696,20 +1614,6 @@ export function ResearchDemoSurface({
             </div>
           </div>
 
-          <div className="lab-stage p-5">
-            <div className="text-xs text-muted mb-1">Reading workflow</div>
-            <div className="text-sm text-text-primary">
-              This study starts with published evidence, then adds comparison and drafting layers only where they help interpretation.
-            </div>
-            <div className="mt-4 space-y-3">
-              {interactionModes.map(mode => (
-                <div key={mode.title} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-                  <div className="text-sm font-medium text-text-primary">{mode.title}</div>
-                  <div className="mt-1 text-xs leading-5 text-muted">{mode.description}</div>
-                </div>
-              ))}
-            </div>
-          </div>
         </aside>
 
         <div className="space-y-6">
@@ -1761,33 +1665,8 @@ export function ResearchDemoSurface({
                 </div>
               </div>
 
-              <div className="mt-5 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Research direction</div>
-                <div className="mt-2 text-sm text-text-primary">
-                  {selectedMetadata?.description ?? 'Select a dataset to preview the published scenario description.'}
-                </div>
-              </div>
-
               <div className="mt-5 border-t border-border-subtle pt-5">
-                <div className="text-xs text-muted mb-2">Paper lenses</div>
-                <div className="flex flex-wrap gap-2">
-                  {paperLenses.map(lens => (
-                    <button
-                      key={lens.id}
-                      onClick={() => setPaperLens(lens.id)}
-                      className={cn(
-                        'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                        paperLens === lens.id
-                          ? 'border-accent bg-white text-accent'
-                          : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
-                      )}
-                    >
-                      {lens.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
+                <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
                   <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{activePaperLens?.eyebrow}</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">{activePaperLens?.title}</div>
                   <div className="mt-2 text-sm leading-6 text-text-primary">{activePaperLens?.body}</div>
@@ -1831,61 +1710,6 @@ export function ResearchDemoSurface({
                   />
                 </div>
 
-                <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Active context</div>
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
-                    <span className="lab-chip">{selectedDataset?.evaluation ?? 'No scenario'}</span>
-                    <span className="lab-chip">{selectedDataset?.paradigm ?? 'No mode'}</span>
-                    <span className="lab-chip">{selectedDataset?.result ?? 'No result'}</span>
-                    <span className="lab-chip">{selectedDataset?.sourceRole ?? 'No source role'}</span>
-                    <span className="lab-chip">{matchedViewPreset?.label ?? 'Custom'} preset</span>
-                    {activeChapterRoute ? (
-                      <span className="lab-chip">{activeChapterRoute.label}</span>
-                    ) : null}
-                    <span className="lab-chip">{themeLabel(theme)} theme</span>
-                    <span className="lab-chip">step {step}</span>
-                    <span className="lab-chip">{paperLens} lens</span>
-                  </div>
-                  <div className="mt-3 text-xs leading-5 text-muted">
-                    Use this draft to guide a reading, compare scenarios, or frame a public note against this selected replay.
-                  </div>
-                </div>
-
-                <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Conversation preview</div>
-                  <div className="mt-3 space-y-3">
-                    {assistantTranscript.map(message => (
-                      <div
-                        key={message.label}
-                        className={cn(
-                          'rounded-2xl px-4 py-4',
-                          message.role === 'system'
-                            ? 'border border-border-subtle bg-[#FAFAF8]'
-                            : message.role === 'user'
-                              ? 'bg-[#0F172A] text-white'
-                              : 'border border-border-subtle bg-white',
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            'text-[10px] uppercase tracking-[0.16em]',
-                            message.role === 'user' ? 'text-slate-300' : 'text-text-faint',
-                          )}
-                        >
-                          {message.label}
-                        </div>
-                        <div
-                          className={cn(
-                            'mt-2 text-sm leading-6',
-                            message.role === 'user' ? 'text-white' : 'text-text-primary',
-                          )}
-                        >
-                          {message.body}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
 
               <div className="lab-stage p-5">
@@ -2052,20 +1876,6 @@ export function ResearchDemoSurface({
                     <pre className="overflow-x-auto text-xs text-text-primary">{selectionConfig}</pre>
                   </div>
                 )}
-              </div>
-
-              <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">What this workspace supports</div>
-                <div className="text-sm text-text-primary">
-                  This workspace is meant to stay legible: published replay first, then aligned layers for comparison, interpretation, and sharing.
-                </div>
-                <div className="mt-4 space-y-3">
-                  {workspaceSupports.map(item => (
-                    <div key={item} className="rounded-xl border border-border-subtle bg-white px-4 py-3 text-sm text-text-primary">
-                      {item}
-                    </div>
-                  ))}
-                </div>
               </div>
 
               <div className="lab-stage p-5">
