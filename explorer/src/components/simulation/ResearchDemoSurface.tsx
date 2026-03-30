@@ -65,7 +65,6 @@ interface ResearchDemoSurfaceProps {
   readonly catalogScriptUrl: string
   readonly viewerBaseUrl: string
   readonly onOpenCommunityExploration?: (explorationId: string) => void
-  readonly onOpenExactLab?: () => void
   readonly onTabChange?: (tab: TabId) => void
 }
 
@@ -343,7 +342,6 @@ export function ResearchDemoSurface({
   catalogScriptUrl,
   viewerBaseUrl,
   onOpenCommunityExploration,
-  onOpenExactLab,
   onTabChange,
 }: ResearchDemoSurfaceProps) {
   const initialWorkspaceState = useMemo(() => readInitialWorkspaceState(), [])
@@ -1193,7 +1191,7 @@ export function ResearchDemoSurface({
     selectedDataset,
   ])
   const analyticsStatusMessage = primaryAnalyticsQuery.isLoading
-    ? 'Loading exact analytics queries from the published dataset...'
+    ? 'Loading published analytics for the active replay...'
     : primaryAnalyticsQuery.isError
       ? (primaryAnalyticsQuery.error as Error).message
       : null
@@ -1205,13 +1203,13 @@ export function ResearchDemoSurface({
     const prompts = [
       {
         label: 'Read this query',
-        prompt: `Using the ${viewLabel.toLowerCase()} analytics query for ${selectedDataset.evaluation} / ${selectedDataset.paradigm}, explain what the evidence shows at ${currentSlotLabel} and at the final slot. Start with exact metrics before interpretation.`,
+        prompt: `Using the ${viewLabel.toLowerCase()} analytics query for ${selectedDataset.evaluation} / ${selectedDataset.paradigm}, explain what the evidence shows at ${currentSlotLabel} and at the final slot. Start with the observed metrics before interpretation.`,
         detail: 'Replay evidence first',
       },
       comparisonDataset
         ? {
             label: 'Compare this query',
-            prompt: `Using the ${viewLabel.toLowerCase()} analytics query, compare ${selectedDataset.evaluation} / ${selectedDataset.paradigm} against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm}. Start with the exact metric differences, then explain what changes materially.`,
+            prompt: `Using the ${viewLabel.toLowerCase()} analytics query, compare ${selectedDataset.evaluation} / ${selectedDataset.paradigm} against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm}. Start with the observed metric differences, then explain what changes materially.`,
             detail: 'Material delta only',
           }
         : null,
@@ -2004,7 +2002,7 @@ export function ResearchDemoSurface({
     return (
       <div className="lab-stage p-5">
         <div className="py-12 text-sm text-muted text-center">
-          Loading frozen research launcher…
+          Loading published research workspace…
         </div>
       </div>
     )
@@ -2092,26 +2090,8 @@ export function ResearchDemoSurface({
               </div>
 
               <div className="mt-3 text-xs leading-5 text-muted">
-                These controls adjust the current workspace. They do not generate a new page or silently rerun the full simulation.
+                These controls keep the paper workspace in place. They do not leave the page or silently rerun the simulation.
               </div>
-
-              {onOpenExactLab ? (
-                <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-rule bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Secondary path</div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">Need a fresh bounded experiment?</div>
-                    <div className="mt-2 text-xs leading-5 text-muted">
-                      Stay in the published replay unless you specifically need a new exact run. The paper workspace is the primary surface.
-                    </div>
-                  </div>
-                  <button
-                    onClick={onOpenExactLab}
-                    className="inline-flex shrink-0 items-center justify-center rounded-full border border-rule bg-surface-active px-4 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover hover:bg-white"
-                  >
-                    Open exact lab
-                  </button>
-                </div>
-              ) : null}
 
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 {heroSnapshotCards.map(card => (
@@ -2139,7 +2119,7 @@ export function ResearchDemoSurface({
                   <div>
                     <div className="text-xs text-muted mb-1">Live published canvas</div>
                     <div className="text-sm text-text-primary">
-                      The precomputed result is rendered immediately. Change the dataset or playback controls and the canvas rebinds without sending the reader back through a launcher flow.
+                      The precomputed result is rendered immediately. Change the dataset or playback controls and the canvas rebinds without leaving the paper workspace.
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
@@ -2326,7 +2306,7 @@ export function ResearchDemoSurface({
             <div className="lab-stage p-5">
               <div className="text-xs text-muted mb-1">Scenario spotlights</div>
               <div className="text-sm text-text-primary">
-                Switch the live canvas from the right rail instead of starting from a launcher.
+                Switch the live canvas from the right rail without leaving the published paper surface.
               </div>
               <div className="mt-4 grid gap-2">
                 {spotlightDatasets.map(entry => {
@@ -2555,7 +2535,7 @@ export function ResearchDemoSurface({
                 {selectedDataset?.path ?? 'Choose a dataset'}
               </div>
               <div className="mt-2 text-xs text-muted">
-                Switching Local versus External changes which published scenario you are reading. It does not change the exact-run engine.
+                Switching Local versus External changes which published scenario you are reading. It does not rerun the simulation.
               </div>
             </div>
           </div>
@@ -3084,7 +3064,7 @@ export function ResearchDemoSurface({
                         {splitCompareActive && comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
                       </div>
                       <div className="mt-3 text-xs leading-5 text-muted">
-                        Use this context to frame a reading, compare scenarios, or publish a public note against the exact replay state you are inspecting.
+                        Use this context to frame a reading, compare scenarios, or publish a public note against the active replay state you are inspecting.
                       </div>
                     </div>
 
@@ -3183,7 +3163,7 @@ export function ResearchDemoSurface({
               </div>
 
               <SimulationAnalyticsDesk
-                description="This is the next Dune-like layer: exact query presets over the frozen replay metrics, shareable in the same published workspace."
+                description="This is the query layer for the frozen replay metrics: saved analytics views that stay shareable inside the same published workspace."
                 copyLabel="Copy analytics view"
                 onCopyShareUrl={() => void handleCopyShareUrl()}
                 analyticsView={analyticsView}
@@ -3390,7 +3370,7 @@ export function ResearchDemoSurface({
                       rel="noreferrer"
                       className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover sm:col-span-2"
                     >
-                      Open Original Published Launcher
+                      Open standalone replay viewer
                     </a>
                   </div>
 

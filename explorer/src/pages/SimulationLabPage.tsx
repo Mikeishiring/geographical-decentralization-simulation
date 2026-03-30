@@ -1372,7 +1372,7 @@ export function SimulationLabPage({
           <div className="min-w-0">
             <h1 className="text-base font-semibold text-text-primary">Simulation</h1>
             <p className="mt-1 text-xs leading-5 text-muted">
-              The published paper replay opens first. The exact lab stays secondary until you explicitly leave the paper-backed surface.
+              The published paper replay is the default experience. Exact-run tools only appear when you open a specific lab session.
             </p>
           </div>
         </div>
@@ -1423,7 +1423,7 @@ export function SimulationLabPage({
           </>
         ) : (
           <div className="rounded-2xl border border-rule bg-surface-active px-4 py-4 text-xs leading-5 text-muted">
-            This page now lands directly on the published paper workspace with the replay already visible. You only move into the exact lab if you explicitly ask for a fresh bounded run.
+            This page lands directly on the published paper workspace with the replay already visible. Exact-run controls stay out of the way unless you open a specific lab session.
           </div>
         )}
       </div>
@@ -1433,7 +1433,6 @@ export function SimulationLabPage({
           catalogScriptUrl={researchCatalogScriptUrl}
           viewerBaseUrl={researchViewerBaseUrl}
           onOpenCommunityExploration={onOpenCommunityExploration}
-          onOpenExactLab={() => setSurfaceMode('lab')}
           onTabChange={onTabChange}
         />
       ) : (
