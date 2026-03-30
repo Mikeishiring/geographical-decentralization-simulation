@@ -13,6 +13,7 @@ import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, publishExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
 import { NodeConstellation } from '../components/decorative/NodeConstellation'
 import { ModeBanner } from '../components/layout/ModeBanner'
+import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
 import type { TabId } from '../components/layout/TabNav'
@@ -45,7 +46,7 @@ export function FindingsPage({
   isActive = true,
   onQueryChange,
   onExplorationIdChange,
-  onTabChange: _onTabChange,
+  onTabChange,
 }: {
   initialQuery?: string | null
   initialExplorationId?: string | null
@@ -429,8 +430,6 @@ export function FindingsPage({
           />
         </div>
       </div>
-<<<<<<< Updated upstream
-=======
 
       {!showAi && !showTopic && onTabChange && (
         <div className="mb-8 grid gap-3 lg:grid-cols-3">
@@ -466,7 +465,6 @@ export function FindingsPage({
         </div>
       )}
 
->>>>>>> Stashed changes
       <QueryHistory
         entries={history}
         onSelect={handleHistorySelect}

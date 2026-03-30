@@ -20,6 +20,7 @@ import {
 import { createExploration, getApiHealth, publishExploration } from '../lib/api'
 import { downloadSimulationExportArchive } from '../lib/simulation-export'
 import { ModeBanner } from '../components/layout/ModeBanner'
+import { Wayfinder } from '../components/layout/Wayfinder'
 import type { TabId } from '../components/layout/TabNav'
 import { cn } from '../lib/cn'
 import {
@@ -68,9 +69,6 @@ function isManifestOverviewBundle(
 
 const APP_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
 
-<<<<<<< Updated upstream
-export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
-=======
 function formatEthValue(value: number): string {
   return `${value.toFixed(4)} ETH`
 }
@@ -397,7 +395,6 @@ function PendingRunSurface({
 }
 
 export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
->>>>>>> Stashed changes
   const queryClient = useQueryClient()
   const [surfaceMode, setSurfaceMode] = useState<'research' | 'lab'>('research')
   const [config, setConfig] = useState<SimulationConfig>({ ...DEFAULT_CONFIG })
@@ -1009,8 +1006,6 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
         </>
       )}
 
-<<<<<<< Updated upstream
-=======
       {onTabChange && (
         <Wayfinder links={[
           { label: 'Explore findings', hint: 'Curated lenses & AI interpretation', onClick: () => onTabChange('findings') },
@@ -1018,7 +1013,6 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
           { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
         ]} />
       )}
->>>>>>> Stashed changes
     </div>
   )
 }
