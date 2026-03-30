@@ -2206,59 +2206,34 @@ export function ResearchDemoSurface({
 
   return (
     <div className="space-y-6">
-      <div className="lab-stage p-5 md:p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-4xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
-              Published Paper Replay
-            </div>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-text-primary md:text-3xl">
-              The world replay is already running
-            </h2>
-            <div className="mt-2 text-sm leading-6 text-muted">
-              The precomputed world map and timeline load immediately on results. Use the right rail to switch published scenarios, then read the Dune-style analytics desk below against the same frozen paper metrics.
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <span className="lab-chip">Replay already live</span>
-            <span className="lab-chip">World map plus timeline</span>
-            <span className="lab-chip">Dune-style analytics</span>
-          </div>
-        </div>
-
-        <details className="mt-4 overflow-hidden rounded-[1.15rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))]">
-          <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-4 py-4 [&::-webkit-details-marker]:hidden">
-            <div>
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">How to read it</div>
-              <div className="mt-2 text-sm leading-6 text-text-primary">
-                Start from the live replay, compare a foil if needed, and only then move into paper framing or the analytics desk.
+      <div className="lab-stage overflow-hidden p-0">
+        <div className="border-b border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-5 py-4">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="max-w-4xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
+                Published Simulation Viewer
+              </div>
+              <h2 className="mt-3 text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
+                World replay first, analytics directly underneath
+              </h2>
+              <div className="mt-2 text-sm leading-6 text-muted">
+                {introParagraphs[0] ?? 'The precomputed world map and timeline load immediately on results, with controls and analytics bound to the same frozen paper replay.'}
               </div>
             </div>
-            <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
-              Open guide
-            </div>
-          </summary>
 
-          <div className="border-t border-rule px-4 py-4">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="flex flex-wrap gap-2 xl:max-w-[420px] xl:justify-end">
               <button
                 onClick={() => {
                   applyAudienceMode('reader')
                   setPaperLens('evidence')
                 }}
-                className="rounded-[1.2rem] border border-rule bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
+                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
               >
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">1. Start with the replay</div>
-                <div className="mt-2 text-sm font-medium text-text-primary">Set an evidence-first posture</div>
-                <div className="mt-2 text-xs leading-5 text-muted">
-                  Keep geography, concentration, and liveness on screen before asking for interpretation.
-                </div>
+                Evidence view
               </button>
-
               <button
                 onClick={() => {
-                  applyAudienceMode('reviewer')
+                  applyViewPreset('compare')
                   if (comparisonDataset) {
                     handlePrimeReplayQuestion(
                       viewerSnapshot
@@ -2268,15 +2243,10 @@ export function ResearchDemoSurface({
                     )
                   }
                 }}
-                className="rounded-[1.2rem] border border-rule bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
+                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
               >
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">2. Compare a foil</div>
-                <div className="mt-2 text-sm font-medium text-text-primary">Open the foil and ask one grounded question</div>
-                <div className="mt-2 text-xs leading-5 text-muted">
-                  Turn on the comparison posture and immediately ask what changes materially.
-                </div>
+                Compare foil
               </button>
-
               <button
                 onClick={() => {
                   applyViewPreset('analysis')
@@ -2288,33 +2258,23 @@ export function ResearchDemoSurface({
                     true,
                   )
                 }}
-                className="rounded-[1.2rem] border border-rule bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
+                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
               >
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">3. Tie it to the paper</div>
-                <div className="mt-2 text-sm font-medium text-text-primary">Bind the replay to the canonical framing</div>
-                <div className="mt-2 text-xs leading-5 text-muted">
-                  Shift into the theory lens and keep the answer anchored to the paper section.
-                </div>
+                Ask mechanism
               </button>
             </div>
-
-            <div className="mt-4 space-y-3 text-sm leading-6 text-muted">
-              {introParagraphs.map(paragraph => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-            </div>
-
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {heroSnapshotCards.map(card => (
-                <div key={card.label} className="rounded-[1.1rem] border border-rule bg-white px-4 py-4">
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
-                  <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
-                </div>
-              ))}
-            </div>
           </div>
-        </details>
+        </div>
+
+        <div className="grid gap-3 px-5 py-4 md:grid-cols-2 xl:grid-cols-4">
+          {heroSnapshotCards.map(card => (
+            <div key={card.label} className="rounded-[1rem] border border-rule bg-white px-4 py-4">
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
+              <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {activeViewer && (
@@ -2327,9 +2287,9 @@ export function ResearchDemoSurface({
               <div className="border-b border-rule bg-surface-active px-5 py-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                   <div>
-                    <div className="text-xs text-muted mb-1">Live published canvas</div>
+                    <div className="text-xs text-muted mb-1">World replay</div>
                     <div className="text-sm text-text-primary">
-                      The precomputed result is rendered immediately. Change the dataset or playback controls and the canvas rebinds without leaving the published paper surface.
+                      The precomputed world map and timeline are already live. Change the published scenario or playback controls and the viewer rebinds in place.
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
@@ -2514,9 +2474,9 @@ export function ResearchDemoSurface({
 
           <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
             <div className="lab-stage p-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
-              <div className="text-xs text-muted mb-1">Scenario spotlights</div>
+              <div className="text-xs text-muted mb-1">Scenarios</div>
               <div className="text-sm text-text-primary">
-                Switch the live canvas from the right rail without leaving the published paper surface.
+                Swap the published replay without leaving the viewer.
               </div>
               <div className="mt-4 grid gap-2">
                 {spotlightDatasets.map(entry => {
@@ -2551,9 +2511,9 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="lab-stage p-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
-              <div className="text-xs text-muted mb-1">Reading posture</div>
+              <div className="text-xs text-muted mb-1">Live controls</div>
               <div className="text-sm text-text-primary">
-                Adjust the reading mode while keeping the result on screen.
+                Change the active lens while the replay stays on screen.
               </div>
 
               <div className="mt-4">
@@ -2620,7 +2580,7 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="lab-stage p-5">
-              <div className="text-xs text-muted mb-1">Current paper scenario</div>
+              <div className="text-xs text-muted mb-1">Active replay</div>
               <div className="text-sm text-text-primary">
                 {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'Awaiting dataset'}
               </div>
