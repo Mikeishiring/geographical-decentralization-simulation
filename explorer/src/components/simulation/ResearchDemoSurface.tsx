@@ -2394,80 +2394,75 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="lab-stage overflow-hidden p-0">
-              <div className="grid gap-0 xl:grid-cols-[minmax(0,1.08fr)_360px]">
-                <div className="border-b border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.78))] px-5 py-5 xl:border-b-0 xl:border-r">
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-                    {lastReplayAnswer ? 'Replay-backed conclusion' : 'Published findings board'}
-                  </div>
-                  <div className="mt-3 max-w-3xl text-lg font-semibold leading-8 text-text-primary">
-                    {immediateResultSummary}
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
-                    {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number} {selectedPaperSection.title}</span> : null}
-                    {viewerSnapshot ? <span className="lab-chip">slot {viewerSnapshot.slotNumber}</span> : null}
-                    {splitCompareActive && comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
-                    <span className="lab-chip">{paperLens} lens</span>
-                  </div>
-                  {promptLaunchers.length > 0 ? (
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {promptLaunchers.slice(0, 3).map(item => (
-                        <button
-                          key={`findings-${item.label}`}
-                          onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-all hover:border-border-hover"
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="space-y-3 bg-white px-5 py-5">
-                  <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Current posture</div>
-                    <div className="mt-2 text-sm leading-6 text-text-primary">{currentViewSummary}</div>
-                  </div>
-                  <div className="rounded-xl border border-rule bg-white px-4 py-4">
+              <div className="border-b border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.78))] px-5 py-5">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="max-w-4xl">
                     <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-                      {splitCompareActive && comparisonDataset ? 'Comparison read' : 'Canonical paper anchor'}
+                      {lastReplayAnswer ? 'Replay-backed conclusion' : 'Live readout'}
                     </div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">
-                      {splitCompareActive && comparisonDataset
-                        ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}`
-                        : selectedPaperSection ? `${selectedPaperSection.number} ${selectedPaperSection.title}` : 'No section selected'}
+                    <div className="mt-3 text-lg font-semibold leading-8 text-text-primary">
+                      {immediateResultSummary}
                     </div>
-                    <div className="mt-2 text-xs leading-5 text-muted">
-                      {splitCompareActive && comparisonDataset
-                        ? comparisonNarrative
-                        : selectedPaperSection?.description ?? 'Select a paper section to keep the replay interpretation tied to the canonical text.'}
+                    <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
+                      {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number} {selectedPaperSection.title}</span> : null}
+                      {viewerSnapshot ? <span className="lab-chip">slot {viewerSnapshot.slotNumber}</span> : null}
+                      {splitCompareActive && comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
+                      <span className="lab-chip">{paperLens} lens</span>
                     </div>
+                    {promptLaunchers.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {promptLaunchers.slice(0, 3).map(item => (
+                          <button
+                            key={`findings-${item.label}`}
+                            onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
+                            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-all hover:border-border-hover"
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="rounded-xl border border-rule bg-white px-4 py-4">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Why it matters now</div>
-                    <div className="mt-2 text-xs leading-5 text-muted">{activeAudienceBrief.summary}</div>
+
+                  <div className="grid gap-3 sm:grid-cols-3 xl:w-[420px] xl:grid-cols-1">
+                    <div className="rounded-xl border border-rule bg-white px-4 py-4">
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Current posture</div>
+                      <div className="mt-2 text-xs leading-5 text-muted">{currentViewSummary}</div>
+                    </div>
+                    <div className="rounded-xl border border-rule bg-white px-4 py-4">
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                        {splitCompareActive && comparisonDataset ? 'Comparison read' : 'Paper anchor'}
+                      </div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">
+                        {splitCompareActive && comparisonDataset
+                          ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}`
+                          : selectedPaperSection ? `${selectedPaperSection.number} ${selectedPaperSection.title}` : 'No section selected'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-rule bg-white px-4 py-4">
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Why it matters</div>
+                      <div className="mt-2 text-xs leading-5 text-muted">{activeAudienceBrief.summary}</div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="border-t border-rule px-5 py-5">
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  {resultSnapshotCards.map((card, index) => (
-                    <div
-                      key={card.label}
-                      className={cn(
-                        'rounded-[1.15rem] border px-4 py-4 shadow-[0_12px_26px_rgba(15,23,42,0.04)]',
-                        index === 0
-                          ? 'border-accent/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.88))]'
-                          : 'border-rule bg-white',
-                      )}
-                    >
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
-                      <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
-                      <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
-                    </div>
-                  ))}
-                </div>
+              <div className="grid gap-3 px-5 py-5 md:grid-cols-2 xl:grid-cols-4">
+                {resultSnapshotCards.map((card, index) => (
+                  <div
+                    key={card.label}
+                    className={cn(
+                      'rounded-[1.05rem] border px-4 py-4 shadow-[0_12px_26px_rgba(15,23,42,0.04)]',
+                      index === 0
+                        ? 'border-accent/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.88))]'
+                        : 'border-rule bg-white',
+                    )}
+                  >
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+                    <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
+                    <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -3002,6 +2997,20 @@ export function ResearchDemoSurface({
         </aside>
 
           <div className="space-y-7">
+          <details className="lab-stage overflow-hidden">
+            <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-5 py-5 [&::-webkit-details-marker]:hidden">
+              <div>
+                <div className="text-xs text-muted mb-1">Companion and Paper Tools</div>
+                <div className="text-sm text-text-primary">
+                  Replay questions, canonical paper anchors, and publishing tools live here when you want to move beyond the core viewer and analytics.
+                </div>
+              </div>
+              <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                Open when needed
+              </div>
+            </summary>
+
+            <div className="space-y-7 border-t border-rule bg-[linear-gradient(180deg,rgba(250,250,249,0.94),rgba(255,255,255,0.98))] p-5">
             <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
             <div className="lab-stage p-6 shadow-[0_20px_44px_rgba(15,23,42,0.05)]">
               <div className="text-xs text-muted mb-1">Published scenario summary</div>
@@ -3356,6 +3365,10 @@ export function ResearchDemoSurface({
                   </details>
                 </div>
               </div>
+            </div>
+            </div>
+            </div>
+          </details>
 
               <SimulationAnalyticsDesk
                 description="Dune-style analytics over the frozen replay metrics: named dashboard reads, shareable links, and exported query bundles inside the same published workspace."
@@ -3633,8 +3646,6 @@ export function ResearchDemoSurface({
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
     </div>
   )
