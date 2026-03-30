@@ -33,11 +33,34 @@ interface PublishedViewerSettings {
   readonly autoplay: boolean
 }
 
+export interface PublishedViewerSnapshot {
+  readonly slotIndex: number
+  readonly slotNumber: number
+  readonly totalSlots: number
+  readonly stepSize: 1 | 10 | 50
+  readonly playing: boolean
+  readonly activeRegions: number
+  readonly totalValidators: number
+  readonly dominantRegionId: string | null
+  readonly dominantRegionCity: string | null
+  readonly dominantRegionShare: number
+  readonly currentGini: number | null
+  readonly currentHhi: number | null
+  readonly currentLiveness: number | null
+  readonly currentMev: number | null
+  readonly currentProposalTime: number | null
+  readonly currentAttestation: number | null
+  readonly currentTotalDistance: number | null
+  readonly currentFailedBlockProposals: number | null
+  readonly currentClusters: number | null
+}
+
 interface PublishedDatasetViewerProps {
   readonly viewerBaseUrl: string
   readonly dataset: ResearchDatasetEntry
   readonly initialSettings: PublishedViewerSettings
   readonly onClose?: () => void
+  readonly onStateChange?: (snapshot: PublishedViewerSnapshot | null) => void
 }
 
 interface PublishedMetrics {
@@ -454,6 +477,7 @@ export function PublishedDatasetViewer({
   dataset,
   initialSettings,
   onClose,
+  onStateChange,
 }: PublishedDatasetViewerProps) {
   const [viewerState, setViewerState] = useState<ViewerState>({
     status: 'loading',
@@ -473,6 +497,7 @@ export function PublishedDatasetViewer({
       data: null,
       error: null,
     })
+    onStateChange?.(null)
     setSlot(0)
     setPlaying(initialSettings.autoplay)
     setStepSize(initialSettings.step)
@@ -503,8 +528,11 @@ export function PublishedDatasetViewer({
 
     void load()
 
-    return () => controller.abort()
-  }, [dataset, initialSettings.autoplay, initialSettings.step, viewerBaseUrl])
+    return () => {
+      controller.abort()
+      onStateChange?.(null)
+    }
+  }, [dataset, initialSettings.autoplay, initialSettings.step, onStateChange, viewerBaseUrl])
 
   const data = viewerState.data
   const totalSlots = Math.max(
@@ -550,15 +578,65 @@ export function PublishedDatasetViewer({
 
   const metrics = data?.metrics ?? {}
   const currentGini = readMetricValue(metrics.gini, slot)
+  const currentHhi = readMetricValue(metrics.hhi, slot)
+  const currentLiveness = readMetricValue(metrics.liveness, slot)
   const currentMev = readMetricValue(metrics.mev, slot)
   const currentProposalTime = readMetricValue(metrics.proposal_times, slot)
   const currentAttestation = readMetricValue(metrics.attestations, slot)
   const currentClusters = readMetricValue(metrics.clusters, slot)
   const currentTotalDistance = readMetricValue(metrics.total_distance, slot)
+  const currentFailedBlockProposals = readMetricValue(metrics.failed_block_proposals, slot)
   const initialGini = readMetricValue(metrics.gini, 0)
   const initialMev = readMetricValue(metrics.mev, 0)
   const initialProposalTime = readMetricValue(metrics.proposal_times, 0)
   const initialTotalDistance = readMetricValue(metrics.total_distance, 0)
+
+  useEffect(() => {
+    if (!onStateChange || viewerState.status !== 'ready') return
+
+    onStateChange({
+      slotIndex: slot,
+      slotNumber: slot + 1,
+      totalSlots,
+      stepSize,
+      playing,
+      activeRegions: currentRegions.length,
+      totalValidators,
+      dominantRegionId: topRegion?.regionId ?? null,
+      dominantRegionCity: topRegion?.region?.city ?? null,
+      dominantRegionShare: dominantShare,
+      currentGini,
+      currentHhi,
+      currentLiveness,
+      currentMev,
+      currentProposalTime,
+      currentAttestation,
+      currentTotalDistance,
+      currentFailedBlockProposals,
+      currentClusters,
+    })
+  }, [
+    currentAttestation,
+    currentClusters,
+    currentFailedBlockProposals,
+    currentGini,
+    currentHhi,
+    currentLiveness,
+    currentMev,
+    currentProposalTime,
+    currentRegions.length,
+    currentTotalDistance,
+    dominantShare,
+    onStateChange,
+    playing,
+    slot,
+    stepSize,
+    topRegion?.region?.city,
+    topRegion?.regionId,
+    totalSlots,
+    totalValidators,
+    viewerState.status,
+  ])
 
   const metadata = dataset.metadata ?? {}
   const viewerUrl = buildViewerUrl(viewerBaseUrl, dataset.path, {
