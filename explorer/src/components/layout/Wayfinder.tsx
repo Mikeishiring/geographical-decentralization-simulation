@@ -27,7 +27,7 @@ export function Wayfinder({ links }: WayfinderProps) {
             onClick={link.onClick}
             whileHover={{ y: -1 }}
             transition={SPRING}
-            className="group flex items-center gap-2 rounded-lg border border-border-subtle bg-white px-4 py-2.5 text-left transition-colors hover:border-border-hover"
+            className="group flex items-center gap-2 rounded-xl border border-border-subtle bg-white px-4 py-2.5 text-left transition-all hover:border-border-hover hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
           >
             <div className="min-w-0">
               <span className="text-xs font-medium text-text-primary">
