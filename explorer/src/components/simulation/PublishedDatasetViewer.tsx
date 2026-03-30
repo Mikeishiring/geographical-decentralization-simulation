@@ -36,6 +36,12 @@ interface PublishedViewerSettings {
 interface PublishedViewerAnnotationNote {
   readonly id: string
   readonly intent: 'observation' | 'question' | 'theory' | 'methods'
+  readonly status?: 'open_question' | 'needs_evidence' | 'challenged' | 'supported' | 'author_addressed'
+  readonly contributionType?: 'claim' | 'question' | 'evidence' | 'counterpoint' | 'method_concern'
+  readonly communityLane?: 'author' | 'reviewer' | 'community'
+  readonly annotationScope?: 'exact_slot' | 'time_range' | 'trend' | 'comparison_gap' | 'paper_claim' | 'region_over_time'
+  readonly rangeStartSlotNumber?: number | null
+  readonly rangeEndSlotNumber?: number | null
   readonly anchorKind?: 'general' | 'region' | 'metric' | 'comparison' | null
   readonly anchorKey?: string | null
   readonly anchorLabel?: string | null
@@ -385,6 +391,34 @@ function focusAreaLabel(area: PublishedViewerFocusArea): string {
   if (area === 'performance') return 'performance charts'
   if (area === 'config') return 'methods and configuration'
   return 'geography canvas'
+}
+
+function noteStatusLabel(
+  status: PublishedViewerAnnotationNote['status'],
+): string | null {
+  if (status === 'open_question') return 'Open question'
+  if (status === 'needs_evidence') return 'Needs evidence'
+  if (status === 'challenged') return 'Challenged'
+  if (status === 'supported') return 'Supported'
+  if (status === 'author_addressed') return 'Author addressed'
+  return null
+}
+
+function noteContributionLabel(
+  contributionType: PublishedViewerAnnotationNote['contributionType'],
+): string | null {
+  if (contributionType === 'method_concern') return 'Method concern'
+  if (!contributionType) return null
+  return contributionType.charAt(0).toUpperCase() + contributionType.slice(1)
+}
+
+function noteLaneLabel(
+  communityLane: PublishedViewerAnnotationNote['communityLane'],
+): string | null {
+  if (communityLane === 'author') return 'Author note'
+  if (communityLane === 'reviewer') return 'Reviewer note'
+  if (communityLane === 'community') return 'Community note'
+  return null
 }
 
 function noteMatchesMetric(
@@ -896,6 +930,27 @@ export function PublishedDatasetViewer({
     [filteredAnnotationNotes, selectedNoteId],
   )
   const focusedArea = focusedNote ? noteFocusArea(focusedNote) : null
+  const discussionSummary = useMemo(() => ({
+    openQuestions: annotationNotes.filter(note => note.status === 'open_question' || note.contributionType === 'question').length,
+    challenged: annotationNotes.filter(note => note.status === 'challenged' || note.contributionType === 'counterpoint').length,
+    authorAddressed: annotationNotes.filter(note => note.status === 'author_addressed' || note.communityLane === 'author').length,
+    timeRanges: annotationNotes.filter(note => note.annotationScope === 'time_range' || note.annotationScope === 'region_over_time').length,
+  }), [annotationNotes])
+  const marginaliaNotes = useMemo(() => {
+    const notes = [...filteredAnnotationNotes]
+    notes.sort((left, right) => {
+      const leftAuthor = left.communityLane === 'author' ? 1 : 0
+      const rightAuthor = right.communityLane === 'author' ? 1 : 0
+      if (leftAuthor !== rightAuthor) return rightAuthor - leftAuthor
+      const leftQuestion = left.status === 'open_question' || left.contributionType === 'question' ? 1 : 0
+      const rightQuestion = right.status === 'open_question' || right.contributionType === 'question' ? 1 : 0
+      if (leftQuestion !== rightQuestion) return rightQuestion - leftQuestion
+      const leftChallenge = left.status === 'challenged' || left.contributionType === 'counterpoint' ? 1 : 0
+      const rightChallenge = right.status === 'challenged' || right.contributionType === 'counterpoint' ? 1 : 0
+      return rightChallenge - leftChallenge
+    })
+    return notes.slice(0, 3)
+  }, [filteredAnnotationNotes])
   const buildChartNotePins = (
     notes: readonly PublishedViewerAnnotationNote[],
     chartKey: 'concentration' | 'distance' | 'proposal' | 'mev',
@@ -1247,6 +1302,82 @@ export function PublishedDatasetViewer({
         </div>
       </div>
 
+      {annotationNotes.length > 0 ? (
+        <div className="px-5 pb-5">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure discussion</div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-4">
+                {[
+                  { label: 'Open questions', value: discussionSummary.openQuestions, tone: 'text-[#9A3412]' },
+                  { label: 'Challenged', value: discussionSummary.challenged, tone: 'text-[#BE123C]' },
+                  { label: 'Author notes', value: discussionSummary.authorAddressed, tone: 'text-[#92400E]' },
+                  { label: 'Range-based', value: discussionSummary.timeRanges, tone: 'text-[#1D4ED8]' },
+                ].map(card => (
+                  <div key={card.label} className="rounded-xl border border-rule bg-white px-3 py-3">
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+                    <div className={cn('mt-2 text-xl font-semibold', card.tone)}>{card.value.toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,250,248,0.96))] px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure marginalia</div>
+                  <div className="mt-1 text-xs leading-5 text-muted">Most important live notes for this posture.</div>
+                </div>
+                {focusedNote ? (
+                  <div className="rounded-full border border-accent/18 bg-[rgba(37,99,235,0.08)] px-2.5 py-1 text-[0.625rem] font-medium text-accent">
+                    Focus on {focusAreaLabel(focusedArea ?? 'geography')}
+                  </div>
+                ) : null}
+              </div>
+              <div className="mt-3 space-y-3">
+                {marginaliaNotes.map(note => (
+                  <button
+                    key={`marginalia-${note.id}`}
+                    onClick={() => setSelectedNoteId(note.id)}
+                    className={cn(
+                      'w-full rounded-xl border px-3 py-3 text-left transition-all',
+                      focusedNote?.id === note.id
+                        ? 'border-accent/24 bg-[rgba(37,99,235,0.06)] shadow-[0_12px_24px_rgba(37,99,235,0.08)]'
+                        : 'border-rule bg-white hover:border-border-hover',
+                    )}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      {noteLaneLabel(note.communityLane) ? (
+                        <span className="rounded-full border border-[#0F172A]/10 bg-[#F8FAFC] px-2 py-0.5 text-[0.625rem] font-medium text-text-primary">
+                          {noteLaneLabel(note.communityLane)}
+                        </span>
+                      ) : null}
+                      {noteContributionLabel(note.contributionType) ? (
+                        <span className="rounded-full border border-[#7C3AED]/18 bg-[#F5F3FF] px-2 py-0.5 text-[0.625rem] font-medium text-[#6D28D9]">
+                          {noteContributionLabel(note.contributionType)}
+                        </span>
+                      ) : null}
+                      {noteStatusLabel(note.status) ? (
+                        <span className="rounded-full border border-[#C2410C]/18 bg-[#FFF7ED] px-2 py-0.5 text-[0.625rem] font-medium text-[#9A3412]">
+                          {noteStatusLabel(note.status)}
+                        </span>
+                      ) : null}
+                      {note.anchorLabel ? <span className="lab-chip">{note.anchorLabel}</span> : null}
+                    </div>
+                    <div className="mt-2 text-sm leading-6 text-text-primary">{note.note}</div>
+                    {(note.annotationScope === 'time_range' || note.annotationScope === 'region_over_time') && note.rangeStartSlotNumber != null && note.rangeEndSlotNumber != null ? (
+                      <div className="mt-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                        Slots {note.rangeStartSlotNumber.toLocaleString()}-{note.rangeEndSlotNumber.toLocaleString()}
+                      </div>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="lab-stage p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
@@ -1482,12 +1613,19 @@ export function PublishedDatasetViewer({
                     key={`${entry.key}-${note.id}`}
                     onClick={() => setSelectedNoteId(note.id)}
                     className={cn(
-                      'pointer-events-auto rounded-full border px-3 py-1 text-[0.625rem] font-medium shadow-[0_10px_20px_rgba(15,23,42,0.05)] transition-all',
+                      'pointer-events-auto rounded-full border px-3 py-1.5 text-left text-[0.625rem] font-medium shadow-[0_10px_20px_rgba(15,23,42,0.05)] transition-all',
                       focusedNote?.id === note.id ? 'scale-[1.02] ring-2 ring-accent/25' : '',
                       noteIntentClass(note.intent),
                     )}
                   >
-                    {note.anchorLabel ?? noteIntentLabel(note.intent)}
+                    <div>{note.anchorLabel ?? noteIntentLabel(note.intent)}</div>
+                    {(noteContributionLabel(note.contributionType) || noteStatusLabel(note.status)) ? (
+                      <div className="mt-1 flex items-center gap-1 text-[0.55rem] uppercase tracking-[0.08em] text-current/80">
+                        {noteContributionLabel(note.contributionType) ? <span>{noteContributionLabel(note.contributionType)}</span> : null}
+                        {noteContributionLabel(note.contributionType) && noteStatusLabel(note.status) ? <span>·</span> : null}
+                        {noteStatusLabel(note.status) ? <span>{noteStatusLabel(note.status)}</span> : null}
+                      </div>
+                    ) : null}
                   </button>
                 ))}
               </div>
