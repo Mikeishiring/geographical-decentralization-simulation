@@ -1,275 +1,20 @@
 import argparse
-import dataclasses
-import hashlib
 import json
 import numpy as np
 import os
 import pandas as pd
 import random
-import shutil
 import time
 import traceback
 import yaml  # Import yaml library
+from collections import defaultdict, Counter
 
 from constants import LinearMEVUtility
 from consensus import ConsensusSettings
 from distribution import parse_gcp_latency
+from measure import *  # Assuming measure.py contains necessary measurement functions
 from models import SingleSourceParadigm, MultiSourceParadigm
 from source_agent import initialize_relays, initialize_signals
-
-
-DEFAULT_SIMULATION_SEED = 0x06511
-SIMULATION_CACHE_VERSION = 2
-SIMULATION_CACHE_DIRNAME = ".simulation_cache"
-SIMULATION_CODE_FILES = (
-    "simulation.py",
-    "models.py",
-    "validator_agent.py",
-    "source_agent.py",
-    "distribution.py",
-    "consensus.py",
-    "constants.py",
-)
-
-
-def normalize_for_hash(value):
-    if dataclasses.is_dataclass(value):
-        return normalize_for_hash(dataclasses.asdict(value))
-    if isinstance(value, dict):
-        return {str(k): normalize_for_hash(v) for k, v in sorted(value.items(), key=lambda item: str(item[0]))}
-    if isinstance(value, (list, tuple)):
-        return [normalize_for_hash(v) for v in value]
-    if isinstance(value, set):
-        return sorted(normalize_for_hash(v) for v in value)
-    if isinstance(value, pd.DataFrame):
-        return dataframe_hash(value)
-    if isinstance(value, np.ndarray):
-        return value.tolist()
-    if isinstance(value, np.generic):
-        return value.item()
-    if callable(value):
-        callable_payload = {
-            "name": getattr(value, "__qualname__", getattr(value, "__name__", type(value).__name__)),
-        }
-        code = getattr(value, "__code__", None)
-        if code is not None:
-            callable_payload["code"] = {
-                "co_code": code.co_code.hex(),
-                "co_consts": normalize_for_hash(code.co_consts),
-                "co_names": list(code.co_names),
-                "co_varnames": list(code.co_varnames),
-            }
-        defaults = getattr(value, "__defaults__", None)
-        if defaults is not None:
-            callable_payload["defaults"] = normalize_for_hash(defaults)
-        closure = getattr(value, "__closure__", None)
-        if closure:
-            callable_payload["closure"] = [
-                normalize_for_hash(cell.cell_contents) for cell in closure
-            ]
-        return {"callable": callable_payload}
-    if hasattr(value, "name") and hasattr(value, "value"):
-        return {"enum": value.__class__.__name__, "name": value.name}
-    return value
-
-
-def dataframe_hash(df):
-    hasher = hashlib.sha256()
-    hasher.update(json.dumps(list(df.columns)).encode("utf-8"))
-    hasher.update(json.dumps([str(dtype) for dtype in df.dtypes]).encode("utf-8"))
-    row_hashes = pd.util.hash_pandas_object(df, index=True, categorize=True).to_numpy(
-        dtype=np.uint64
-    )
-    hasher.update(row_hashes.tobytes())
-    return hasher.hexdigest()
-
-
-def file_sha256(path):
-    hasher = hashlib.sha256()
-    with open(path, "rb") as file:
-        for chunk in iter(lambda: file.read(1024 * 1024), b""):
-            hasher.update(chunk)
-    return hasher.hexdigest()
-
-
-def compute_simulation_cache_key(cache_context):
-    normalized = normalize_for_hash(cache_context)
-    encoded = json.dumps(normalized, sort_keys=True, separators=(",", ":")).encode(
-        "utf-8"
-    )
-    return hashlib.sha256(encoded).hexdigest()
-
-
-def copy_directory_contents(source_dir, destination_dir, exclude_names=None):
-    exclude_names = set(exclude_names or [])
-    os.makedirs(destination_dir, exist_ok=True)
-    for entry in os.listdir(source_dir):
-        if entry in exclude_names:
-            continue
-        source_path = os.path.join(source_dir, entry)
-        destination_path = os.path.join(destination_dir, entry)
-        if os.path.isdir(source_path):
-            shutil.copytree(source_path, destination_path, dirs_exist_ok=True)
-        else:
-            shutil.copy2(source_path, destination_path)
-
-
-def build_export_payloads(model_standard):
-    avg_mev_series = [
-        slot["Average_MEV_Earned"] for slot in model_standard.slot_model_history
-    ]
-    supermaj_series = [
-        slot["Supermajority_Success_Rate"] for slot in model_standard.slot_model_history
-    ]
-    failed_block_proposals = [
-        slot["Failed_Block_Proposals"] for slot in model_standard.slot_model_history
-    ]
-    utility_increase_series = [
-        slot["Utility_Increase"] for slot in model_standard.slot_model_history
-    ]
-
-    mev_by_slot = list(getattr(model_standard, "slot_mev_by_slot", []))
-    estimated_mev_by_slot = list(getattr(model_standard, "slot_estimated_mev_by_slot", []))
-    attest_by_slot = list(getattr(model_standard, "slot_attest_by_slot", []))
-    proposal_time_by_slot = list(getattr(model_standard, "slot_proposal_time_by_slot", []))
-    proposal_time_avg = list(getattr(model_standard, "slot_proposal_time_avg", []))
-    attestation_sum = list(getattr(model_standard, "slot_attestation_sum", []))
-    region_counter_per_slot = dict(getattr(model_standard, "slot_region_counter_per_slot", {}))
-    top_regions_final = list(getattr(model_standard, "top_regions_final", []))
-
-    return {
-        "avg_mev": avg_mev_series,
-        "supermajority_success": supermaj_series,
-        "failed_block_proposals": failed_block_proposals,
-        "utility_increase": utility_increase_series,
-        "mev_by_slot": mev_by_slot,
-        "estimated_mev_by_slot": estimated_mev_by_slot,
-        "attest_by_slot": attest_by_slot,
-        "proposal_time_by_slot": proposal_time_by_slot,
-        "proposal_time_avg": proposal_time_avg,
-        "attestation_sum": attestation_sum,
-        "proposer_strategy_and_mev": list(model_standard.slot_proposer_history),
-        "region_counter_per_slot": region_counter_per_slot,
-        "top_regions_final": top_regions_final,
-    }
-
-
-_CONTINENT_RULES = (
-    ("northamerica-", "North America"),
-    ("us-", "North America"),
-    ("southamerica-", "South America"),
-    ("europe-", "Europe"),
-    ("asia-", "Asia"),
-    ("australia-", "Oceania"),
-    ("africa-", "Africa"),
-    ("me-", "Middle East"),
-)
-
-
-def to_continent(region_name):
-    normalized = str(region_name or "").strip().lower()
-    for prefix, continent in _CONTINENT_RULES:
-        if normalized.startswith(prefix):
-            return continent
-    return "Other"
-
-
-def gini_coefficient(values):
-    series = np.asarray(values, dtype=float)
-    if series.size == 0:
-        return 0.0
-    series = np.clip(series, a_min=0.0, a_max=None)
-    total = float(series.sum())
-    if total <= 0:
-        return 0.0
-    sorted_values = np.sort(series)
-    n = sorted_values.size
-    weighted_sum = float(np.sum((np.arange(1, n + 1) * sorted_values)))
-    return float((2 * weighted_sum) / (n * total) - (n + 1) / n)
-
-
-def hhi_index(values):
-    series = np.asarray(values, dtype=float)
-    total = float(series.sum())
-    if total <= 0:
-        return 0.0
-    shares = series / total
-    return float(np.sum(shares ** 2))
-
-
-def liveness_coefficient(values):
-    series = np.asarray(values, dtype=float)
-    non_zero = int(np.count_nonzero(series > 0))
-    total = int(series.size)
-    if total == 0:
-        return 0.0
-    return float(non_zero / total)
-
-
-def build_paper_geography_metrics(region_counts_per_slot, region_profits_df):
-    known_continents = tuple(dict.fromkeys(continent for _, continent in _CONTINENT_RULES))
-
-    gini_hist = []
-    hhi_hist = []
-    liveness_hist = []
-
-    slot_keys = sorted(
-        region_counts_per_slot.keys(),
-        key=lambda value: int(value) if str(value).isdigit() else str(value),
-    )
-    for slot_key in slot_keys:
-        raw_counts = region_counts_per_slot.get(slot_key, {})
-        continent_counts = Counter({continent: 0 for continent in known_continents})
-        if isinstance(raw_counts, dict):
-            for region_name, count in raw_counts.items():
-                continent_counts[to_continent(region_name)] += int(count)
-
-        values = [continent_counts.get(continent, 0) for continent in known_continents]
-        gini_hist.append(round(gini_coefficient(values), 6))
-        hhi_hist.append(round(hhi_index(values), 6))
-        liveness_hist.append(round(liveness_coefficient(values), 6))
-
-    profit_variance_hist = []
-    if isinstance(region_profits_df, pd.DataFrame) and not region_profits_df.empty:
-        working = region_profits_df.copy()
-        if {"gcp_region", "mev_offer", "slot"}.issubset(working.columns):
-            region_column = "gcp_region"
-            profit_column = "mev_offer"
-            slot_column = "slot"
-        elif {"Region", "Profit", "Time"}.issubset(working.columns):
-            region_column = "Region"
-            profit_column = "Profit"
-            slot_column = "Time"
-        else:
-            region_column = None
-            profit_column = None
-            slot_column = None
-
-        if region_column and profit_column and slot_column:
-            working["continent"] = working[region_column].map(to_continent)
-            for _, slot_frame in working.groupby(slot_column, sort=True):
-                profit_by_continent = slot_frame.groupby("continent")[profit_column].sum()
-                ordered = np.asarray(
-                    [float(profit_by_continent.get(continent, 0.0)) for continent in known_continents],
-                    dtype=float,
-                )
-                mean = float(np.mean(ordered)) if ordered.size else 0.0
-                cv = 0.0 if mean == 0.0 else float(np.std(ordered) / mean)
-                profit_variance_hist.append(round(cv, 6))
-
-    target_length = len(gini_hist)
-    if len(profit_variance_hist) < target_length:
-        last_value = profit_variance_hist[-1] if profit_variance_hist else 0.0
-        profit_variance_hist.extend([last_value] * (target_length - len(profit_variance_hist)))
-    elif len(profit_variance_hist) > target_length:
-        profit_variance_hist = profit_variance_hist[:target_length]
-
-    return {
-        "gini": gini_hist,
-        "hhi": hhi_hist,
-        "liveness": liveness_hist,
-        "profit_variance": profit_variance_hist,
-    }
 
 
 # --- Simulation Initialization Functions ---
@@ -284,7 +29,7 @@ def load_simulation_config(config_file_path):
     try:
         with open(config_file_path, "r", encoding="utf-8") as file:
             config = yaml.safe_load(file)
-        print(f"Successfully loaded configuration from: {config_file_path}")
+        print(f"✅ Successfully loaded configuration from: {config_file_path}")
         return config
     except yaml.YAMLError as e:
         raise ValueError(f"Error parsing YAML file: {e}")
@@ -398,17 +143,12 @@ def simulation(
     time_window,  # Time window for migration checks
     fast_mode=False,  # Fast mode for latency computation
     cost=0.0001,  # Cost for migration, default to 0.0001
-    latency_std_dev_ratio=0.5,
-    seed=DEFAULT_SIMULATION_SEED,
-    collect_full_history=False,
-    export_raw_artifacts=True,
-    verbose=False,
     num_proposers_per_slot=1,  # Number of proposers per slot
     proposer_mode="MSP"  # Proposer mode, default to "MSP"
 ):
     # --- Simulation Execution ---
-    random.seed(seed)  # For reproducibility
-    np.random.seed(seed)  # For reproducibility in NumPy operations
+    random.seed(0x06511)  # For reproducibility
+    np.random.seed(0x06511)  # For reproducibility in NumPy operations
 
     # --- Define Simulation Parameters ---
     # Calculate total time steps using values from ConsensusSettings
@@ -442,136 +182,151 @@ def simulation(
         "time_window": time_window,  # Time window for migration checks
         "fast_mode": fast_mode,  # Fast mode for latency computation
         "cost": cost,  # Cost for migration
-        "collect_full_history": collect_full_history,
-        "collect_raw_artifacts": export_raw_artifacts,
-        "verbose": verbose,
         "num_proposers_per_slot": num_proposers_per_slot,
-        "latency_std_dev_ratio": latency_std_dev_ratio,
-        "proposer_mode": proposer_mode,
+        "proposer_mode": proposer_mode
     }
 
     # --- Create and Run the Model ---
     print(f"\n--- Starting MEV-Boost Simulation: {simulation_name} ---")
-    print(f"Simulation seed: {seed}")
     start_time = time.time()
 
-    model_standard = None
-    try:
-        if model == "SSP":
-            model_standard = SingleSourceParadigm(**model_params_standard_nomig)
-        else:
-            model_standard = MultiSourceParadigm(**model_params_standard_nomig)
+    if model == "SSP":
+        model_standard = SingleSourceParadigm(**model_params_standard_nomig)
+    else:
+        model_standard = MultiSourceParadigm(**model_params_standard_nomig)
 
-        while model_standard.steps < TOTAL_TIME_STEPS:
-            model_standard.step()
-            if not model_standard.running:
-                print(
-                    f"Stopping simulation as no validators moved within the time window ({time_window})."
-                )
-                break
-        if model_standard.running:
+    for i in range(TOTAL_TIME_STEPS):
+        model_standard.step()
+        if not model_standard.running:
             print(
-                f"Stopping simulation after reaching the maximum time steps: {TOTAL_TIME_STEPS}."
+                f"Stopping simulation as no validators moved within the time window ({time_window})."
             )
-
-        print(f"Simulation completed in {time.time() - start_time:.2f} seconds.")
-
-        # --- Final Analysis & Plotting ---
-        print("\n--- Final Results Summary ---")
-        print(f"Total Slots: {model_standard.current_slot_idx + 1}")
-        print(f"Total MEV Earned: {model_standard.total_mev_earned:.4f} ETH")
-        completed_slots = max(model_standard.current_slot_idx + 1, 1)
+            break
+    
+    if model_standard.running:
         print(
-            f"Avg MEV Earned per Slot: {model_standard.total_mev_earned / completed_slots:.4f} ETH"
+            f"Stopping simulation after reaching the maximum time steps: {TOTAL_TIME_STEPS}."
         )
 
-        # profiles:
-        for profiles, output_name in [
-            (relay_profiles, "relay_names.json"),
-            (signal_profiles, "signal_names.json"),
-        ]:
-            names = [(profile["unique_id"], profile["gcp_region"]) for profile in profiles]
-            with open(f"{output_folder}/{output_name}", "w") as f:
-                json.dump(names, f)
+    print(f"Simulation completed in {time.time() - start_time:.2f} seconds.")
 
-        export_payloads = build_export_payloads(model_standard)
-        gcp_region_profits = pd.DataFrame(model_standard.region_profits)
-        gcp_region_profits.to_csv(f"{output_folder}/region_profits.csv", index=False)
+    # --- Final Analysis & Plotting ---
+    print("\n--- Final Results Summary ---")
+    # `dir` already holds the specific output path for this simulation run
 
-        with open(f"{output_folder}/avg_mev.json", "w") as f:
-            json.dump(export_payloads["avg_mev"], f)
+    print(f"Total Slots: {model_standard.current_slot_idx + 1}")
+    print(f"Total MEV Earned: {model_standard.total_mev_earned:.4f} ETH")
+    print(
+        f"Avg MEV Earned per Slot: {model_standard.total_mev_earned / (model_standard.current_slot_idx):.4f} ETH"
+    )
+    model_data = model_standard.datacollector.get_model_vars_dataframe()
 
-        with open(f"{output_folder}/supermajority_success.json", "w") as f:
-            json.dump(export_payloads["supermajority_success"], f)
-        with open(f"{output_folder}/failed_block_proposals.json", "w") as f:
-            json.dump(export_payloads["failed_block_proposals"], f)
+    print("\n--- Collected Model Data ---")
+    print(model_data.head())
+    print(model_data.tail())
 
-        with open(f"{output_folder}/utility_increase.json", "w") as f:
-            json.dump(export_payloads["utility_increase"], f)
+    # profiles:
+    for profiles, output_name in [
+        (relay_profiles, "relay_names.json"),
+        (signal_profiles, "signal_names.json"),
+    ]:
+        names = [(profile["unique_id"], profile["gcp_region"]) for profile in profiles]
+        with open(f"{output_folder}/{output_name}", "w") as f:
+            json.dump(names, f)
 
-        action_reasons = model_standard.action_reasons
-        action_reasons_df = pd.DataFrame(
-            action_reasons, columns=["Action_Reason", "Previous_Region", "New_Region"]
-        )
-        action_reasons_df.to_csv(f"{output_folder}/action_reasons.csv", index=False)
+    avg_mev_series = model_data["Average_MEV_Earned"].tolist()
+    supermaj_series = model_data["Supermajority_Success_Rate"].tolist()
+    failed_block_proposals = model_data["Failed_Block_Proposals"].tolist()
+    utility_increase_series = model_data["Utility_Increase"].tolist()
 
-        with open(f"{output_folder}/proposal_time_avg.json", "w") as f:
-            json.dump(export_payloads["proposal_time_avg"], f)
-        with open(f"{output_folder}/attestation_sum.json", "w") as f:
-            json.dump(export_payloads["attestation_sum"], f)
-        with open(f"{output_folder}/proposer_strategy_and_mev.json", "w") as f:
-            json.dump(export_payloads["proposer_strategy_and_mev"], f)
-        with open(f"{output_folder}/top_regions_final.json", "w") as f:
-            json.dump(export_payloads["top_regions_final"], f)
-        with open(f"{output_folder}/paper_geography_metrics.json", "w") as f:
-            json.dump(
-                build_paper_geography_metrics(
-                    export_payloads["region_counter_per_slot"],
-                    gcp_region_profits,
-                ),
-                f,
-            )
-        with open(f"{output_folder}/region_counter_per_slot.json", "w") as f:
-            json.dump(export_payloads["region_counter_per_slot"], f)
+    gcp_region_profits = pd.DataFrame(model_standard.region_profits)
+    gcp_region_profits.to_csv(f"{output_folder}/region_profits.csv", index=False)
 
-        if export_raw_artifacts:
-            with open(f"{output_folder}/mev_by_slot.json", "w") as f:
-                json.dump(export_payloads["mev_by_slot"], f)
-            with open(f"{output_folder}/estimated_mev_by_slot.json", "w") as f:
-                json.dump(export_payloads["estimated_mev_by_slot"], f)
-            with open(f"{output_folder}/attest_by_slot.json", "w") as f:
-                json.dump(export_payloads["attest_by_slot"], f)
-            with open(f"{output_folder}/proposal_time_by_slot.json", "w") as f:
-                json.dump(export_payloads["proposal_time_by_slot"], f)
+    with open(f"{output_folder}/avg_mev.json", "w") as f:
+        json.dump(avg_mev_series, f)
 
-        summary = {
-            "simulation_name": simulation_name,
-            "seed": seed,
-            "model": model,
-            "latency_std_dev_ratio": latency_std_dev_ratio,
-            "proposer_mode": proposer_mode,
-            "num_proposers_per_slot": num_proposers_per_slot,
-            "total_slots": model_standard.current_slot_idx + 1,
-            "total_mev_earned": model_standard.total_mev_earned,
-            "avg_mev_per_slot": (
-                model_standard.total_mev_earned / max(model_standard.current_slot_idx + 1, 1)
-            ),
-            "failed_block_proposals_total": model_standard.failed_block_proposals,
-        }
-        with open(f"{output_folder}/summary.json", "w") as f:
-            json.dump(summary, f)
+    with open(f"{output_folder}/supermajority_success.json", "w") as f:
+        json.dump(supermaj_series, f)
 
-        print("Saved data in JSON files in the output directory.")
-        print("Information Sources:")
-        if model == "SSP":
-            print("Relays:")
-            print("\n".join([f"{i['unique_id']} ({i['gcp_region']})" for i in relay_profiles]))
-        else:
-            print("Signals:")
-            print("\n".join([f"{r['unique_id']} ({r['gcp_region']})" for r in signal_profiles]))
-    finally:
-        if model_standard is not None:
-            model_standard.close()
+    with open(f"{output_folder}/failed_block_proposals.json", "w") as f:
+        json.dump(failed_block_proposals, f)
+
+    with open(f"{output_folder}/utility_increase.json", "w") as f:
+        json.dump(utility_increase_series, f)
+
+    action_reasons = model_standard.action_reasons
+    action_reasons_df = pd.DataFrame(
+        action_reasons, columns=["Action_Reason", "Previous_Region", "New_Region"]
+    )
+    action_reasons_df.to_csv(f"{output_folder}/action_reasons.csv", index=False)
+
+    agent_data = model_standard.datacollector.get_agent_vars_dataframe()
+
+    print("\n--- Agent Data Collected ---")
+    print("DataFrame Head:")
+    print(agent_data.head())
+
+    print("\nDataFrame Tail:")
+    print(agent_data.tail())
+
+    print("\nDataFrame Info:")
+    agent_data.info()
+    if isinstance(agent_data.index, pd.MultiIndex):
+        agent_data = agent_data.reset_index()
+
+    validator_agent_data = agent_data[(agent_data["Role"] != "relay_agent") & (agent_data["Role"] != "signal_agent")].reindex()
+    
+    # Group by slot and collect lists of per-agent values:
+    mev_by_slot = (
+        validator_agent_data.groupby("Slot")["MEV_Captured_Slot"].apply(list).tolist()
+    )
+    estimated_mev_by_slot = (
+        validator_agent_data.groupby("Slot")["Estimated_Profit"].apply(list).tolist()
+    )
+    attest_by_slot = (
+        validator_agent_data.groupby("Slot")["Attestation_Rate"].apply(list).tolist()
+    )
+    proposal_time_by_slot = (
+        validator_agent_data.groupby("Slot")["Proposal Time"].apply(list).tolist()
+    )
+
+    latest_steps = (
+        validator_agent_data.sort_values("Step")
+        .groupby(["Slot", "AgentID"], as_index=False)
+        .last()
+    )
+    region_counter_per_slot = defaultdict(list)
+    for slot, slot_df in latest_steps.groupby("Slot"):
+        region_counts = Counter(slot_df["GCP_Region"])
+        region_counter_per_slot[int(slot)] = region_counts.most_common()
+
+    # Proposer data
+    proposer_data = agent_data[agent_data["Role"] == "proposer"]
+    proposer_strategy_and_mev = proposer_data[
+        ["Slot", "Location_Strategy", "MEV_Captured_Slot"]
+    ].to_dict(orient="records")
+
+    with open(f"{output_folder}/mev_by_slot.json", "w") as f:
+        json.dump(mev_by_slot, f)
+    with open(f"{output_folder}/estimated_mev_by_slot.json", "w") as f:
+        json.dump(estimated_mev_by_slot, f)
+    with open(f"{output_folder}/attest_by_slot.json", "w") as f:
+        json.dump(attest_by_slot, f)
+    with open(f"{output_folder}/proposal_time_by_slot.json", "w") as f:
+        json.dump(proposal_time_by_slot, f)
+    with open(f"{output_folder}/proposer_strategy_and_mev.json", "w") as f:
+        json.dump(proposer_strategy_and_mev, f)
+    with open(f"{output_folder}/region_counter_per_slot.json", "w") as f:
+        json.dump(region_counter_per_slot, f)
+
+    print("Saved data in JSON files in the output directory.")
+    print("Information Sources:")
+    if model == "SSP":
+        print("Relays:")
+        print("\n".join([f"{i['unique_id']} ({i['gcp_region']})" for i in relay_profiles]))
+    else:
+        print("Signals:")
+        print("\n".join([f"{r['unique_id']} ({r['gcp_region']})" for r in signal_profiles]))
 
 
 if __name__ == "__main__":
@@ -629,6 +384,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--fast",
+        type=bool,
         default=False,
         action=argparse.BooleanOptionalAction,
         help="Enable fast mode for latency computation (default: False)",
@@ -666,30 +422,6 @@ if __name__ == "__main__":
         help="Cutoff time for attestations in milliseconds (default: 4000)",
     )
     parser.add_argument(
-        "--seed",
-        type=int,
-        default=None,
-        help=f"Random seed for the simulation (default: YAML seed or {DEFAULT_SIMULATION_SEED})",
-    )
-    parser.add_argument(
-        "--full-history",
-        default=False,
-        action=argparse.BooleanOptionalAction,
-        help="Enable Mesa DataCollector history in addition to the lightweight slot summaries (default: False)",
-    )
-    parser.add_argument(
-        "--cache-results",
-        default=True,
-        action=argparse.BooleanOptionalAction,
-        help="Reuse cached simulation outputs when the inputs, seed, and code version match (default: True)",
-    )
-    parser.add_argument(
-        "--verbose",
-        default=False,
-        action=argparse.BooleanOptionalAction,
-        help="Enable verbose slot and migration logging (default: False)",
-    )
-    parser.add_argument(
         "--num_proposers_per_slot",
         type=int,
         default=None,
@@ -697,19 +429,12 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--proposer-mode",
         "--proposer_mode",
         type=str,
-        default=None,
+        default="MSP",
         choices=["MSP", "MCP"],
         help="Proposer mode: MSP (sum signals) or MCP (choose best signal). "
              "(default: MSP)",
-    )
-    parser.add_argument(
-        "--latency-std-dev-ratio",
-        type=float,
-        default=None,
-        help="Latency sampling standard deviation as a fraction of mean latency (default: YAML value or 0.5)",
     )
 
     args = parser.parse_args()
@@ -745,14 +470,6 @@ if __name__ == "__main__":
 
         # cost for migration
         cost = args.cost if args.cost is not None else config.get("migration_cost", 0.0001)
-        seed = args.seed if args.seed is not None else config.get("seed", DEFAULT_SIMULATION_SEED)
-        latency_std_dev_ratio = (
-            args.latency_std_dev_ratio
-            if args.latency_std_dev_ratio is not None
-            else config.get("latency_std_dev_ratio", 0.5)
-        )
-        if latency_std_dev_ratio < 0:
-            raise ValueError("latency_std_dev_ratio must be non-negative")
 
         # proposers per slot
         num_proposers_per_slot = args.num_proposers_per_slot if args.num_proposers_per_slot is not None else config.get("num_proposers_per_slot", 1)
@@ -763,7 +480,7 @@ if __name__ == "__main__":
         proposer_mode = (
             args.proposer_mode
             if args.proposer_mode is not None
-            else config.get("proposer_mode", "MSP")
+            else config.get("proposer_mode", None)
         )
 
         if num_proposers_per_slot > 1 and proposer_mode == "MSP":
@@ -772,16 +489,10 @@ if __name__ == "__main__":
         if args.output_dir == "default":
             output_folder = os.path.join(
                 output_folder,
-                f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{args.gamma}_delta_{args.delta}_cutoff_{args.cutoff}_seed_{seed}"
-                f"{f'_latstd_{latency_std_dev_ratio}' if latency_std_dev_ratio != 0.5 else ''}"
-                f"{f'_proposers_{num_proposers_per_slot}' if num_proposers_per_slot != 1 else ''}"
-                f"{f'_mode_{proposer_mode.lower()}' if proposer_mode != 'MSP' else ''}",
+                f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{args.gamma}_delta_{args.delta}_cutoff_{args.cutoff}",
             )
         else:
             output_folder = args.output_dir
-
-        random.seed(seed)
-        np.random.seed(seed)
 
         gcp_regions = pd.read_csv(os.path.join(input_folder, "gcp_regions.csv"))
         gcp_latency = pd.read_csv(os.path.join(input_folder, "gcp_latency.csv"))
@@ -797,7 +508,7 @@ if __name__ == "__main__":
         validators = pd.read_csv(os.path.join(input_folder, "validators.csv"))
         # Sample validators if the CSV has more than the configured number
         if len(validators) > num_validators:
-            validators = validators.sample(n=num_validators, random_state=seed)
+            validators = validators.sample(n=num_validators, random_state=42)
         else:
             print(
                 f"Using all {len(validators)} validators from CSV as it's less than configured {num_validators}."
@@ -832,59 +543,10 @@ if __name__ == "__main__":
             "location_strategies", [{"type": "best_relay"}]
         )
 
-        cache_context = {
-            "cache_version": SIMULATION_CACHE_VERSION,
-            "model": model,
-            "num_slots": num_slots,
-            "num_validators": num_validators,
-            "distribution": args.distribution,
-            "info_distribution": args.info_distribution,
-            "time_window": time_window,
-            "fast_mode": fast_mode,
-            "cost": cost,
-            "seed": seed,
-            "latency_std_dev_ratio": latency_std_dev_ratio,
-            "num_proposers_per_slot": num_proposers_per_slot,
-            "proposer_mode": proposer_mode,
-            "consensus_settings": vars(consensus_settings),
-            "timing_strategies": timing_strategies,
-            "location_strategies": location_strategies,
-            "config": {
-                key: value
-                for key, value in config.items()
-                if key != "output_folder"
-            },
-            "input_hashes": {
-                "gcp_regions.csv": file_sha256(os.path.join(input_folder, "gcp_regions.csv")),
-                "gcp_latency.csv": file_sha256(os.path.join(input_folder, "gcp_latency.csv")),
-            },
-            "code_hashes": {
-                path: file_sha256(path) for path in SIMULATION_CODE_FILES
-            },
-        }
-        if args.distribution == "heterogeneous":
-            cache_context["input_hashes"]["validators.csv"] = file_sha256(
-                os.path.join(input_folder, "validators.csv")
-            )
-
-        cache_dir = os.path.join(
-            SIMULATION_CACHE_DIRNAME,
-            compute_simulation_cache_key(cache_context),
-        )
-
         # Ensure the output directory exists
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
             print(f"Created base output directory: {output_folder}")
-
-        if args.cache_results and os.path.isdir(cache_dir):
-            print(f"Using cached simulation outputs from: {cache_dir}")
-            copy_directory_contents(
-                cache_dir,
-                output_folder,
-                exclude_names={"cache_manifest.json"},
-            )
-            raise SystemExit(0)
 
         # Run the simulation with parameters from YAML and CSVs
         simulation(
@@ -904,27 +566,13 @@ if __name__ == "__main__":
             time_window=time_window,
             fast_mode=fast_mode,
             cost=cost,
-            latency_std_dev_ratio=latency_std_dev_ratio,
-            seed=seed,
-            collect_full_history=args.full_history,
-            verbose=args.verbose,
             num_proposers_per_slot=num_proposers_per_slot,
             proposer_mode=proposer_mode
         )
 
-        if args.cache_results:
-            os.makedirs(cache_dir, exist_ok=True)
-            copy_directory_contents(output_folder, cache_dir)
-            with open(os.path.join(cache_dir, "cache_manifest.json"), "w", encoding="utf-8") as f:
-                json.dump(cache_context, f, indent=2)
-
     except (FileNotFoundError, ValueError, RuntimeError) as e:
         traceback.print_exc()
-        print(f"\nFatal error during simulation setup or execution: {e}")
-        raise SystemExit(1) from e
-    except SystemExit:
-        raise
+        print(f"\n❌ Fatal error during simulation setup or execution: {e}")
     except Exception as e:
         traceback.print_exc()
-        print(f"\nAn unexpected error occurred: {e}")
-        raise SystemExit(1) from e
+        print(f"\n❌ An unexpected error occurred: {e}")
