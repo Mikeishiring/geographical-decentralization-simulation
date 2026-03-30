@@ -129,7 +129,7 @@ export function DeepDivePage({ onTabChange }: { onTabChange?: (tab: TabId) => vo
         </a>
         {onTabChange && (
           <button
-            onClick={() => onTabChange('simulation')}
+            onClick={() => onTabChange('results')}
             className="rounded-lg border border-border-subtle bg-white px-4 py-3 text-left transition-colors hover:border-border-hover"
           >
             <div className="text-xs text-muted">Canonical results</div>

@@ -357,9 +357,9 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
 
             <div className="mt-5 space-y-2 border-t border-border-subtle pt-4">
               <div className="text-xs text-muted">Canonical artifacts</div>
-              {onTabChange && (
+              {_onTabChange && (
                 <button
-                  onClick={() => onTabChange('simulation')}
+                  onClick={() => _onTabChange('results')}
                   className="flex w-full items-center justify-between rounded-md border border-border-subtle px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
                 >
                   <span>Open published simulation results</span>
