@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowUpRight, ArrowLeft, ArrowRight, Eye, Link2, Quote, ChevronDown, LayoutList, FileText, BookOpen, Check } from 'lucide-react'
+import { ArrowUpRight, ArrowLeft, ArrowRight, Eye, Link2, Quote, ChevronDown, ChevronUp, LayoutList, FileText, BookOpen, Check } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { ModeBanner } from '../components/layout/ModeBanner'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY, HOVER_LIFT } from '../lib/theme'
-import { PAPER_METADATA, PAPER_SECTIONS, type PaperSection, type Author } from '../data/paper-sections'
+import { PAPER_METADATA, PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
 import type { TabId } from '../components/layout/TabNav'
 
 interface PaperNarrative {
@@ -22,7 +22,7 @@ const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
       'SSP and MSP expose different latency-critical paths, but both transform regional network position into economic advantage. In SSP, a proposer wants fast access to the best relay while also keeping relay-to-attester propagation tight enough to satisfy the attestation threshold. In MSP, the proposer wants to sit where value from many sources accumulates while still remaining close enough to attesters to finalize in time.',
       'That turns validator placement into a geographic game. The paper frames this as a tension between value capture and quorum reachability, and that framing matters because it explains why the same infrastructure change can help one paradigm and hurt the other.',
     ],
-    pullQuote: 'Editorial interpretation: the mechanism differs, but the pressure is the same — latency becomes an allocation rule for where validators want to live.',
+    pullQuote: 'The mechanism differs, but the pressure is the same: latency becomes an allocation rule for where validators want to live.',
     figureCaption: 'The core comparison is the latency path itself: SSP optimizes a best relay path, while MSP optimizes over many direct information inputs.',
   },
   'simulation-design': {
@@ -31,7 +31,7 @@ const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
       'Validators are agents that repeatedly compare expected rewards across measured cloud regions, then migrate if the gain exceeds switching cost. That design keeps the paper close to a geographic equilibrium story rather than a one-off optimization snapshot.',
       'The costs of that clarity are explicit. MEV is modeled as deterministic and linear in latency, migration cost is fixed, and information is complete. Those assumptions make the engine more interpretable, but the paper is careful to treat them as modeling limits rather than claims about production Ethereum.',
     ],
-    pullQuote: 'Editorial interpretation: this is a paper about structural pressure in the model, not about reproducing every empirical detail of block production.',
+    pullQuote: 'This is a paper about structural pressure, not about reproducing every empirical detail of block production.',
     figureCaption: 'The simulation design is intentionally legible: 40 measured regions, 1,000 validators, and paper-facing runs commonly reported over 10,000 slots under bounded modeling assumptions.',
   },
   'baseline-results': {
@@ -40,43 +40,43 @@ const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
       'MSP moves faster and ends more concentrated in the baseline runs. The paper attributes that to the additive nature of local block building: value can accumulate from many distributed sources, so the optimization landscape rewards locations that sit at the overlap between source proximity and attester reachability.',
       'SSP still centralizes, but the locus is shaped by relay geography and the proposer-relay-attester chain. That makes the final map look different even when the underlying force is still latency-driven concentration.',
     ],
-    pullQuote: 'Editorial interpretation: baseline results matter because they show centralization in the model without needing exotic assumptions.',
+    pullQuote: 'Baseline results matter here because they show centralization without needing exotic assumptions.',
     figureCaption: 'The baseline comparison sets the tone for the rest of the paper: MSP is more aggressive in the default geography, SSP is more path-dependent.',
   },
   'se1-source-placement': {
     lede: 'Infrastructure placement is not a neutral background condition. It changes the shape of the optimization problem itself.',
     paragraphs: [
-      'The result in SE1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm. MSP benefits from aligned source placement because value capture and consensus pressure pull in the same direction.',
+      'The striking result in SE1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm. MSP benefits from aligned source placement because value capture and consensus pressure pull in the same direction.',
       'SSP behaves differently because badly placed relays create a stronger co-location premium. When the relay path is the bottleneck, shaving proposer-relay latency becomes disproportionately valuable, so misalignment can make concentration worse instead of better.',
     ],
-    pullQuote: 'Editorial interpretation: the same geography can be stabilizing in one paradigm and destabilizing in the other.',
+    pullQuote: 'The same geography can be stabilizing in one paradigm and destabilizing in the other.',
     figureCaption: 'SE1 is the cleanest demonstration that the paper is not merely comparing two labels; it is comparing two different latency geometries.',
   },
   'se2-distribution': {
     lede: 'The paper then asks a harder question: what if the system is already geographically unequal before agents start moving?',
     paragraphs: [
       'Using a more realistic validator distribution shifts the interpretation of the results. Once the starting state is already concentrated in the US and Europe, both paradigms converge quickly because the system begins near the eventual attractor.',
-      'This result keeps the narrative bounded. Paradigm choice matters in the model, but initial conditions can dominate. The model is not claiming a single mechanism explains all observed concentration on its own.',
+      'That result is important for the website because it keeps the narrative honest. Paradigm choice matters, but initial conditions can dominate. The model is not claiming a single mechanism explains all observed concentration on its own.',
     ],
-    pullQuote: 'Editorial interpretation: if the system starts centralized, the paradigm mostly changes how the imbalance amplifies, not whether it exists.',
+    pullQuote: 'If the system starts centralized, the paradigm mostly changes how the imbalance amplifies, not whether it exists.',
     figureCaption: 'SE2 reframes the story from "which paradigm centralizes more?" to "how much of the outcome was already baked into the starting distribution?"',
   },
   'se3-joint': {
     lede: 'Joint heterogeneity is where the paper briefly finds something that looks like relief, then carefully refuses to overclaim it.',
     paragraphs: [
       'In the combined heterogeneous case, the temporary dip in concentration appears when SSP starts from today\'s concentrated validator geography and relay placement is poorly connected to that start. That makes the trajectory visually unusual because it is one of the only times the model briefly moves away from concentration rather than further into it.',
-      'But the paper treats that as a temporary artifact of competing geographic pulls, not a recipe for decentralization. That caution matters: the goal is to diagnose pressures, not to manufacture optimistic takeaways.',
+      'But the paper treats that as a temporary artifact of competing geographic pulls, not a recipe for decentralization. That caution is a good editorial anchor for the whole reader experience: the goal is to diagnose pressures, not to manufacture optimistic takeaways.',
     ],
-    pullQuote: 'Editorial interpretation: a temporary dip in Gini is not the same thing as a decentralization mechanism.',
+    pullQuote: 'A temporary dip in Gini is not the same thing as a decentralization mechanism.',
     figureCaption: 'SE3 is best read as a warning against overinterpreting transient trajectories as stable system improvements.',
   },
   'se4a-attestation': {
-    lede: 'SE4a is one of the paper\'s most notable results because it shows the same protocol parameter producing opposite geographic effects across paradigms in the model.',
+    lede: 'SE4a is the paper\'s signature result because it shows the same protocol parameter producing opposite geographic effects across paradigms.',
     paragraphs: [
       'Raising the attestation threshold makes SSP centralize more because the relay path becomes more timing-sensitive. The proposer gains more by clustering tightly around the relay geography that minimizes end-to-end delay.',
       'In MSP, a higher threshold forces a harder compromise between being close to attesters and being close to information sources. Those geographic objectives do not perfectly coincide, so stronger timing pressure can actually disperse the equilibrium rather than compress it.',
     ],
-    pullQuote: 'Editorial interpretation: the most notable result in these simulations is that timing rules are not paradigm-neutral.',
+    pullQuote: 'The most surprising result in the paper is also the most revealing: timing rules are not paradigm-neutral.',
     figureCaption: 'Attestation threshold is where the paper most clearly shows that "faster consensus" and "more centralization" do not move identically in SSP and MSP.',
   },
   'se4b-slots': {
@@ -85,25 +85,25 @@ const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
       'The paper finds that moving to 6-second slots leaves the broad geographic equilibrium largely intact. The same regions remain attractive, and the same concentration tendencies persist.',
       'What changes is reward variance. When the slot is shorter, a fixed latency advantage consumes a bigger fraction of the available timing budget. That raises the penalty for being outside the favored corridors even if the final map does not change dramatically.',
     ],
-    pullQuote: 'Editorial interpretation: in the model, shorter slots amplify inequality faster than they rewrite the geography.',
+    pullQuote: 'Shorter slots amplify inequality faster than they rewrite the geography.',
     figureCaption: 'The slot-time experiment is a reminder that not every protocol change moves the concentration map, but many still change who gets paid.',
   },
   discussion: {
-    lede: 'The discussion section is diagnostic rather than prescriptive, and that restraint is worth preserving.',
+    lede: 'The discussion section is diagnostic rather than prescriptive, and that is the right tone to preserve in the UI.',
     paragraphs: [
       'The paper sketches mitigation directions such as rewarding underrepresented regions, decentralizing relays and sources, or compensating for latency at the protocol layer. But none of these are presented as settled policy recommendations.',
       'That restraint matters. The contribution is to show that geographic concentration is endogenous to the timing structure of the system, not to claim the model has already solved how to counteract it.',
     ],
-    pullQuote: 'Editorial interpretation: the strongest claim is diagnostic — the protocol and infrastructure together create concentration pressure in these simulations.',
+    pullQuote: 'The strongest claim here is about diagnosis: the protocol and infrastructure together create concentration pressure.',
     figureCaption: 'Mitigation ideas are included as design directions, not as recommendations validated by this model.',
   },
   limitations: {
     lede: 'The limitations section is one of the most important parts of the paper because it defines where confidence should stop.',
     paragraphs: [
       'Every simplification in the model trades realism for tractability: cloud-only latency, deterministic MEV, full information, fixed migration cost, and no strategic coalition behavior. Those assumptions make the simulations readable and comparable, but they also bound what can be claimed.',
-      'This section should remain close to the end of the reading flow rather than hidden behind a footnote. It keeps the narrative aligned with the researchers\' intent: truth first, then interpretation.',
+      'For the website, this section should remain close to the end of the reading flow rather than hidden behind a footnote. It keeps the project aligned with the researchers\' intent: truth first, then interpretation.',
     ],
-    pullQuote: 'Editorial interpretation: a good research interface should make the caveats feel structural, not optional.',
+    pullQuote: 'A good research interface should make the caveats feel structural, not optional.',
     figureCaption: 'The limitations list is part of the paper\'s core meaning, not an appendix to ignore.',
   },
 }
@@ -179,6 +179,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
       : PAPER_SECTIONS[0].id
   })
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
+  const [guideOpen, setGuideOpen] = useState(false)
   const focusMode = readerMode === 'focus'
   const argumentMapMode = readerMode === 'argument-map'
   const paperMode = readerMode === 'paper'
@@ -282,106 +283,147 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         tone="editorial"
       />
 
-      {/* ── Two-column layout: content + sticky sidebar ── */}
-      <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_260px]">
+      {/* Paper title hero */}
+      <motion.section
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING_SOFT}
+        className="max-w-4xl"
+      >
+        <h1 className="text-3xl font-medium leading-tight text-text-primary font-serif sm:text-4xl">
+          {PAPER_METADATA.title}
+        </h1>
+        <p className="mt-2 text-sm text-muted">{PAPER_METADATA.citation}</p>
+        <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted font-serif">
+          {PAPER_METADATA.abstract}
+        </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {PAPER_METADATA.keyClaims.map(claim => (
+            <span
+              key={claim}
+              className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-text-primary"
+            >
+              {claim}
+            </span>
+          ))}
+        </div>
+      </motion.section>
 
-        {/* ── Main content column ── */}
-        <div className="min-w-0 space-y-12">
-
-          {/* Paper title hero */}
-          <motion.section
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={SPRING_SOFT}
-          >
-            <h1 className="text-3xl font-medium leading-tight text-text-primary font-serif sm:text-4xl">
-              {PAPER_METADATA.title}
-            </h1>
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-              {PAPER_METADATA.authors.map((author: Author) => (
-                author.url ? (
-                  <a
-                    key={author.name}
-                    href={author.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-accent hover:underline"
-                  >
-                    {author.name}
-                  </a>
-                ) : (
-                  <span key={author.name} className="text-sm text-text-body">{author.name}</span>
-                )
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-muted">arXiv:2509.21475 · 2025</p>
-            <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted font-serif">
-              {PAPER_METADATA.abstract}
-            </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {PAPER_METADATA.keyClaims.map(claim => (
-                <span
-                  key={claim}
-                  className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-text-primary"
+      {/* ── Sticky reading-mode bar ── */}
+      <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-border-subtle sm:-mx-6 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-0.5 rounded-lg border border-border-subtle bg-[#FAFAF8] p-1">
+            {(Object.keys(MODE_META) as ReaderMode[]).map(mode => {
+              const meta = MODE_META[mode]
+              const Icon = meta.icon
+              const isActive = readerMode === mode
+              return (
+                <motion.button
+                  key={mode}
+                  onClick={() => setReaderMode(mode)}
+                  title={meta.detail}
+                  whileTap={{ scale: 0.96 }}
+                  transition={SPRING_SNAPPY}
+                  className={cn(
+                    'relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors',
+                    isActive
+                      ? 'text-text-primary font-medium'
+                      : 'text-muted hover:text-text-primary',
+                  )}
                 >
-                  {claim}
-                </span>
-              ))}
-            </div>
-          </motion.section>
-
-          {/* ── Sticky mode bar (compact, above content) ── */}
-          <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-border-subtle sm:-mx-6 sm:px-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-0.5 rounded-lg border border-border-subtle bg-[#FAFAF8] p-1">
-                {(Object.keys(MODE_META) as ReaderMode[]).map(mode => {
-                  const meta = MODE_META[mode]
-                  const Icon = meta.icon
-                  const isActive = readerMode === mode
-                  return (
-                    <motion.button
-                      key={mode}
-                      onClick={() => setReaderMode(mode)}
-                      title={meta.detail}
-                      whileTap={{ scale: 0.96 }}
+                  {isActive && (
+                    <motion.span
+                      layoutId="mode-pill"
+                      className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-black/[0.04]"
                       transition={SPRING_SNAPPY}
-                      className={cn(
-                        'relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors',
-                        isActive
-                          ? 'text-text-primary font-medium'
-                          : 'text-muted hover:text-text-primary',
-                      )}
-                    >
-                      {isActive && (
-                        <motion.span
-                          layoutId="mode-pill"
-                          className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-black/[0.04]"
-                          transition={SPRING_SNAPPY}
-                        />
-                      )}
-                      <span className="relative flex items-center gap-1.5">
-                        <Icon className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">{meta.label}</span>
-                      </span>
-                    </motion.button>
-                  )
-                })}
-              </div>
-
-              {!argumentMapMode && !paperMode && (
-                <div className="hidden sm:flex items-center gap-2 text-xs text-muted">
-                  <span>{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
-                  <div className="h-1 w-20 overflow-hidden rounded-full bg-[#E8E8E6]">
-                    <motion.div
-                      className="h-full rounded-full bg-accent"
-                      animate={{ width: `${progressPercent}%` }}
-                      transition={SPRING_SOFT}
                     />
+                  )}
+                  <span className="relative flex items-center gap-1.5">
+                    <Icon className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{meta.label}</span>
+                  </span>
+                </motion.button>
+              )
+            })}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {!argumentMapMode && !paperMode && (
+              <div className="hidden sm:flex items-center gap-2 text-xs text-muted">
+                <span>{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
+                <div className="h-1 w-20 overflow-hidden rounded-full bg-[#E8E8E6]">
+                  <motion.div
+                    className="h-full rounded-full bg-accent"
+                    animate={{ width: `${progressPercent}%` }}
+                    transition={SPRING_SOFT}
+                  />
+                </div>
+              </div>
+            )}
+            <button
+              onClick={() => setGuideOpen(prev => !prev)}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors',
+                guideOpen
+                  ? 'border-accent/30 bg-accent/5 text-accent'
+                  : 'border-border-subtle text-muted hover:text-text-primary hover:border-border-hover',
+              )}
+            >
+              {guideOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              Guide
+            </button>
+          </div>
+        </div>
+
+        {/* Collapsible reading guide panel */}
+        <AnimatePresence>
+          {guideOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={SPRING}
+              className="overflow-hidden"
+            >
+              <div className="grid gap-6 pt-4 sm:grid-cols-3">
+                <div>
+                  <div className="text-xs font-medium text-text-primary">Recommended path</div>
+                  <div className="mt-2 space-y-1.5">
+                    {[
+                      { id: 'se4a-attestation', label: 'SE4a attestation threshold' },
+                      { id: 'se2-distribution', label: 'SE2 starting geography' },
+                      { id: 'limitations', label: 'Limitations (truth boundary)' },
+                    ].map((entry, i) => (
+                      <a key={entry.id} href={`#${entry.id}`} onClick={() => setActiveSectionId(entry.id)} className="block text-sm text-muted hover:text-accent transition-colors">
+                        <span className="text-xs text-accent mr-1">{i + 1}.</span> {entry.label}
+                      </a>
+                    ))}
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
+                <div>
+                  <div className="text-xs font-medium text-text-primary">Current mode</div>
+                  <p className="mt-2 text-sm text-muted">{MODE_META[readerMode].detail}</p>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-text-primary">References & artifacts</div>
+                  <div className="mt-2 space-y-1.5">
+                    {PAPER_METADATA.references.map(ref => (
+                      <a key={ref.label} href={ref.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted hover:text-accent transition-colors">
+                        {ref.label} <ArrowUpRight className="h-3 w-3" />
+                      </a>
+                    ))}
+                    {_onTabChange && (
+                      <button onClick={() => _onTabChange('results')} className="flex items-center gap-1.5 text-sm text-muted hover:text-accent transition-colors">
+                        Simulation results <ArrowUpRight className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {argumentMapMode ? (
         /* ── Argument Map View ── */
@@ -557,7 +599,39 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         </motion.div>
       ) : (
 
-      <motion.div key={focusMode ? 'focus' : 'editorial'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}>
+      <motion.div key={focusMode ? 'focus' : 'editorial'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }} className={cn('grid gap-8', focusMode ? 'xl:grid-cols-[minmax(0,1fr)]' : 'xl:grid-cols-[220px_minmax(0,1fr)]')}>
+        {/* TOC sidebar */}
+        {!focusMode && (
+          <aside className="hidden xl:block xl:sticky xl:top-40 xl:self-start">
+          <div className="border border-border-subtle rounded-lg p-4">
+            <span className="text-xs text-muted">Sections</span>
+            <nav className="mt-3 space-y-1">
+              {PAPER_SECTIONS.map(section => (
+                <a
+                  key={section.id}
+                  href={`#${section.id}`}
+                  onClick={() => setActiveSectionId(section.id)}
+                  className={cn(
+                    'block rounded-md px-3 py-2 text-sm transition-colors',
+                    activeSectionId === section.id
+                      ? 'bg-surface-active text-text-primary'
+                      : 'text-muted hover:bg-surface-active hover:text-text-primary',
+                  )}
+                >
+                  <div className={cn(
+                    'text-xs',
+                    activeSectionId === section.id ? 'text-accent' : 'text-muted',
+                  )}>
+                    {section.number}
+                  </div>
+                  <div className="mt-0.5 leading-snug">{section.title}</div>
+                </a>
+              ))}
+            </nav>
+          </div>
+          </aside>
+        )}
+
         <div className="space-y-12">
           {/* Focus mode section indicator */}
           {focusMode && (
@@ -715,149 +789,6 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
       </motion.div>
 
       )}
-
-        </div>{/* end main content column */}
-
-        {/* ── Sticky sidebar ── */}
-        <aside className="hidden xl:block">
-          <div className="sticky top-[7.5rem] space-y-6">
-
-            {/* Section TOC */}
-            {!argumentMapMode && (
-              <nav>
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted">Sections</span>
-                <div className="mt-2 space-y-0.5">
-                  {PAPER_SECTIONS.map(section => (
-                    <a
-                      key={section.id}
-                      href={`#${section.id}`}
-                      onClick={() => setActiveSectionId(section.id)}
-                      className={cn(
-                        'flex items-baseline gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors',
-                        activeSectionId === section.id
-                          ? 'bg-surface-active text-text-primary'
-                          : 'text-muted hover:bg-surface-active hover:text-text-primary',
-                      )}
-                    >
-                      <span className={cn(
-                        'shrink-0 font-mono text-[10px] tabular-nums',
-                        activeSectionId === section.id ? 'text-accent' : 'text-text-faint',
-                      )}>
-                        {section.number}
-                      </span>
-                      <span className="leading-snug">{section.title}</span>
-                    </a>
-                  ))}
-                </div>
-              </nav>
-            )}
-
-            {/* Progress */}
-            {!argumentMapMode && !paperMode && (
-              <div>
-                <div className="flex items-center justify-between text-[10px] text-muted">
-                  <span>{activeSectionIndex + 1} of {PAPER_SECTIONS.length}</span>
-                  <span>{Math.round(progressPercent)}%</span>
-                </div>
-                <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-[#E8E8E6]">
-                  <motion.div
-                    className="h-full rounded-full bg-accent"
-                    animate={{ width: `${progressPercent}%` }}
-                    transition={SPRING_SOFT}
-                  />
-                </div>
-              </div>
-            )}
-
-            <hr className="border-border-subtle" />
-
-            {/* Start with */}
-            <div>
-              <span className="text-[10px] font-medium uppercase tracking-wider text-muted">Start with</span>
-              <div className="mt-2 space-y-2.5">
-                {[
-                  { id: 'se4a-attestation', label: 'SE4a attestation threshold', why: 'The same protocol lever pushes SSP and MSP in opposite geographic directions.' },
-                  { id: 'se2-distribution', label: 'SE2 starting geography', why: 'How much of the result is already baked into the real Ethereum map?' },
-                  { id: 'limitations', label: 'Limitations', why: 'Where the model\'s confidence boundary sits.' },
-                ].map((entry, i) => (
-                  <a
-                    key={entry.id}
-                    href={`#${entry.id}`}
-                    onClick={() => setActiveSectionId(entry.id)}
-                    className="group/start block rounded-md transition-colors"
-                  >
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-[10px] font-mono text-accent">{i + 1}.</span>
-                      <span className="text-xs font-medium text-text-primary group-hover/start:text-accent transition-colors">
-                        {entry.label}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 pl-4 text-[11px] leading-relaxed text-muted">{entry.why}</p>
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            <hr className="border-border-subtle" />
-
-            {/* Authors */}
-            <div>
-              <span className="text-[10px] font-medium uppercase tracking-wider text-muted">Authors</span>
-              <div className="mt-2 space-y-1.5">
-                {PAPER_METADATA.authors.map((author: Author) => (
-                  <div key={author.name} className="flex items-baseline justify-between gap-2">
-                    {author.url ? (
-                      <a
-                        href={author.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-text-primary hover:text-accent transition-colors"
-                      >
-                        {author.name}
-                      </a>
-                    ) : (
-                      <span className="text-xs text-text-primary">{author.name}</span>
-                    )}
-                    {author.role && (
-                      <span className="text-[10px] text-muted truncate">{author.role}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <hr className="border-border-subtle" />
-
-            {/* References */}
-            <div>
-              <span className="text-[10px] font-medium uppercase tracking-wider text-muted">References</span>
-              <div className="mt-2 space-y-1.5">
-                {PAPER_METADATA.references.map(ref => (
-                  <a
-                    key={ref.label}
-                    href={ref.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs text-muted hover:text-accent transition-colors"
-                  >
-                    {ref.label} <ArrowUpRight className="h-3 w-3" />
-                  </a>
-                ))}
-                {_onTabChange && (
-                  <button
-                    onClick={() => _onTabChange('results')}
-                    className="flex items-center gap-1.5 text-xs text-muted hover:text-accent transition-colors"
-                  >
-                    Published results <ArrowUpRight className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-          </div>
-        </aside>
-
-      </div>{/* end two-column grid */}
 
     </div>
   )
