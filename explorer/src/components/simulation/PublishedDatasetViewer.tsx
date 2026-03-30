@@ -517,10 +517,10 @@ function PublishedGeoCard({
 
   return (
     <div className={cn(
-      'overflow-hidden rounded-[1.35rem] border border-rule bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.08),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-[0_24px_56px_rgba(15,23,42,0.08)] transition-all duration-300',
+      'overflow-hidden rounded-[1.35rem] border border-border-subtle bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.08),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-[0_24px_56px_rgba(15,23,42,0.08)] transition-all duration-300',
       focusAreaActive ? 'ring-2 ring-accent/40 shadow-[0_26px_64px_rgba(37,99,235,0.14)]' : '',
     )}>
-      <div className="border-b border-rule px-5 py-4">
+      <div className="border-b border-border-subtle px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-xs text-muted">Current slot geography</div>
@@ -670,7 +670,7 @@ function PublishedGeoCard({
         </div>
 
         <div className="space-y-3">
-          <div className="rounded-xl border border-rule bg-surface-active p-4">
+          <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] p-4">
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Top regions</div>
             <div className="mt-3 space-y-2.5">
               {topRegions.map(region => {
@@ -718,7 +718,7 @@ function PublishedGeoCard({
             </div>
           </div>
 
-          <div className="rounded-xl border border-rule bg-white p-4">
+          <div className="rounded-xl border border-border-subtle bg-white p-4">
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Macro regions</div>
             <div className="mt-3 space-y-2">
               {macroRegionCounts.map(entry => {
@@ -1147,10 +1147,10 @@ export function PublishedDatasetViewer({
   return (
     <div className="space-y-6">
       <div className="lab-stage overflow-hidden">
-        <div className="border-b border-rule px-5 py-4">
+        <div className="border-b border-border-subtle px-5 py-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
-              <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
                 In-app published viewer
               </div>
               <h3 className="mt-3 text-xl font-semibold text-text-primary">
@@ -1178,7 +1178,7 @@ export function PublishedDatasetViewer({
                   const popup = window.open(viewerUrl, '_blank', 'noopener,noreferrer')
                   if (!popup) window.location.assign(viewerUrl)
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-rule bg-white px-3 py-2 text-xs text-text-primary hover:border-border-hover transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary hover:border-border-hover transition-colors"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 Open standalone viewer
@@ -1186,7 +1186,7 @@ export function PublishedDatasetViewer({
               {onClose ? (
                 <button
                   onClick={onClose}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-rule bg-white px-3 py-2 text-xs text-text-primary hover:border-border-hover transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary hover:border-border-hover transition-colors"
                 >
                   <X className="h-3.5 w-3.5" />
                   Hide viewer
@@ -1309,7 +1309,7 @@ export function PublishedDatasetViewer({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button disabled={slotLocked} onClick={() => setPlaying(previous => !previous)} className={cn('inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:border disabled:border-rule disabled:bg-surface-active disabled:text-muted disabled:hover:translate-y-0', playing ? 'bg-accent text-white shadow-[0_16px_30px_rgba(37,99,235,0.18)]' : 'border border-rule bg-white text-text-primary hover:border-border-hover')}>
+            <button disabled={slotLocked} onClick={() => setPlaying(previous => !previous)} className={cn('inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:border disabled:border-border-subtle disabled:bg-surface-active disabled:text-muted disabled:hover:translate-y-0', playing ? 'bg-accent text-white shadow-[0_16px_30px_rgba(37,99,235,0.18)]' : 'border border-border-subtle bg-white text-text-primary hover:border-border-hover')}>
               {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
               {playing ? 'Pause' : 'Play'}
             </button>
@@ -1319,21 +1319,21 @@ export function PublishedDatasetViewer({
                 setSlotLocked(previous => !previous)
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all',
+                'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all hover:-translate-y-0.5',
                 slotLocked
                   ? 'bg-[#0F172A] text-white shadow-[0_16px_30px_rgba(15,23,42,0.16)]'
-                  : 'border border-rule bg-white text-text-primary hover:border-border-hover',
+                  : 'border border-border-subtle bg-white text-text-primary hover:border-border-hover',
               )}
             >
               <Lock className="h-3.5 w-3.5" />
               {slotLocked ? 'Unlock slot' : 'Lock slot'}
             </button>
-            <button onClick={() => { setPlaying(false); setSlotLocked(false); setSlot(0) }} className="inline-flex items-center gap-1.5 rounded-xl border border-rule bg-white px-3.5 py-2.5 text-xs text-text-primary transition-all hover:border-border-hover">
+            <button onClick={() => { setPlaying(false); setSlotLocked(false); setSlot(0) }} className="inline-flex items-center gap-1.5 rounded-xl border border-border-subtle bg-white px-3.5 py-2.5 text-xs text-text-primary transition-all hover:border-border-hover">
               <RotateCcw className="h-3.5 w-3.5" />
               Reset
             </button>
             {[1, 10, 50].map(option => (
-              <button key={option} onClick={() => setStepSize(option as 1 | 10 | 50)} className={cn('rounded-xl border px-3.5 py-2.5 text-xs font-medium transition-all', stepSize === option ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent shadow-[0_12px_24px_rgba(37,99,235,0.08)]' : 'border-rule bg-white text-text-primary hover:border-border-hover')}>
+              <button key={option} onClick={() => setStepSize(option as 1 | 10 | 50)} className={cn('rounded-xl border px-3.5 py-2.5 text-xs font-medium transition-all hover:-translate-y-0.5', stepSize === option ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent shadow-[0_12px_24px_rgba(37,99,235,0.08)]' : 'border-border-subtle bg-white text-text-primary hover:border-border-hover')}>
                 Step {option}
               </button>
             ))}
@@ -1341,7 +1341,7 @@ export function PublishedDatasetViewer({
         </div>
 
         {annotationNotes.length > 0 ? (
-          <div className="mt-4 rounded-[1.15rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,244,240,0.88))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
+          <div className="mt-4 rounded-[1.15rem] border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,244,240,0.88))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Slot note filters</div>
@@ -1351,7 +1351,7 @@ export function PublishedDatasetViewer({
               </div>
               <div className="flex flex-col gap-3 lg:items-end">
                 {focusedNote ? (
-                  <div className="max-w-md rounded-2xl border border-rule bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.05)]">
+                  <div className="max-w-md rounded-2xl border border-border-subtle bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.05)]">
                     <div className="flex flex-wrap items-center gap-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                       <span>{noteIntentLabel(focusedNote.intent)}</span>
                       <span>Focuses {focusAreaLabel(focusedArea ?? 'geography')}</span>
@@ -1371,7 +1371,7 @@ export function PublishedDatasetViewer({
                       setNoteShareStatus('failed')
                     }
                   }}
-                  className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
                   {noteShareStatus === 'copied' ? 'Copied focused note URL' : noteShareStatus === 'failed' ? 'Copy failed' : 'Copy focused note URL'}
                 </button>
@@ -1393,7 +1393,7 @@ export function PublishedDatasetViewer({
                     'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                     activeNoteFilter === filter.id
                       ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
-                      : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                      : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
                   )}
                 >
                   {filter.label} · {filter.count}
@@ -1403,7 +1403,7 @@ export function PublishedDatasetViewer({
           </div>
         ) : null}
 
-        <div className="mt-5 rounded-[1.15rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,244,240,0.9))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
+        <div className="mt-5 rounded-[1.15rem] border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,244,240,0.9))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
             <span className="lab-chip">{slotLocked ? 'Slot locked for annotation' : playing ? 'Autoplay active' : 'Paused for inspection'}</span>
             <span className="lab-chip">Step {stepSize}</span>
@@ -1454,7 +1454,7 @@ export function PublishedDatasetViewer({
           <ChartBlock block={sourceChartBlock} />
           <InsightBlock block={insightBlock} />
           <div className={cn(
-            'rounded-xl border border-rule bg-white px-4 py-4 text-xs text-muted transition-all duration-300',
+            'rounded-xl border border-border-subtle bg-white px-4 py-4 text-xs text-muted transition-all duration-300',
             focusedArea === 'config' ? 'ring-2 ring-accent/35 shadow-[0_18px_36px_rgba(37,99,235,0.1)]' : '',
           )}>
             <div className="flex items-center justify-between gap-3">

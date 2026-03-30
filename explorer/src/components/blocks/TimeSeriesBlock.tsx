@@ -120,7 +120,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
 
   return (
     <div className="lab-panel overflow-hidden rounded-xl">
-      <div className="border-b border-rule px-5 py-4">
+      <div className="border-b border-border-subtle px-5 py-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 className="text-sm font-medium text-text-primary">
@@ -168,7 +168,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
           {latestValues.map((entry, index) => (
             <div
               key={`${entry.label}-${index}`}
-              className="rounded-2xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(246,245,241,0.86))] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]"
+              className="rounded-2xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(246,245,241,0.86))] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]"
             >
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Latest</div>
               <div className="mt-1 text-xs font-medium text-text-primary">{entry.label}</div>
@@ -183,7 +183,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
           {seriesSnapshots.map(snapshot => (
             <div
               key={`snapshot-${snapshot.label}`}
-              className="rounded-2xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,242,238,0.88))] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]"
+              className="rounded-2xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,242,238,0.88))] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]"
             >
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: snapshot.color }} />
@@ -207,7 +207,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
           ))}
         </div>
 
-        <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,245,241,0.9))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,245,241,0.9))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Integrity</div>
             <div className="mt-1 text-sm font-medium text-text-primary">
@@ -220,7 +220,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
           {activeNotePin || hoverSlot != null ? (
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {activeNotePin && activeNoteColor ? (
-                <div className="rounded-xl border border-rule bg-white/94 px-3 py-2 shadow-[0_10px_22px_rgba(15,23,42,0.06)]">
+                <div className="rounded-xl border border-border-subtle bg-white/94 px-3 py-2 shadow-[0_10px_22px_rgba(15,23,42,0.06)]">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: activeNoteColor }} />
                     <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Focused note</span>
@@ -235,7 +235,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 ? hoverReadout.map(point => (
                   <div
                     key={`${point.label}-${point.x}`}
-                    className="rounded-xl border border-rule bg-white/92 px-3 py-2 shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
+                    className="rounded-xl border border-border-subtle bg-white/92 px-3 py-2 shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
                   >
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: point.color }} />
@@ -252,7 +252,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
           ) : null}
         </div>
 
-        <div className="rounded-2xl border border-rule bg-[radial-gradient(circle_at_15%_0%,rgba(59,130,246,0.1),transparent_28%),radial-gradient(circle_at_85%_0%,rgba(194,85,58,0.08),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,242,238,0.84))] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.84)]">
+        <div className="rounded-2xl border border-border-subtle bg-[radial-gradient(circle_at_15%_0%,rgba(59,130,246,0.1),transparent_28%),radial-gradient(circle_at_85%_0%,rgba(194,85,58,0.08),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,242,238,0.84))] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.84)]">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div className="text-[11px] uppercase tracking-[0.18em] text-text-faint">
               Measurement deck

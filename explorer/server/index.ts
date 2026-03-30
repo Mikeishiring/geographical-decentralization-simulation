@@ -320,7 +320,21 @@ interface PublishedReplayViewerSnapshotContext {
 }
 
 type PublishedReplayNoteIntent = 'observation' | 'question' | 'theory' | 'methods'
-type PublishedReplayNoteStatus = 'open' | 'resolved'
+type PublishedReplayNoteStatus =
+  | 'open_question'
+  | 'needs_evidence'
+  | 'challenged'
+  | 'supported'
+  | 'author_addressed'
+type PublishedReplayContributionType = 'claim' | 'question' | 'evidence' | 'counterpoint' | 'method_concern'
+type PublishedReplayCommunityLane = 'author' | 'reviewer' | 'community'
+type PublishedReplayAnnotationScope =
+  | 'exact_slot'
+  | 'time_range'
+  | 'trend'
+  | 'comparison_gap'
+  | 'paper_claim'
+  | 'region_over_time'
 
 interface PublishedReplayNoteReply {
   id: string
@@ -342,6 +356,13 @@ interface PublishedReplayNote {
   audienceMode: 'reader' | 'reviewer' | 'researcher'
   intent: PublishedReplayNoteIntent
   status: PublishedReplayNoteStatus
+  contributionType?: PublishedReplayContributionType | null
+  communityLane?: PublishedReplayCommunityLane | null
+  annotationScope?: PublishedReplayAnnotationScope | null
+  rangeStartSlotIndex?: number | null
+  rangeStartSlotNumber?: number | null
+  rangeEndSlotIndex?: number | null
+  rangeEndSlotNumber?: number | null
   anchorKind?: 'general' | 'region' | 'metric' | 'comparison' | null
   anchorKey?: string | null
   anchorLabel?: string | null
@@ -363,6 +384,14 @@ interface CreatePublishedReplayNoteRequest {
   paperLens?: 'evidence' | 'theory' | 'methods' | null
   audienceMode?: 'reader' | 'reviewer' | 'researcher' | null
   intent?: PublishedReplayNoteIntent | null
+  status?: PublishedReplayNoteStatus | null
+  contributionType?: PublishedReplayContributionType | null
+  communityLane?: PublishedReplayCommunityLane | null
+  annotationScope?: PublishedReplayAnnotationScope | null
+  rangeStartSlotIndex?: number | null
+  rangeStartSlotNumber?: number | null
+  rangeEndSlotIndex?: number | null
+  rangeEndSlotNumber?: number | null
   anchorKind?: 'general' | 'region' | 'metric' | 'comparison' | null
   anchorKey?: string | null
   anchorLabel?: string | null
@@ -405,8 +434,31 @@ const PUBLISHED_REPLAY_NOTE_INTENTS = new Set<PublishedReplayNoteIntent>([
   'methods',
 ])
 const PUBLISHED_REPLAY_NOTE_STATUSES = new Set<PublishedReplayNoteStatus>([
-  'open',
-  'resolved',
+  'open_question',
+  'needs_evidence',
+  'challenged',
+  'supported',
+  'author_addressed',
+])
+const PUBLISHED_REPLAY_CONTRIBUTION_TYPES = new Set<PublishedReplayContributionType>([
+  'claim',
+  'question',
+  'evidence',
+  'counterpoint',
+  'method_concern',
+])
+const PUBLISHED_REPLAY_COMMUNITY_LANES = new Set<PublishedReplayCommunityLane>([
+  'author',
+  'reviewer',
+  'community',
+])
+const PUBLISHED_REPLAY_ANNOTATION_SCOPES = new Set<PublishedReplayAnnotationScope>([
+  'exact_slot',
+  'time_range',
+  'trend',
+  'comparison_gap',
+  'paper_claim',
+  'region_over_time',
 ])
 const PUBLISHED_REPLAY_NOTE_ANCHOR_KINDS = new Set([
   'general',
@@ -417,6 +469,31 @@ const PUBLISHED_REPLAY_NOTE_ANCHOR_KINDS = new Set([
 const publishedReplayNotesStore = new Map<string, PublishedReplayNote[]>()
 const PUBLISHED_REPLAY_NOTES_FILE = path.join(__dirname, 'data', 'published-replay-notes.json')
 let publishedReplayNotesPersistPromise: Promise<void> = Promise.resolve()
+
+function defaultPublishedReplayNoteStatus(
+  contributionType: PublishedReplayContributionType,
+): PublishedReplayNoteStatus {
+  if (contributionType === 'question') return 'open_question'
+  if (contributionType === 'counterpoint') return 'challenged'
+  if (contributionType === 'method_concern') return 'needs_evidence'
+  if (contributionType === 'evidence') return 'supported'
+  return 'open_question'
+}
+
+function defaultPublishedReplayContributionType(
+  intent: PublishedReplayNoteIntent,
+): PublishedReplayContributionType {
+  if (intent === 'question') return 'question'
+  if (intent === 'methods') return 'method_concern'
+  if (intent === 'theory') return 'claim'
+  return 'evidence'
+}
+
+function defaultPublishedReplayCommunityLane(
+  audienceMode: PublishedReplayNote['audienceMode'],
+): PublishedReplayCommunityLane {
+  return audienceMode === 'reviewer' ? 'reviewer' : 'community'
+}
 
 interface PublishedReplayMetrics {
   readonly clusters?: readonly number[]
@@ -3002,6 +3079,22 @@ app.post('/api/published-replay-notes', async (req, res) => {
   const intent = request.intent && PUBLISHED_REPLAY_NOTE_INTENTS.has(request.intent)
     ? request.intent
     : 'observation'
+  const contributionType = request.contributionType && PUBLISHED_REPLAY_CONTRIBUTION_TYPES.has(request.contributionType)
+    ? request.contributionType
+    : defaultPublishedReplayContributionType(intent)
+  const status = request.status && PUBLISHED_REPLAY_NOTE_STATUSES.has(request.status)
+    ? request.status
+    : defaultPublishedReplayNoteStatus(contributionType)
+  const communityLane = request.communityLane && PUBLISHED_REPLAY_COMMUNITY_LANES.has(request.communityLane)
+    ? request.communityLane
+    : defaultPublishedReplayCommunityLane(audienceMode)
+  const annotationScope = request.annotationScope && PUBLISHED_REPLAY_ANNOTATION_SCOPES.has(request.annotationScope)
+    ? request.annotationScope
+    : (request.anchorKind === 'comparison' ? 'comparison_gap' : 'exact_slot')
+  const rangeStartSlotIndex = toNonNegativeInteger(request.rangeStartSlotIndex)
+  const rangeStartSlotNumber = toNonNegativeInteger(request.rangeStartSlotNumber)
+  const rangeEndSlotIndex = toNonNegativeInteger(request.rangeEndSlotIndex)
+  const rangeEndSlotNumber = toNonNegativeInteger(request.rangeEndSlotNumber)
   const anchorKind = request.anchorKind && PUBLISHED_REPLAY_NOTE_ANCHOR_KINDS.has(request.anchorKind)
     ? request.anchorKind
     : 'general'
@@ -3027,7 +3120,14 @@ app.post('/api/published-replay-notes', async (req, res) => {
     paperLens,
     audienceMode,
     intent,
-    status: 'open',
+    status,
+    contributionType,
+    communityLane,
+    annotationScope,
+    rangeStartSlotIndex,
+    rangeStartSlotNumber,
+    rangeEndSlotIndex,
+    rangeEndSlotNumber,
     anchorKind,
     anchorKey: request.anchorKey?.trim() || null,
     anchorLabel: request.anchorLabel?.trim() || null,
