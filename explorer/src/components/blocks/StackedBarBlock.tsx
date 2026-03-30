@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { BLOCK_COLORS, SPRING } from '../../lib/theme'
+import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
 import type { StackedBarBlock as StackedBarBlockType } from '../../types/blocks'
 
 interface StackedBarBlockProps {
@@ -73,7 +73,7 @@ export function StackedBarBlock({ block }: StackedBarBlockProps) {
                       key={series.label}
                       initial={{ width: 0 }}
                       animate={{ width: `${widthPct}%` }}
-                      transition={{ ...SPRING, delay: catIdx * 0.04 + seriesIdx * 0.02 }}
+                      transition={{ ...SPRING_CRISP, delay: catIdx * CHART.stagger + seriesIdx * 0.02 }}
                       className="h-full transition-opacity relative"
                       style={{
                         backgroundColor: seriesColors[seriesIdx],
@@ -83,9 +83,10 @@ export function StackedBarBlock({ block }: StackedBarBlockProps) {
                       onMouseLeave={() => setHoveredBar(null)}
                     >
                       {isHovered && (
-                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap">
-                          <div className="rounded bg-text-primary/90 px-2 py-1 text-[0.625rem] text-white/85 shadow-lg">
-                            {series.label}: {value}{block.unit ? ` ${block.unit}` : ''}
+                        <div className="absolute -top-9 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap">
+                          <div className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-[0.6875rem]" style={{ boxShadow: CHART.tooltipShadow }}>
+                            <span className="text-muted">{series.label}</span>{' '}
+                            <span className="font-semibold tabular-nums text-text-primary">{value}{block.unit ? ` ${block.unit}` : ''}</span>
                           </div>
                         </div>
                       )}
