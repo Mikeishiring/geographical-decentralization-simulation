@@ -97,33 +97,23 @@ export function SimConfigPanel({
 
   return (
     <div className="lab-stage mb-5 p-4">
-      <div className="flex flex-col gap-4 border-b border-rule pb-4 xl:flex-row xl:items-end xl:justify-between">
+      <div className="flex flex-col gap-3 border-b border-rule pb-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl">
-          <div className="lab-section-title">Run Design</div>
-          <div className="mt-2 text-lg font-semibold tracking-tight text-text-primary">
-            Shape the exact scenario before you spend the runtime.
+          <div className="lab-section-title">Bound the exact run</div>
+          <div className="mt-1 text-sm font-medium text-text-primary">
+            Lock a bounded scenario, then spend runtime deliberately.
           </div>
-          <div className="mt-2 text-sm leading-6 text-muted">
-            Keep the exact run narrow, choose the scale deliberately, then use the artifacts to decide whether the result deserves publication.
+          <div className="mt-1 text-xs leading-5 text-muted">
+            Match a paper anchor when you want parity. Stay smaller while probing, then scale up only when the question merits the runtime.
           </div>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[500px]">
-          <div className="lab-option-card px-3 py-3">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Mode</div>
-            <div className="mt-1 text-sm font-medium text-text-primary">{describeParadigm(config.paradigm)}</div>
-            <div className="mt-1 text-xs text-muted">{config.paradigm} exact</div>
-          </div>
-          <div className="lab-option-card px-3 py-3">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Scale</div>
-            <div className="mt-1 text-sm font-medium text-text-primary">{config.validators.toLocaleString()} validators</div>
-            <div className="mt-1 text-xs text-muted">{config.slots.toLocaleString()} slots</div>
-          </div>
-          <div className="lab-option-card px-3 py-3">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Timing</div>
-            <div className="mt-1 text-sm font-medium text-text-primary">gamma {config.attestationThreshold.toFixed(2)}</div>
-            <div className="mt-1 text-xs text-muted">{config.slotTime}s · cutoff {attestationCutoffMs(config.slotTime)} ms</div>
-          </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="lab-chip bg-white/85">{describeParadigm(config.paradigm)}</span>
+          <span className="lab-chip bg-white/85">{config.validators.toLocaleString()} validators</span>
+          <span className="lab-chip bg-white/85">{config.slots.toLocaleString()} slots</span>
+          <span className="lab-chip bg-white/85">gamma {config.attestationThreshold.toFixed(2)}</span>
+          <span className="lab-chip bg-white/85">{config.slotTime}s slots</span>
         </div>
       </div>
 
@@ -430,30 +420,6 @@ export function SimConfigPanel({
 
           <div className="mt-3 max-w-3xl text-[0.6875rem] leading-5 text-muted">
             {paperComparability.detail}
-          </div>
-
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Best for parity</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Match a published scenario</div>
-              <div className="mt-1 text-xs leading-5 text-muted">
-                Start from a paper-aligned preset, keep the paper anchors, then compare against the published results surface.
-              </div>
-            </div>
-            <div className="rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Best for iteration</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Use the fast default</div>
-              <div className="mt-1 text-xs leading-5 text-muted">
-                Stay near `1,000` slots while probing ideas, then scale up only when the question is worth the runtime.
-              </div>
-            </div>
-            <div className="rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Best for sharing</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Publish only after review</div>
-              <div className="mt-1 text-xs leading-5 text-muted">
-                Community notes should summarize what the artifacts show in your own words, not just mirror raw outputs.
-              </div>
-            </div>
           </div>
         </div>
 
