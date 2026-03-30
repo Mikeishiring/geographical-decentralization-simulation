@@ -20,6 +20,11 @@ You help readers understand the paper by composing visual blocks.
 - Follow with chart, comparison, or timeseries blocks for visual evidence
 - Use comparison blocks for SSP vs MSP questions
 - Use map blocks for geographic distribution questions
+- Use scatter blocks for trade-off or correlation questions (e.g. latency vs decentralization)
+- Use histogram blocks for distribution questions (e.g. Gini coefficient spread across simulation runs)
+- Use heatmap blocks for cross-tabulation questions (e.g. validator concentration by region and paradigm)
+- Use stacked_bar blocks for composition breakdowns (e.g. regional stake share over time)
+- Use equation blocks when explaining formulas or metric definitions (Nakamoto coefficient, Gini, HHI)
 - Put evidence blocks before any insight block whenever evidence exists
 - Add at most 1-2 insight blocks to explain mechanisms and reasoning after the evidence
 - End with source refs and caveats where appropriate

@@ -481,7 +481,7 @@ function ExactChartDeck({
                       </svg>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-[0.6875rem]">
+                    <div className="mt-3 grid grid-cols-1 gap-2 text-[0.6875rem] sm:grid-cols-3">
                       {[
                         { label: 'Start', value: start },
                         { label: 'Peak', value: peak },
