@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link2, FileText } from 'lucide-react'
 import { cn } from '../lib/cn'
-import { OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../data/default-blocks'
+import { DEFAULT_BLOCKS, OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../data/default-blocks'
 import { PAPER_SECTIONS } from '../data/paper-sections'
 import { ContributionComposer } from '../components/community/ContributionComposer'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
@@ -27,36 +27,6 @@ const dotColor: Record<string, string> = {
   curated: 'bg-success',
   history: 'bg-warning',
   generated: 'bg-accent',
-}
-
-function FollowUpPrompts({
-  title,
-  prompts,
-  onSelect,
-}: {
-  readonly title: string
-  readonly prompts: readonly string[]
-  readonly onSelect: (query: string) => void
-}) {
-  if (prompts.length === 0) return null
-  return (
-    <div className="mt-6 pt-4 border-t border-rule">
-      <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-2 block">
-        {title}
-      </span>
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-        {prompts.map((query, index) => (
-          <button
-            key={`${query}-${index}`}
-            onClick={() => onSelect(query)}
-            className="text-[0.75rem] text-muted hover:text-accent transition-colors underline underline-offset-2 decoration-rule hover:decoration-accent"
-          >
-            {query}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
 }
 
 const CANONICAL_ENTRY_IDS = ['ssp-vs-msp', 'attestation-threshold', 'initial-distribution', 'policy-implications'] as const
@@ -464,7 +434,7 @@ export function FindingsPage({
         <p className="mt-3 text-sm text-muted max-w-2xl leading-relaxed">
           {showAi || showTopic
             ? interpretationBoundary
-            : 'This paper simulates how validator geography and block-building paradigms (SSP vs MSP) interact to shape centralization in Ethereum. Start from a claim, ask a question, or move into the paper, results, or community notes.'}
+            : 'This paper simulates how validator geography and block-building paradigms (SSP vs MSP) shape centralization in Ethereum. Start from a canonical claim, ask one bounded question, then carry only stronger interpretations into Results or Community.'}
         </p>
         {!showAi && !showTopic && !loading && apiHealthQuery.data && (
           <div className="mt-2 flex items-center gap-1.5 text-[0.6875rem] text-text-faint">
@@ -479,6 +449,54 @@ export function FindingsPage({
         )}
       </div>
 
+      {!showAi && !showTopic && (
+        <div className="mb-6">
+          {paperSectionHint && onTabChange && (
+            <div className="mb-4 rounded-xl border border-accent/20 bg-accent/[0.04] px-4 py-4">
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical section available</div>
+              <div className="mt-1 text-sm font-medium text-text-primary">
+                This link points to {paperSectionHint} in the paper guide.
+              </div>
+              <p className="mt-1 max-w-3xl text-xs leading-5 text-muted">
+                Explore is the right place for claims, questions, and public responses. For the canonical source section tied to this anchor, open the Paper tab.
+              </p>
+              <button
+                onClick={() => onTabChange('paper')}
+                className="arrow-link mt-3"
+              >
+                Open paper section
+              </button>
+            </div>
+          )}
+
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Start here</div>
+              <div className="mt-1 text-sm font-medium text-text-primary">Canonical claims to open first</div>
+            </div>
+            <span className="text-xs text-muted">Read one claim, question it, then move into the paper, results, or public notes only when you need to.</span>
+          </div>
+
+          <div className="stagger-reveal rounded-xl border border-rule bg-white divide-y divide-rule">
+            {canonicalClaimCards.map(card => (
+              <button
+                key={card.id}
+                onClick={() => handleTopicClick(card)}
+                className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
+              >
+                <div className="min-w-0">
+                  <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical claim</span>
+                  <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">{card.title}</div>
+                  <div className="mt-0.5 text-xs leading-5 text-muted">{card.description}</div>
+                </div>
+                <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
+              </button>
+            ))}
+          </div>
+
+        </div>
+      )}
+
       <div className="mb-6">
         <QueryBar
           onSubmit={handleQuery}
@@ -487,49 +505,6 @@ export function FindingsPage({
           disabledReason={queryBarDisabledReason}
         />
       </div>
-
-      {!showAi && !showTopic && (
-        <div className="mb-6">
-          {paperSectionHint && onTabChange && (
-            <div className="mb-4 rounded-xl border border-accent/20 bg-accent/[0.04] px-4 py-3">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical section available</div>
-                  <div className="mt-1 text-sm font-medium text-text-primary">
-                    This link points to {paperSectionHint} in the paper guide.
-                  </div>
-                </div>
-                <button
-                  onClick={() => onTabChange('paper')}
-                  className="arrow-link shrink-0"
-                >
-                  Open paper section
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="mb-3">
-            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Start here</span>
-          </div>
-
-          <div className="rounded-xl border border-rule bg-white divide-y divide-rule">
-            {canonicalClaimCards.map(card => (
-              <button
-                key={card.id}
-                onClick={() => handleTopicClick(card)}
-                className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
-              >
-                <div className="min-w-0">
-                  <div className="text-[0.8125rem] font-medium leading-6 text-text-primary">{card.title}</div>
-                  <div className="mt-0.5 text-xs leading-5 text-muted">{card.description}</div>
-                </div>
-                <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Topic cards */}
       <div className="mb-8">
@@ -547,7 +522,7 @@ export function FindingsPage({
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" role="group" aria-label="Topic cards">
+        <div className="stagger-reveal grid grid-cols-2 sm:grid-cols-4 gap-3" role="group" aria-label="Topic cards">
           {TOPIC_CARDS.map(card => {
             const isActive = activeTopic?.id === card.id && !showAi
             const isDimmed = (activeTopic !== null || showAi) && !isActive
@@ -589,11 +564,11 @@ export function FindingsPage({
 
       {/* Navigation cards — cross-tab wayfinding (default state only) */}
       {!showAi && !showTopic && onTabChange && (
-        <div className="mb-8 rounded-xl border border-rule bg-white divide-y divide-rule">
+        <div className="stagger-reveal mb-8 rounded-xl border border-rule bg-white divide-y divide-rule">
           {([
-            { tab: 'paper' as TabId, eyebrow: 'Read the canonical source', title: 'Open the paper guide', detail: 'Editorial reading guide through the full paper, section by section.' },
-            { tab: 'results' as TabId, eyebrow: 'Inspect or reproduce', title: 'Browse results or run exact scenarios', detail: 'Canonical scenarios plus a fresh simulation runner to test claims against the actual artifacts.' },
-            { tab: 'community' as TabId, eyebrow: 'Respond publicly', title: 'Browse community notes', detail: 'Human-framed notes from paper readings and exact simulation runs.' },
+            { tab: 'paper' as TabId, eyebrow: 'Read the canonical source', title: 'Open the paper guide', detail: 'Go section by section through the paper when you want the exact claim, method, or caveat.' },
+            { tab: 'results' as TabId, eyebrow: 'Inspect evidence', title: 'Open Results', detail: 'Start with the published replay, then open the exact lab only if you need fresh evidence.' },
+            { tab: 'community' as TabId, eyebrow: 'Read public responses', title: 'Browse community notes', detail: 'Human-authored notes layered on top of paper readings and exact simulation runs.' },
           ] as const).map(item => (
             <button
               key={item.tab}
@@ -616,7 +591,7 @@ export function FindingsPage({
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Public responses</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">How other readers framed the evidence</div>
+              <div className="mt-1 text-sm font-medium text-text-primary">How other readers turned evidence into public notes</div>
             </div>
             {onTabChange && (
               <button
@@ -628,7 +603,7 @@ export function FindingsPage({
             )}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="stagger-reveal grid gap-3 md:grid-cols-3">
             {communityPreviewNotes.map(exploration => (
               <button
                 key={exploration.id}
@@ -786,7 +761,25 @@ export function FindingsPage({
               />
             )}
 
-            <FollowUpPrompts title={promptSectionTitle} prompts={aiResponse.followUps} onSelect={handleQuery} />
+            {aiResponse.followUps.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-rule">
+                <span className="text-xs text-muted mb-2 block">
+                  {promptSectionTitle}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {promptOptions.map((query, index) => (
+                    <button
+                      key={`${query}-${index}`}
+                      onClick={() => handleQuery(query)}
+                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                      title={`Ask: ${query}`}
+                    >
+                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </motion.div>
         ) : showTopic && activeTopic ? (
           <motion.div
@@ -821,10 +814,58 @@ export function FindingsPage({
                 })}
               />
             )}
-            <FollowUpPrompts title={promptSectionTitle} prompts={promptOptions} onSelect={handleQuery} />
+            {promptOptions.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-rule">
+                <span className="text-xs text-muted mb-2 block">
+                  {promptSectionTitle}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {promptOptions.map((query, index) => (
+                    <button
+                      key={`${query}-${index}`}
+                      onClick={() => handleQuery(query)}
+                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                      title={`Ask: ${query}`}
+                    >
+                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </motion.div>
-        ) : null}
+        ) : (
+          <motion.div
+            key="default"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={SPRING}
+          >
+            <BlockCanvas blocks={DEFAULT_BLOCKS} />
+            {promptOptions.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-rule">
+                <span className="text-xs text-muted mb-2 block">
+                  {promptSectionTitle}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {promptOptions.map((query, index) => (
+                    <button
+                      key={`${query}-${index}`}
+                      onClick={() => handleQuery(query)}
+                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                      title={`Ask: ${query}`}
+                    >
+                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
       </AnimatePresence>
+
     </div>
   )
 }

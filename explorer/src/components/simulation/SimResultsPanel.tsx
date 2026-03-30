@@ -160,6 +160,139 @@ function buildSparkline(values: readonly number[], width = 220, height = 72): st
   }).join(' ')
 }
 
+function buildArtifactFigureNote(artifact: SimulationArtifact): {
+  readonly title: string
+  readonly detail: string
+} {
+  switch (artifact.name) {
+    case 'paper_geography_metrics.json':
+      return {
+        title: 'Paper-facing concentration figure',
+        detail: 'Use this when checking claims about geography concentration, liveness, or profit variance rather than just final rewards.',
+      }
+    case 'top_regions_final.json':
+      return {
+        title: 'Final-state geography snapshot',
+        detail: 'This is a terminal picture of where validators ended up. Pair it with a trend artifact when you need the migration story.',
+      }
+    case 'avg_mev.json':
+      return {
+        title: 'Reward accumulation trace',
+        detail: 'Read the shape of incentives across the run, not just the endpoint at the final slot.',
+      }
+    case 'supermajority_success.json':
+      return {
+        title: 'Consensus completion trace',
+        detail: 'Use this to see whether the run stabilizes cleanly or degrades over time under the current configuration.',
+      }
+    case 'proposal_time_avg.json':
+      return {
+        title: 'Latency pressure trace',
+        detail: 'Read this as the timing cost of the current geography and source placement, especially when comparing SSP against MSP.',
+      }
+    default:
+      switch (artifact.kind) {
+        case 'map':
+          return {
+            title: 'Spatial state figure',
+            detail: 'Use the map to inspect where the run concentrates geographically, then pair it with timing or reward traces for explanation.',
+          }
+        case 'timeseries':
+          return {
+            title: 'Trend figure',
+            detail: 'Read the slope and inflection points before treating the final value as the story.',
+          }
+        case 'table':
+          return {
+            title: 'Audit figure',
+            detail: 'Use the table for exact values and provenance, then return to a visual artifact when you want pattern recognition.',
+          }
+        default:
+          return {
+            title: 'Supporting evidence figure',
+            detail: 'Treat this artifact as part of the exact record for the run and pair it with the summary cards above when drawing conclusions.',
+          }
+      }
+  }
+}
+
+function buildOverviewBundleNote(bundle: string): {
+  readonly title: string
+  readonly detail: string
+  readonly prompt: string
+} {
+  switch (bundle) {
+    case 'core-outcomes':
+      return {
+        title: 'Outcomes overview',
+        detail: 'Start here when you need the shortest path from exact run to headline outcomes: rewards, consensus completion, and failed proposals.',
+        prompt: 'Ask whether the slope changes, not just whether the final values look good.',
+      }
+    case 'timing-and-attestation':
+      return {
+        title: 'Timing and participation overview',
+        detail: 'Use this bundle to read latency pressure and attestation behavior together before inferring anything about overall robustness.',
+        prompt: 'Check whether timing degradation appears before rewards or concentration move.',
+      }
+    case 'geography-overview':
+      return {
+        title: 'Geography overview',
+        detail: 'This bundle is for where the run ended up spatially and which regions dominate the final state.',
+        prompt: 'Treat this as a final-state picture, then pair it with a trend view if you need the migration story.',
+      }
+    case 'paper-metrics':
+      return {
+        title: 'Paper metrics overview',
+        detail: 'This is the closest bridge from an exact run to the paper-facing geography and concentration frame.',
+        prompt: 'Use this when checking whether the exact run supports or weakens a paper claim.',
+      }
+    default:
+      return {
+        title: 'Overview bundle',
+        detail: 'This bundle groups emitted artifacts into one faster reading surface for the current exact run.',
+        prompt: 'Read the ordering and grouping as navigation aid, not new evidence.',
+      }
+  }
+}
+
+function buildChartFigureNote(series: ExactChartSeries): {
+  readonly title: string
+  readonly detail: string
+} {
+  return buildArtifactFigureNote({
+    name: series.artifactName,
+    label: series.label,
+    kind: series.kind,
+    description: series.description,
+    contentType: 'application/json',
+    bytes: 0,
+    gzipBytes: null,
+    brotliBytes: null,
+    sha256: '',
+    lazy: false,
+    renderable: true,
+  })
+}
+
+function buildInlineFigureBlocks(input: {
+  readonly title: string
+  readonly detail: string
+  readonly prompt: string
+}): readonly Block[] {
+  return [
+    {
+      type: 'insight',
+      title: input.title,
+      text: input.detail,
+      emphasis: 'key-finding',
+    },
+    {
+      type: 'caveat',
+      text: input.prompt,
+    },
+  ]
+}
+
 function ExactChartDeck({
   series,
   loading,
@@ -187,6 +320,7 @@ function ExactChartDeck({
   const focusedPeak = focusedSeries ? Math.max(...focusedSeries.values) : null
   const focusedStart = focusedSeries?.values[0] ?? null
   const focusedDelta = focusedLatest != null && focusedStart != null ? focusedLatest - focusedStart : null
+  const focusedFigureNote = focusedSeries ? buildChartFigureNote(focusedSeries) : null
   const focusedBlock = !focusedSeries || !focusedVisual
     ? null
     : {
@@ -257,73 +391,114 @@ function ExactChartDeck({
               </div>
             </div>
 
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-[0.6875rem] text-muted">
+              <span className="rounded-full border border-rule bg-white px-2 py-0.5">
+                Figure cue
+              </span>
+              <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5">
+                Read as trend
+              </span>
+              <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5">
+                Exact slot ordering preserved
+              </span>
+              <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5">
+                Hover changes posture, not evidence
+              </span>
+            </div>
+
             <TimeSeriesBlock block={focusedBlock} />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            {series.map(entry => {
-              const visual = CHART_VISUALS[entry.artifactName]
-              const latest = entry.values.at(-1) ?? 0
-              const start = entry.values[0] ?? 0
+          <div className="grid gap-3">
+            <aside className="rounded-xl border border-rule bg-white/82 px-4 py-3.5">
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                Chart marginalia
+              </div>
+              {focusedFigureNote ? (
+                <>
+                  <div className="mt-1.5 text-sm font-medium text-text-primary">
+                    {focusedFigureNote.title}
+                  </div>
+                  <div className="mt-1 text-xs leading-5 text-muted">
+                    {focusedFigureNote.detail}
+                  </div>
+                  <div className="mt-3 grid gap-2">
+                    <div className="rounded-lg border border-rule bg-surface-active/80 px-3 py-2 text-[0.75rem] leading-5 text-muted">
+                      Where does the curve bend, flatten, or accelerate?
+                    </div>
+                    <div className="rounded-lg border border-rule bg-surface-active/80 px-3 py-2 text-[0.75rem] leading-5 text-muted">
+                      Does the final value hide any instability earlier in the run?
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </aside>
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              {series.map(entry => {
+                const visual = CHART_VISUALS[entry.artifactName]
+                const latest = entry.values.at(-1) ?? 0
+                const start = entry.values[0] ?? 0
               const peak = Math.max(...entry.values)
               const delta = latest - start
               const sparkline = buildSparkline(entry.values)
               const isFocused = entry.artifactName === focusedSeries.artifactName
               const isPinned = entry.artifactName === pinnedArtifactName
 
-              return (
-                <button
-                  key={entry.artifactName}
-                  onClick={() => setPinnedArtifactName(entry.artifactName)}
-                  onMouseEnter={() => setHoveredArtifactName(entry.artifactName)}
-                  onMouseLeave={() => setHoveredArtifactName(null)}
-                  className={cn(
-                    'group relative overflow-hidden rounded-xl border px-4 py-3 text-left transition-all duration-200 hover:border-border-hover',
-                    isFocused
-                      ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.08),rgba(255,255,255,0.98))] shadow-[0_16px_36px_rgba(37,99,235,0.12)]'
-                      : 'border-rule bg-white/92',
-                  )}
-                  style={{ boxShadow: isFocused ? `0 18px 40px ${visual?.glow ?? 'rgba(37,99,235,0.12)'}` : undefined }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-                        {isPinned ? 'Pinned chart' : isFocused ? 'Previewing now' : 'Hover to preview'}
+                return (
+                  <button
+                    key={entry.artifactName}
+                    onClick={() => setPinnedArtifactName(entry.artifactName)}
+                    onMouseEnter={() => setHoveredArtifactName(entry.artifactName)}
+                    onMouseLeave={() => setHoveredArtifactName(null)}
+                    className={cn(
+                      'group relative overflow-hidden rounded-xl border px-4 py-3 text-left transition-all duration-200 hover:border-border-hover',
+                      isFocused
+                        ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.08),rgba(255,255,255,0.98))] shadow-[0_16px_36px_rgba(37,99,235,0.12)]'
+                        : 'border-rule bg-white/92',
+                    )}
+                    style={{ boxShadow: isFocused ? `0 18px 40px ${visual?.glow ?? 'rgba(37,99,235,0.12)'}` : undefined }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                          {isPinned ? 'Pinned chart' : isFocused ? 'Previewing now' : 'Hover to preview'}
+                        </div>
+                        <div className="mt-2 text-sm font-medium text-text-primary">{visual?.title ?? entry.label}</div>
+                        <div className="mt-1 text-xs leading-5 text-muted line-clamp-2">{entry.description}</div>
                       </div>
-                      <div className="mt-2 text-sm font-medium text-text-primary">{visual?.title ?? entry.label}</div>
-                      <div className="mt-1 text-xs leading-5 text-muted line-clamp-2">{entry.description}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Latest</div>
-                      <div className="mt-2 text-sm font-semibold tabular-nums text-text-primary">
-                        {formatExactChartValue(latest)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 overflow-hidden rounded-xl border border-rule bg-surface-active px-3 py-3">
-                    <svg viewBox="0 0 220 72" className="w-full" preserveAspectRatio="none">
-                      <path d={sparkline} fill="none" stroke={visual?.color ?? '#2563EB'} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-1 gap-2 text-[0.6875rem] sm:grid-cols-3">
-                    {[
-                      { label: 'Start', value: start },
-                      { label: 'Peak', value: peak },
-                      { label: 'Delta', value: delta },
-                    ].map(metric => (
-                      <div key={metric.label} className="rounded-lg border border-rule bg-white/82 px-2.5 py-2">
-                        <div className="font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
-                        <div className="mt-1 font-medium tabular-nums text-text-primary">
-                          {formatExactChartValue(metric.value)}
+                      <div className="text-right">
+                        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Latest</div>
+                        <div className="mt-2 text-sm font-semibold tabular-nums text-text-primary">
+                          {formatExactChartValue(latest)}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </button>
-              )
-            })}
+                    </div>
+
+                    <div className="mt-4 overflow-hidden rounded-xl border border-rule bg-surface-active px-3 py-3">
+                      <svg viewBox="0 0 220 72" className="w-full" preserveAspectRatio="none">
+                        <path d={sparkline} fill="none" stroke={visual?.color ?? '#2563EB'} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-1 gap-2 text-[0.6875rem] sm:grid-cols-3">
+                      {[
+                        { label: 'Start', value: start },
+                        { label: 'Peak', value: peak },
+                        { label: 'Delta', value: delta },
+                      ].map(metric => (
+                        <div key={metric.label} className="rounded-lg border border-rule bg-white/82 px-2.5 py-2">
+                          <div className="font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
+                          <div className="mt-1 font-medium tabular-nums text-text-primary">
+                            {formatExactChartValue(metric.value)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -361,6 +536,30 @@ export function SimResultsPanel({
   onExportData,
 }: SimResultsPanelProps) {
   const paperComparability = describePaperComparability(manifest.config)
+  const renderableArtifacts = manifest.artifacts.filter(artifact => artifact.renderable)
+  const referenceArtifacts = manifest.artifacts.filter(artifact => !artifact.renderable)
+  const selectedArtifactFigureNote = selectedArtifact ? buildArtifactFigureNote(selectedArtifact) : null
+  const selectedOverviewBundleNote = buildOverviewBundleNote(selectedBundle)
+  const overviewFigureBlocks = overviewBlocks.length > 0
+    ? [
+        ...buildInlineFigureBlocks({
+          title: selectedOverviewBundleNote.title,
+          detail: selectedOverviewBundleNote.detail,
+          prompt: selectedOverviewBundleNote.prompt,
+        }),
+        ...overviewBlocks,
+      ]
+    : overviewBlocks
+  const renderedArtifactBlocks = parsedBlocks.length > 0 && selectedArtifactFigureNote
+    ? [
+        ...buildInlineFigureBlocks({
+          title: selectedArtifactFigureNote.title,
+          detail: selectedArtifactFigureNote.detail,
+          prompt: 'Read the figure shape first, then ask which assumption most plausibly drives it.',
+        }),
+        ...parsedBlocks,
+      ]
+    : parsedBlocks
   const exactMetricCards: readonly ExactMetricCard[] = [
     {
       key: 'finalAverageMev',
@@ -404,16 +603,15 @@ export function SimResultsPanel({
 
   return (
     <>
-      <div className="lab-stage-hero p-5 mb-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="lab-stage p-4 mb-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
             <div className="lab-section-title">Exact Result Surface</div>
-            <div className="mt-2 text-[1.65rem] font-semibold tracking-tight text-text-primary sm:text-[1.8rem]">
-              The manifest landed. This view stays literal to what the exact run emitted.
+            <div className="mt-1 text-base font-semibold tracking-tight text-text-primary sm:text-[1.1rem]">
+              Literal output from the current exact run.
             </div>
-            <div className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-              The explorer now upgrades itself into the results shell using the current manifest, overview bundles,
-              and renderable artifacts. No paper metrics are inferred unless the exact output explicitly exports them.
+            <div className="mt-1 max-w-2xl text-xs leading-5 text-muted">
+              Charts, map, overview bundles, and artifact renders all come from this manifest and its emitted sidecars.
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {paperScenarioLabels(manifest.config).map(label => (
@@ -427,7 +625,7 @@ export function SimResultsPanel({
 
           <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[340px]">
             <div className="lab-option-card px-4 py-3">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Execution mode</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Execution</div>
               <div className="mt-1.5 text-sm font-medium text-text-primary">
                 {manifest.cacheHit ? 'Exact cache hit' : 'Fresh exact execution'}
               </div>
@@ -459,25 +657,16 @@ export function SimResultsPanel({
         </div>
       </div>
 
-      <div className="grid gap-3 mb-5 md:grid-cols-3">
-        <div className="lab-lens-card px-4 py-3.5">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Reading mode</div>
-          <div className="mt-1.5 text-sm font-medium text-text-primary">Live exact experiment</div>
-          <div className="mt-1 text-xs leading-5 text-muted">
-            This view is assembled from the current manifest and emitted artifact sidecars for one exact run.
+      <div className="mb-5 rounded-2xl border border-rule bg-white/88 px-4 py-3">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="text-sm font-medium text-text-primary">
+            Read the run in this order: chart deck, overview bundle, artifact render, then analytics desk.
           </div>
-        </div>
-        <div className="lab-lens-card px-4 py-3.5">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Chart integrity</div>
-          <div className="mt-1.5 text-sm font-medium text-text-primary">Raw slot ordering preserved</div>
-          <div className="mt-1 text-xs leading-5 text-muted">
-            Hover, preview, and pinning only change the reading posture. They do not smooth or reinterpret the emitted series.
+          <div className="flex flex-wrap gap-2 text-xs text-muted">
+            <span className="lab-chip bg-surface-active">{paperComparability.title}</span>
+            <span className="lab-chip bg-surface-active">Raw slot ordering preserved</span>
+            <span className="lab-chip bg-surface-active">No inferred paper metrics</span>
           </div>
-        </div>
-        <div className="lab-lens-card px-4 py-3.5">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparability</div>
-          <div className="mt-1.5 text-sm font-medium text-text-primary">{paperComparability.title}</div>
-          <div className="mt-1 text-xs leading-5 text-muted">{paperComparability.detail}</div>
         </div>
       </div>
 
@@ -487,11 +676,9 @@ export function SimResultsPanel({
       />
 
       <div className="lab-stage p-4 mb-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="text-xs text-muted mb-1">
-              Exact metadata and provenance
-            </div>
+            <div className="text-xs text-muted mb-1">Run record</div>
             <div className="text-sm text-text-primary">
               {manifest.cacheHit ? 'Exact cache hit' : 'Fresh exact execution'}
             </div>
@@ -500,7 +687,7 @@ export function SimResultsPanel({
                 ? 'Reused an identical exact run from the shared exact cache. Outputs are unchanged for the same inputs.'
                 : 'Executed the canonical exact simulator with the current configuration and seed.'}
             </div>
-            <div className="mt-3">
+            <div className="flex flex-wrap gap-2 mt-3">
               <span
                 className={cn(
                   'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.6875rem] font-medium',
@@ -519,11 +706,6 @@ export function SimResultsPanel({
                 />
                 {paperComparability.title}
               </span>
-              <div className="mt-1 max-w-2xl text-xs text-muted">
-                {paperComparability.detail}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-3">
               {paperScenarioLabels(manifest.config).map(label => (
                 <span key={label} className="lab-chip">
                   <span className="w-1.5 h-1.5 rounded-full bg-accent" />
@@ -584,56 +766,73 @@ export function SimResultsPanel({
           </div>
         )}
 
-        <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Research integrity</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">{paperComparability.title}</div>
-          <div className="mt-1 text-sm text-muted">{paperComparability.detail}</div>
-          <div className="mt-1 text-xs text-muted">
-            Truth boundary: this panel only reports values emitted by the exact manifest and derived artifact sidecars. It should not stand in for a published paper result unless the configuration is directly comparable.
-          </div>
-        </div>
+        <details className="mt-4 rounded-xl border border-rule bg-white px-4 py-3">
+          <summary className="cursor-pointer list-none">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Provenance and integrity</div>
+                <div className="mt-1 text-sm font-medium text-text-primary">
+                  Exact configuration, timing, and truth-boundary details
+                </div>
+              </div>
+              <div className="text-xs text-muted">
+                Open details
+              </div>
+            </div>
+          </summary>
 
-        <div className="grid gap-2 mt-3 text-xs text-muted sm:grid-cols-2 xl:grid-cols-4">
-          <div className="lab-metric-card">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Configuration</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">{describeParadigmWithAlias(manifest.config.paradigm)} exact mode</div>
-            <div className="mt-1 text-xs text-muted">{describeDistribution(manifest.config.distribution)}</div>
-            <div className="mt-1 text-xs text-muted">{describeSourcePlacement(manifest.config.sourcePlacement)}</div>
+          <div className="mt-4">
+            <div className="rounded-xl border border-rule bg-surface-active/70 px-4 py-3">
+              <div className="text-sm font-medium text-text-primary">{paperComparability.title}</div>
+              <div className="mt-1 text-xs leading-5 text-muted">{paperComparability.detail}</div>
+              <div className="mt-1 text-xs text-muted">
+                Truth boundary: only values emitted by the exact manifest and derived sidecars appear here. This should not stand in for a published result unless the configuration is directly comparable.
+              </div>
+            </div>
+
+            <div className="grid gap-2 mt-3 text-xs text-muted sm:grid-cols-2 xl:grid-cols-4">
+              <div className="lab-metric-card">
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Configuration</div>
+                <div className="mt-2 text-sm font-medium text-text-primary">{describeParadigmWithAlias(manifest.config.paradigm)} exact mode</div>
+                <div className="mt-1 text-xs text-muted">{describeDistribution(manifest.config.distribution)}</div>
+                <div className="mt-1 text-xs text-muted">{describeSourcePlacement(manifest.config.sourcePlacement)}</div>
+              </div>
+              <div className="lab-metric-card">
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Consensus timing</div>
+                <div className="mt-2 text-sm font-medium text-text-primary">
+                  gamma {formatNumber(manifest.config.attestationThreshold, 4)}
+                </div>
+                <div className="mt-1 text-xs text-muted">
+                  cutoff {attestationCutoffMs(manifest.config.slotTime).toLocaleString()} ms
+                </div>
+                <div className="mt-1 text-xs text-muted">
+                  slot time {manifest.config.slotTime}s
+                </div>
+              </div>
+              <div className="lab-metric-card">
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Run identity</div>
+                <div className="mt-2 text-sm font-medium text-text-primary">
+                  seed {manifest.config.seed}
+                </div>
+                <div className="mt-1 text-xs text-muted">
+                  validators {manifest.config.validators.toLocaleString()} · slots {manifest.config.slots.toLocaleString()}
+                </div>
+                <div className="mt-1 text-xs text-muted break-all">
+                  cache {manifest.cacheKey}
+                </div>
+              </div>
+              <div className="lab-metric-card">
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper metric availability</div>
+                <div className="mt-2 text-sm font-medium text-text-primary">
+                  Published surface: Gini_g / HHI_g / CV_g / LC_g
+                </div>
+                <div className="mt-1 text-xs text-muted">
+                  The live exact manifest still centers MEV, supermajority, failed proposals, utility increase, and renderable artifacts.
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="lab-metric-card">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Consensus timing</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">
-              gamma {formatNumber(manifest.config.attestationThreshold, 4)}
-            </div>
-            <div className="mt-1 text-xs text-muted">
-              cutoff {attestationCutoffMs(manifest.config.slotTime).toLocaleString()} ms
-            </div>
-            <div className="mt-1 text-xs text-muted">
-              slot time {manifest.config.slotTime}s
-            </div>
-          </div>
-          <div className="lab-metric-card">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Run identity</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">
-              seed {manifest.config.seed}
-            </div>
-            <div className="mt-1 text-xs text-muted">
-              validators {manifest.config.validators.toLocaleString()} · slots {manifest.config.slots.toLocaleString()}
-            </div>
-            <div className="mt-1 text-xs text-muted break-all">
-              cache {manifest.cacheKey}
-            </div>
-          </div>
-          <div className="lab-metric-card">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper metric availability</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">
-              Published surface: Gini_g / HHI_g / CV_g / LC_g
-            </div>
-            <div className="mt-1 text-xs text-muted">
-              Live exact manifest currently emits MEV, supermajority, failed proposals, utility increase, and renderable artifacts. Paper metrics should move here only when the exact manifest exports them directly.
-            </div>
-          </div>
-        </div>
+        </details>
       </div>
 
       <div className="lab-stage p-4 mb-5">
@@ -667,7 +866,7 @@ export function SimResultsPanel({
               key={option.bundle}
               onClick={() => startTransition(() => onSelectBundle(option.bundle))}
               className={cn(
-                'lab-option-card rounded-xl px-4 py-3 text-left transition-all hover:border-border-hover',
+                'lab-option-card min-w-[180px] rounded-xl px-3.5 py-2.5 text-left transition-all hover:border-border-hover',
                 selectedBundle === option.bundle
                   ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))]'
                   : '',
@@ -702,7 +901,33 @@ export function SimResultsPanel({
         )}
 
         {!isOverviewLoading && overviewBlocks.length > 0 && (
-          <BlockCanvas blocks={overviewBlocks} />
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="min-w-0">
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-[0.6875rem] text-muted">
+                <span className="rounded-full border border-rule bg-white/88 px-2 py-0.5">
+                  Active bundle
+                </span>
+                <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5">
+                  {selectedOverviewBundleNote.title}
+                </span>
+              </div>
+              <BlockCanvas blocks={overviewFigureBlocks} showExport={false} />
+            </div>
+            <aside className="rounded-xl border border-rule bg-white/82 px-4 py-3.5">
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                Bundle marginalia
+              </div>
+              <div className="mt-1.5 text-sm font-medium text-text-primary">
+                {selectedOverviewBundleNote.title}
+              </div>
+              <div className="mt-1 text-xs leading-5 text-muted">
+                {selectedOverviewBundleNote.detail}
+              </div>
+              <div className="mt-3 rounded-lg border border-rule bg-surface-active/80 px-3 py-2 text-[0.75rem] leading-5 text-muted">
+                {selectedOverviewBundleNote.prompt}
+              </div>
+            </aside>
+          </div>
         )}
 
         {!isOverviewLoading && overviewBlocks.length === 0 && (
@@ -719,7 +944,10 @@ export function SimResultsPanel({
               Artifact manifest
             </div>
             <div className="text-sm text-text-primary">
-              Exact artifact labels and descriptions emitted for this run.
+              Inspectable artifacts first, then raw references emitted for the same run.
+            </div>
+            <div className="mt-1 text-xs text-muted">
+              {renderableArtifacts.length} renderable · {referenceArtifacts.length} reference-only
             </div>
           </div>
           <div className="text-xs text-muted text-right">
@@ -727,43 +955,88 @@ export function SimResultsPanel({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {manifest.artifacts.map(artifact => (
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+          {renderableArtifacts.map(artifact => (
             <button
               key={artifact.name}
               onClick={() => onSelectArtifact(artifact.name)}
-              disabled={!artifact.renderable}
               className={cn(
-                'lab-option-card text-left rounded-[1rem] px-4 py-4 transition-all hover:border-border-hover',
+                'lab-option-card text-left rounded-[1rem] px-4 py-3 transition-all hover:border-border-hover',
                 selectedArtifactName === artifact.name
                   ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))]'
                   : '',
-                !artifact.renderable && 'opacity-60 cursor-not-allowed',
               )}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-sm font-medium text-text-primary">{artifact.label}</div>
-                  <div className="text-xs text-muted mt-1">{artifact.description}</div>
+                  <div className="text-xs text-muted mt-1 line-clamp-2">{artifact.description}</div>
                 </div>
-                <div className="text-xs text-muted whitespace-nowrap">
-                  {artifact.lazy ? 'lazy' : 'ready'}
+                <div className="text-[0.6875rem] text-muted whitespace-nowrap">
+                  {artifact.kind}
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 mt-3 text-xs text-muted">
+              <div className="flex flex-wrap items-center gap-2 mt-3 text-[0.6875rem] text-muted">
+                <span className="rounded-full border border-rule bg-white/88 px-2 py-0.5">
+                  {artifact.lazy ? 'Lazy fetch' : 'Manifest-ready'}
+                </span>
                 <span>{formatBytes(artifact.bytes)}</span>
                 {artifact.brotliBytes != null && <span>br {formatBytes(artifact.brotliBytes)}</span>}
                 {artifact.gzipBytes != null && <span>gzip {formatBytes(artifact.gzipBytes)}</span>}
-                <span>{artifact.kind}</span>
               </div>
             </button>
           ))}
         </div>
+
+          {referenceArtifacts.length > 0 && (
+            <details className="mt-4 rounded-xl border border-rule bg-white/78 px-4 py-3.5">
+              <summary className="cursor-pointer list-none">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Reference artifacts</div>
+                    <div className="mt-1 text-sm text-text-primary">
+                      Raw exports preserved for audit and offline analysis.
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted">
+                    {referenceArtifacts.length} hidden sources
+                  </div>
+                </div>
+              </summary>
+
+              <div className="mt-3 grid gap-2">
+                {referenceArtifacts.map(artifact => (
+                  <div
+                    key={artifact.name}
+                    className="flex flex-col gap-2 rounded-xl border border-rule bg-white/92 px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-sm font-medium text-text-primary">{artifact.label}</div>
+                        <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5 text-[0.6875rem] text-muted">
+                          {artifact.kind}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-xs text-muted">{artifact.description}</div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-[0.6875rem] text-muted sm:justify-end">
+                      <span>{formatBytes(artifact.bytes)}</span>
+                      {artifact.brotliBytes != null && <span>br {formatBytes(artifact.brotliBytes)}</span>}
+                      {artifact.gzipBytes != null && <span>gzip {formatBytes(artifact.gzipBytes)}</span>}
+                      <span className="rounded-full border border-rule bg-white px-2 py-0.5">
+                        {artifact.lazy ? 'Lazy source' : 'Manifest source'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
+        )}
       </div>
 
       <div className="lab-stage p-4">
-        <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="mb-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div>
             <div className="text-xs text-muted mb-1">
               Rendered artifact
@@ -776,12 +1049,39 @@ export function SimResultsPanel({
                 {selectedArtifact.description}
               </div>
             )}
+            {!selectedArtifact && (
+              <div className="mt-1 text-xs text-muted">
+                Choose from {renderableArtifacts.length} renderable artifacts above.
+              </div>
+            )}
           </div>
-          {selectedArtifact && (
-            <div className="text-xs text-muted">
-              {selectedArtifact.kind} · {selectedArtifact.lazy ? 'lazy-loaded' : 'manifest-ready'}
+          <div className="rounded-xl border border-rule bg-white/82 px-4 py-3">
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+              Figure marginalia
             </div>
-          )}
+            {selectedArtifact && selectedArtifactFigureNote ? (
+              <>
+                <div className="mt-1.5 text-sm font-medium text-text-primary">
+                  {selectedArtifactFigureNote.title}
+                </div>
+                <div className="mt-1 text-xs leading-5 text-muted">
+                  {selectedArtifactFigureNote.detail}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[0.6875rem] text-muted">
+                  <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5">
+                    {selectedArtifact.kind}
+                  </span>
+                  <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5">
+                    {selectedArtifact.lazy ? 'Lazy-loaded from manifest' : 'Manifest-ready'}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="mt-1.5 text-xs leading-5 text-muted">
+                Pick a renderable artifact and this rail will frame what kind of evidence it provides and how to read it.
+              </div>
+            )}
+          </div>
         </div>
 
         {((isArtifactFetching && !parsedBlocks.length) || isParsing) && (
@@ -803,8 +1103,59 @@ export function SimResultsPanel({
           </div>
         )}
 
+        {selectedArtifact && !isArtifactFetching && !isParsing && !parseError && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-[0.6875rem] text-muted">
+            <span className="rounded-full border border-rule bg-white px-2 py-0.5">
+              Figure cue
+            </span>
+            <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5">
+              Read as {selectedArtifact.kind === 'timeseries' ? 'trend' : selectedArtifact.kind === 'map' ? 'spatial state' : selectedArtifact.kind}
+            </span>
+            <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5">
+              {selectedArtifact.lazy ? 'Loaded on demand' : 'Ready from manifest'}
+            </span>
+            <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5">
+              Exact output, no smoothing
+            </span>
+          </div>
+        )}
+
         {!isArtifactFetching && !isParsing && !parseError && parsedBlocks.length > 0 && (
-          <BlockCanvas blocks={parsedBlocks} />
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="min-w-0">
+              <BlockCanvas blocks={renderedArtifactBlocks} showExport={false} />
+            </div>
+            <aside className="rounded-xl border border-rule bg-white/82 px-4 py-3.5">
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                Reading prompts
+              </div>
+              {selectedArtifactFigureNote ? (
+                <>
+                  <div className="mt-1.5 text-sm font-medium text-text-primary">
+                    {selectedArtifactFigureNote.title}
+                  </div>
+                  <div className="mt-1 text-xs leading-5 text-muted">
+                    {selectedArtifactFigureNote.detail}
+                  </div>
+                  <div className="mt-3 grid gap-2">
+                    <div className="rounded-lg border border-rule bg-surface-active/80 px-3 py-2 text-[0.75rem] leading-5 text-muted">
+                      What changes in the shape before the final slot?
+                    </div>
+                    <div className="rounded-lg border border-rule bg-surface-active/80 px-3 py-2 text-[0.75rem] leading-5 text-muted">
+                      Which assumption in this run most plausibly drives this figure?
+                    </div>
+                    <div className="rounded-lg border border-rule bg-surface-active/80 px-3 py-2 text-[0.75rem] leading-5 text-muted">
+                      Would the same pattern likely hold under the other paradigm?
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-1.5 text-xs leading-5 text-muted">
+                  Select an artifact to frame the figure with a concrete reading posture.
+                </div>
+              )}
+            </aside>
+          </div>
         )}
 
         {!isArtifactFetching && !isParsing && !parseError && parsedBlocks.length === 0 && (

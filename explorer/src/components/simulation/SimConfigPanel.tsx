@@ -97,33 +97,23 @@ export function SimConfigPanel({
 
   return (
     <div className="lab-stage mb-5 p-4">
-      <div className="flex flex-col gap-4 border-b border-rule pb-4 xl:flex-row xl:items-end xl:justify-between">
+      <div className="flex flex-col gap-3 border-b border-rule pb-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl">
-          <div className="lab-section-title">Run Design</div>
-          <div className="mt-2 text-lg font-semibold tracking-tight text-text-primary">
-            Shape the exact scenario before you spend the runtime.
+          <div className="lab-section-title">Bound the exact run</div>
+          <div className="mt-1 text-sm font-medium text-text-primary">
+            Lock a bounded scenario, then spend runtime deliberately.
           </div>
-          <div className="mt-2 text-sm leading-6 text-muted">
-            Keep the exact run narrow, choose the scale deliberately, then use the artifacts to decide whether the result deserves publication.
+          <div className="mt-1 text-xs leading-5 text-muted">
+            Match a paper anchor when you want parity. Stay smaller while probing, then scale up only when the question merits the runtime.
           </div>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[500px]">
-          <div className="lab-option-card px-3 py-3">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Mode</div>
-            <div className="mt-1 text-sm font-medium text-text-primary">{describeParadigm(config.paradigm)}</div>
-            <div className="mt-1 text-xs text-muted">{config.paradigm} exact</div>
-          </div>
-          <div className="lab-option-card px-3 py-3">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Scale</div>
-            <div className="mt-1 text-sm font-medium text-text-primary">{config.validators.toLocaleString()} validators</div>
-            <div className="mt-1 text-xs text-muted">{config.slots.toLocaleString()} slots</div>
-          </div>
-          <div className="lab-option-card px-3 py-3">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Timing</div>
-            <div className="mt-1 text-sm font-medium text-text-primary">gamma {config.attestationThreshold.toFixed(2)}</div>
-            <div className="mt-1 text-xs text-muted">{config.slotTime}s · cutoff {attestationCutoffMs(config.slotTime)} ms</div>
-          </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="lab-chip bg-white/85">{describeParadigm(config.paradigm)}</span>
+          <span className="lab-chip bg-white/85">{config.validators.toLocaleString()} validators</span>
+          <span className="lab-chip bg-white/85">{config.slots.toLocaleString()} slots</span>
+          <span className="lab-chip bg-white/85">gamma {config.attestationThreshold.toFixed(2)}</span>
+          <span className="lab-chip bg-white/85">{config.slotTime}s slots</span>
         </div>
       </div>
 
@@ -226,8 +216,8 @@ export function SimConfigPanel({
               </button>
             ))}
           </div>
-          <details open={!validatorsOnAnchor} className="lab-option-card mt-2 rounded-xl px-3 py-3">
-            <summary className="cursor-pointer list-none text-[0.6875rem] text-muted hover:text-text-primary">
+          <details open={!validatorsOnAnchor} className="lab-option-card mt-2 rounded-xl px-3 py-2.5">
+            <summary className="cursor-pointer list-none text-[0.6875rem] font-medium text-muted hover:text-text-primary">
               Fine edit exact validator count
             </summary>
             <input
@@ -271,8 +261,8 @@ export function SimConfigPanel({
               </button>
             ))}
           </div>
-          <details open={!slotsOnAnchor} className="lab-option-card mt-2 rounded-xl px-3 py-3">
-            <summary className="cursor-pointer list-none text-[0.6875rem] text-muted hover:text-text-primary">
+          <details open={!slotsOnAnchor} className="lab-option-card mt-2 rounded-xl px-3 py-2.5">
+            <summary className="cursor-pointer list-none text-[0.6875rem] font-medium text-muted hover:text-text-primary">
               Fine edit exact slot count
             </summary>
             <input
@@ -431,43 +421,18 @@ export function SimConfigPanel({
           <div className="mt-3 max-w-3xl text-[0.6875rem] leading-5 text-muted">
             {paperComparability.detail}
           </div>
-
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Best for parity</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Match a published scenario</div>
-              <div className="mt-1 text-xs leading-5 text-muted">
-                Start from a paper-aligned preset, keep the paper anchors, then compare against the published results surface.
-              </div>
-            </div>
-            <div className="rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Best for iteration</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Use the fast default</div>
-              <div className="mt-1 text-xs leading-5 text-muted">
-                Stay near `1,000` slots while probing ideas, then scale up only when the question is worth the runtime.
-              </div>
-            </div>
-            <div className="rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Best for sharing</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Publish only after review</div>
-              <div className="mt-1 text-xs leading-5 text-muted">
-                Community notes should summarize what the artifacts show in your own words, not just mirror raw outputs.
-              </div>
-            </div>
-          </div>
         </div>
 
-        <div className="lab-stage-dark p-4">
-          <div className="lab-loading-orb" />
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Run controls</div>
-          <div className="mt-2 text-base font-semibold text-white">Launch the exact engine when the scenario is locked.</div>
-          <div className="mt-2 text-sm leading-6 text-slate-300">
+        <div className="lab-stage-soft p-4">
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Run controls</div>
+          <div className="mt-2 text-base font-semibold text-text-primary">Launch the exact engine when the scenario is locked.</div>
+          <div className="mt-2 text-sm leading-6 text-muted">
             Reset returns to the fast default posture. Cancel becomes active once the job reaches the queue or starts executing.
           </div>
 
-          <div className="mt-3 rounded-xl border border-white/10 bg-white/6 px-4 py-4">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Recommended next move</div>
-            <div className="mt-2 text-sm font-medium text-white">
+          <div className="mt-3 rounded-xl border border-rule bg-white/88 px-4 py-4">
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Recommended next move</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">
               {paperComparability.tone === 'canonical'
                 ? 'Run this, then compare it against the published results surface.'
                 : paperComparability.tone === 'editorial'
@@ -484,7 +449,7 @@ export function SimConfigPanel({
               disabled={isSubmitting || canCancel}
               className={cn(
                 'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
-                'bg-white text-slate-950 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60',
+                'bg-text-primary text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60',
               )}
             >
               <Play className="h-4 w-4" />
@@ -494,7 +459,7 @@ export function SimConfigPanel({
             <div className="grid gap-3 sm:grid-cols-2">
               <button
                 onClick={onReset}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/8 px-4 py-3 text-sm text-slate-100 transition-colors hover:bg-white/12"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-rule bg-white px-4 py-3 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
                 <RotateCcw className="h-4 w-4" />
                 Reset
@@ -506,8 +471,8 @@ export function SimConfigPanel({
                 className={cn(
                   'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm transition-colors',
                   canCancel
-                    ? 'border-red-300/24 bg-red-400/10 text-red-100 hover:bg-red-400/14'
-                    : 'cursor-not-allowed border-white/10 bg-white/5 text-slate-500',
+                    ? 'border-red-300/30 bg-red-50 text-red-700 hover:bg-red-100'
+                    : 'cursor-not-allowed border-rule bg-surface-active text-text-faint',
                 )}
               >
                 <Ban className="h-4 w-4" />

@@ -74,7 +74,7 @@ export function DeepDivePage() {
   return (
     <div>
       {/* Page header */}
-      <div className="mb-6">
+      <div className="reveal-up mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper deep dive</span>
@@ -103,7 +103,7 @@ export function DeepDivePage() {
         </div>
       </div>
 
-      <div className="mb-6 rounded-xl border border-rule bg-white divide-y divide-rule">
+      <div className="stagger-reveal mb-6 rounded-xl border border-rule bg-white divide-y divide-rule">
         <a
           href="https://arxiv.org/abs/2509.21475"
           target="_blank"
@@ -141,7 +141,7 @@ export function DeepDivePage() {
       </div>
 
       {/* Accordion sections — FAQ-style single container */}
-      <div className="rounded-xl border border-rule bg-white divide-y divide-rule">
+      <div className="stagger-reveal rounded-xl border border-rule bg-white divide-y divide-rule">
         {PAPER_SECTIONS.map(section => {
           const isExpanded = expandedIds.has(section.id)
           const summaryTags = summarizeSection(section)

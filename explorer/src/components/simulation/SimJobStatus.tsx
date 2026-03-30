@@ -110,82 +110,80 @@ export function SimJobStatus({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={SPRING}
-      className="lab-stage-dark p-5 mb-6"
+      className="lab-stage-soft p-4 mb-5"
     >
-      <div className="lab-loading-orb" />
-
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-2xl">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
             Job status
           </div>
           <div className="mt-3 flex items-center gap-3">
             <span
               className={cn(
-                'inline-flex h-9 w-9 items-center justify-center rounded-full border text-white',
-                meta.tone === 'success' && 'border-emerald-300/24 bg-emerald-400/12',
-                meta.tone === 'danger' && 'border-red-300/24 bg-red-400/12',
-                meta.tone === 'muted' && 'border-slate-300/16 bg-slate-400/10',
-                meta.tone === 'idle' && 'border-slate-300/16 bg-white/6',
-                meta.tone === 'active' && 'border-sky-300/24 bg-sky-400/12',
+                'inline-flex h-9 w-9 items-center justify-center rounded-full border',
+                meta.tone === 'success' && 'border-emerald-300/30 bg-emerald-50 text-emerald-700',
+                meta.tone === 'danger' && 'border-red-300/30 bg-red-50 text-red-700',
+                meta.tone === 'muted' && 'border-rule bg-surface-active text-text-primary',
+                meta.tone === 'idle' && 'border-rule bg-white text-text-primary',
+                meta.tone === 'active' && 'border-sky-300/28 bg-sky-50 text-sky-700',
               )}
             >
               {statusIcon}
             </span>
             <div>
-              <div className="text-sm font-medium text-white">{meta.title}</div>
-              <div className="mt-1 text-xs text-slate-300">{meta.label}</div>
+              <div className="text-sm font-medium text-text-primary">{meta.title}</div>
+              <div className="mt-1 text-xs text-muted">{meta.label}</div>
             </div>
           </div>
-          <div className="mt-3 text-sm leading-6 text-slate-300">
+          <div className="mt-3 text-sm leading-6 text-muted">
             {meta.detail}
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[320px]">
-          <div className="rounded-xl border border-white/10 bg-white/6 px-4 py-3">
-            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Queue</span>
-            <div className="mt-2 text-base font-semibold text-white">
+          <div className="rounded-xl border border-rule bg-white/88 px-4 py-3">
+            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Queue</span>
+            <div className="mt-2 text-base font-semibold text-text-primary">
               {jobData?.queuePosition ?? 'Live'}
             </div>
-            <div className="mt-1 text-xs text-slate-300">
+            <div className="mt-1 text-xs text-muted">
               {jobData?.queuePosition != null && jobData.queuePosition > 0
                 ? 'Jobs ahead before execution starts'
                 : 'No backlog signal from the runtime'}
             </div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/6 px-4 py-3">
-            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Cache path</span>
-            <div className="mt-2 text-base font-semibold text-white">
+          <div className="rounded-xl border border-rule bg-white/88 px-4 py-3">
+            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Cache path</span>
+            <div className="mt-2 text-base font-semibold text-text-primary">
               {jobData?.cacheHit == null ? 'Pending' : jobData.cacheHit ? 'Hit' : 'Fresh'}
             </div>
-            <div className="mt-1 text-xs text-slate-300">
+            <div className="mt-1 text-xs text-muted">
               {jobData?.cacheHit == null ? 'Resolved during execution' : jobData.cacheHit ? 'Exact cache reuse' : 'New exact run'}
             </div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/6 px-4 py-3">
-            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Created</span>
-            <div className="mt-2 text-base font-semibold text-white">{createdLabel ?? 'Waiting'}</div>
-            <div className="mt-1 text-xs text-slate-300">
+          <div className="rounded-xl border border-rule bg-white/88 px-4 py-3">
+            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Created</span>
+            <div className="mt-2 text-base font-semibold text-text-primary">{createdLabel ?? 'Waiting'}</div>
+            <div className="mt-1 text-xs text-muted">
               {jobData?.id ? `Job ${jobData.id.slice(0, 8)}` : 'Ticket pending'}
             </div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/6 px-4 py-3">
-            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Updated</span>
-            <div className="mt-2 text-base font-semibold text-white">{updatedLabel ?? 'Waiting'}</div>
-            <div className="mt-1 text-xs text-slate-300">
+          <div className="rounded-xl border border-rule bg-white/88 px-4 py-3">
+            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Updated</span>
+            <div className="mt-2 text-base font-semibold text-text-primary">{updatedLabel ?? 'Waiting'}</div>
+            <div className="mt-1 text-xs text-muted">
               {status === 'completed' ? 'Ready to inspect' : 'Stream stays live'}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-5">
-        <div className="mb-2 flex items-center justify-between gap-3 text-xs text-slate-300">
+      <div className="mt-4">
+        <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted">
           <span>Runner pipeline</span>
           <span>{progress}%</span>
         </div>
-        <div className="lab-progress-track bg-white/10">
+        <div className="lab-progress-track bg-surface-active">
           <div
             className="lab-progress-fill"
             data-state={status === 'submitting' || status === 'queued' || status === 'running' ? 'active' : undefined}
@@ -195,7 +193,7 @@ export function SimJobStatus({
       </div>
 
       {errorMessage && (
-        <div className="mt-4 rounded-2xl border border-red-300/24 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+        <div className="mt-4 rounded-2xl border border-red-300/30 bg-red-50 px-4 py-3 text-sm text-red-700">
           {errorMessage}
         </div>
       )}
