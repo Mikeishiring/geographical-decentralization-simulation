@@ -12,7 +12,7 @@ interface EquationBlockProps {
  * Handles fractions, subscripts, superscripts, Greek letters, and operators.
  */
 function renderLatexText(latex: string): string {
-  let result = latex
+  const result = latex
     // Greek letters
     .replace(/\\alpha/g, 'α').replace(/\\beta/g, 'β').replace(/\\gamma/g, 'γ')
     .replace(/\\delta/g, 'δ').replace(/\\epsilon/g, 'ε').replace(/\\zeta/g, 'ζ')
@@ -37,7 +37,7 @@ function renderLatexText(latex: string): string {
     // Simple fractions: \frac{a}{b} → a/b
     .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
     // Subscripts: _{text} → _text (simplified)
-    .replace(/\_\{([^}]+)\}/g, '₍$1₎')
+    .replace(/_\{([^}]+)\}/g, '₍$1₎')
     // Superscripts: ^{text} → ^text
     .replace(/\^\{([^}]+)\}/g, '⁽$1⁾')
     // Simple sub/super with single char

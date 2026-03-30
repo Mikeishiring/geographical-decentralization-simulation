@@ -385,7 +385,7 @@ export class AgentLoopOrchestrator {
       '## Agent Loop — Interpret Results Phase',
       '',
       `Original research question: "${session.researchQuestion}"`,
-      `This step\'s question: "${step.question}"`,
+      `This step's question: "${step.question}"`,
       '',
       '## Simulation Results',
       `- Paradigm: ${manifest.config.paradigm}`,
