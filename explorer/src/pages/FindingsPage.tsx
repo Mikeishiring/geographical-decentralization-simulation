@@ -543,6 +543,40 @@ export function FindingsPage({
               ))}
             </div>
           </div>
+
+          <div className="mt-5 rounded-xl border border-border-subtle bg-white px-4 py-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">How to use Findings</div>
+                <div className="mt-1 text-sm font-medium text-text-primary">Read first, question second, publish only if you have a real takeaway</div>
+              </div>
+              <div className="max-w-2xl text-xs leading-5 text-muted">
+                The box below is for guided paper questions. It is not a public posting flow.
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {[
+                {
+                  title: '1. Open a claim',
+                  detail: 'Start from a canonical card when you want the cleanest paper-backed entry point.',
+                },
+                {
+                  title: '2. Ask a bounded question',
+                  detail: 'Use the prompt box for a metric, scenario, implication, or comparison. The reading stays attached to paper context.',
+                },
+                {
+                  title: '3. Publish intentionally',
+                  detail: 'Only publish after you rewrite the title or takeaway in your own words. Community is for human-authored notes, not raw model output.',
+                },
+              ].map(item => (
+                <div key={item.title} className="rounded-lg border border-border-subtle bg-[#FAFAF8] px-3 py-3">
+                  <div className="text-sm font-medium text-text-primary">{item.title}</div>
+                  <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
