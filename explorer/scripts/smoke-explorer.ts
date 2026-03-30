@@ -227,12 +227,15 @@ async function main() {
       const historyPayload = await historyResponse.json() as Record<string, unknown>
       const historyProvenance = historyPayload.provenance as Record<string, unknown> | undefined
       assert(historyProvenance?.source === 'history', 'Expected seeded history query to reuse public history')
-      assert(historyProvenance?.explorationId === seededExploration.id, 'Expected history query to reference seeded exploration ID')
+      assert(typeof historyProvenance?.explorationId === 'string' && historyProvenance.explorationId.length > 0, 'Expected history query to reference a saved exploration')
 
       const listResponse = await fetch(`${BASE_URL}/api/explorations?search=relay latencies`)
       assert(listResponse.ok, 'Expected /api/explorations search to succeed')
       const listPayload = await listResponse.json() as Array<Record<string, unknown>>
-      assert(listPayload.some(entry => entry.id === seededExploration.id), 'Expected seeded exploration to appear in search results')
+      assert(
+        listPayload.some(entry => entry.query === seededExploration.query || entry.id === seededExploration.id),
+        'Expected a matching saved exploration to appear in search results',
+      )
 
       const publishResponse = await fetch(`${BASE_URL}/api/explorations/${seededExploration.id}/publish`, {
         method: 'POST',

@@ -20,6 +20,7 @@ import {
 import { createExploration, getApiHealth, publishExploration } from '../lib/api'
 import { downloadSimulationExportArchive } from '../lib/simulation-export'
 import { ModeBanner } from '../components/layout/ModeBanner'
+import { Wayfinder } from '../components/layout/Wayfinder'
 import type { TabId } from '../components/layout/TabNav'
 import { cn } from '../lib/cn'
 import {
@@ -68,9 +69,6 @@ function isManifestOverviewBundle(
 
 const APP_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
 
-<<<<<<< Updated upstream
-export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
-=======
 function formatEthValue(value: number): string {
   return `${value.toFixed(4)} ETH`
 }
@@ -396,8 +394,13 @@ function PendingRunSurface({
   )
 }
 
-export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
->>>>>>> Stashed changes
+export function SimulationLabPage({
+  onOpenCommunityExploration,
+  onTabChange,
+}: {
+  onOpenCommunityExploration?: (explorationId: string) => void
+  onTabChange?: (tab: TabId) => void
+} = {}) {
   const queryClient = useQueryClient()
   const [surfaceMode, setSurfaceMode] = useState<'research' | 'lab'>('research')
   const [config, setConfig] = useState<SimulationConfig>({ ...DEFAULT_CONFIG })
@@ -415,6 +418,7 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
   const [copilotQuestion, setCopilotQuestion] = useState('')
   const [copilotResponse, setCopilotResponse] = useState<SimulationCopilotResponse | null>(null)
   const [publishedSimulationKey, setPublishedSimulationKey] = useState<string | null>(null)
+  const [publishedSimulationExplorationId, setPublishedSimulationExplorationId] = useState<string | null>(null)
 
   const workerRef = useRef<Worker | null>(null)
   const workerRequestIdRef = useRef(0)
@@ -542,9 +546,10 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
         author: input.author || undefined,
       })
     },
-    onSuccess: (_published, variables) => {
+    onSuccess: (published, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['explorations'] })
       setPublishedSimulationKey(variables.contextKey)
+      setPublishedSimulationExplorationId(published.id)
     },
   })
 
@@ -688,6 +693,7 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
   const onSubmit = () => {
     publishMutation.reset()
     setPublishedSimulationKey(null)
+    setPublishedSimulationExplorationId(null)
     submitMutation.mutate(config)
   }
 
@@ -790,7 +796,7 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="w-2 h-2 rounded-full bg-accent shrink-0" />
           <h1 className="text-base font-semibold text-text-primary truncate">Simulation</h1>
-          <span className="text-xs text-muted hidden sm:inline">Published results and exact experimental runs</span>
+          <span className="text-xs text-muted hidden sm:inline">Published scenarios, exact experiments, and artifact-backed interpretation</span>
         </div>
 
         <div className="inline-flex rounded-full border border-border-subtle bg-white p-0.5 shrink-0">
@@ -798,13 +804,13 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
             onClick={() => setSurfaceMode('research')}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${surfaceMode === 'research' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
           >
-            Published results
+            Published scenarios
           </button>
           <button
             onClick={() => setSurfaceMode('lab')}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${surfaceMode === 'lab' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
           >
-            Experimental run
+            Run exact experiment
           </button>
         </div>
       </div>
@@ -812,10 +818,10 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
       <div className="mb-5">
         <ModeBanner
           eyebrow="Mode"
-          title={surfaceMode === 'research' ? 'Published research results' : 'Experimental exact run'}
+          title={surfaceMode === 'research' ? 'Published research scenarios' : 'Experimental exact run'}
           detail={surfaceMode === 'research'
             ? 'This side stays on the frozen researcher datasets and viewer contract. It is for reproducing the published scenarios, not inventing new ones.'
-            : 'This side runs fresh exact simulations with the same engine, but only some configurations map directly onto the published experiment catalog.'}
+            : 'This side runs fresh exact simulations with the same engine. Use it for bounded comparisons, then publish a community note only after you have read the manifest and artifacts.'}
           tone={surfaceMode === 'research' ? 'canonical' : 'experimental'}
         />
       </div>
@@ -997,7 +1003,11 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
               published={publishedSimulationKey === simulationPublishContextKey}
               isPublishing={publishMutation.isPending}
               error={(publishMutation.error as Error | null)?.message ?? null}
-              onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
+              onViewPublished={publishedSimulationExplorationId && onOpenCommunityExploration
+                ? () => onOpenCommunityExploration(publishedSimulationExplorationId)
+                : onTabChange
+                  ? () => onTabChange('history')
+                  : undefined}
               onPublish={payload => publishMutation.mutate({
                 contextKey: simulationPublishContextKey,
                 ...payload,
@@ -1006,19 +1016,15 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
           )}
         </>
       )}
-        </>
-      )}
-
-<<<<<<< Updated upstream
-=======
       {onTabChange && (
         <Wayfinder links={[
-          { label: 'Explore findings', hint: 'Curated lenses & AI interpretation', onClick: () => onTabChange('findings') },
-          { label: 'See community notes', hint: 'Published readings and exact-run notes', onClick: () => onTabChange('history') },
+          { label: 'Explore findings', hint: 'Curated lenses, guided questions, and paper-backed interpretation', onClick: () => onTabChange('explore') },
+          { label: 'Browse community notes', hint: 'See human-framed notes from paper readings and exact runs', onClick: () => onTabChange('history') },
           { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
         ]} />
       )}
->>>>>>> Stashed changes
+        </>
+      )}
     </div>
   )
 }

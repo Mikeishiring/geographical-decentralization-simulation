@@ -13,6 +13,7 @@ import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, publishExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
 import { NodeConstellation } from '../components/decorative/NodeConstellation'
 import { ModeBanner } from '../components/layout/ModeBanner'
+import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
 import type { TabId } from '../components/layout/TabNav'
@@ -45,13 +46,15 @@ export function FindingsPage({
   isActive = true,
   onQueryChange,
   onExplorationIdChange,
-  onTabChange: _onTabChange,
+  onOpenCommunityExploration,
+  onTabChange,
 }: {
   initialQuery?: string | null
   initialExplorationId?: string | null
   isActive?: boolean
   onQueryChange?: (query: string | null) => void
   onExplorationIdChange?: (explorationId: string | null) => void
+  onOpenCommunityExploration?: (explorationId: string) => void
   onTabChange?: (tab: TabId) => void
 }) {
   const queryClient = useQueryClient()
@@ -65,6 +68,7 @@ export function FindingsPage({
   const [shareState, setShareState] = useState<'idle' | 'copied'>('idle')
   const [exportState, setExportState] = useState<'idle' | 'copied'>('idle')
   const [publishedContextKey, setPublishedContextKey] = useState<string | null>(null)
+  const [publishedExplorationId, setPublishedExplorationId] = useState<string | null>(null)
   const lastSyncedQueryRef = useRef<string | null>(initialQuery)
   const lastSyncedEidRef = useRef<string | null>(initialExplorationId)
 
@@ -128,6 +132,7 @@ export function FindingsPage({
     onSuccess: (published, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['explorations'] })
       setPublishedContextKey(variables.contextKey)
+      setPublishedExplorationId(published.id)
       setAiResponse(previous => previous
         ? {
             ...previous,
@@ -142,6 +147,7 @@ export function FindingsPage({
 
   const handleTopicClick = (card: TopicCard) => {
     publishMutation.reset()
+    setPublishedExplorationId(null)
     lastSyncedQueryRef.current = null
     lastSyncedEidRef.current = null
     setAiResponse(null)
@@ -155,6 +161,7 @@ export function FindingsPage({
 
   const handleBackToOverview = () => {
     publishMutation.reset()
+    setPublishedExplorationId(null)
     lastSyncedQueryRef.current = null
     lastSyncedEidRef.current = null
     setActiveTopic(null)
@@ -173,6 +180,7 @@ export function FindingsPage({
     },
   ) => {
     publishMutation.reset()
+    setPublishedExplorationId(null)
     if (options?.syncRoute !== false) {
       lastSyncedQueryRef.current = query
       onQueryChange?.(query)
@@ -208,6 +216,7 @@ export function FindingsPage({
 
   const handleHistorySelect = useCallback((entry: HistoryEntry) => {
     publishMutation.reset()
+    setPublishedExplorationId(entry.response.provenance.explorationId ?? null)
     lastSyncedQueryRef.current = entry.query
     lastSyncedEidRef.current = entry.response.provenance.explorationId ?? null
     setActiveTopic(null)
@@ -265,6 +274,7 @@ export function FindingsPage({
         const exploration = await getExploration(initialExplorationId)
         onExplorationIdChange?.(exploration.id)
         setPublishedContextKey(exploration.publication.published ? `reading:${exploration.query}` : null)
+        setPublishedExplorationId(exploration.publication.published ? exploration.id : null)
         setActiveQuery(exploration.query)
         setAiResponse({
           summary: exploration.summary,
@@ -395,7 +405,7 @@ export function FindingsPage({
         <NodeConstellation className="absolute right-0 top-0 w-32 h-32 opacity-40 pointer-events-none hidden sm:block" />
 
         <p className="text-[11px] text-text-faint mb-2 leading-relaxed max-w-xl">
-          An interactive companion for the geo-decentralization paper. Pick a lens below, or ask a question about latency, concentration metrics, or protocol design.
+          An interactive companion for the geo-decentralization paper. Start with a curated lens, read community notes, or ask a bounded question about latency, concentration metrics, and protocol design.
         </p>
         <h1 className="text-xl sm:text-2xl font-bold text-text-primary font-serif leading-tight max-w-lg">
           Start with the paper’s sharpest questions.
@@ -429,11 +439,9 @@ export function FindingsPage({
           />
         </div>
       </div>
-<<<<<<< Updated upstream
-=======
 
       {!showAi && !showTopic && onTabChange && (
-        <div className="mb-8 grid gap-3 lg:grid-cols-3">
+        <div className="mb-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <button
             onClick={() => onTabChange('paper')}
             className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
@@ -446,7 +454,18 @@ export function FindingsPage({
           </button>
 
           <button
-            onClick={() => onTabChange('simulation')}
+            onClick={() => onTabChange('results')}
+            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+          >
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">See the evidence</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">Browse published results</div>
+            <div className="mt-1 text-xs leading-5 text-muted">
+              Jump straight to the canonical scenarios and the experimental runner when you want to verify a claim with the actual artifacts.
+            </div>
+          </button>
+
+          <button
+            onClick={() => onTabChange('results')}
             className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
           >
             <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Verify with data</div>
@@ -466,7 +485,6 @@ export function FindingsPage({
         </div>
       )}
 
->>>>>>> Stashed changes
       <QueryHistory
         entries={history}
         onSelect={handleHistorySelect}
@@ -589,10 +607,10 @@ export function FindingsPage({
               </a>
               {onTabChange && (
                 <button
-                  onClick={() => onTabChange('simulation')}
+                  onClick={() => onTabChange('results')}
                   className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
                 >
-                  <span>Open published results</span>
+                  <span>Open simulation tab</span>
                   <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
                 </button>
               )}
@@ -659,16 +677,20 @@ export function FindingsPage({
                 defaultTitle={readingPublishTitle}
                 defaultTakeaway={readingPublishTakeaway}
                 helperText={readingPublishHelper}
-              publishLabel="Publish human-authored note"
-              successLabel="Published human-authored note"
-              viewPublishedLabel="Open Community"
-              published={currentReadingPublished}
-              isPublishing={publishMutation.isPending}
-              error={(publishMutation.error as Error | null)?.message ?? null}
-              onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
-              onPublish={payload => publishMutation.mutate({
-                contextKey: readingPublishContextKey,
-                ...payload,
+                publishLabel="Publish human-authored note"
+                successLabel="Published human-authored note"
+                viewPublishedLabel="Open Community"
+                published={currentReadingPublished}
+                isPublishing={publishMutation.isPending}
+                error={(publishMutation.error as Error | null)?.message ?? null}
+                onViewPublished={publishedExplorationId && onOpenCommunityExploration
+                  ? () => onOpenCommunityExploration(publishedExplorationId)
+                  : onTabChange
+                    ? () => onTabChange('history')
+                    : undefined}
+                onPublish={payload => publishMutation.mutate({
+                  contextKey: readingPublishContextKey,
+                  ...payload,
                 })}
               />
             )}
@@ -715,7 +737,11 @@ export function FindingsPage({
                 published={currentReadingPublished}
                 isPublishing={publishMutation.isPending}
                 error={(publishMutation.error as Error | null)?.message ?? null}
-                onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
+                onViewPublished={publishedExplorationId && onOpenCommunityExploration
+                  ? () => onOpenCommunityExploration(publishedExplorationId)
+                  : onTabChange
+                    ? () => onTabChange('history')
+                    : undefined}
                 onPublish={payload => publishMutation.mutate({
                   contextKey: readingPublishContextKey,
                   ...payload,
@@ -776,10 +802,9 @@ export function FindingsPage({
 
       {onTabChange && (
         <Wayfinder links={[
-          { label: 'Read the full paper', hint: 'Editorial reading guide with annotations', onClick: () => onTabChange('paper') },
-          { label: 'See community notes', hint: 'Published contributions and the reading archive', onClick: () => onTabChange('history') },
-          { label: 'Drill into sections', hint: 'Accordion view of every argument & block', onClick: () => onTabChange('deep-dive') },
-          { label: 'Run a simulation', hint: 'Test parameters with the exact model', onClick: () => onTabChange('simulation') },
+          { label: 'Read the full paper', hint: 'Canonical paper text with the editorial guide', onClick: () => onTabChange('paper') },
+          { label: 'Open simulation', hint: 'Inspect published scenarios or run a fresh exact experiment', onClick: () => onTabChange('results') },
+          { label: 'Start a fresh question', hint: 'Reset the page and ask a sharper paper-backed prompt', onClick: handleBackToOverview },
         ]} />
       )}
     </div>

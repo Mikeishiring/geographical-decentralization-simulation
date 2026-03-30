@@ -3,7 +3,7 @@
  * Keeps the API key server-side. Frontend calls /api/explore -> curated/history routing -> Claude -> Block[].
  *
  * Start: npx tsx server/index.ts
- * Env:   ANTHROPIC_API_KEY=sk-ant-...
+ * Env:   ANTHROPIC_API_KEY=your_anthropic_api_key_here
  */
 
 import express from 'express'
