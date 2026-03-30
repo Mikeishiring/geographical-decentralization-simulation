@@ -9,6 +9,7 @@ interface Node {
   readonly opacity: number
 }
 
+/* Nodes placed on a rough hexagonal grid to evoke a distributed network topology */
 const NODES: readonly Node[] = [
   { x: 50, y: 10, r: 2.5, color: 'var(--color-accent)', opacity: 0.5 },
   { x: 20, y: 30, r: 2, color: 'var(--color-accent-warm)', opacity: 0.4 },
@@ -20,6 +21,7 @@ const NODES: readonly Node[] = [
   { x: 90, y: 75, r: 1.5, color: 'var(--color-accent)', opacity: 0.3 },
 ]
 
+/* Edges form a connected mesh — every node reachable from every other */
 const EDGES: readonly [number, number][] = [
   [0, 1], [0, 2],
   [1, 3], [2, 4],
@@ -28,7 +30,7 @@ const EDGES: readonly [number, number][] = [
   [5, 6], [6, 7],
 ]
 
-/** Faint dot-and-line network — evokes validators spread across geography */
+/** Faint dot-and-line network evoking validators spread across geography */
 export function NodeConstellation({ className = '' }: { readonly className?: string }) {
   return (
     <motion.svg
