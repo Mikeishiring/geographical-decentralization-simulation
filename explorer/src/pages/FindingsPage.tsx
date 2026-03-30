@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, ArrowLeft, Link2, FileText } from 'lucide-react'
+import { ArrowRight, ArrowLeft, ArrowUpRight, Link2, FileText } from 'lucide-react'
 import { cn } from '../lib/cn'
 import { DEFAULT_BLOCKS, OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../data/default-blocks'
 import { ContributionComposer } from '../components/community/ContributionComposer'
@@ -36,6 +36,19 @@ function fallbackCuratedProvenance(label: string, detail: string): ExploreProven
     detail,
     canonical: true,
   }
+}
+
+function summarizeTopicCard(card: TopicCard): readonly string[] {
+  const tags: string[] = []
+  const blockTypes = new Set(card.blocks.map(block => block.type))
+  if (blockTypes.has('chart') || blockTypes.has('timeseries')) tags.push('charts')
+  if (blockTypes.has('table')) tags.push('data table')
+  if (blockTypes.has('comparison')) tags.push('comparison')
+  if (card.blocks.some(block => block.type === 'insight' && block.emphasis === 'surprising')) {
+    tags.push('surprising')
+  }
+  if (card.blocks.some(block => block.type === 'caveat')) tags.push('caveat')
+  return tags.slice(0, 3)
 }
 
 export function FindingsPage({
@@ -472,6 +485,17 @@ export function FindingsPage({
                 <p className="text-xs text-muted leading-relaxed line-clamp-2 mb-2">
                   {card.description}
                 </p>
+                <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                  <span className="text-[10px] text-text-faint">{card.blocks.length} blocks</span>
+                  {summarizeTopicCard(card).map(tag => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-border-subtle px-1.5 py-0.5 text-[10px] text-text-faint"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
                 <span className={cn(
                   'flex items-center gap-1 text-xs',
                   isActive ? 'text-accent' : 'text-text-faint',
@@ -504,41 +528,66 @@ export function FindingsPage({
         )}
       </div>
 
-      {/* Navigation cards — cross-tab wayfinding (default state only) */}
-      {!showAi && !showTopic && onTabChange && (
-        <div className="mb-8 grid gap-3 md:grid-cols-3">
-          <button
-            onClick={() => onTabChange('paper')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-          >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Read the source</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Open the paper guide</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Editorial reading guide through the full paper, section by section.
-            </div>
-          </button>
+      {/* Navigation cards — cross-tab + canonical sources (default state only) */}
+      {!showAi && !showTopic && (
+        <div className="mb-8 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          {onTabChange && (
+            <button
+              onClick={() => onTabChange('paper')}
+              className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+            >
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Read the source</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Open the paper guide</div>
+              <div className="mt-1 text-xs leading-5 text-muted">
+                Editorial reading guide through the full paper, section by section.
+              </div>
+            </button>
+          )}
 
-          <button
-            onClick={() => onTabChange('results')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-          >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Verify with data</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Browse published results</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Canonical scenarios plus a fresh simulation runner to test claims against the actual artifacts.
-            </div>
-          </button>
+          {onTabChange && (
+            <button
+              onClick={() => onTabChange('results')}
+              className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+            >
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Verify with data</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Browse published results</div>
+              <div className="mt-1 text-xs leading-5 text-muted">
+                Canonical scenarios and a simulation runner to test claims against the artifacts.
+              </div>
+            </button>
+          )}
 
-          <button
-            onClick={() => onTabChange('results')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+          <a
+            href="https://arxiv.org/abs/2509.21475"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-xl border border-border-subtle bg-white px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-border-hover"
           >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Run the exact loop</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Open simulation</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Move from the reading layer into published scenarios or a fresh exact experiment.
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Canonical paper</div>
+            <div className="mt-2 flex items-center justify-between gap-3 text-sm font-medium text-text-primary">
+              <span>Open arXiv source</span>
+              <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
             </div>
-          </button>
+            <div className="mt-1 text-xs leading-5 text-muted">
+              Yang, Oz, Wu, Zhang (2025) — the full paper this explorer is built on.
+            </div>
+          </a>
+
+          <a
+            href="https://github.com/syang-ng/geographical-decentralization-simulation"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-xl border border-border-subtle bg-white px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-border-hover"
+          >
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Implementation source</div>
+            <div className="mt-2 flex items-center justify-between gap-3 text-sm font-medium text-text-primary">
+              <span>Open repository</span>
+              <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+            </div>
+            <div className="mt-1 text-xs leading-5 text-muted">
+              Simulation code, data, and this explorer — all open source.
+            </div>
+          </a>
         </div>
       )}
 

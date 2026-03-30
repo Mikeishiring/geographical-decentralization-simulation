@@ -192,6 +192,18 @@ function App() {
     applyRouteState({ tab: 'explore', query: null, explorationId }, false)
   }, [applyRouteState])
 
+  const handleOpenCommunityExploration = useCallback((explorationId: string) => {
+    applyRouteState({ tab: 'community', query: null, explorationId }, false)
+  }, [applyRouteState])
+
+  const handleCommunityGoToFindings = useCallback(() => {
+    applyRouteState({ tab: 'explore', query: null, explorationId: null }, false)
+  }, [applyRouteState])
+
+  const handleCommunityOpenQuery = useCallback((query: string) => {
+    applyRouteState({ tab: 'explore', query, explorationId: null }, false)
+  }, [applyRouteState])
+
   return (
     <div className="min-h-screen bg-canvas">
       <a href="#main-content" className="skip-to-content">
@@ -214,6 +226,7 @@ function App() {
             isActive={activeTab === 'explore'}
             onQueryChange={handleFindingsQueryChange}
             onExplorationIdChange={handleExplorationIdChange}
+            onOpenCommunityExploration={handleOpenCommunityExploration}
             onTabChange={handleTabChange}
           />
         </div>
@@ -230,6 +243,19 @@ function App() {
           <div hidden={activeTab !== 'results'} aria-hidden={activeTab !== 'results'}>
             <Suspense fallback={<PageFallback label="Loading simulation surface" />}>
               <SimulationLabPage onTabChange={handleTabChange} />
+            </Suspense>
+          </div>
+        )}
+
+        {visitedTabs.community && (
+          <div hidden={activeTab !== 'community'} aria-hidden={activeTab !== 'community'}>
+            <Suspense fallback={<PageFallback label="Loading community notes" />}>
+              <ExploreHistoryPage
+                initialExplorationId={sharedExplorationId}
+                onGoToFindings={handleCommunityGoToFindings}
+                onOpenQuery={handleCommunityOpenQuery}
+                onTabChange={handleTabChange}
+              />
             </Suspense>
           </div>
         )}
