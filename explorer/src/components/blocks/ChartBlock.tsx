@@ -32,7 +32,7 @@ export function ChartBlock({ block }: ChartBlockProps) {
           </div>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
             <span>{block.data.length} points</span>
-            {block.unit && <span className="font-mono text-[10px]">{block.unit}</span>}
+            {block.unit && <span className="font-mono text-[0.625rem]">{block.unit}</span>}
             {categoryColors.size > 0 && [...categoryColors.entries()].map(([category, color]) => (
               <span key={category} className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
@@ -190,7 +190,7 @@ function BarChart({
             <div className="flex items-baseline justify-between gap-3 mb-1">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-xs text-text-primary truncate">{d.label}</span>
-                {d.category && <span className="text-[10px] text-muted">{d.category}</span>}
+                {d.category && <span className="text-[0.625rem] text-muted">{d.category}</span>}
               </div>
               <span className="text-xs text-text-primary tabular-nums font-medium shrink-0">
                 {d.value}{unit ?? ''}

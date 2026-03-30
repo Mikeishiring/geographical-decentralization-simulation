@@ -44,7 +44,7 @@ export function ModeBanner({
     <div className={cn('rounded-xl border px-4 py-3', palette.border, palette.bg)}>
       <div className="flex items-center gap-2">
         <span className={cn('h-1.5 w-1.5 rounded-full', palette.dot)} />
-        <span className="text-[0.625rem] font-medium uppercase tracking-[0.12em] text-text-faint">
+        <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
           {eyebrow}
         </span>
       </div>

@@ -206,7 +206,7 @@ export function SimConfigPanel({
             <label className="text-xs text-muted block">
               Validators
             </label>
-            <div className="text-[11px] text-text-faint">
+            <div className="text-[0.6875rem] text-text-faint">
               {config.validators.toLocaleString()}
             </div>
           </div>
@@ -230,7 +230,7 @@ export function SimConfigPanel({
             ))}
           </div>
           <details open={!validatorsOnAnchor} className="lab-option-card mt-3 rounded-xl px-3 py-3">
-            <summary className="cursor-pointer list-none text-[11px] text-muted hover:text-text-primary">
+            <summary className="cursor-pointer list-none text-[0.6875rem] text-muted hover:text-text-primary">
               Fine edit exact validator count
             </summary>
             <input
@@ -251,7 +251,7 @@ export function SimConfigPanel({
             <label className="text-xs text-muted block">
               Slots
             </label>
-            <div className="text-[11px] text-text-faint">
+            <div className="text-[0.6875rem] text-text-faint">
               {config.slots.toLocaleString()}
             </div>
           </div>
@@ -275,7 +275,7 @@ export function SimConfigPanel({
             ))}
           </div>
           <details open={!slotsOnAnchor} className="lab-option-card mt-3 rounded-xl px-3 py-3">
-            <summary className="cursor-pointer list-none text-[11px] text-muted hover:text-text-primary">
+            <summary className="cursor-pointer list-none text-[0.6875rem] text-muted hover:text-text-primary">
               Fine edit exact slot count
             </summary>
             <input
@@ -330,7 +330,7 @@ export function SimConfigPanel({
             ))}
           </div>
           {!migrationCostOnAnchor && (
-            <div className="mt-1 text-[11px] text-text-faint">
+            <div className="mt-1 text-[0.6875rem] text-text-faint">
               Exact value: {config.migrationCost.toFixed(4)} ETH
             </div>
           )}
@@ -394,7 +394,7 @@ export function SimConfigPanel({
             </div>
             <div
               className={cn(
-                'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium',
+                'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.6875rem] font-medium',
                 paperComparability.tone === 'canonical' && 'border-success/30 bg-success/8 text-text-primary',
                 paperComparability.tone === 'editorial' && 'border-warning/30 bg-warning/8 text-text-primary',
                 paperComparability.tone === 'experimental' && 'border-rule bg-white text-text-primary',
@@ -431,7 +431,7 @@ export function SimConfigPanel({
             </div>
           </div>
 
-          <div className="mt-4 max-w-3xl text-[11px] leading-5 text-muted">
+          <div className="mt-4 max-w-3xl text-[0.6875rem] leading-5 text-muted">
             {paperComparability.detail}
           </div>
 
