@@ -232,7 +232,7 @@ export function ExploreHistoryPage({
 
       <div className="rounded-xl border border-rule bg-white px-5 py-4">
         <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Community standard</span>
-        <div className="mt-3 divide-y divide-rule">
+        <div className="stagger-reveal mt-3 divide-y divide-rule">
           {[
             {
               title: 'Lead with observation',

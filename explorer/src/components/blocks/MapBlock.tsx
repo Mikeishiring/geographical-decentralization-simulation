@@ -386,7 +386,7 @@ export function MapBlock({ block }: MapBlockProps) {
         </div>
 
         {/* ── Side panel ── */}
-        <div className="border-t border-rule p-3 lg:border-l lg:border-t-0 space-y-3">
+        <div className="border-t border-rule p-3 lg:border-l lg:border-t-0 space-y-3 overflow-hidden">
           {/* Top regions list */}
           <div>
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
