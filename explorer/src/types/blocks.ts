@@ -96,6 +96,60 @@ export const timeSeriesBlockSchema = z.object({
   })).optional(),
 })
 
+export const scatterBlockSchema = z.object({
+  type: z.literal('scatter'),
+  title: z.string(),
+  points: z.array(z.object({
+    x: z.number(),
+    y: z.number(),
+    label: z.string().optional(),
+    category: z.string().optional(),
+  })),
+  xLabel: z.string().optional(),
+  yLabel: z.string().optional(),
+  unit: z.string().optional(),
+})
+
+export const histogramBlockSchema = z.object({
+  type: z.literal('histogram'),
+  title: z.string(),
+  bins: z.array(z.object({
+    range: z.string(),
+    count: z.number(),
+    category: z.string().optional(),
+  })),
+  unit: z.string().optional(),
+})
+
+export const heatmapBlockSchema = z.object({
+  type: z.literal('heatmap'),
+  title: z.string(),
+  rows: z.array(z.string()),
+  columns: z.array(z.string()),
+  values: z.array(z.array(z.number())),
+  colorScale: z.enum(['sequential', 'diverging']).optional(),
+  unit: z.string().optional(),
+})
+
+export const stackedBarBlockSchema = z.object({
+  type: z.literal('stacked_bar'),
+  title: z.string(),
+  categories: z.array(z.string()),
+  series: z.array(z.object({
+    label: z.string(),
+    values: z.array(z.number()),
+    color: z.string().optional(),
+  })),
+  unit: z.string().optional(),
+})
+
+export const equationBlockSchema = z.object({
+  type: z.literal('equation'),
+  latex: z.string(),
+  label: z.string().optional(),
+  description: z.string().optional(),
+})
+
 // --- Discriminated union ---
 
 export const blockSchema = z.discriminatedUnion('type', [
@@ -108,6 +162,11 @@ export const blockSchema = z.discriminatedUnion('type', [
   sourceBlockSchema,
   mapBlockSchema,
   timeSeriesBlockSchema,
+  scatterBlockSchema,
+  histogramBlockSchema,
+  heatmapBlockSchema,
+  stackedBarBlockSchema,
+  equationBlockSchema,
 ])
 
 // --- TypeScript types (inferred from schemas) ---
@@ -121,6 +180,11 @@ export type CaveatBlock = z.infer<typeof caveatBlockSchema>
 export type SourceBlock = z.infer<typeof sourceBlockSchema>
 export type MapBlock = z.infer<typeof mapBlockSchema>
 export type TimeSeriesBlock = z.infer<typeof timeSeriesBlockSchema>
+export type ScatterBlock = z.infer<typeof scatterBlockSchema>
+export type HistogramBlock = z.infer<typeof histogramBlockSchema>
+export type HeatmapBlock = z.infer<typeof heatmapBlockSchema>
+export type StackedBarBlock = z.infer<typeof stackedBarBlockSchema>
+export type EquationBlock = z.infer<typeof equationBlockSchema>
 export type Block = z.infer<typeof blockSchema>
 
 // --- Validation helper ---

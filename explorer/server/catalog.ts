@@ -17,6 +17,11 @@ import {
   sourceBlockSchema,
   mapBlockSchema,
   timeSeriesBlockSchema,
+  scatterBlockSchema,
+  histogramBlockSchema,
+  heatmapBlockSchema,
+  stackedBarBlockSchema,
+  equationBlockSchema,
 } from '../src/types/blocks.ts'
 import {
   simulationArtifactBundles,
@@ -248,6 +253,11 @@ export function buildTools(): Anthropic.Messages.Tool[] {
     sourceBlockSchema,
     mapBlockSchema,
     timeSeriesBlockSchema,
+    scatterBlockSchema,
+    histogramBlockSchema,
+    heatmapBlockSchema,
+    stackedBarBlockSchema,
+    equationBlockSchema,
   ].map(s => toToolSchema(s))
   const tools: Anthropic.Messages.Tool[] = [
     {
@@ -440,8 +450,11 @@ export function buildTools(): Anthropic.Messages.Tool[] {
       name: 'render_blocks',
       description:
         'Compose visual blocks to answer the user\'s question about the geo-decentralization study. ' +
-        'Prefer 3-5 high-signal blocks, not a maximal list. Use a mix of block types: stat for key numbers, insight for explanations, chart for data, ' +
+        'Prefer 3-5 high-signal blocks, not a maximal list. Use a mix of block types: stat for key numbers, insight for explanations, chart for bar/line data, ' +
         'comparison for SSP vs MSP, table for structured data, map for geography, timeseries for trends, ' +
+        'scatter for correlation/trade-off plots (e.g. latency vs decentralization), histogram for distributions (e.g. Gini coefficient spread across runs), ' +
+        'heatmap for correlation matrices (e.g. validator×region concentration), stacked_bar for composition breakdowns (e.g. region share over time), ' +
+        'equation for formulas (e.g. Nakamoto coefficient, Gini definition), ' +
         'caveat for limitations, source for references. Include at least one evidence block when possible, place evidence before insight, label insights as interpretation/framing, avoid redundant blocks, and keep follow-up prompts concrete. Maximum 6 blocks. ' +
         'Use this as the final presentation step after searching curated cards, prior explorations, or building a simulation config.',
       input_schema: {
