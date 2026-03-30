@@ -236,6 +236,23 @@ body {
   background: radial-gradient(circle, rgba(37, 99, 235, 0.14), transparent 68%);
   filter: blur(2px);
   pointer-events: none;
+  animation: lab-orb-pulse 2.8s ease-in-out infinite;
+}
+
+.lab-loading-orb[data-state="active"] {
+  background: radial-gradient(circle, rgba(77, 166, 255, 0.22), rgba(37, 99, 235, 0.08) 48%, transparent 72%);
+  animation-duration: 1.6s;
+}
+
+@keyframes lab-orb-pulse {
+  0%, 100% {
+    transform: scale(0.92);
+    opacity: 0.58;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
 }
 
 @keyframes lab-shimmer {

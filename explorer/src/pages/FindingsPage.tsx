@@ -299,16 +299,16 @@ export function FindingsPage({
   }, [initialExplorationId, isActive, onExplorationIdChange])
 
   const handleShare = useCallback(async () => {
-    const explorationId = aiResponse?.provenance.explorationId
+    const explorationId = publishedExplorationId
     if (!explorationId) return
     const url = new URL(window.location.href)
     url.searchParams.delete('q')
-    url.searchParams.delete('tab')
+    url.searchParams.set('tab', 'history')
     url.searchParams.set('eid', explorationId)
     await navigator.clipboard.writeText(url.toString())
     setShareState('copied')
     setTimeout(() => setShareState('idle'), 2000)
-  }, [aiResponse])
+  }, [publishedExplorationId])
 
   const handleExportMarkdown = useCallback(async () => {
     const response = aiResponse
@@ -348,7 +348,7 @@ export function FindingsPage({
     ? aiResponse.provenance.source === 'curated'
       ? 'Curated paper finding'
       : aiResponse.provenance.source === 'history'
-        ? 'Prior saved exploration'
+        ? 'Saved reading reuse'
         : aiResponse.cached
           ? 'Fresh interpretation with cached study context'
           : 'Fresh interpretation from current study context'
@@ -379,6 +379,7 @@ export function FindingsPage({
     ? 'Add your own title and takeaway before publishing. This turns a guided reading into an intentional community note instead of dumping raw model output into the feed.'
     : 'Publishing a curated lens still requires your own title and takeaway. Community notes should carry a human-authored framing layer, not just the default card.'
   const currentReadingPublished = readingPublishContextKey !== null && publishedContextKey === readingPublishContextKey
+  const canShareCommunityNote = Boolean(publishedExplorationId && currentReadingPublished)
   const interpretationBoundary = aiResponse
     ? aiResponse.provenance.canonical
       ? 'This reading is tied directly to a canonical or curated paper-backed source.'
@@ -395,7 +396,7 @@ export function FindingsPage({
           What did this paper find?
         </h1>
         <p className="mt-2 text-sm text-muted max-w-2xl leading-relaxed">
-          Ethereum validator geography is shaped by latency and protocol timing rules. Both block-building paradigms push toward concentration, but through different mechanisms.
+          Ask a bounded question, open a curated lens, then move into published scenarios or community notes when you want to verify a claim beyond the summary layer.
         </p>
       </div>
 
@@ -585,13 +586,13 @@ export function FindingsPage({
             <BlockCanvas blocks={aiResponse.blocks} />
 
             <div className="mt-4 flex items-center gap-3 text-xs">
-              {aiResponse.provenance.explorationId && (
+              {canShareCommunityNote && (
                 <button
                   onClick={handleShare}
                   className="inline-flex items-center gap-1.5 text-muted hover:text-accent transition-colors"
                 >
                   <Link2 className="w-3 h-3" />
-                  {shareState === 'copied' ? 'Link copied' : 'Share exploration'}
+                  {shareState === 'copied' ? 'Link copied' : 'Copy community link'}
                 </button>
               )}
               <button
@@ -627,6 +628,13 @@ export function FindingsPage({
                 })}
               />
             )}
+
+            <ReadingBridgePanel
+              currentReadingPublished={currentReadingPublished}
+              publishedExplorationId={publishedExplorationId}
+              onOpenCommunityExploration={onOpenCommunityExploration}
+              onTabChange={onTabChange}
+            />
 
             {aiResponse.followUps.length > 0 && (
               <div className="mt-6 pt-4 border-t border-rule">
@@ -681,6 +689,12 @@ export function FindingsPage({
                 })}
               />
             )}
+            <ReadingBridgePanel
+              currentReadingPublished={currentReadingPublished}
+              publishedExplorationId={publishedExplorationId}
+              onOpenCommunityExploration={onOpenCommunityExploration}
+              onTabChange={onTabChange}
+            />
             {promptOptions.length > 0 && (
               <div className="mt-6 pt-4 border-t border-rule">
                 <span className="text-xs text-muted mb-2 block">
@@ -740,6 +754,81 @@ export function FindingsPage({
           { label: 'Start a fresh question', hint: 'Reset the page and ask a sharper paper-backed prompt', onClick: handleBackToOverview },
         ]} />
       )}
+    </div>
+  )
+}
+
+function ReadingBridgePanel({
+  currentReadingPublished,
+  publishedExplorationId,
+  onOpenCommunityExploration,
+  onTabChange,
+}: {
+  readonly currentReadingPublished: boolean
+  readonly publishedExplorationId: string | null
+  readonly onOpenCommunityExploration?: (explorationId: string) => void
+  readonly onTabChange?: (tab: TabId) => void
+}) {
+  if (!onTabChange && !(currentReadingPublished && publishedExplorationId && onOpenCommunityExploration)) {
+    return null
+  }
+
+  const openCommunity = currentReadingPublished && publishedExplorationId && onOpenCommunityExploration
+    ? () => onOpenCommunityExploration(publishedExplorationId)
+    : onTabChange
+      ? () => onTabChange('history')
+      : undefined
+
+  const communityTitle = currentReadingPublished
+    ? 'Open community note'
+    : 'Keep it private or publish'
+  const communityDetail = currentReadingPublished
+    ? 'This reading now lives on the Community surface with your human title and takeaway.'
+    : 'Readings can stay private context. Publish only after you have added your own framing.'
+
+  return (
+    <div className="mt-5 rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,246,242,0.96))] px-4 py-4">
+      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Cross-check and handoff</div>
+      <div className="mt-1 text-sm font-medium text-text-primary">
+        Move this reading across the rest of the explorer without losing the thread.
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <button
+          onClick={() => onTabChange?.('paper')}
+          disabled={!onTabChange}
+          className="rounded-lg border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:border-border-subtle"
+        >
+          <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Source text</div>
+          <div className="mt-2 text-sm font-medium text-text-primary">Read the paper guide</div>
+          <div className="mt-1 text-xs leading-5 text-muted">
+            Verify the claim against the paper’s section structure and caveats.
+          </div>
+        </button>
+
+        <button
+          onClick={() => onTabChange?.('results')}
+          disabled={!onTabChange}
+          className="rounded-lg border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:border-border-subtle"
+        >
+          <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Artifact check</div>
+          <div className="mt-2 text-sm font-medium text-text-primary">Open simulation</div>
+          <div className="mt-1 text-xs leading-5 text-muted">
+            Compare the reading against published scenarios or a fresh exact run.
+          </div>
+        </button>
+
+        <button
+          onClick={openCommunity}
+          disabled={!openCommunity}
+          className="rounded-lg border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:border-border-subtle"
+        >
+          <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Public framing</div>
+          <div className="mt-2 text-sm font-medium text-text-primary">{communityTitle}</div>
+          <div className="mt-1 text-xs leading-5 text-muted">
+            {communityDetail}
+          </div>
+        </button>
+      </div>
     </div>
   )
 }

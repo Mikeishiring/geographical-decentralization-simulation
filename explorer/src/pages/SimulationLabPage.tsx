@@ -394,6 +394,116 @@ function PendingRunSurface({
   )
 }
 
+function SimulationWorkflowRail({
+  status,
+  hasManifest,
+  published,
+}: {
+  readonly status: RunnerStatus
+  readonly hasManifest: boolean
+  readonly published: boolean
+}) {
+  const activeStep = published
+    ? 3
+    : hasManifest
+      ? 2
+      : status === 'submitting' || status === 'queued' || status === 'running' || status === 'completed'
+        ? 1
+        : 0
+
+  const headline = published
+    ? 'The run has been framed and sent to Community.'
+    : hasManifest
+      ? 'The exact run is ready to inspect and can now be exported or published.'
+      : status === 'submitting' || status === 'queued' || status === 'running' || status === 'completed'
+      ? 'The runner is moving through queue and execution toward the manifest surface.'
+      : 'Choose a bounded scenario, launch the run, then inspect and publish only after reading the artifacts.'
+  const liveLabel = published
+    ? 'Published'
+    : hasManifest
+      ? 'Manifest ready'
+      : status === 'submitting'
+        ? 'Launching now'
+        : status === 'queued'
+          ? 'Queued'
+          : status === 'running'
+            ? 'Running'
+            : 'Idle'
+
+  const steps = [
+    {
+      key: 'configure',
+      label: '1. Configure',
+      title: 'Bound the scenario',
+      detail: 'Pick the paradigm, scale, source placement, and timing assumptions you actually want to test.',
+    },
+    {
+      key: 'run',
+      label: '2. Run',
+      title: 'Queue and execute',
+      detail: 'Let the exact engine resolve the job, emit the manifest, and prepare the sidecar surfaces.',
+    },
+    {
+      key: 'inspect',
+      label: '3. Inspect',
+      title: 'Read artifacts, not guesses',
+      detail: 'Use the overview bundles, raw artifacts, and export package before treating the result as evidence.',
+    },
+    {
+      key: 'publish',
+      label: '4. Publish',
+      title: 'Add human framing',
+      detail: 'Only intentional notes with a title and takeaway belong on the Community surface.',
+    },
+  ] as const
+
+  return (
+    <div className="lab-stage-soft p-5 mb-6" aria-live="polite">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="lab-section-title">Runner Workflow</div>
+          <div className="mt-2 text-sm font-medium text-text-primary">{headline}</div>
+        </div>
+        <div className="flex flex-col items-start gap-3 lg:items-end">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+            <span className={cn('h-2 w-2 rounded-full', activeStep === 0 ? 'bg-slate-400' : activeStep === 3 ? 'bg-success' : 'bg-accent animate-pulse')} />
+            {liveLabel}
+          </div>
+          <div className="max-w-2xl text-xs leading-5 text-muted lg:text-right">
+            The exact tab is designed as one loop: configure, execute, inspect, then publish only if the artifacts support the takeaway you want to put in public.
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-4">
+        {steps.map((step, index) => {
+          const state = index < activeStep
+            ? 'done'
+            : index === activeStep
+              ? 'active'
+              : 'idle'
+
+          return (
+            <div
+              key={step.key}
+              className={cn(
+                'rounded-[1.1rem] border px-4 py-4 transition-colors',
+                state === 'done' && 'border-success/30 bg-success/8',
+                state === 'active' && 'border-accent/30 bg-[linear-gradient(180deg,rgba(37,99,235,0.08),rgba(255,255,255,0.98))]',
+                state === 'idle' && 'border-border-subtle bg-white/85',
+              )}
+            >
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{step.label}</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{step.title}</div>
+              <div className="mt-1 text-xs leading-5 text-muted">{step.detail}</div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function SimulationLabPage({
   onOpenCommunityExploration,
   onTabChange,
@@ -423,6 +533,8 @@ export function SimulationLabPage({
   const workerRef = useRef<Worker | null>(null)
   const workerRequestIdRef = useRef(0)
   const exportResetTimeoutRef = useRef<number | null>(null)
+  const runnerFocusRef = useRef<HTMLDivElement | null>(null)
+  const lastAutoScrollJobRef = useRef<string | null>(null)
 
   useEffect(() => {
     const worker = new Worker(new URL('../workers/simulationArtifactWorker.ts', import.meta.url), { type: 'module' })
@@ -459,6 +571,21 @@ export function SimulationLabPage({
   useEffect(() => {
     setCopilotResponse(null)
   }, [currentJobId])
+
+  useEffect(() => {
+    if (surfaceMode !== 'lab') return
+    if (!currentJobId) return
+    if (lastAutoScrollJobRef.current === currentJobId) return
+
+    lastAutoScrollJobRef.current = currentJobId
+    window.requestAnimationFrame(() => {
+      runnerFocusRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [currentJobId, surfaceMode])
+
+  const jumpToRunner = () => {
+    runnerFocusRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   const updateConfig = <K extends keyof SimulationConfig>(key: K, value: SimulationConfig[K]) => {
     setConfig(previous => ({ ...previous, [key]: value }))
@@ -789,6 +916,7 @@ export function SimulationLabPage({
   const showPendingRunSurface = Boolean(currentJobId)
     && !manifest
     && (status === 'submitting' || status === 'queued' || status === 'running' || status === 'completed')
+  const simulationPublished = simulationPublishContextKey !== null && publishedSimulationKey === simulationPublishContextKey
 
   return (
     <div>
@@ -829,15 +957,20 @@ export function SimulationLabPage({
         />
       ) : (
         <>
+      <SimulationWorkflowRail
+        status={status}
+        hasManifest={Boolean(manifest)}
+        published={simulationPublished}
+      />
       <div className="lab-stage-hero p-6 mb-6">
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.9fr]">
           <div>
             <div className="lab-section-title">Experimental Runner</div>
             <h2 className="mt-3 max-w-3xl text-2xl font-semibold tracking-tight text-text-primary sm:text-[2rem]">
-              Run fresh exact simulations inside our shell and let the explorer grow into the result surface.
+              Run a bounded exact experiment, then read the result without leaving the page.
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-              Configure a bounded exact run, watch the queue and execution state, then inspect the manifest and artifacts without leaving the page.
+              Configure a scenario, watch queue and execution state, then inspect the manifest and artifacts in the same surface.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {paperScenarioLabels(config).map(label => (
@@ -928,24 +1061,28 @@ export function SimulationLabPage({
         onCancel={onCancel}
         paperScenarioLabels={paperScenarioLabels(config)}
         paperComparability={paperComparability}
+        runnerStatus={status}
+        onJumpToRunner={currentJobId ? jumpToRunner : undefined}
       />
 
-      {(currentJobId || submitMutation.isError) && (
-        <SimJobStatus
-          status={status}
-          jobData={jobQuery.data ?? null}
-          submitError={(submitMutation.error as Error | null) ?? null}
-          cancelError={(cancelMutation.error as Error | null) ?? null}
-        />
-      )}
+      <div ref={runnerFocusRef} className="scroll-mt-24">
+        {(currentJobId || submitMutation.isError) && (
+          <SimJobStatus
+            status={status}
+            jobData={jobQuery.data ?? null}
+            submitError={(submitMutation.error as Error | null) ?? null}
+            cancelError={(cancelMutation.error as Error | null) ?? null}
+          />
+        )}
 
-      {showPendingRunSurface && (
-        <PendingRunSurface
-          status={status}
-          jobData={jobQuery.data ?? null}
-          config={config}
-        />
-      )}
+        {showPendingRunSurface && (
+          <PendingRunSurface
+            status={status}
+            jobData={jobQuery.data ?? null}
+            config={config}
+          />
+        )}
+      </div>
 
       <SimCopilotPanel
         copilotQuestion={copilotQuestion}
@@ -991,11 +1128,11 @@ export function SimulationLabPage({
               sourceLabel="Publish this exact run as a community note"
               defaultTitle={simulationPublishTitle}
               defaultTakeaway={simulationPublishTakeaway}
-              helperText="Only intentionally published exact-run notes appear on the community surface. Add your own title and takeaway so the public note reflects what you saw in the artifacts, not just the default guide phrasing."
+              helperText="Only intentionally published exact-run notes appear on the community surface. Add your own title and takeaway so the public note reflects what you saw in the artifacts, not just the default system summary."
               publishLabel="Publish human-authored note"
               successLabel="Published human-authored note"
               viewPublishedLabel="Open Community"
-              published={publishedSimulationKey === simulationPublishContextKey}
+              published={simulationPublished}
               isPublishing={publishMutation.isPending}
               error={(publishMutation.error as Error | null)?.message ?? null}
               onViewPublished={publishedSimulationExplorationId && onOpenCommunityExploration

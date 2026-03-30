@@ -413,7 +413,7 @@ function buildCuratedResponse(match: CuratedMatch): ExploreResponse {
 function buildHistoryResponse(match: ReturnType<ExplorationStore['findBestMatch']>): ExploreResponse | null {
   if (!match) return null
   const exact = match.reason === 'exact'
-  const publicationLabel = match.exploration.publication.published ? 'Community contribution' : 'Reading archive'
+  const publicationLabel = match.exploration.publication.published ? 'Community contribution' : 'Saved reading'
   return {
     summary: match.exploration.summary,
     blocks: match.exploration.blocks,
@@ -426,10 +426,10 @@ function buildHistoryResponse(match: ReturnType<ExplorationStore['findBestMatch'
       detail: exact
         ? match.exploration.publication.published
           ? 'Reused an exact published community contribution.'
-          : 'Reused an exact saved reading from the archive.'
+          : 'Reused an exact saved reading.'
         : match.exploration.publication.published
           ? 'Reused a closely related published community contribution.'
-          : 'Reused a closely related saved reading from the archive.',
+          : 'Reused a closely related saved reading.',
       canonical: false,
       explorationId: match.exploration.id,
       similarityScore: Number(match.score.toFixed(2)),

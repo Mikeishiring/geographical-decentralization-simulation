@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Ban, Play, RotateCcw, Sparkles } from 'lucide-react'
+import { ArrowDown, Ban, LoaderCircle, Play, RotateCcw, Sparkles } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING } from '../../lib/theme'
 import type { SimulationConfig } from '../../lib/simulation-api'
@@ -75,6 +75,8 @@ interface SimConfigPanelProps {
   readonly onCancel: () => void
   readonly paperScenarioLabels: readonly string[]
   readonly paperComparability: PaperComparability
+  readonly runnerStatus: 'idle' | 'submitting' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
+  readonly onJumpToRunner?: () => void
 }
 
 export function SimConfigPanel({
@@ -87,6 +89,8 @@ export function SimConfigPanel({
   onCancel,
   paperScenarioLabels,
   paperComparability,
+  runnerStatus,
+  onJumpToRunner,
 }: SimConfigPanelProps) {
   const validatorsOnAnchor = isAnchorValue(config.validators, VALIDATOR_ANCHORS)
   const slotsOnAnchor = isAnchorValue(config.slots, SLOT_ANCHORS)
@@ -94,6 +98,27 @@ export function SimConfigPanel({
   const inputClassName = 'lab-input-shell w-full rounded-xl px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/10'
   const anchorButtonClassName = 'lab-option-card min-w-0 rounded-xl px-2.5 py-2 text-center transition-all hover:-translate-y-0.5 hover:border-border-hover'
   const segmentButtonClassName = 'lab-option-card min-w-0 rounded-xl px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover'
+  const runIsActive = runnerStatus === 'submitting' || runnerStatus === 'queued' || runnerStatus === 'running'
+  const runButtonLabel = runnerStatus === 'submitting'
+    ? 'Submitting exact run…'
+    : runnerStatus === 'queued'
+      ? 'Queued for execution'
+      : runnerStatus === 'running'
+        ? 'Running exact simulation'
+        : 'Run Exact Simulation'
+  const statusChipLabel = runnerStatus === 'submitting'
+    ? 'Launching now'
+    : runnerStatus === 'queued'
+      ? 'Runner queued'
+      : runnerStatus === 'running'
+        ? 'Runner live'
+        : runnerStatus === 'completed'
+          ? 'Results ready'
+          : runnerStatus === 'failed'
+            ? 'Needs retry'
+            : runnerStatus === 'cancelled'
+              ? 'Run cancelled'
+              : 'Ready'
 
   return (
     <div className="lab-stage p-0 mb-6">
@@ -461,17 +486,24 @@ export function SimConfigPanel({
         </div>
 
         <div className="lab-stage-dark p-5">
-          <div className="lab-loading-orb" />
+          <div className="lab-loading-orb" data-state={runIsActive ? 'active' : 'idle'} />
           <div className="text-[0.68rem] uppercase tracking-[0.16em] text-slate-400">Run controls</div>
           <div className="mt-3 text-lg font-semibold text-white">Launch the exact engine when the scenario is locked.</div>
           <div className="mt-2 text-sm leading-6 text-slate-300">
             Reset returns to the fast default posture. Cancel becomes active once the job reaches the queue or starts executing.
           </div>
 
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[11px] font-medium text-slate-100">
+            <span className={cn('h-2 w-2 rounded-full', runIsActive ? 'bg-sky-300 animate-pulse' : runnerStatus === 'completed' ? 'bg-emerald-300' : 'bg-slate-400')} />
+            {statusChipLabel}
+          </div>
+
           <div className="mt-4 rounded-xl border border-white/10 bg-white/6 px-4 py-4">
             <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Recommended next move</div>
             <div className="mt-2 text-sm font-medium text-white">
-              {paperComparability.tone === 'canonical'
+              {runIsActive
+                ? 'The live runner is active below. Stay with the queue and execution surface until the manifest lands.'
+                : paperComparability.tone === 'canonical'
                 ? 'Run this, then compare it against the published results surface.'
                 : paperComparability.tone === 'editorial'
                   ? 'Run this as a paper-scale extension, not as a one-to-one published comparison.'
@@ -484,15 +516,26 @@ export function SimConfigPanel({
               onClick={onSubmit}
               whileTap={{ scale: 0.98 }}
               transition={SPRING}
-              disabled={isSubmitting}
+              disabled={isSubmitting || runnerStatus === 'queued' || runnerStatus === 'running'}
               className={cn(
                 'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
+                runIsActive && 'shadow-[0_0_0_1px_rgba(148,197,255,0.28),0_18px_40px_rgba(37,99,235,0.18)]',
                 'bg-white text-slate-950 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60',
               )}
             >
-              <Play className="h-4 w-4" />
-              {isSubmitting ? 'Submitting…' : 'Run Exact Simulation'}
+              {runIsActive ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              {runButtonLabel}
             </motion.button>
+
+            {onJumpToRunner && runIsActive && (
+              <button
+                onClick={onJumpToRunner}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/8 px-4 py-2.5 text-xs text-slate-100 transition-colors hover:bg-white/12"
+              >
+                <ArrowDown className="h-3.5 w-3.5" />
+                Jump to live runner
+              </button>
+            )}
 
             <div className="grid gap-3 sm:grid-cols-2">
               <button
