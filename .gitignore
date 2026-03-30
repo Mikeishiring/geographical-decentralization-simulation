@@ -230,6 +230,7 @@ tests/__pycache__/
 tests/performance_results.json
 
 # Explorer build and local dev state
+.claude/
 explorer/node_modules/
 explorer/dist/
 explorer/.claude/

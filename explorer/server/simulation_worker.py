@@ -34,6 +34,7 @@ from simulation import (
     SIMULATION_CACHE_DIRNAME,
     SIMULATION_CACHE_VERSION,
     SIMULATION_CODE_FILES,
+    build_paper_geography_metrics,
     compute_simulation_cache_key,
     file_sha256,
     homogeneous_validators,
@@ -114,6 +115,15 @@ ARTIFACT_SPECS = (
         "renderable": True,
     },
     {
+        "name": "paper_geography_metrics.json",
+        "label": "Paper Geography Metrics",
+        "kind": "timeseries",
+        "description": "Per-slot Gini_g, HHI_g, LC_g, and CV_g derived from the exact geography and profit outputs.",
+        "content_type": "application/json",
+        "lazy": False,
+        "renderable": True,
+    },
+    {
         "name": "top_regions_final.json",
         "label": "Final Top Regions",
         "kind": "map",
@@ -176,6 +186,7 @@ REQUIRED_OUTPUTS = {
     "utility_increase.json",
     "proposal_time_avg.json",
     "attestation_sum.json",
+    "paper_geography_metrics.json",
     "top_regions_final.json",
 }
 
@@ -210,6 +221,15 @@ BUNDLE_SPECS = (
         "description": "Prebuilt exact overview for final validator geography and top regions.",
         "source_files": (
             "top_regions_final.json",
+        ),
+    },
+    {
+        "bundle": "paper-metrics",
+        "name": "overview_bundle_paper-metrics.json",
+        "label": "Paper metrics",
+        "description": "Prebuilt exact overview for the paper-facing geography and profit concentration metrics.",
+        "source_files": (
+            "paper_geography_metrics.json",
         ),
     },
 )
@@ -513,6 +533,50 @@ def build_overview_bundle_blocks(bundle: str, output_dir: Path) -> list[dict[str
             },
         ]
 
+    if bundle == "paper-metrics":
+        paper_metrics = read_paper_geography_metrics(output_dir / "paper_geography_metrics.json")
+        if not paper_metrics:
+            return []
+
+        blocks = []
+        if paper_metrics.get("gini"):
+            blocks.append(
+                build_time_series_block(
+                    "Geographic Gini (Gini_g)",
+                    "Geographic Gini (Gini_g)",
+                    paper_metrics["gini"],
+                    "Index",
+                )
+            )
+        if paper_metrics.get("hhi"):
+            blocks.append(
+                build_time_series_block(
+                    "Geographic HHI (HHI_g)",
+                    "Geographic HHI (HHI_g)",
+                    paper_metrics["hhi"],
+                    "Index",
+                )
+            )
+        if paper_metrics.get("liveness"):
+            blocks.append(
+                build_time_series_block(
+                    "Geographic Liveness (LC_g)",
+                    "Geographic Liveness (LC_g)",
+                    paper_metrics["liveness"],
+                    "Coefficient",
+                )
+            )
+        if paper_metrics.get("profit_variance"):
+            blocks.append(
+                build_time_series_block(
+                    "Geographic Profit Variance (CV_g)",
+                    "Geographic Profit Variance (CV_g)",
+                    paper_metrics["profit_variance"],
+                    "Coefficient of Variation",
+                )
+            )
+        return blocks
+
     return []
 
 
@@ -520,10 +584,12 @@ def ensure_summary_outputs(output_dir: Path) -> None:
     proposal_time_avg_path = output_dir / "proposal_time_avg.json"
     attestation_sum_path = output_dir / "attestation_sum.json"
     top_regions_final_path = output_dir / "top_regions_final.json"
+    paper_geography_metrics_path = output_dir / "paper_geography_metrics.json"
 
     proposal_time_trace_path = output_dir / "proposal_time_by_slot.json"
     attest_trace_path = output_dir / "attest_by_slot.json"
     region_trace_path = output_dir / "region_counter_per_slot.json"
+    region_profits_path = output_dir / "region_profits.csv"
 
     if proposal_time_trace_path.is_file() and not is_up_to_date(proposal_time_avg_path, [proposal_time_trace_path]):
         proposal_time_by_slot = load_json(proposal_time_trace_path)
@@ -560,10 +626,35 @@ def ensure_summary_outputs(output_dir: Path) -> None:
         with top_regions_final_path.open("w", encoding="utf-8") as handle:
             json.dump(top_regions_final, handle)
 
+    if (
+        region_trace_path.is_file()
+        and region_profits_path.is_file()
+        and not is_up_to_date(paper_geography_metrics_path, [region_trace_path, region_profits_path])
+    ):
+        region_counter_per_slot = load_json(region_trace_path)
+        region_profits = pd.read_csv(region_profits_path)
+        paper_metrics = build_paper_geography_metrics(region_counter_per_slot, region_profits)
+        with paper_geography_metrics_path.open("w", encoding="utf-8") as handle:
+            json.dump(paper_metrics, handle)
+
 
 def load_json(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def read_paper_geography_metrics(path: Path) -> dict[str, list[float]]:
+    values = load_json(path)
+    if not isinstance(values, dict):
+        return {}
+
+    parsed: dict[str, list[float]] = {}
+    for key in ("gini", "hhi", "liveness", "profit_variance"):
+        raw_series = values.get(key)
+        if not isinstance(raw_series, list):
+            continue
+        parsed[key] = [float(value) for value in raw_series]
+    return parsed
 
 
 def last_numeric(series: list[Any]) -> float:
@@ -608,6 +699,7 @@ def build_manifest(
     failed_block_proposals = load_json(output_dir / "failed_block_proposals.json")
     utility_increase = load_json(output_dir / "utility_increase.json")
     top_regions_raw = load_json(output_dir / "top_regions_final.json")
+    paper_geography_metrics = read_paper_geography_metrics(output_dir / "paper_geography_metrics.json")
     top_regions = [
         {"name": str(region), "count": int(count)}
         for region, count in top_regions_raw[:8]
@@ -667,6 +759,10 @@ def build_manifest(
             "finalSupermajoritySuccess": round(last_numeric(supermajority_success), 6),
             "finalFailedBlockProposals": round(last_numeric(failed_block_proposals), 6),
             "finalUtilityIncrease": round(last_numeric(utility_increase), 6),
+            "finalGeographicGini": round(last_numeric(paper_geography_metrics.get("gini", [])), 6),
+            "finalGeographicHhi": round(last_numeric(paper_geography_metrics.get("hhi", [])), 6),
+            "finalGeographicLiveness": round(last_numeric(paper_geography_metrics.get("liveness", [])), 6),
+            "finalGeographicProfitVarianceCv": round(last_numeric(paper_geography_metrics.get("profit_variance", [])), 6),
             "topRegions": top_regions,
         },
         "artifacts": artifacts,

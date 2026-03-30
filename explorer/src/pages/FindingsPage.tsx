@@ -13,39 +13,6 @@ import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, publishExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
 import { NodeConstellation } from '../components/decorative/NodeConstellation'
 import { ModeBanner } from '../components/layout/ModeBanner'
-import { Wayfinder } from '../components/layout/Wayfinder'
-import { SPRING } from '../lib/theme'
-import { blocksToMarkdown } from '../lib/export'
-import type { TabId } from '../components/layout/TabNav'
-
-function upsertHistory(previous: HistoryEntry[], next: HistoryEntry): HistoryEntry[] {
-  return [
-    next,
-    ...previous.filter(entry => entry.query !== next.query),
-  ].slice(0, 8)
-}
-
-const dotColor: Record<string, string> = {
-  curated: 'bg-success',
-  history: 'bg-warning',
-  generated: 'bg-accent',
-}
-
-function fallbackCuratedProvenance(label: string, detail: string): ExploreProvenance {
-  return {
-    source: 'curated',
-    label,
-    detail,
-    canonical: true,
-  }
-}
-
-export function FindingsPage({
-  initialQuery = null,
-  initialExplorationId = null,
-  isActive = true,
-  onQueryChange,
-  onExplorationIdChange,
   onTabChange,
 }: {
   initialQuery?: string | null
@@ -548,6 +515,25 @@ export function FindingsPage({
             )
           })}
         </div>
+
+        {policyCard && !showAi && !showTopic && (
+          <div className="mt-4 rounded-xl border border-warning/30 bg-warning/6 px-4 py-4">
+            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Protocol and policy lens</div>
+            <div className="mt-1 text-sm font-medium text-text-primary">
+              Read the paper as a design-tradeoff argument, not only as a mechanism explainer.
+            </div>
+            <p className="mt-1 max-w-2xl text-xs text-muted">
+              Shorter slots, threshold tuning, and infrastructure geography all shift incentives differently. The paper is stronger on diagnosis than on a single validated fix.
+            </p>
+            <button
+              onClick={() => handleTopicClick(policyCard)}
+              className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent transition-colors hover:text-accent/80"
+            >
+              Open implications lens
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="topo-divider mb-6" />
@@ -597,7 +583,34 @@ export function FindingsPage({
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      <QueryHistory
+        entries={history}
+        onSelect={handleHistorySelect}
+        activeQuery={activeQuery ?? undefined}
+      />
+
+      {/* Active lens / AI response area — only when exploring */}
+      {(showAi || showTopic) && (
+        <>
+          <div className="topo-divider mb-6" />
+
+          <div className="mb-5">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h2 className="text-base font-semibold text-text-primary font-serif truncate">
+                {heading}
+              </h2>
+              <div className="flex items-center gap-1.5 text-xs text-muted shrink-0">
+                <span className={cn('w-1.5 h-1.5 rounded-full', dotColor[displayProvenance.source] ?? 'bg-accent')} />
+                {evidencePath}
+              </div>
+            </div>
+
+            <p className="text-xs text-muted">{interpretationBoundary}</p>
+          </div>
+        </>
+      )}
 
       <AnimatePresence mode="wait">
         {loading ? (

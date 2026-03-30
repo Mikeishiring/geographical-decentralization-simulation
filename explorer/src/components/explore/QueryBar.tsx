@@ -62,7 +62,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
       )}>
         <div className="flex items-center gap-3 px-4 py-3.5">
           {loading ? (
-            <Loader2 className="w-4 h-4 text-accent shrink-0 animate-spin" />
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent" />
           ) : (
             <Search className="w-4 h-4 text-muted shrink-0" />
           )}

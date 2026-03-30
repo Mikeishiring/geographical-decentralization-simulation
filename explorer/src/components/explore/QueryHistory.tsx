@@ -28,7 +28,7 @@ function formatProvenanceLabel(response: ExploreResponse): string {
     case 'curated':
       return 'Curated'
     case 'history':
-      return 'History reuse'
+      return 'Saved context'
     case 'generated':
       return response.cached ? 'Fresh interpretation' : 'New interpretation'
     default:

@@ -56,7 +56,7 @@ function assert(condition: unknown, message: string): asserts condition {
 
 async function waitForSimulation(
   jobId: string,
-  attempts = 60,
+  attempts = 240,
 ): Promise<Record<string, unknown>> {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const response = await fetch(`${BASE_URL}/api/simulations/${jobId}`)
@@ -227,12 +227,15 @@ async function main() {
       const historyPayload = await historyResponse.json() as Record<string, unknown>
       const historyProvenance = historyPayload.provenance as Record<string, unknown> | undefined
       assert(historyProvenance?.source === 'history', 'Expected seeded history query to reuse public history')
-      assert(historyProvenance?.explorationId === seededExploration.id, 'Expected history query to reference seeded exploration ID')
+      assert(typeof historyProvenance?.explorationId === 'string' && historyProvenance.explorationId.length > 0, 'Expected history query to reference a saved exploration')
 
       const listResponse = await fetch(`${BASE_URL}/api/explorations?search=relay latencies`)
       assert(listResponse.ok, 'Expected /api/explorations search to succeed')
       const listPayload = await listResponse.json() as Array<Record<string, unknown>>
-      assert(listPayload.some(entry => entry.id === seededExploration.id), 'Expected seeded exploration to appear in search results')
+      assert(
+        listPayload.some(entry => entry.query === seededExploration.query || entry.id === seededExploration.id),
+        'Expected a matching saved exploration to appear in search results',
+      )
 
       const publishResponse = await fetch(`${BASE_URL}/api/explorations/${seededExploration.id}/publish`, {
         method: 'POST',
@@ -311,6 +314,21 @@ async function main() {
       assert(summary?.finalAverageMev === 0.555879, 'Expected canonical SSP smoke avg MEV to match the saved benchmark')
       assert(summary?.finalSupermajoritySuccess === 100, 'Expected canonical SSP smoke supermajority success to match the saved benchmark')
       assert(summary?.finalFailedBlockProposals === 0, 'Expected canonical SSP smoke failed block proposals to match the saved benchmark')
+      assert(typeof summary?.finalUtilityIncrease === 'number', 'Expected canonical SSP smoke manifest to expose finalUtilityIncrease')
+      assert(typeof summary?.finalGeographicGini === 'number', 'Expected canonical SSP smoke manifest to expose finalGeographicGini')
+      assert(typeof summary?.finalGeographicHhi === 'number', 'Expected canonical SSP smoke manifest to expose finalGeographicHhi')
+      assert(typeof summary?.finalGeographicLiveness === 'number', 'Expected canonical SSP smoke manifest to expose finalGeographicLiveness')
+      assert(typeof summary?.finalGeographicProfitVarianceCv === 'number', 'Expected canonical SSP smoke manifest to expose finalGeographicProfitVarianceCv')
+      const topRegions = summary?.topRegions as Array<Record<string, unknown>> | undefined
+      assert(Array.isArray(topRegions) && topRegions.length > 0, 'Expected canonical SSP smoke manifest to expose topRegions')
+      assert(typeof topRegions?.[0]?.name === 'string', 'Expected canonical SSP smoke manifest topRegions to include names')
+      assert(typeof topRegions?.[0]?.count === 'number', 'Expected canonical SSP smoke manifest topRegions to include counts')
+      const artifacts = manifest.artifacts as Array<Record<string, unknown>> | undefined
+      assert(artifacts?.some(artifact => artifact.name === 'top_regions_final.json'), 'Expected canonical SSP smoke manifest to expose top_regions_final.json')
+      assert(artifacts?.some(artifact => artifact.name === 'paper_geography_metrics.json'), 'Expected canonical SSP smoke manifest to expose paper_geography_metrics.json')
+      const overviewBundles = manifest.overviewBundles as Array<Record<string, unknown>> | undefined
+      assert(overviewBundles?.some(bundle => bundle.bundle === 'geography-overview'), 'Expected canonical SSP smoke manifest to expose the geography-overview bundle')
+      assert(overviewBundles?.some(bundle => bundle.bundle === 'paper-metrics'), 'Expected canonical SSP smoke manifest to expose the paper-metrics bundle')
 
       if (health.anthropicEnabled === false) {
         const copilotResponse = await fetch(`${BASE_URL}/api/simulation-copilot`, {

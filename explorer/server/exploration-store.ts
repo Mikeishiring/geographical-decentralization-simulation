@@ -120,6 +120,15 @@ function tokenizeNormalized(normalized: string): string[] {
   if (!normalized) return []
   return normalized
     .split(' ')
+    .map(token => {
+      if (token.endsWith('ies') && token.length > 4) {
+        return `${token.slice(0, -3)}y`
+      }
+      if (token.endsWith('s') && token.length > 3 && !token.endsWith('ss') && !token.endsWith('us') && !token.endsWith('is')) {
+        return token.slice(0, -1)
+      }
+      return token
+    })
     .filter(token => token.length > 1 && !STOP_WORDS.has(token))
 }
 
@@ -137,7 +146,17 @@ function overlapScore(left: readonly string[], right: readonly string[]): number
   return intersection / Math.max(left.length, right.length)
 }
 
-function buildSearchScore(
+function coverageScore(searchTokens: readonly string[], fieldTokens: readonly string[]): number {
+  if (searchTokens.length === 0 || fieldTokens.length === 0) return 0
+  const fieldSet = new Set(fieldTokens)
+  let matches = 0
+  for (const token of searchTokens) {
+    if (fieldSet.has(token)) matches += 1
+  }
+  return matches / searchTokens.length
+}
+
+function buildReuseScore(
   exploration: Exploration,
   normalizedSearch: string,
   searchTokens: readonly string[],
@@ -157,6 +176,69 @@ function buildSearchScore(
     overlapScore(searchTokens, queryTokens),
     overlapScore(searchTokens, summaryTokens) * 0.8,
   )
+}
+
+function buildListSearchScore(
+  exploration: Exploration,
+  normalizedSearch: string,
+  searchTokens: readonly string[],
+): number {
+  if (!normalizedSearch) return 0
+  if (exploration.normalizedQuery === normalizedSearch) return 1
+
+  const publicationText = [
+    exploration.publication.title,
+    exploration.publication.takeaway,
+    exploration.publication.author,
+    exploration.publication.editorNote,
+  ].filter(Boolean).join(' ')
+  const tagText = [...exploration.paradigmTags, ...exploration.experimentTags].join(' ')
+  const blockText = JSON.stringify(exploration.blocks)
+
+  const fields = [
+    {
+      normalized: exploration.normalizedQuery,
+      tokens: uniqueTokens(exploration.query),
+      weight: 1,
+    },
+    {
+      normalized: normalizeQuery(exploration.summary),
+      tokens: uniqueTokens(exploration.summary),
+      weight: 0.86,
+    },
+    {
+      normalized: normalizeQuery(publicationText),
+      tokens: uniqueTokens(publicationText),
+      weight: 0.96,
+    },
+    {
+      normalized: normalizeQuery(tagText),
+      tokens: uniqueTokens(tagText),
+      weight: 0.92,
+    },
+    {
+      normalized: normalizeQuery(blockText),
+      tokens: uniqueTokens(blockText),
+      weight: 0.72,
+    },
+  ]
+
+  let best = 0
+  for (const field of fields) {
+    const includesScore = (
+      field.normalized.includes(normalizedSearch)
+      || normalizedSearch.includes(field.normalized)
+    ) ? 0.88 * field.weight : 0
+
+    best = Math.max(
+      best,
+      includesScore,
+      overlapScore(searchTokens, field.tokens) * field.weight,
+      coverageScore(searchTokens, field.tokens) * field.weight,
+    )
+  }
+
+  return Math.min(1, best)
 }
 
 function hydrateExploration(raw: Partial<Exploration> & Pick<Exploration, 'query' | 'summary' | 'blocks'>): Exploration {
@@ -277,7 +359,7 @@ export class ExplorationStore {
       const scored = pool
         .map(exploration => ({
           exploration,
-          score: buildSearchScore(exploration, normalizedSearch, searchTokens),
+          score: buildListSearchScore(exploration, normalizedSearch, searchTokens),
         }))
         .filter(entry => entry.score >= 0.26)
         .toSorted((left, right) => {
@@ -321,7 +403,7 @@ export class ExplorationStore {
 
     for (const exploration of this.explorations) {
       if (exploration.surface !== 'reading') continue
-      const score = buildSearchScore(exploration, normalizedQuery, queryTokens)
+      const score = buildReuseScore(exploration, normalizedQuery, queryTokens)
       if (score < minimumScore) continue
       if (!best || score > best.score) {
         best = { exploration, score, reason: 'similar' }

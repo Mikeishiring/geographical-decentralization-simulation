@@ -146,9 +146,9 @@ Trade-offs we considered, what we chose, and why. Referenced by date so future s
 | Vercel KV | $0 (free tier: 3K reqs/day) | Query response cache |
 | Domain | ~$1/mo amortized | Optional |
 | **Total infra** | **~$26/mo** | |
-| **Remaining** | **~$74/mo** | Claude API budget = ~3,700 Sonnet queries |
+| **Remaining** | **Additional usage buffer** | Sized for model usage growth and operational slack |
 
-**Key insight:** Infrastructure is cheap. The real cost is Claude API calls, which scale with usage. At $0.02/query, $74/mo supports ~3,700 unique queries. With edge caching (estimated 50% hit rate), that's ~7,400 user queries/month — plenty for a research paper explorer.
+**Key insight:** Infrastructure is relatively cheap compared with model usage. The dominant variable cost is fresh assistant queries, so caching and bounded routing matter more than raw hosting cost.
 
 ---
 
