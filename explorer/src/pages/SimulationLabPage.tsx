@@ -22,6 +22,8 @@ import {
 import {
   ANALYTICS_VIEW_OPTIONS,
   buildAnalyticsBlocks,
+  buildAnalyticsExportBundle,
+  buildAnalyticsExportCsv,
   buildAnalyticsMetricCards,
   clampSlotIndex,
   parseAnalyticsDeckView,
@@ -30,7 +32,7 @@ import {
   type PublishedAnalyticsPayload,
 } from '../components/simulation/simulation-analytics'
 import { createExploration, getApiHealth, publishExploration } from '../lib/api'
-import { downloadSimulationExportArchive } from '../lib/simulation-export'
+import { downloadBlobFile, downloadSimulationExportArchive } from '../lib/simulation-export'
 import type { TabId } from '../components/layout/TabNav'
 import { cn } from '../lib/cn'
 import {
@@ -563,6 +565,45 @@ export function SimulationLabPage({
       selectedComparisonDataset,
     ],
   )
+  const exactAnalyticsExportBundle = useMemo(
+    () => exactAnalyticsPayload
+      ? buildAnalyticsExportBundle({
+          analyticsView: exactAnalyticsView,
+          queryMetric: exactAnalyticsMetric,
+          compareMode: exactAnalyticsCompareMode,
+          primaryPayload: exactAnalyticsPayload,
+          primarySlot: exactAnalyticsSlot,
+          sourceRefs: exactAnalyticsSourceRefs,
+          primaryLabel: 'Exact run',
+          comparisonPayload: comparisonAnalyticsPayload,
+          comparisonSlot: comparisonAnalyticsSlot,
+          comparisonLabel: selectedComparisonDataset
+            ? `${selectedComparisonDataset.evaluation} / ${selectedComparisonDataset.paradigm}`
+            : 'Published foil',
+          shareUrl: exactAnalyticsShareUrl ?? undefined,
+        })
+      : null,
+    [
+      comparisonAnalyticsPayload,
+      comparisonAnalyticsSlot,
+      exactAnalyticsCompareMode,
+      exactAnalyticsMetric,
+      exactAnalyticsPayload,
+      exactAnalyticsShareUrl,
+      exactAnalyticsSlot,
+      exactAnalyticsSourceRefs,
+      exactAnalyticsView,
+      selectedComparisonDataset,
+    ],
+  )
+  const exactAnalyticsExportJson = useMemo(
+    () => exactAnalyticsExportBundle ? JSON.stringify(exactAnalyticsExportBundle, null, 2) : null,
+    [exactAnalyticsExportBundle],
+  )
+  const exactAnalyticsExportCsv = useMemo(
+    () => exactAnalyticsExportBundle ? buildAnalyticsExportCsv(exactAnalyticsExportBundle) : null,
+    [exactAnalyticsExportBundle],
+  )
   const exactAnalyticsStatusMessage = !manifest
     ? null
     : exactAnalyticsPayloadQuery.isLoading
@@ -634,6 +675,24 @@ export function SimulationLabPage({
   const handleCopyExactAnalyticsUrl = async () => {
     if (!exactAnalyticsShareUrl || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return
     await navigator.clipboard.writeText(exactAnalyticsShareUrl)
+  }
+
+  const handleCopyExactAnalyticsJson = async () => {
+    if (!exactAnalyticsExportJson || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return
+    await navigator.clipboard.writeText(exactAnalyticsExportJson)
+  }
+
+  const handleDownloadExactAnalyticsExport = (format: 'json' | 'csv') => {
+    const content = format === 'json' ? exactAnalyticsExportJson : exactAnalyticsExportCsv
+    if (!content) return
+
+    const filename = `${currentJobId ? `exact-${currentJobId.slice(0, 8)}` : 'exact-run'}-${exactAnalyticsView}-${exactAnalyticsMetric}-${exactAnalyticsCompareMode}.${format}`
+    downloadBlobFile(
+      filename,
+      new Blob([content], {
+        type: format === 'json' ? 'application/json;charset=utf-8' : 'text/csv;charset=utf-8',
+      }),
+    )
   }
 
   const onExportData = async () => {
@@ -982,6 +1041,9 @@ export function SimulationLabPage({
             description="This exact run now emits the same published-style analytics payload as the frozen research datasets, so you can inspect it through the same query desk without leaving the lab."
             copyLabel="Copy exact analytics view"
             onCopyShareUrl={() => void handleCopyExactAnalyticsUrl()}
+            onCopyQueryJson={() => void handleCopyExactAnalyticsJson()}
+            onDownloadQueryJson={() => handleDownloadExactAnalyticsExport('json')}
+            onDownloadQueryCsv={() => handleDownloadExactAnalyticsExport('csv')}
             analyticsView={exactAnalyticsView}
             onAnalyticsViewChange={setExactAnalyticsView}
             analyticsViewOptions={ANALYTICS_VIEW_OPTIONS}

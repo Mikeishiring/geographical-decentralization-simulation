@@ -88,6 +88,56 @@ export interface BuildAnalyticsBlocksOptions {
   readonly comparisonLabel?: string
 }
 
+export interface AnalyticsExportRow {
+  readonly slot: number
+  readonly slotIndex: number
+  readonly progressPercent: number
+  readonly primaryValue: number | null
+  readonly comparisonSlot: number | null
+  readonly comparisonSlotIndex: number | null
+  readonly comparisonProgressPercent: number | null
+  readonly comparisonValue: number | null
+  readonly deltaValue: number | null
+}
+
+export interface BuildAnalyticsExportOptions extends BuildAnalyticsBlocksOptions {
+  readonly shareUrl?: string
+  readonly exportedAt?: string
+}
+
+export interface AnalyticsExportBundle {
+  readonly format: 'simulation-analytics-query/v1'
+  readonly exportedAt: string
+  readonly shareUrl: string | null
+  readonly query: {
+    readonly analyticsView: AnalyticsDeckView
+    readonly analyticsViewLabel: string
+    readonly analyticsMetric: AnalyticsQueryMetric
+    readonly analyticsMetricLabel: string
+    readonly compareMode: AnalyticsCompareMode
+    readonly primaryLabel: string
+    readonly primaryDescription: string | null
+    readonly primarySlot: number
+    readonly primarySlotIndex: number
+    readonly primaryTotalSlots: number
+    readonly comparisonLabel: string | null
+    readonly comparisonDescription: string | null
+    readonly comparisonSlot: number | null
+    readonly comparisonSlotIndex: number | null
+    readonly comparisonTotalSlots: number | null
+  }
+  readonly currentReadout: {
+    readonly primaryValue: number | null
+    readonly primaryValueFormatted: string
+    readonly comparisonValue: number | null
+    readonly comparisonValueFormatted: string | null
+    readonly deltaValue: number | null
+    readonly deltaValueFormatted: string | null
+  }
+  readonly sourceRefs: readonly SourceBlock['refs'][number][]
+  readonly rows: readonly AnalyticsExportRow[]
+}
+
 export const ANALYTICS_VIEW_OPTIONS: readonly AnalyticsViewOption[] = [
   {
     id: 'concentration',
@@ -618,6 +668,26 @@ function metricOptionOrDefault(
     ?? ANALYTICS_QUERY_OPTIONS[0]!
 }
 
+function roundExportNumber(
+  value: number | null | undefined,
+  digits = 6,
+): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  return Number(value.toFixed(digits))
+}
+
+function slotProgressPercent(slotIndex: number, totalSlots: number): number {
+  if (totalSlots <= 1) return totalSlots === 0 ? 0 : 100
+  return roundExportNumber((slotIndex / Math.max(1, totalSlots - 1)) * 100, 4) ?? 0
+}
+
+function csvEscape(value: string | number | null): string {
+  if (value == null) return ''
+  const text = String(value)
+  if (!/[",\n]/.test(text)) return text
+  return `"${text.replace(/"/g, '""')}"`
+}
+
 function buildComparisonSummaryBlock(options: {
   readonly queryMetric: AnalyticsQueryMetric
   readonly primaryPayload: PublishedAnalyticsPayload
@@ -850,4 +920,148 @@ export function buildAnalyticsBlocks({
   }
 
   return blocks
+}
+
+export function buildAnalyticsExportRows({
+  queryMetric,
+  primaryPayload,
+  comparisonPayload = null,
+}: {
+  readonly queryMetric: AnalyticsQueryMetric
+  readonly primaryPayload: PublishedAnalyticsPayload
+  readonly comparisonPayload?: PublishedAnalyticsPayload | null
+}): readonly AnalyticsExportRow[] {
+  const primarySeries = metricSeriesForPayload(primaryPayload, queryMetric)
+  const primaryTotalSlots = totalSlotsFromPayload(primaryPayload)
+  const comparisonSeries = comparisonPayload
+    ? metricSeriesForPayload(comparisonPayload, queryMetric)
+    : undefined
+  const comparisonTotalSlots = comparisonPayload
+    ? totalSlotsFromPayload(comparisonPayload)
+    : 0
+
+  return Array.from({ length: primaryTotalSlots }, (_, primarySlotIndex) => {
+    const primaryValue = readMetricValue(primarySeries, primarySlotIndex)
+    const comparisonSlotIndex = comparisonPayload
+      ? alignSlotByProgress(primarySlotIndex, primaryTotalSlots, comparisonTotalSlots)
+      : null
+    const comparisonValue = comparisonSlotIndex != null
+      ? readMetricValue(comparisonSeries, comparisonSlotIndex)
+      : null
+
+    return {
+      slot: primarySlotIndex + 1,
+      slotIndex: primarySlotIndex,
+      progressPercent: slotProgressPercent(primarySlotIndex, primaryTotalSlots),
+      primaryValue: roundExportNumber(primaryValue),
+      comparisonSlot: comparisonSlotIndex != null ? comparisonSlotIndex + 1 : null,
+      comparisonSlotIndex,
+      comparisonProgressPercent: comparisonSlotIndex != null
+        ? slotProgressPercent(comparisonSlotIndex, comparisonTotalSlots)
+        : null,
+      comparisonValue: roundExportNumber(comparisonValue),
+      deltaValue: roundExportNumber(
+        primaryValue != null && comparisonValue != null
+          ? primaryValue - comparisonValue
+          : null,
+      ),
+    }
+  })
+}
+
+export function buildAnalyticsExportBundle({
+  analyticsView,
+  queryMetric,
+  compareMode,
+  primaryPayload,
+  primarySlot,
+  sourceRefs = [],
+  primaryLabel = 'Active replay',
+  comparisonPayload = null,
+  comparisonSlot = 0,
+  comparisonLabel = 'Comparison replay',
+  shareUrl,
+  exportedAt = new Date().toISOString(),
+}: BuildAnalyticsExportOptions): AnalyticsExportBundle {
+  const metricOption = metricOptionOrDefault(analyticsView, queryMetric)
+  const primaryTotalSlots = totalSlotsFromPayload(primaryPayload)
+  const comparisonTotalSlots = comparisonPayload
+    ? totalSlotsFromPayload(comparisonPayload)
+    : null
+  const primaryValue = metricValueForPayload(primaryPayload, metricOption.id, primarySlot)
+  const comparisonValue = comparisonPayload
+    ? metricValueForPayload(comparisonPayload, metricOption.id, comparisonSlot)
+    : null
+  const deltaValue = primaryValue != null && comparisonValue != null
+    ? primaryValue - comparisonValue
+    : null
+
+  return {
+    format: 'simulation-analytics-query/v1',
+    exportedAt,
+    shareUrl: shareUrl ?? null,
+    query: {
+      analyticsView,
+      analyticsViewLabel: ANALYTICS_VIEW_OPTIONS.find(option => option.id === analyticsView)?.label ?? analyticsView,
+      analyticsMetric: metricOption.id,
+      analyticsMetricLabel: metricOption.label,
+      compareMode,
+      primaryLabel,
+      primaryDescription: primaryPayload.description ?? null,
+      primarySlot: primarySlot + 1,
+      primarySlotIndex: primarySlot,
+      primaryTotalSlots,
+      comparisonLabel: comparisonPayload ? comparisonLabel : null,
+      comparisonDescription: comparisonPayload?.description ?? null,
+      comparisonSlot: comparisonPayload ? comparisonSlot + 1 : null,
+      comparisonSlotIndex: comparisonPayload ? comparisonSlot : null,
+      comparisonTotalSlots,
+    },
+    currentReadout: {
+      primaryValue: roundExportNumber(primaryValue),
+      primaryValueFormatted: formatMetricValue(metricOption.id, primaryValue),
+      comparisonValue: roundExportNumber(comparisonValue),
+      comparisonValueFormatted: comparisonPayload
+        ? formatMetricValue(metricOption.id, comparisonValue)
+        : null,
+      deltaValue: roundExportNumber(deltaValue),
+      deltaValueFormatted: comparisonPayload
+        ? formatMetricDelta(metricOption.id, deltaValue)
+        : null,
+    },
+    sourceRefs: [...sourceRefs],
+    rows: buildAnalyticsExportRows({
+      queryMetric: metricOption.id,
+      primaryPayload,
+      comparisonPayload,
+    }),
+  }
+}
+
+export function buildAnalyticsExportCsv(bundle: AnalyticsExportBundle): string {
+  const headers = [
+    'slot',
+    'slot_index',
+    'progress_pct',
+    'primary_value',
+    'comparison_slot',
+    'comparison_slot_index',
+    'comparison_progress_pct',
+    'comparison_value',
+    'delta_value',
+  ]
+
+  const rows = bundle.rows.map(row => [
+    row.slot,
+    row.slotIndex,
+    row.progressPercent,
+    row.primaryValue,
+    row.comparisonSlot,
+    row.comparisonSlotIndex,
+    row.comparisonProgressPercent,
+    row.comparisonValue,
+    row.deltaValue,
+  ].map(csvEscape).join(','))
+
+  return [headers.join(','), ...rows].join('\n')
 }
