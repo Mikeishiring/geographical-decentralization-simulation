@@ -133,6 +133,8 @@ const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; detail: s
   },
 }
 
+const BEST_FIRST_STOP_IDS = ['se4a-attestation', 'se2-distribution', 'discussion', 'limitations'] as const
+
 function summarizeSection(section: PaperSection): string[] {
   const tags: string[] = []
   if (section.id === 'se4a-attestation') tags.push('best paradox')
@@ -257,6 +259,9 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
   )
   const progressPercent = ((activeSectionIndex + 1) / PAPER_SECTIONS.length) * 100
   const activeSection = PAPER_SECTIONS.find(section => section.id === activeSectionId) ?? PAPER_SECTIONS[0]
+  const bestFirstStops = PAPER_SECTIONS.filter(section =>
+    BEST_FIRST_STOP_IDS.includes(section.id as (typeof BEST_FIRST_STOP_IDS)[number]),
+  )
 
   const handleCopySectionLink = async (sectionId: string) => {
     const url = new URL(window.location.href)
@@ -308,6 +313,33 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
           ))}
         </div>
       </motion.section>
+
+      <section className="rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,246,242,0.96))] px-4 py-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Best first stops</div>
+            <div className="mt-1 text-sm font-medium text-text-primary">Four strong entry points into the paper</div>
+          </div>
+          <div className="max-w-2xl text-xs leading-5 text-muted">
+            Start with the paradox, then check the realism question, the implications section, and the limitations so the paper’s confidence boundary stays visible.
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {bestFirstStops.map(section => (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              onClick={() => setActiveSectionId(section.id)}
+              className="rounded-lg border border-border-subtle bg-white px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-border-hover"
+            >
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">{section.number}</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{section.title}</div>
+              <div className="mt-1 text-xs leading-5 text-muted">{sectionEntryLine(section)}</div>
+            </a>
+          ))}
+        </div>
+      </section>
 
       {/* ── Sticky reading-mode bar ── */}
       <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-border-subtle sm:-mx-6 sm:px-6">
@@ -370,7 +402,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
               )}
             >
               {guideOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              Guide
+              Reading guide
             </button>
           </div>
         </div>
@@ -387,11 +419,12 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
             >
               <div className="grid gap-6 pt-4 sm:grid-cols-3">
                 <div>
-                  <div className="text-xs font-medium text-text-primary">Recommended path</div>
+                  <div className="text-xs font-medium text-text-primary">Best first stops</div>
                   <div className="mt-2 space-y-1.5">
                     {[
                       { id: 'se4a-attestation', label: 'SE4a attestation threshold' },
                       { id: 'se2-distribution', label: 'SE2 starting geography' },
+                      { id: 'discussion', label: 'Discussion and implications' },
                       { id: 'limitations', label: 'Limitations (truth boundary)' },
                     ].map((entry, i) => (
                       <a key={entry.id} href={`#${entry.id}`} onClick={() => setActiveSectionId(entry.id)} className="block text-sm text-muted hover:text-accent transition-colors">
