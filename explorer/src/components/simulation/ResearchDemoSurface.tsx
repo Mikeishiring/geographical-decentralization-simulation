@@ -2206,101 +2206,115 @@ export function ResearchDemoSurface({
 
   return (
     <div className="space-y-6">
-      <div className="lab-stage overflow-hidden p-0">
-        <div className="grid">
-          <div className="p-7 md:p-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-text-primary">
+      <div className="lab-stage p-5 md:p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-4xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
               Published Paper Replay
             </div>
-            <h2 className="mt-4 max-w-5xl text-4xl font-semibold tracking-tight text-text-primary md:text-[2.8rem] md:leading-[1.05]">
-              Read the paper through a live replay workspace
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-text-primary md:text-3xl">
+              The world replay is already running
             </h2>
-            <div className="mt-5 max-w-5xl space-y-3 text-[15px] leading-7 text-muted">
+            <div className="mt-2 text-sm leading-6 text-muted">
+              The precomputed world map and timeline load immediately on results. Use the right rail to switch published scenarios, then read the Dune-style analytics desk below against the same frozen paper metrics.
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <span className="lab-chip">Replay already live</span>
+            <span className="lab-chip">World map plus timeline</span>
+            <span className="lab-chip">Dune-style analytics</span>
+          </div>
+        </div>
+
+        <details className="mt-4 overflow-hidden rounded-[1.15rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))]">
+          <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-4 py-4 [&::-webkit-details-marker]:hidden">
+            <div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">How to read it</div>
+              <div className="mt-2 text-sm leading-6 text-text-primary">
+                Start from the live replay, compare a foil if needed, and only then move into paper framing or the analytics desk.
+              </div>
+            </div>
+            <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+              Open guide
+            </div>
+          </summary>
+
+          <div className="border-t border-rule px-4 py-4">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <button
+                onClick={() => {
+                  applyAudienceMode('reader')
+                  setPaperLens('evidence')
+                }}
+                className="rounded-[1.2rem] border border-rule bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
+              >
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">1. Start with the replay</div>
+                <div className="mt-2 text-sm font-medium text-text-primary">Set an evidence-first posture</div>
+                <div className="mt-2 text-xs leading-5 text-muted">
+                  Keep geography, concentration, and liveness on screen before asking for interpretation.
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  applyAudienceMode('reviewer')
+                  if (comparisonDataset) {
+                    handlePrimeReplayQuestion(
+                      viewerSnapshot
+                        ? `Compare the active replay at slot ${viewerSnapshot.slotNumber.toLocaleString()} against ${comparisonDataset.paradigm} and tell me what changes materially.`
+                        : `What is materially different between the active replay and ${comparisonDataset.paradigm}?`,
+                      true,
+                    )
+                  }
+                }}
+                className="rounded-[1.2rem] border border-rule bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
+              >
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">2. Compare a foil</div>
+                <div className="mt-2 text-sm font-medium text-text-primary">Open the foil and ask one grounded question</div>
+                <div className="mt-2 text-xs leading-5 text-muted">
+                  Turn on the comparison posture and immediately ask what changes materially.
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  applyViewPreset('analysis')
+                  setPaperLens('theory')
+                  handlePrimeReplayQuestion(
+                    selectedPaperSection
+                      ? `Use ${selectedPaperSection.number} ${selectedPaperSection.title} to explain the main mechanism visible in this replay.`
+                      : 'What mechanism seems to drive the concentration pattern in this replay?',
+                    true,
+                  )
+                }}
+                className="rounded-[1.2rem] border border-rule bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
+              >
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">3. Tie it to the paper</div>
+                <div className="mt-2 text-sm font-medium text-text-primary">Bind the replay to the canonical framing</div>
+                <div className="mt-2 text-xs leading-5 text-muted">
+                  Shift into the theory lens and keep the answer anchored to the paper section.
+                </div>
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3 text-sm leading-6 text-muted">
               {introParagraphs.map(paragraph => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
             </div>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <span className="lab-chip">Replay already live</span>
-              <span className="lab-chip">Paper-linked analytics</span>
-              <span className="lab-chip">Section-aware notes</span>
-            </div>
 
-            <div className="mt-8">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Read from evidence</div>
-              <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <button
-                  onClick={() => {
-                    applyAudienceMode('reader')
-                    setPaperLens('evidence')
-                  }}
-                  className="rounded-[1.35rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4 text-left shadow-[0_14px_30px_rgba(15,23,42,0.04)] transition-all hover:border-border-hover hover:shadow-[0_18px_34px_rgba(15,23,42,0.07)]"
-                >
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">1. Start with the replay</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">Set an evidence-first posture</div>
-                  <div className="mt-2 text-xs leading-5 text-muted">
-                    Keep the published replay on screen and start with geography, concentration, and liveness before asking for interpretation.
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    applyAudienceMode('reviewer')
-                    if (comparisonDataset) {
-                      handlePrimeReplayQuestion(
-                        viewerSnapshot
-                          ? `Compare the active replay at slot ${viewerSnapshot.slotNumber.toLocaleString()} against ${comparisonDataset.paradigm} and tell me what changes materially.`
-                          : `What is materially different between the active replay and ${comparisonDataset.paradigm}?`,
-                        true,
-                      )
-                    }
-                  }}
-                  className="rounded-[1.35rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4 text-left shadow-[0_14px_30px_rgba(15,23,42,0.04)] transition-all hover:border-border-hover hover:shadow-[0_18px_34px_rgba(15,23,42,0.07)]"
-                >
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">2. Compare a foil</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">Open the foil and ask one grounded question</div>
-                  <div className="mt-2 text-xs leading-5 text-muted">
-                    This turns on the comparison posture and, when a foil is available, immediately asks the replay guide to explain the material delta.
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    applyViewPreset('analysis')
-                    setPaperLens('theory')
-                    handlePrimeReplayQuestion(
-                      selectedPaperSection
-                        ? `Use ${selectedPaperSection.number} ${selectedPaperSection.title} to explain the main mechanism visible in this replay.`
-                        : 'What mechanism seems to drive the concentration pattern in this replay?',
-                      true,
-                    )
-                  }}
-                  className="rounded-[1.35rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4 text-left shadow-[0_14px_30px_rgba(15,23,42,0.04)] transition-all hover:border-border-hover hover:shadow-[0_18px_34px_rgba(15,23,42,0.07)]"
-                >
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">3. Tie it to the paper</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">Bind the replay to the paper framing</div>
-                  <div className="mt-2 text-xs leading-5 text-muted">
-                    Shift into the theory lens and ask a section-grounded question so the answer stays attached to the canonical argument.
-                  </div>
-                </button>
-              </div>
-
-              <div className="mt-3 text-xs leading-5 text-muted">
-                These controls adjust the current workspace. They do not generate a new page or silently rerun the full simulation.
-              </div>
-
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {heroSnapshotCards.map(card => (
-                  <div key={card.label} className="rounded-[1.2rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.92))] px-4 py-4 shadow-[0_12px_24px_rgba(15,23,42,0.03)]">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
-                    <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
-                  </div>
-                ))}
-              </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {heroSnapshotCards.map(card => (
+                <div key={card.label} className="rounded-[1.1rem] border border-rule bg-white px-4 py-4">
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
+                  <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        </details>
       </div>
 
       {activeViewer && (
@@ -3264,7 +3278,7 @@ export function ResearchDemoSurface({
 
                   <div className="space-y-4">
                     <div className="rounded-xl border border-rule bg-white px-4 py-4">
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Active context</div>
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Replay context</div>
                       <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
                         <span className="lab-chip">{selectedDataset?.evaluation ?? 'No scenario'}</span>
                         <span className="lab-chip">{selectedDataset?.paradigm ?? 'No mode'}</span>
@@ -3276,7 +3290,7 @@ export function ResearchDemoSurface({
                         {splitCompareActive && comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
                       </div>
                       <div className="mt-3 text-xs leading-5 text-muted">
-                        Use this context to frame a reading, compare scenarios, or publish a public note against the exact replay state you are inspecting.
+                        Use this context to frame a reading, compare scenarios, or attach a note to the replay state you are inspecting.
                       </div>
                     </div>
 
@@ -3336,46 +3350,62 @@ export function ResearchDemoSurface({
                 </div>
 
                 <div className="border-t border-rule px-5 py-5">
-                  <PublishedReplayNotesPanel
-                    dataset={selectedDataset}
-                    comparisonDataset={splitCompareActive ? comparisonDataset : null}
-                    viewerSnapshot={viewerSnapshot}
-                    comparisonViewerSnapshot={splitCompareActive ? comparisonViewerSnapshot : null}
-                    paperLens={paperLens}
-                    audienceMode={audienceMode}
-                  />
+                  <details className="overflow-hidden rounded-[1.2rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))]">
+                    <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-4 py-4 [&::-webkit-details-marker]:hidden">
+                      <div>
+                        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper-side notes</div>
+                        <div className="mt-2 text-sm leading-6 text-text-primary">
+                          Keep note-taking and public publishing available without leaving them expanded across the full page.
+                        </div>
+                      </div>
+                      <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                        Open when needed
+                      </div>
+                    </summary>
 
-                  {replayPublishContextKey ? (
-                    <div className="mt-4">
-                      <ContributionComposer
-                        key={replayPublishContextKey}
-                        sourceLabel="Publish this replay-backed reading to the community surface"
-                        defaultTitle={replayPublishTitle}
-                        defaultTakeaway={replayPublishTakeaway}
-                        helperText="The published note carries the current replay question, the selected paper section, and the active slot posture in its evidence bundle. Edit the title or takeaway so the public note reflects your own reading of the replay."
-                        publishLabel="Publish replay note"
-                        successLabel="Published replay note"
-                        viewPublishedLabel="Open Community"
-                        published={publishedReplayContextKey === replayPublishContextKey}
-                        isPublishing={publishReplayMutation.isPending}
-                        error={(publishReplayMutation.error as Error | null)?.message ?? null}
-                        onViewPublished={publishedReplayExplorationId && onOpenCommunityExploration
-                          ? () => onOpenCommunityExploration(publishedReplayExplorationId)
-                          : onTabChange
-                            ? () => onTabChange('community')
-                            : undefined}
-                        onPublish={payload => publishReplayMutation.mutate({
-                          contextKey: replayPublishContextKey,
-                          ...payload,
-                        })}
+                    <div className="border-t border-rule px-4 py-4">
+                      <PublishedReplayNotesPanel
+                        dataset={selectedDataset}
+                        comparisonDataset={splitCompareActive ? comparisonDataset : null}
+                        viewerSnapshot={viewerSnapshot}
+                        comparisonViewerSnapshot={splitCompareActive ? comparisonViewerSnapshot : null}
+                        paperLens={paperLens}
+                        audienceMode={audienceMode}
                       />
+
+                      {replayPublishContextKey ? (
+                        <div className="mt-4">
+                          <ContributionComposer
+                            key={replayPublishContextKey}
+                            sourceLabel="Publish this replay-backed reading to the community surface"
+                            defaultTitle={replayPublishTitle}
+                            defaultTakeaway={replayPublishTakeaway}
+                            helperText="The published note carries the current replay question, the selected paper section, and the active slot posture in its evidence bundle. Edit the title or takeaway so the public note reflects your own reading of the replay."
+                            publishLabel="Publish replay note"
+                            successLabel="Published replay note"
+                            viewPublishedLabel="Open Community"
+                            published={publishedReplayContextKey === replayPublishContextKey}
+                            isPublishing={publishReplayMutation.isPending}
+                            error={(publishReplayMutation.error as Error | null)?.message ?? null}
+                            onViewPublished={publishedReplayExplorationId && onOpenCommunityExploration
+                              ? () => onOpenCommunityExploration(publishedReplayExplorationId)
+                              : onTabChange
+                                ? () => onTabChange('community')
+                                : undefined}
+                            onPublish={payload => publishReplayMutation.mutate({
+                              contextKey: replayPublishContextKey,
+                              ...payload,
+                            })}
+                          />
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
+                  </details>
                 </div>
               </div>
 
               <SimulationAnalyticsDesk
-                description="This is the next Dune-like layer: exact query presets over the frozen replay metrics, shareable in the same published workspace."
+                description="Dune-style analytics over the frozen replay metrics: named dashboard reads, shareable links, and exported query bundles inside the same published workspace."
                 copyLabel="Copy analytics view"
                 onCopyShareUrl={() => void handleCopyShareUrl()}
                 onCopyQueryJson={() => void handleCopyAnalyticsJson()}
@@ -3562,9 +3592,9 @@ export function ResearchDemoSurface({
               </div>
 
               <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">Actions</div>
+                <div className="text-xs text-muted mb-1">Viewer actions</div>
                 <div className="text-sm text-text-primary">
-                  Stay in the embedded preview by default. Drop into standalone or raw artifacts only when the workflow calls for it.
+                  Stay in the embedded replay by default. Only reach for standalone or raw artifacts when you need the underlying files.
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   <button
@@ -3572,7 +3602,7 @@ export function ResearchDemoSurface({
                     disabled={!selectedDataset}
                     className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Jump to live preview
+                    Return to replay
                   </button>
                   <button
                     onClick={handleLaunchViewer}
@@ -3597,7 +3627,7 @@ export function ResearchDemoSurface({
                     disabled={!selectionConfig}
                     className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {showConfig ? 'Hide config' : 'View config'}
+                    {showConfig ? 'Hide config' : 'Inspect config'}
                   </button>
                   <a
                     href={sourceUrl ?? undefined}
@@ -3609,14 +3639,6 @@ export function ResearchDemoSurface({
                     )}
                   >
                     View source
-                  </a>
-                  <a
-                    href={`${viewerBaseUrl}/`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover sm:col-span-2"
-                  >
-                    Open standalone viewer
                   </a>
                 </div>
 
