@@ -510,7 +510,15 @@ export function PublishedDatasetViewer({
         })
         if (!response.ok) throw new Error(`Failed to load ${dataset.path}`)
 
-        const payload = await response.json() as PublishedDatasetPayload
+        const text = await response.text()
+
+        if (text.startsWith('version https://git-lfs')) {
+          throw new Error(
+            `${dataset.path} is a Git LFS pointer, not resolved data. The deployment needs git-lfs installed to fetch the actual simulation files.`,
+          )
+        }
+
+        const payload = JSON.parse(text) as PublishedDatasetPayload
         setViewerState({
           status: 'ready',
           data: payload,

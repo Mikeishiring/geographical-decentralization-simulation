@@ -1,4 +1,5 @@
-.git
+# NOTE: .git is intentionally NOT excluded — needed for git-lfs pull during build.
+# The Dockerfile removes .git after resolving LFS pointers.
 .github
 .venv
 __pycache__
@@ -17,4 +18,5 @@ latency_figures
 explorer/node_modules
 explorer/dist
 
+# Test simulation data excluded from production image
 dashboard/simulations/test
