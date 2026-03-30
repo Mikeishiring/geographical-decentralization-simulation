@@ -409,6 +409,46 @@ body {
   border-radius: 1px 1px 0 0;
 }
 
+/* ── Benji-style stagger reveal — CSS-only scroll entrance ── */
+@keyframes stagger-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.stagger-reveal > * {
+  opacity: 0;
+  animation: stagger-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.stagger-reveal > *:nth-child(1) { animation-delay: 0s; }
+.stagger-reveal > *:nth-child(2) { animation-delay: 0.04s; }
+.stagger-reveal > *:nth-child(3) { animation-delay: 0.08s; }
+.stagger-reveal > *:nth-child(4) { animation-delay: 0.12s; }
+.stagger-reveal > *:nth-child(5) { animation-delay: 0.16s; }
+.stagger-reveal > *:nth-child(6) { animation-delay: 0.2s; }
+.stagger-reveal > *:nth-child(7) { animation-delay: 0.24s; }
+.stagger-reveal > *:nth-child(8) { animation-delay: 0.28s; }
+
+/* ── Overshoot pop — for tooltips, popups, toasts ── */
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.92); }
+  60% { transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.pop-in {
+  animation: pop-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ── Smooth reveal — fade-up for single elements ── */
+@keyframes reveal-up {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-up {
+  animation: reveal-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 /* ── Reduced motion — respect OS preference ── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -452,18 +492,18 @@ body {
   border-color: rgba(0, 0, 0, 0.12);
 }
 
-/* ── Smooth all interactive elements — unified timing ── */
+/* ── Smooth all interactive elements — Benji three-tier timing ── */
 button, a, [role="tab"], [role="button"] {
   transition-property: color, background-color, border-color, opacity, box-shadow;
-  transition-duration: 0.15s;
-  transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition-duration: 0.12s;
+  transition-timing-function: ease-out;
 }
 
-/* ── Accordion — grid-based smooth expand/collapse (Agentation FAQ pattern) ── */
+/* ── Accordion — grid-based smooth expand/collapse (Benji elastic curve) ── */
 .accordion-body {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .accordion-body[data-open="true"] {
   grid-template-rows: 1fr;

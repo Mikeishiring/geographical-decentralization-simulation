@@ -3005,7 +3005,7 @@ export function ResearchDemoSurface({
                   Replay questions, canonical paper anchors, and publishing tools live here when you want to move beyond the core viewer and analytics.
                 </div>
               </div>
-              <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+              <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[0.6875rem] font-medium text-text-primary">
                 Open when needed
               </div>
             </summary>
