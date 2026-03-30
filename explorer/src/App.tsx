@@ -140,23 +140,12 @@ function App() {
           />
         </div>
 
-        <div hidden={activeTab !== 'history'} aria-hidden={activeTab !== 'history'}>
-          <ExploreHistoryPage
-            initialExplorationId={sharedExplorationId}
-            onGoToFindings={() => handleTabChange('explore')}
-            onOpenQuery={query => applyRouteState({ tab: 'explore', query, explorationId: null }, false)}
-            onTabChange={handleTabChange}
-          />
-        </div>
         <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
           <PaperReaderPage onTabChange={handleTabChange} />
         </div>
 
         <div hidden={activeTab !== 'results'} aria-hidden={activeTab !== 'results'}>
-          <SimulationLabPage
-            onOpenCommunityExploration={handleOpenCommunityExploration}
-            onTabChange={handleTabChange}
-          />
+          <SimulationLabPage onTabChange={handleTabChange} />
         </div>
       </main>
 
