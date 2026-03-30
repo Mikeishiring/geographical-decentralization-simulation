@@ -554,10 +554,10 @@ export function FindingsPage({
             </div>
           </div>
 
-          <div className="mt-5 rounded-xl border border-border-subtle bg-white px-4 py-4">
+          <div className="mt-5 rounded-xl border border-rule bg-white px-4 py-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">How to use Findings</div>
+                <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">How to use Findings</div>
                 <div className="mt-1 text-sm font-medium text-text-primary">Read first, question second, publish only if you have a real takeaway</div>
               </div>
               <div className="max-w-2xl text-xs leading-5 text-muted">
@@ -580,7 +580,7 @@ export function FindingsPage({
                   detail: 'Only publish after you rewrite the title or takeaway in your own words. Community is for human-authored notes, not raw model output.',
                 },
               ].map(item => (
-                <div key={item.title} className="rounded-lg border border-border-subtle bg-[#FAFAF8] px-3 py-3">
+                <div key={item.title} className="rounded-lg border border-rule bg-surface-active px-3 py-3">
                   <div className="text-sm font-medium text-text-primary">{item.title}</div>
                   <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
                 </div>

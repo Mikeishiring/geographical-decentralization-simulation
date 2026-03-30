@@ -552,7 +552,7 @@ function PendingRunSurface({
 
       <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-2xl">
-          <div className="text-[0.68rem] uppercase tracking-[0.18em] text-slate-300">
+          <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-slate-300">
             {stage.eyebrow}
           </div>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-[1.9rem]">
@@ -562,15 +562,15 @@ function PendingRunSurface({
             {stage.detail}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-medium text-slate-100">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[0.6875rem] font-medium text-slate-100">
               <span className="h-1.5 w-1.5 rounded-full bg-sky-300" />
               {config.paradigm} exact run
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-medium text-slate-100">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[0.6875rem] font-medium text-slate-100">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
               {config.validators.toLocaleString()} validators
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-medium text-slate-100">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[0.6875rem] font-medium text-slate-100">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
               {config.slots.toLocaleString()} slots
             </span>
@@ -671,7 +671,7 @@ function PendingRunSurface({
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Incoming visuals</div>
           <div className="mt-3 grid gap-3 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="lab-skeleton lab-skeleton-block h-[240px]" />
@@ -685,7 +685,7 @@ function PendingRunSurface({
           </div>
         </div>
 
-        <div className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Run snapshot</div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3">
@@ -1390,16 +1390,16 @@ export function SimulationLabPage({
                       'rounded-2xl border px-4 py-4 text-left transition-all',
                       isActive
                         ? 'border-accent bg-white shadow-[0_18px_34px_rgba(15,23,42,0.06)]'
-                        : 'border-border-subtle bg-[#FAFAF8] hover:-translate-y-0.5 hover:border-border-hover hover:bg-white',
+                        : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{option.eyebrow}</div>
+                        <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">{option.eyebrow}</div>
                         <div className="mt-2 text-sm font-medium text-text-primary">{option.title}</div>
                       </div>
                       {isActive ? (
-                        <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-white">
+                        <span className="rounded-full bg-accent px-2.5 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-white">
                           Active
                         </span>
                       ) : null}
@@ -1522,14 +1522,14 @@ export function SimulationLabPage({
             <button
               key={preset.label}
               onClick={() => applyPreset(preset.config)}
-              className="lab-option-card text-left px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-border-hover hover:shadow-[0_14px_34px_rgba(15,23,42,0.08)]"
+              className="lab-option-card text-left px-4 py-4 transition-all hover:border-border-hover"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-sm font-medium text-text-primary">{preset.label}</div>
                   <div className="mt-2 text-xs leading-5 text-muted">{preset.description}</div>
                 </div>
-                <span className="rounded-full border border-border-subtle bg-white/80 px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                <span className="rounded-full border border-rule bg-white/80 px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                   Load
                 </span>
               </div>
@@ -1619,10 +1619,10 @@ export function SimulationLabPage({
           >
             {exactAnalyticsPayload ? (
               <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-                <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+                <div className="rounded-xl border border-rule bg-white px-4 py-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                     <div>
-                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Slot posture</div>
+                      <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Slot posture</div>
                       <div className="mt-2 text-sm font-medium text-text-primary">
                         Slot {exactAnalyticsSlot + 1} of {exactAnalyticsTotalSlots.toLocaleString()}
                       </div>
@@ -1642,8 +1642,8 @@ export function SimulationLabPage({
                           className={cn(
                             'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                             exactAnalyticsSlot === option.slot
-                              ? 'border-accent bg-[#FAFAF8] text-accent'
-                              : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
+                              ? 'border-accent bg-surface-active text-accent'
+                              : 'border-rule bg-white text-text-primary hover:border-border-hover',
                           )}
                         >
                           {option.label}
@@ -1667,8 +1667,8 @@ export function SimulationLabPage({
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Published foil</div>
+                <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                  <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Published foil</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">
                     {selectedComparisonDataset ? formatPublishedDatasetLabel(selectedComparisonDataset) : 'No published scenario selected'}
                   </div>
@@ -1686,7 +1686,7 @@ export function SimulationLabPage({
                       setExactComparisonPath(event.target.value || null)
                     }}
                     disabled={exactComparisonCandidates.length === 0}
-                    className="mt-1.5 w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-1.5 w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {exactComparisonCandidates.length > 0 ? (
                       exactComparisonCandidates.map(dataset => (
@@ -1700,15 +1700,15 @@ export function SimulationLabPage({
                   </select>
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border border-border-subtle bg-white px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Recommendation</div>
+                    <div className="rounded-xl border border-rule bg-white px-3 py-3">
+                      <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Recommendation</div>
                       <div className="mt-2 text-sm font-medium text-text-primary">
                         {recommendedComparison ? formatPublishedDatasetLabel(recommendedComparison.dataset) : 'Awaiting catalog'}
                       </div>
                       <div className="mt-2 text-xs leading-5 text-muted">{exactComparisonRecommendationDetail}</div>
                     </div>
-                    <div className="rounded-xl border border-border-subtle bg-white px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Alignment</div>
+                    <div className="rounded-xl border border-rule bg-white px-3 py-3">
+                      <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Alignment</div>
                       <div className="mt-2 text-sm font-medium text-text-primary">
                         {comparisonAnalyticsPayload
                           ? `Slot ${comparisonAnalyticsSlot + 1} / ${comparisonAnalyticsTotalSlots.toLocaleString()}`
@@ -1724,7 +1724,7 @@ export function SimulationLabPage({
                       target="_blank"
                       rel="noreferrer"
                       className={cn(
-                        'inline-flex items-center justify-center rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                        'inline-flex items-center justify-center rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
                         !comparisonDatasetUrl && 'pointer-events-none opacity-60',
                       )}
                     >
@@ -1736,7 +1736,7 @@ export function SimulationLabPage({
                         setExactComparisonPath(recommendedComparison?.dataset.path ?? null)
                       }}
                       disabled={!recommendedComparison}
-                      className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       Restore recommendation
                     </button>
