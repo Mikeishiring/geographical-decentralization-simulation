@@ -30,10 +30,6 @@ function notePinColor(intent: 'observation' | 'question' | 'theory' | 'methods')
   return '#7C3AED'
 }
 
-function clampNumber(value: number, lower: number, upper: number): number {
-  return Math.min(upper, Math.max(lower, value))
-}
-
 export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) {
   const [hover, setHover] = useState<{ x: number; svgX: number } | null>(null)
   const gradientBaseId = useId().replace(/:/g, '')
@@ -105,22 +101,10 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
 
   const yTicks = Array.from({ length: 5 }, (_, index) => minY + (rangeY * index) / 4)
   const xTicks = Array.from({ length: 5 }, (_, index) => Math.round(minX + (rangeX * index) / 4))
-  const activeNotePin = notePins.find(notePin => notePin.active) ?? null
-  const activeNoteColor = activeNotePin ? notePinColor(activeNotePin.intent) : null
-  const activeNotePoint = activeNotePin ? toSvg(activeNotePin.x, activeNotePin.y) : null
-  const activeNoteLabel = activeNotePin
-    ? (activeNotePin.label.length > 22 ? `${activeNotePin.label.slice(0, 22)}…` : activeNotePin.label)
-    : null
-  const activeNoteLabelX = activeNotePoint
-    ? clampNumber(activeNotePoint.sx + 14, padding.left + 8, svgW - padding.right - 124)
-    : padding.left + 8
-  const activeNoteLabelY = activeNotePoint
-    ? clampNumber(activeNotePoint.sy - 44, padding.top + 8, padding.top + chartH - 40)
-    : padding.top + 8
 
   return (
     <div className="lab-panel overflow-hidden rounded-xl">
-      <div className="border-b border-border-subtle px-5 py-4">
+      <div className="border-b border-rule px-5 py-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 className="text-sm font-medium text-text-primary">
@@ -168,7 +152,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
           {latestValues.map((entry, index) => (
             <div
               key={`${entry.label}-${index}`}
-              className="rounded-2xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(246,245,241,0.86))] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]"
+              className="rounded-xl border border-rule bg-white px-3 py-2.5"
             >
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Latest</div>
               <div className="mt-1 text-xs font-medium text-text-primary">{entry.label}</div>
@@ -183,23 +167,23 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
           {seriesSnapshots.map(snapshot => (
             <div
               key={`snapshot-${snapshot.label}`}
-              className="rounded-2xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,242,238,0.88))] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]"
+              className="rounded-xl border border-rule bg-white px-3 py-3"
             >
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: snapshot.color }} />
                 <div className="text-xs font-medium text-text-primary">{snapshot.label}</div>
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+              <div className="mt-3 grid grid-cols-3 gap-2 text-[0.6875rem]">
                 <div>
-                  <div className="uppercase tracking-[0.12em] text-text-faint">Start</div>
+                  <div className="uppercase tracking-[0.1em] text-text-faint">Start</div>
                   <div className="mt-1 font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.first)}</div>
                 </div>
                 <div>
-                  <div className="uppercase tracking-[0.12em] text-text-faint">Peak</div>
+                  <div className="uppercase tracking-[0.1em] text-text-faint">Peak</div>
                   <div className="mt-1 font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.peak)}</div>
                 </div>
                 <div>
-                  <div className="uppercase tracking-[0.12em] text-text-faint">Delta</div>
+                  <div className="uppercase tracking-[0.1em] text-text-faint">Delta</div>
                   <div className="mt-1 font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.delta)}</div>
                 </div>
               </div>
@@ -207,7 +191,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
           ))}
         </div>
 
-        <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,245,241,0.9))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-rule bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Integrity</div>
             <div className="mt-1 text-sm font-medium text-text-primary">
@@ -217,47 +201,33 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
               Hover the chart to inspect exact values at the nearest emitted slot.
             </div>
           </div>
-          {activeNotePin || hoverSlot != null ? (
+          {hoverSlot != null && (
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {activeNotePin && activeNoteColor ? (
-                <div className="rounded-xl border border-border-subtle bg-white/94 px-3 py-2 shadow-[0_10px_22px_rgba(15,23,42,0.06)]">
+              {hoverReadout.map(point => (
+                <div
+                  key={`${point.label}-${point.x}`}
+                  className="rounded-xl border border-rule bg-white/92 px-3 py-2 shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
+                >
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: activeNoteColor }} />
-                    <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Focused note</span>
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: point.color }} />
+                    <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Slot {point.x}</span>
                   </div>
-                  <div className="mt-1 text-xs font-medium text-text-primary">{activeNotePin.label}</div>
+                  <div className="mt-1 text-xs font-medium text-text-primary">{point.label}</div>
                   <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
-                    Slot {Math.round(activeNotePin.x)} · {formatSeriesNumber(activeNotePin.y)}
+                    {formatSeriesNumber(point.value)}
                   </div>
                 </div>
-              ) : null}
-              {hoverSlot != null
-                ? hoverReadout.map(point => (
-                  <div
-                    key={`${point.label}-${point.x}`}
-                    className="rounded-xl border border-border-subtle bg-white/92 px-3 py-2 shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: point.color }} />
-                      <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Slot {point.x}</span>
-                    </div>
-                    <div className="mt-1 text-xs font-medium text-text-primary">{point.label}</div>
-                    <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
-                      {formatSeriesNumber(point.value)}
-                    </div>
-                  </div>
-                ))
-                : null}
+              ))}
             </div>
-          ) : null}
+          )}
         </div>
 
-        <div className="rounded-2xl border border-border-subtle bg-[radial-gradient(circle_at_15%_0%,rgba(59,130,246,0.1),transparent_28%),radial-gradient(circle_at_85%_0%,rgba(194,85,58,0.08),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,242,238,0.84))] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.84)]">
+        <div className="rounded-xl border border-rule bg-white px-3 py-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-text-faint">
+            <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">
               Measurement deck
             </div>
-            <div className="text-[11px] text-muted">
+            <div className="text-[0.6875rem] text-muted">
               {block.series.length} series · x {formatSeriesNumber(minX)} to {formatSeriesNumber(maxX)}
             </div>
           </div>
@@ -462,86 +432,14 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
               )
             })}
 
-            {activeNotePin && activeNotePoint && activeNoteColor && activeNoteLabel ? (
-              <g pointerEvents="none">
-                <line
-                  x1={padding.left}
-                  y1={activeNotePoint.sy}
-                  x2={activeNotePoint.sx}
-                  y2={activeNotePoint.sy}
-                  stroke={activeNoteColor}
-                  strokeWidth={1.1}
-                  strokeDasharray="4 4"
-                  opacity={0.52}
-                />
-                <line
-                  x1={activeNotePoint.sx}
-                  y1={padding.top}
-                  x2={activeNotePoint.sx}
-                  y2={padding.top + chartH}
-                  stroke={activeNoteColor}
-                  strokeWidth={1.1}
-                  strokeDasharray="4 4"
-                  opacity={0.42}
-                />
-                <motion.circle
-                  cx={activeNotePoint.sx}
-                  cy={activeNotePoint.sy}
-                  r={11}
-                  fill={activeNoteColor}
-                  opacity={0.08}
-                  animate={{ r: [11, 15, 11], opacity: [0.08, 0.16, 0.08] }}
-                  transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                />
-                <rect
-                  x={activeNoteLabelX}
-                  y={activeNoteLabelY}
-                  width={118}
-                  height={32}
-                  rx={10}
-                  fill="rgba(255,255,255,0.96)"
-                  stroke={activeNoteColor}
-                  strokeWidth={1.2}
-                />
-                <text
-                  x={activeNoteLabelX + 10}
-                  y={activeNoteLabelY + 13}
-                  textAnchor="start"
-                  className="fill-[#0F172A] text-[8px] font-semibold"
-                >
-                  {activeNoteLabel}
-                </text>
-                <text
-                  x={activeNoteLabelX + 10}
-                  y={activeNoteLabelY + 24}
-                  textAnchor="start"
-                  className="fill-[#64748B] text-[7px] font-medium"
-                >
-                  Slot {Math.round(activeNotePin.x)} · {formatSeriesNumber(activeNotePin.y)}
-                </text>
-              </g>
-            ) : null}
-
             {notePins.map(notePin => {
               const { sx, sy } = toSvg(notePin.x, notePin.y)
               const color = notePinColor(notePin.intent)
               return (
-                <motion.g
+                <g
                   key={notePin.id}
                   transform={`translate(${sx}, ${sy})`}
-                  initial={false}
-                  animate={{ scale: notePin.active ? 1.04 : 1, opacity: notePin.active ? 1 : 0.96 }}
                   onClick={() => notePin.onSelect?.()}
-                  onMouseEnter={() => setHover({ x: notePin.x, svgX: sx })}
-                  onFocus={() => setHover({ x: notePin.x, svgX: sx })}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      notePin.onSelect?.()
-                    }
-                  }}
-                  tabIndex={notePin.onSelect ? 0 : -1}
-                  role={notePin.onSelect ? 'button' : undefined}
                   style={{ cursor: notePin.onSelect ? 'pointer' : 'default' }}
                 >
                   <circle
@@ -573,7 +471,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                   >
                     {notePin.label}
                   </text>
-                </motion.g>
+                </g>
               )
             })}
 

@@ -374,13 +374,13 @@ export function PublishedReplayNotesPanel({
         <div className="mt-4 space-y-3">
           {(notesQuery.data ?? []).map(note => (
             <div key={note.id} className="rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-text-faint">
+              <div className="flex flex-wrap items-center gap-2 text-[0.6875rem] text-text-faint">
                 <span className="lab-chip">{note.intent}</span>
                 <button
                   onClick={() => statusMutation.mutate({ noteId: note.id, status: note.status === 'open' ? 'resolved' : 'open' })}
                   disabled={statusMutation.isPending}
                   className={cn(
-                    'rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition-colors',
+                    'rounded-full border px-2.5 py-0.5 text-[0.625rem] font-medium transition-colors',
                     note.status === 'resolved'
                       ? 'border-[#0F766E]/18 bg-[#ECFDF5] text-[#0F766E]'
                       : 'border-[#C2410C]/18 bg-[#FFF7ED] text-[#9A3412]',
@@ -394,7 +394,7 @@ export function PublishedReplayNotesPanel({
                 <span>{formatTimestamp(note.createdAt)}</span>
               </div>
               {note.contextLabel ? (
-                <div className="mt-2 text-[11px] leading-5 text-muted">{note.contextLabel}</div>
+                <div className="mt-2 text-[0.6875rem] leading-5 text-muted">{note.contextLabel}</div>
               ) : null}
               <div className="mt-3 text-sm leading-6 text-text-primary">{note.note}</div>
               {note.replies.length > 0 ? (
