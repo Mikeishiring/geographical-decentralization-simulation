@@ -8,6 +8,7 @@ const EXAMPLE_CHIPS = [
   'Why does a higher gamma centralize SSP more but MSP less?',
   'Does starting geography matter more than paradigm choice?',
   'Why do the same low-latency regions keep winning?',
+  'What does this imply for protocol design and relay policy?',
   'What changes under shorter slots: geography or fairness?',
 ] as const
 

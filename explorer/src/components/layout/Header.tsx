@@ -16,10 +16,10 @@ export function Header() {
               </h1>
             </div>
             <p className="text-xs text-muted mt-1 ml-4">
-              Yang, Oz, Wu, Zhang (2025) · Interactive Research Explorer
+              Yang, Oz, Wu, Zhang (2025) · Paper companion and simulation explorer
             </p>
             <p className="text-[10px] text-text-faint mt-0.5 ml-4 font-mono tracking-wide hidden sm:block">
-              40 GCP regions · 7 macro-regions · SSP vs MSP
+              40 GCP regions · 7 macro-regions · published results plus exact runs
             </p>
           </div>
 

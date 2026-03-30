@@ -16,7 +16,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { STUDY_CONTEXT, SIMULATION_COPILOT_CONTEXT } from './study-context.ts'
 import { buildTools } from './catalog.ts'
 import { SimulationRuntime, parseSimulationRequest, type SimulationRequest } from './simulation-runtime.ts'
-import { ExplorationStore, normalizeQuery, type ListOptions } from './exploration-store.ts'
+import { ExplorationStore, normalizeQuery, type ExplorationSurface, type ListOptions } from './exploration-store.ts'
 import { OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../src/data/default-blocks.ts'
 import {
   buildSimulationArtifactBundle,
@@ -150,6 +150,10 @@ const MAX_SIMULATION_QUESTION_LENGTH = Math.max(160, Number(process.env.MAX_SIMU
 const MAX_SESSION_HISTORY_ENTRIES = Math.max(1, Number(process.env.MAX_SESSION_HISTORY_ENTRIES ?? 6))
 const MAX_SESSION_SUMMARY_LENGTH = Math.max(80, Number(process.env.MAX_SESSION_SUMMARY_LENGTH ?? 280))
 const MAX_CLIENT_ID_LENGTH = Math.max(16, Number(process.env.MAX_CLIENT_ID_LENGTH ?? 128))
+const MAX_PUBLISHED_TITLE_LENGTH = Math.max(48, Number(process.env.MAX_PUBLISHED_TITLE_LENGTH ?? 120))
+const MAX_PUBLISHED_TAKEAWAY_LENGTH = Math.max(80, Number(process.env.MAX_PUBLISHED_TAKEAWAY_LENGTH ?? 240))
+const MAX_PUBLISHED_AUTHOR_LENGTH = Math.max(24, Number(process.env.MAX_PUBLISHED_AUTHOR_LENGTH ?? 80))
+const MAX_EXPLORATION_MODEL_LENGTH = Math.max(32, Number(process.env.MAX_EXPLORATION_MODEL_LENGTH ?? 120))
 
 function getRequesterId(req: express.Request): string {
   const forwarded = req.headers['x-forwarded-for']
@@ -255,6 +259,22 @@ interface SimulationCopilotResponse {
   blocks: readonly Block[]
   model: string
   cached: boolean
+}
+
+interface CreateExplorationRequest {
+  query: string
+  summary: string
+  blocks: unknown[]
+  followUps?: unknown[]
+  model?: string
+  cached?: boolean
+  surface?: ExplorationSurface
+}
+
+interface PublishExplorationRequest {
+  title?: string
+  takeaway?: string
+  author?: string
 }
 
 interface RateLimitBucket {
@@ -386,6 +406,7 @@ function buildCuratedResponse(match: CuratedMatch): ExploreResponse {
 function buildHistoryResponse(match: ReturnType<ExplorationStore['findBestMatch']>): ExploreResponse | null {
   if (!match) return null
   const exact = match.reason === 'exact'
+  const publicationLabel = match.exploration.publication.published ? 'Community contribution' : 'Reading archive'
   return {
     summary: match.exploration.summary,
     blocks: match.exploration.blocks,
@@ -394,15 +415,26 @@ function buildHistoryResponse(match: ReturnType<ExplorationStore['findBestMatch'
     cached: match.exploration.cached,
     provenance: {
       source: 'history',
-      label: exact ? 'Prior exploration' : 'Matched prior exploration',
+      label: exact ? publicationLabel : `Matched ${publicationLabel.toLowerCase()}`,
       detail: exact
-        ? 'Reused an exact prior exploration from the public history.'
-        : 'Reused a closely related prior exploration from the public history.',
+        ? match.exploration.publication.published
+          ? 'Reused an exact published community contribution.'
+          : 'Reused an exact saved reading from the archive.'
+        : match.exploration.publication.published
+          ? 'Reused a closely related published community contribution.'
+          : 'Reused a closely related saved reading from the archive.',
       canonical: false,
       explorationId: match.exploration.id,
       similarityScore: Number(match.score.toFixed(2)),
     },
   }
+}
+
+function parseBooleanQueryValue(value: unknown): boolean | undefined {
+  if (typeof value !== 'string') return undefined
+  if (value === 'true') return true
+  if (value === 'false') return false
+  return undefined
 }
 
 function collapseWhitespace(value: string | undefined | null): string {
@@ -808,7 +840,7 @@ function explorationCoverageForCard(card: TopicCard): number {
   if (cardTokens.length === 0) return 0
 
   let matches = 0
-  for (const exploration of explorationStore.list({ limit: 500 })) {
+  for (const exploration of explorationStore.list({ limit: 500, surface: 'reading' })) {
     const explorationTokens = tokenize(`${exploration.query} ${exploration.summary}`)
     if (overlapScore(cardTokens, explorationTokens) >= 0.22) {
       matches += 1
@@ -1582,6 +1614,7 @@ function executeToolCall(
       paradigm: input.paradigm as ListOptions['paradigm'],
       experiment: typeof input.experiment === 'string' ? input.experiment : undefined,
       verifiedOnly: typeof input.verified_only === 'boolean' ? input.verified_only : undefined,
+      surface: 'reading',
       sort: (input.sort as 'recent' | 'top') ?? 'recent',
       limit: typeof input.limit === 'number' ? input.limit : 10,
     }
@@ -1776,9 +1809,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
       },
     }
 
-    res.json(result)
-
-    explorationStore.save({
+    const savedExploration = explorationStore.save({
       query: trimmedQuery,
       summary: result.summary,
       blocks: result.blocks,
@@ -1786,6 +1817,9 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
       model: result.model,
       cached: result.cached,
     })
+
+    result.provenance.explorationId = savedExploration.id
+    res.json(result)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     const status =
@@ -2125,9 +2159,65 @@ app.get('/api/explorations', (req, res) => {
   const sort = (req.query.sort as 'recent' | 'top') ?? 'recent'
   const limit = req.query.limit ? Number(req.query.limit) : undefined
   const search = (req.query.search as string) ?? undefined
+  const publishedOnly = parseBooleanQueryValue(req.query.published)
+  const featuredOnly = parseBooleanQueryValue(req.query.featured)
+  const verifiedOnly = parseBooleanQueryValue(req.query.verified)
+  const surface = req.query.surface === 'reading' || req.query.surface === 'simulation'
+    ? req.query.surface
+    : undefined
 
-  const explorations = explorationStore.list({ sort, limit, search })
+  const explorations = explorationStore.list({
+    sort,
+    limit,
+    search,
+    publishedOnly,
+    featuredOnly,
+    verifiedOnly,
+    surface,
+  })
   res.json(explorations)
+})
+
+app.post('/api/explorations', (req, res) => {
+  const {
+    query,
+    summary,
+    blocks,
+    followUps,
+    model,
+    cached,
+    surface,
+  } = req.body as CreateExplorationRequest
+
+  const trimmedQuery = query?.trim()
+  const trimmedSummary = summary?.trim()
+  if (!trimmedQuery || !trimmedSummary) {
+    res.status(400).json({ error: 'query and summary are required' })
+    return
+  }
+
+  const parsedBlocks = parseBlocks(Array.isArray(blocks) ? blocks : [])
+  if (parsedBlocks.length === 0) {
+    res.status(400).json({ error: 'At least one supported block is required' })
+    return
+  }
+
+  const nextSurface = surface === 'simulation' ? 'simulation' : 'reading'
+  const nextFollowUps = Array.isArray(followUps)
+    ? followUps.filter((value): value is string => typeof value === 'string').slice(0, 4)
+    : []
+
+  const exploration = explorationStore.create({
+    query: limitText(trimmedQuery, MAX_EXPLORE_QUERY_LENGTH),
+    summary: limitText(trimmedSummary, 180),
+    blocks: parsedBlocks,
+    followUps: nextFollowUps,
+    model: limitText(model, MAX_EXPLORATION_MODEL_LENGTH),
+    cached: Boolean(cached),
+    surface: nextSurface,
+  })
+
+  res.status(201).json(exploration)
 })
 
 app.get('/api/explorations/:id', (req, res) => {
@@ -2151,6 +2241,42 @@ app.post('/api/explorations/:id/vote', (req, res) => {
     res.status(404).json({ error: 'Exploration not found' })
     return
   }
+  res.json(updated)
+})
+
+app.post('/api/explorations/:id/publish', (req, res) => {
+  const { title, takeaway, author } = req.body as PublishExplorationRequest
+  const trimmedTitle = title?.trim()
+  const trimmedTakeaway = takeaway?.trim()
+  const trimmedAuthor = author?.trim()
+
+  if (!trimmedTitle || !trimmedTakeaway) {
+    res.status(400).json({ error: 'title and takeaway are required' })
+    return
+  }
+  if (trimmedTitle.length > MAX_PUBLISHED_TITLE_LENGTH) {
+    res.status(400).json({ error: `title is too long. Keep it under ${MAX_PUBLISHED_TITLE_LENGTH} characters.` })
+    return
+  }
+  if (trimmedTakeaway.length > MAX_PUBLISHED_TAKEAWAY_LENGTH) {
+    res.status(400).json({ error: `takeaway is too long. Keep it under ${MAX_PUBLISHED_TAKEAWAY_LENGTH} characters.` })
+    return
+  }
+  if (trimmedAuthor && trimmedAuthor.length > MAX_PUBLISHED_AUTHOR_LENGTH) {
+    res.status(400).json({ error: `author is too long. Keep it under ${MAX_PUBLISHED_AUTHOR_LENGTH} characters.` })
+    return
+  }
+
+  const updated = explorationStore.publish(req.params.id, {
+    title: trimmedTitle,
+    takeaway: trimmedTakeaway,
+    author: trimmedAuthor,
+  })
+  if (!updated) {
+    res.status(404).json({ error: 'Exploration not found' })
+    return
+  }
+
   res.json(updated)
 })
 

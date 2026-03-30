@@ -315,13 +315,17 @@ class EthereumRawModel(Model):
                 slot_successful_attestations = sum(
                     1 for a in self.current_attesters if a.attested_to_proposer_block
                 )
+                attester_count = len(self.current_attesters)
                 required_attesters_for_supermajority = math.ceil(
-                    (self.consensus_settings.attestation_threshold) * len(self.current_attesters)
+                    (self.consensus_settings.attestation_threshold) * attester_count
                 )
 
+                # A single-validator run has no attesters after proposer selection.
                 self.current_proposer_agent.attestation_rate = (
-                    slot_successful_attestations / len(self.current_attesters)
-                ) * 100
+                    100.0
+                    if attester_count == 0
+                    else (slot_successful_attestations / attester_count) * 100
+                )
 
                 if slot_successful_attestations >= required_attesters_for_supermajority:
                     self.current_proposer_agent.mev_captured = (

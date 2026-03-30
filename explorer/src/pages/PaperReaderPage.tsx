@@ -278,6 +278,28 @@ export function PaperReaderPage({ onTabChange }: { onTabChange?: (tab: TabId) =>
                 </a>
               ))}
             </div>
+
+            <div className="mt-5 space-y-2 border-t border-border-subtle pt-4">
+              <div className="text-xs text-muted">Canonical artifacts</div>
+              {onTabChange && (
+                <button
+                  onClick={() => onTabChange('simulation')}
+                  className="flex w-full items-center justify-between rounded-md border border-border-subtle px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                >
+                  <span>Open published simulation results</span>
+                  <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+                </button>
+              )}
+              <a
+                href="https://github.com/syang-ng/geographical-decentralization-simulation"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between rounded-md border border-border-subtle px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+              >
+                <span>Open source repository</span>
+                <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+              </a>
+            </div>
           </div>
         </div>
       </motion.section>
@@ -529,6 +551,15 @@ export function PaperReaderPage({ onTabChange }: { onTabChange?: (tab: TabId) =>
                     <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
                   </a>
                 ))}
+                <a
+                  href="https://geo-decentralization.github.io/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between rounded-md border border-border-subtle px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                >
+                  <span>Original published demo</span>
+                  <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+                </a>
               </div>
             </div>
           </section>

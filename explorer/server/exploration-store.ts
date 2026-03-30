@@ -42,6 +42,18 @@ const STOP_WORDS = new Set([
   'with',
 ])
 
+export type ExplorationSurface = 'reading' | 'simulation'
+
+export interface ExplorationPublication {
+  readonly published: boolean
+  readonly title: string
+  readonly takeaway: string
+  readonly author: string
+  readonly publishedAt: string | null
+  readonly featured: boolean
+  readonly editorNote: string
+}
+
 export interface Exploration {
   readonly id: string
   readonly query: string
@@ -57,6 +69,8 @@ export interface Exploration {
   readonly paradigmTags: string[]
   readonly experimentTags: string[]
   readonly verified: boolean
+  readonly surface: ExplorationSurface
+  readonly publication: ExplorationPublication
 }
 
 export interface ExplorationMatch {
@@ -74,6 +88,9 @@ export interface ListOptions {
   readonly paradigm?: 'SSP' | 'MSP'
   readonly experiment?: string
   readonly verifiedOnly?: boolean
+  readonly publishedOnly?: boolean
+  readonly featuredOnly?: boolean
+  readonly surface?: ExplorationSurface
 }
 
 function extractParadigmTags(blocks: unknown[]): string[] {
@@ -158,6 +175,16 @@ function hydrateExploration(raw: Partial<Exploration> & Pick<Exploration, 'query
     paradigmTags: raw.paradigmTags ?? extractParadigmTags(raw.blocks),
     experimentTags: raw.experimentTags ?? extractExperimentTags(raw.blocks),
     verified: raw.verified ?? false,
+    surface: raw.surface ?? 'reading',
+    publication: {
+      published: raw.publication?.published ?? false,
+      title: raw.publication?.title ?? '',
+      takeaway: raw.publication?.takeaway ?? '',
+      author: raw.publication?.author ?? '',
+      publishedAt: raw.publication?.publishedAt ?? null,
+      featured: raw.publication?.featured ?? false,
+      editorNote: raw.publication?.editorNote ?? '',
+    },
   }
 }
 
@@ -178,21 +205,39 @@ export class ExplorationStore {
     readonly followUps: string[]
     readonly model: string
     readonly cached: boolean
+    readonly surface?: ExplorationSurface
   }): Exploration {
-    const normalizedQuery = normalizeQuery(data.query)
-    const existing = this.findExactQuery(data.query)
-    if (existing) {
-      return existing
+    const surface = data.surface ?? 'reading'
+    if (surface === 'reading') {
+      const existing = this.findExactQuery(data.query)
+      if (existing) {
+        return existing
+      }
     }
 
+    return this.create(data)
+  }
+
+  create(data: {
+    readonly query: string
+    readonly summary: string
+    readonly blocks: unknown[]
+    readonly followUps: string[]
+    readonly model: string
+    readonly cached: boolean
+    readonly surface?: ExplorationSurface
+    readonly publication?: Partial<ExplorationPublication>
+  }): Exploration {
     const exploration = hydrateExploration({
       query: data.query,
-      normalizedQuery,
+      normalizedQuery: normalizeQuery(data.query),
       summary: data.summary,
       blocks: data.blocks,
       followUps: data.followUps,
       model: data.model,
       cached: data.cached,
+      surface: data.surface ?? 'reading',
+      publication: data.publication,
     })
 
     this.setExplorations([exploration, ...this.explorations].slice(0, MAX_EXPLORATIONS))
@@ -215,6 +260,15 @@ export class ExplorationStore {
     }
     if (options?.verifiedOnly) {
       pool = pool.filter(e => e.verified)
+    }
+    if (options?.publishedOnly) {
+      pool = pool.filter(e => e.publication.published)
+    }
+    if (options?.featuredOnly) {
+      pool = pool.filter(e => e.publication.featured)
+    }
+    if (options?.surface) {
+      pool = pool.filter(e => e.surface === options.surface)
     }
 
     if (search) {
@@ -266,6 +320,7 @@ export class ExplorationStore {
     let best: ExplorationMatch | null = null
 
     for (const exploration of this.explorations) {
+      if (exploration.surface !== 'reading') continue
       const score = buildSearchScore(exploration, normalizedQuery, queryTokens)
       if (score < minimumScore) continue
       if (!best || score > best.score) {
@@ -297,6 +352,36 @@ export class ExplorationStore {
     if (index === -1) return null
 
     const updated: Exploration = { ...this.explorations[index], verified }
+    this.setExplorations(this.explorations.map((e, i) => (i === index ? updated : e)))
+    this.schedulePersist()
+    return updated
+  }
+
+  publish(id: string, publication: {
+    readonly title: string
+    readonly takeaway: string
+    readonly author?: string
+    readonly featured?: boolean
+    readonly editorNote?: string
+  }): Exploration | null {
+    const index = this.explorations.findIndex(e => e.id === id)
+    if (index === -1) return null
+
+    const existing = this.explorations[index]
+    const updated: Exploration = {
+      ...existing,
+      publication: {
+        ...existing.publication,
+        published: true,
+        title: publication.title,
+        takeaway: publication.takeaway,
+        author: publication.author ?? existing.publication.author,
+        featured: publication.featured ?? existing.publication.featured,
+        editorNote: publication.editorNote ?? existing.publication.editorNote,
+        publishedAt: existing.publication.publishedAt ?? new Date().toISOString(),
+      },
+    }
+
     this.setExplorations(this.explorations.map((e, i) => (i === index ? updated : e)))
     this.schedulePersist()
     return updated
@@ -349,7 +434,9 @@ export class ExplorationStore {
     this.explorations = explorations
     this.byId = new Map(explorations.map(exploration => [exploration.id, exploration]))
     this.byNormalizedQuery = new Map(
-      explorations.map(exploration => [exploration.normalizedQuery, exploration]),
+      explorations
+        .filter(exploration => exploration.surface === 'reading')
+        .map(exploration => [exploration.normalizedQuery, exploration]),
     )
   }
 }

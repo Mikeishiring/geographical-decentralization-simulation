@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUpRight } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { formatNumber } from './simulation-constants'
+import { PublishedDatasetViewer } from './PublishedDatasetViewer'
 
 interface ResearchMetadata {
   readonly v?: number
@@ -43,6 +44,15 @@ interface ResearchDemoSurfaceProps {
   readonly viewerBaseUrl: string
 }
 
+interface ViewerLaunch {
+  readonly dataset: ResearchDatasetEntry
+  readonly settings: {
+    readonly theme: 'auto' | 'light' | 'dark'
+    readonly step: 1 | 10 | 50
+    readonly autoplay: boolean
+  }
+}
+
 function readResearchCatalog(): ResearchCatalog | null {
   return typeof window !== 'undefined' ? window.RESEARCH_CATALOG ?? null : null
 }
@@ -74,6 +84,8 @@ export function ResearchDemoSurface({
   const [step, setStep] = useState<1 | 10 | 50>(1)
   const [autoplay, setAutoplay] = useState(true)
   const [showConfig, setShowConfig] = useState(false)
+  const [activeViewer, setActiveViewer] = useState<ViewerLaunch | null>(null)
+  const viewerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     const existing = readResearchCatalog()
@@ -222,6 +234,11 @@ export function ResearchDemoSurface({
     [catalog],
   )
 
+  useEffect(() => {
+    if (!activeViewer) return
+    viewerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [activeViewer])
+
   const viewerUrl = useMemo(() => {
     if (!selectedDataset) return null
     const params = new URLSearchParams({
@@ -254,26 +271,44 @@ export function ResearchDemoSurface({
     }, null, 2)
   }, [autoplay, selectedDataset, step, theme])
 
-  const handleLaunchViewer = () => {
-    if (!selectedDataset || !viewerUrl) return
-
-    const settings = {
-      dataset: selectedDataset.path,
-      theme,
-      step,
-      autoplay,
-    }
+  const persistViewerSettings = () => {
+    if (!selectedDataset) return
 
     try {
-      window.localStorage.setItem('app_settings', JSON.stringify(settings))
+      window.localStorage.setItem('app_settings', JSON.stringify({
+        dataset: selectedDataset.path,
+        theme,
+        step,
+        autoplay,
+      }))
     } catch {
       // Ignore storage failures and rely on query params.
     }
+  }
+
+  const handleLaunchViewer = () => {
+    if (!selectedDataset || !viewerUrl) return
+
+    persistViewerSettings()
 
     const popup = window.open(viewerUrl, '_blank', 'noopener,noreferrer')
     if (!popup) {
       window.location.assign(viewerUrl)
     }
+  }
+
+  const handleInspectViewer = () => {
+    if (!selectedDataset) return
+
+    persistViewerSettings()
+    setActiveViewer({
+      dataset: selectedDataset,
+      settings: {
+        theme,
+        step,
+        autoplay,
+      },
+    })
   }
 
   const handleFillDemoValues = () => {
@@ -356,7 +391,7 @@ export function ResearchDemoSurface({
             <div>
               <div className="text-xs text-muted mb-1">Dataset selection</div>
               <div className="text-sm text-text-primary">
-                Match the paper-facing launcher with our app styling.
+                Keep the frozen selector, but inspect it inside our own shell.
               </div>
             </div>
             <button
@@ -423,12 +458,12 @@ export function ResearchDemoSurface({
         <div className="lab-stage p-5">
           <div className="text-xs text-muted mb-1">Viewer options</div>
           <div className="text-sm text-text-primary mb-4">
-            These map directly onto the frozen viewer contract.
+            The in-app viewer keeps our styling. These settings still feed the standalone fallback.
           </div>
 
           <div className="grid gap-4">
             <div>
-              <label className="text-xs text-muted mb-1.5 block">Theme</label>
+              <label className="text-xs text-muted mb-1.5 block">Standalone theme</label>
               <select
                 value={theme}
                 onChange={event => setTheme(event.target.value as 'auto' | 'light' | 'dark')}
@@ -481,6 +516,9 @@ export function ResearchDemoSurface({
             <div className="text-xs text-text-faint">Current viewer payload</div>
             <div className="mt-1 text-sm font-medium text-text-primary break-all">
               {selectedDataset?.path ?? 'Choose a dataset'}
+            </div>
+            <div className="mt-2 text-xs text-muted">
+              Primary path: stay in-app. Standalone exists only for parity with the frozen legacy panel set.
             </div>
           </div>
         </div>
@@ -538,7 +576,7 @@ export function ResearchDemoSurface({
         <div className="lab-stage p-5">
           <div className="text-xs text-muted mb-1">Launch</div>
           <div className="text-sm text-text-primary">
-            Move directly from this selection to the canonical viewer or source artifacts.
+            Keep the default handoff inside this app, or explicitly open the frozen legacy viewer and source artifacts.
           </div>
           <div className="mt-2 text-xs text-muted">
             These links stay on the frozen published dataset contract. They do not generate a new simulation.
@@ -546,11 +584,18 @@ export function ResearchDemoSurface({
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <button
-              onClick={handleLaunchViewer}
+              onClick={handleInspectViewer}
               disabled={!selectedDataset}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Open Canonical Viewer
+              Inspect in app
+            </button>
+            <button
+              onClick={handleLaunchViewer}
+              disabled={!selectedDataset}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Open standalone viewer
               <ArrowUpRight className="h-4 w-4" />
             </button>
             <a
@@ -588,7 +633,7 @@ export function ResearchDemoSurface({
               rel="noreferrer"
               className="inline-flex items-center justify-center rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover sm:col-span-2"
             >
-              Open Baseline Page
+              Open Original Published Launcher
             </a>
           </div>
 
@@ -600,6 +645,17 @@ export function ResearchDemoSurface({
           )}
         </div>
       </div>
+
+      {activeViewer && (
+        <section ref={viewerRef}>
+          <PublishedDatasetViewer
+            viewerBaseUrl={viewerBaseUrl}
+            dataset={activeViewer.dataset}
+            initialSettings={activeViewer.settings}
+            onClose={() => setActiveViewer(null)}
+          />
+        </section>
+      )}
     </div>
   )
 }

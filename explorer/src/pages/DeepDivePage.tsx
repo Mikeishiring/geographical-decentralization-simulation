@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown } from 'lucide-react'
+import { ArrowUpRight, ChevronDown } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { ModeBanner } from '../components/layout/ModeBanner'
 import { Wayfinder } from '../components/layout/Wayfinder'
@@ -112,6 +112,45 @@ export function DeepDivePage({ onTabChange }: { onTabChange?: (tab: TabId) => vo
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="mb-6 grid gap-3 md:grid-cols-3">
+        <a
+          href="https://arxiv.org/abs/2509.21475"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-lg border border-border-subtle bg-white px-4 py-3 transition-colors hover:border-border-hover"
+        >
+          <div className="text-xs text-muted">Canonical paper</div>
+          <div className="mt-1 flex items-center justify-between gap-3 text-sm font-medium text-text-primary">
+            <span>Open arXiv source</span>
+            <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+          </div>
+        </a>
+        {onTabChange && (
+          <button
+            onClick={() => onTabChange('simulation')}
+            className="rounded-lg border border-border-subtle bg-white px-4 py-3 text-left transition-colors hover:border-border-hover"
+          >
+            <div className="text-xs text-muted">Canonical results</div>
+            <div className="mt-1 flex items-center justify-between gap-3 text-sm font-medium text-text-primary">
+              <span>Open published simulation selector</span>
+              <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+            </div>
+          </button>
+        )}
+        <a
+          href="https://github.com/syang-ng/geographical-decentralization-simulation"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-lg border border-border-subtle bg-white px-4 py-3 transition-colors hover:border-border-hover"
+        >
+          <div className="text-xs text-muted">Implementation source</div>
+          <div className="mt-1 flex items-center justify-between gap-3 text-sm font-medium text-text-primary">
+            <span>Open repository</span>
+            <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+          </div>
+        </a>
       </div>
 
       {/* Accordion sections */}
