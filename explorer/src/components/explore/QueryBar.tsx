@@ -66,7 +66,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
   const isEnabled = !disabled && !loading
   const placeholder = disabled
     ? disabledReason ?? 'The reading guide is unavailable right now.'
-    : 'Ask a sharp paper-backed question about a mechanism, paradox, or comparison...'
+    : 'Ask the reading guide about a claim, mechanism, comparison, or implication...'
 
   useEffect(() => {
     if (!loading) {
@@ -131,7 +131,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
               onClick={handleSubmit}
               className="px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-medium hover:bg-accent/90 transition-colors"
             >
-              Ask
+              Ask guide
             </button>
           )}
         </div>
@@ -192,9 +192,14 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
             </span>
           </div>
         ) : (
-          <p className="text-[11px] text-text-faint text-center">
-            {helperText ?? 'Ask about a mechanism, paradox, or comparison. The guide stays tied to the paper.'}
-          </p>
+          <div className="space-y-1 text-center">
+            <p className="text-[11px] text-text-faint">
+              {helperText ?? 'Ask about a mechanism, paradox, or comparison. The guide stays tied to the paper.'}
+            </p>
+            <p className="text-[11px] text-text-faint">
+              This box drafts or reopens a reading. Public community notes are a separate publish step.
+            </p>
+          </div>
         )}
       </div>
 
