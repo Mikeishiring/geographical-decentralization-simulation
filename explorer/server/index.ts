@@ -2297,6 +2297,111 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
   }
 })
 
+app.post('/api/published-replay-copilot', publishedReplayCopilotRateLimit, async (req, res) => {
+  const request = req.body as PublishedReplayCopilotRequest
+  const trimmedQuestion = request.question?.trim()
+
+  if (!trimmedQuestion) {
+    res.status(400).json({ error: 'Question is required.' })
+    return
+  }
+  if (trimmedQuestion.length > MAX_SIMULATION_QUESTION_LENGTH) {
+    res.status(400).json({
+      error: `Question is too long. Keep it under ${MAX_SIMULATION_QUESTION_LENGTH} characters and focus on one replay-backed question at a time.`,
+    })
+    return
+  }
+
+  if (!renderBlocksTool) {
+    res.status(500).json({ error: 'The render_blocks tool is unavailable on this server.' })
+    return
+  }
+
+  if (!client) {
+    res.status(503).json({ error: MISSING_ANTHROPIC_CONFIG_MESSAGE })
+    return
+  }
+
+  try {
+    const replayContext = await buildPublishedReplayContext(request)
+    const response = await client.messages.create({
+      model: anthropicModel,
+      max_tokens: 4096,
+      system: [
+        {
+          type: 'text',
+          text: `${STUDY_CONTEXT}\n\n${PUBLISHED_REPLAY_COPILOT_CONTEXT}\n\n${replayContext.context}`,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
+      tools: [renderBlocksTool],
+      tool_choice: { type: 'tool', name: 'render_blocks' },
+      messages: [
+        { role: 'user', content: trimmedQuestion },
+      ],
+    })
+
+    const toolUse = response.content.find(
+      (block): block is Anthropic.Messages.ToolUseBlock =>
+        block.type === 'tool_use' && block.name === 'render_blocks',
+    )
+
+    if (!toolUse) {
+      res.status(500).json({ error: 'Published replay companion did not return renderable blocks.' })
+      return
+    }
+
+    const input = toolUse.input as {
+      summary?: string
+      blocks?: unknown[]
+      follow_ups?: string[]
+    }
+
+    const normalizedBlocks = normalizeGeneratedBlocks(input.blocks)
+    const normalizedSummary = normalizeGeneratedSummary(input.summary, trimmedQuestion, normalizedBlocks)
+    const normalizedFollowUps = normalizeGeneratedFollowUps(trimmedQuestion, input.follow_ups)
+
+    const result: PublishedReplayCopilotResponse = {
+      summary: normalizedSummary,
+      blocks: normalizedBlocks,
+      followUps: normalizedFollowUps,
+      truthBoundary: {
+        label: 'Assistant framing over a frozen published replay',
+        detail: request.comparePath
+          ? 'This answer is grounded in the selected published dataset and the supplied comparison replay. The model organizes the evidence, but it does not create new simulation outputs.'
+          : 'This answer is grounded in the selected frozen published dataset. The model organizes the evidence, but it does not create new simulation outputs.',
+      },
+      model: response.model,
+      cached: response.usage?.cache_read_input_tokens
+        ? response.usage.cache_read_input_tokens > 0
+        : false,
+      provenance: {
+        source: 'generated',
+        label: 'Published replay companion',
+        detail: request.comparePath
+          ? 'Generated against the active published replay and the selected comparison replay.'
+          : 'Generated against the active published replay.',
+        canonical: false,
+        datasetPath: path.relative(DASHBOARD_DIR, replayContext.datasetPath).replace(/\\/g, '/'),
+        comparePath: replayContext.comparePath
+          ? path.relative(DASHBOARD_DIR, replayContext.comparePath).replace(/\\/g, '/')
+          : undefined,
+      },
+    }
+
+    res.json(result)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    const status =
+      message.includes('rate_limit') ? 429 :
+      message.includes('authentication') ? 401 :
+      message.includes('could not be resolved') ? 400 :
+      500
+
+    res.status(status).json({ error: message })
+  }
+})
+
 app.post('/api/simulation-copilot', simulationCopilotRateLimit, async (req, res) => {
   const { question, currentJobId, currentConfig } = req.body as SimulationCopilotRequest
   const trimmedQuestion = question?.trim()
@@ -2771,8 +2876,6 @@ app.post('/api/explorations/:id/editorial', (req, res) => {
 // --- Static file serving for production (Railway serves both API + SPA) ---
 
 const DIST_DIR = path.join(__dirname, '..', 'dist')
-const DASHBOARD_DIR = path.resolve(EXPLORER_ROOT, '..', 'dashboard')
-
 if (existsSync(DASHBOARD_DIR)) {
   app.use('/research-demo', express.static(DASHBOARD_DIR))
   app.get('/research-demo', (_req, res) => {
