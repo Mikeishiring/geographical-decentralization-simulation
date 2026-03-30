@@ -2210,7 +2210,7 @@ export function ResearchDemoSurface({
         <div className="border-b border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-5 py-4">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-4xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
+              <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-text-primary">
                 Published Simulation Viewer
               </div>
               <h2 className="mt-3 text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
@@ -2322,7 +2322,7 @@ export function ResearchDemoSurface({
                         {primaryCanvasAnnotations.map(note => (
                           <div key={note.title} className="max-w-[18rem] rounded-xl border border-white/10 bg-[#0F172A]/72 px-3 py-2.5 text-white shadow-lg backdrop-blur-md">
                             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-300">{note.title}</div>
-                            <div className="mt-1.5 text-[11px] leading-5 text-white/85">{note.body}</div>
+                            <div className="mt-1.5 text-[0.6875rem] leading-5 text-white/85">{note.body}</div>
                           </div>
                         ))}
                       </div>
@@ -2352,7 +2352,7 @@ export function ResearchDemoSurface({
                         {comparisonCanvasAnnotations.map(note => (
                           <div key={note.title} className="max-w-[18rem] rounded-xl border border-white/10 bg-[#0F172A]/72 px-3 py-2.5 text-white shadow-lg backdrop-blur-md">
                             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-300">{note.title}</div>
-                            <div className="mt-1.5 text-[11px] leading-5 text-white/85">{note.body}</div>
+                            <div className="mt-1.5 text-[0.6875rem] leading-5 text-white/85">{note.body}</div>
                           </div>
                         ))}
                       </div>
@@ -2375,7 +2375,7 @@ export function ResearchDemoSurface({
                     {primaryCanvasAnnotations.map(note => (
                       <div key={note.title} className="max-w-[18rem] rounded-xl border border-white/10 bg-[#0F172A]/72 px-3 py-2.5 text-white shadow-lg backdrop-blur-md">
                         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-300">{note.title}</div>
-                        <div className="mt-1.5 text-[11px] leading-5 text-white/85">{note.body}</div>
+                        <div className="mt-1.5 text-[0.6875rem] leading-5 text-white/85">{note.body}</div>
                       </div>
                     ))}
                   </div>
@@ -2394,80 +2394,75 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="lab-stage overflow-hidden p-0">
-              <div className="grid gap-0 xl:grid-cols-[minmax(0,1.08fr)_360px]">
-                <div className="border-b border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.78))] px-5 py-5 xl:border-b-0 xl:border-r">
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-                    {lastReplayAnswer ? 'Replay-backed conclusion' : 'Published findings board'}
-                  </div>
-                  <div className="mt-3 max-w-3xl text-lg font-semibold leading-8 text-text-primary">
-                    {immediateResultSummary}
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
-                    {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number} {selectedPaperSection.title}</span> : null}
-                    {viewerSnapshot ? <span className="lab-chip">slot {viewerSnapshot.slotNumber}</span> : null}
-                    {splitCompareActive && comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
-                    <span className="lab-chip">{paperLens} lens</span>
-                  </div>
-                  {promptLaunchers.length > 0 ? (
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {promptLaunchers.slice(0, 3).map(item => (
-                        <button
-                          key={`findings-${item.label}`}
-                          onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-all hover:border-border-hover"
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="space-y-3 bg-white px-5 py-5">
-                  <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Current posture</div>
-                    <div className="mt-2 text-sm leading-6 text-text-primary">{currentViewSummary}</div>
-                  </div>
-                  <div className="rounded-xl border border-rule bg-white px-4 py-4">
+              <div className="border-b border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.78))] px-5 py-5">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="max-w-4xl">
                     <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-                      {splitCompareActive && comparisonDataset ? 'Comparison read' : 'Canonical paper anchor'}
+                      {lastReplayAnswer ? 'Replay-backed conclusion' : 'Live readout'}
                     </div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">
-                      {splitCompareActive && comparisonDataset
-                        ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}`
-                        : selectedPaperSection ? `${selectedPaperSection.number} ${selectedPaperSection.title}` : 'No section selected'}
+                    <div className="mt-3 text-lg font-semibold leading-8 text-text-primary">
+                      {immediateResultSummary}
                     </div>
-                    <div className="mt-2 text-xs leading-5 text-muted">
-                      {splitCompareActive && comparisonDataset
-                        ? comparisonNarrative
-                        : selectedPaperSection?.description ?? 'Select a paper section to keep the replay interpretation tied to the canonical text.'}
+                    <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
+                      {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number} {selectedPaperSection.title}</span> : null}
+                      {viewerSnapshot ? <span className="lab-chip">slot {viewerSnapshot.slotNumber}</span> : null}
+                      {splitCompareActive && comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
+                      <span className="lab-chip">{paperLens} lens</span>
                     </div>
+                    {promptLaunchers.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {promptLaunchers.slice(0, 3).map(item => (
+                          <button
+                            key={`findings-${item.label}`}
+                            onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
+                            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-all hover:border-border-hover"
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="rounded-xl border border-rule bg-white px-4 py-4">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Why it matters now</div>
-                    <div className="mt-2 text-xs leading-5 text-muted">{activeAudienceBrief.summary}</div>
+
+                  <div className="grid gap-3 sm:grid-cols-3 xl:w-[420px] xl:grid-cols-1">
+                    <div className="rounded-xl border border-rule bg-white px-4 py-4">
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Current posture</div>
+                      <div className="mt-2 text-xs leading-5 text-muted">{currentViewSummary}</div>
+                    </div>
+                    <div className="rounded-xl border border-rule bg-white px-4 py-4">
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                        {splitCompareActive && comparisonDataset ? 'Comparison read' : 'Paper anchor'}
+                      </div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">
+                        {splitCompareActive && comparisonDataset
+                          ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}`
+                          : selectedPaperSection ? `${selectedPaperSection.number} ${selectedPaperSection.title}` : 'No section selected'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-rule bg-white px-4 py-4">
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Why it matters</div>
+                      <div className="mt-2 text-xs leading-5 text-muted">{activeAudienceBrief.summary}</div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="border-t border-rule px-5 py-5">
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  {resultSnapshotCards.map((card, index) => (
-                    <div
-                      key={card.label}
-                      className={cn(
-                        'rounded-[1.15rem] border px-4 py-4 shadow-[0_12px_26px_rgba(15,23,42,0.04)]',
-                        index === 0
-                          ? 'border-accent/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.88))]'
-                          : 'border-rule bg-white',
-                      )}
-                    >
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
-                      <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
-                      <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
-                    </div>
-                  ))}
-                </div>
+              <div className="grid gap-3 px-5 py-5 md:grid-cols-2 xl:grid-cols-4">
+                {resultSnapshotCards.map((card, index) => (
+                  <div
+                    key={card.label}
+                    className={cn(
+                      'rounded-[1.05rem] border px-4 py-4 shadow-[0_12px_26px_rgba(15,23,42,0.04)]',
+                      index === 0
+                        ? 'border-accent/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.88))]'
+                        : 'border-rule bg-white',
+                    )}
+                  >
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+                    <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
+                    <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -2636,7 +2631,7 @@ export function ResearchDemoSurface({
                   Scenario switching, reading controls, share state, and authored routes live here when you need them.
                 </div>
               </div>
-              <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+              <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[0.6875rem] font-medium text-text-primary">
                 Open when needed
               </div>
             </summary>
@@ -3002,6 +2997,20 @@ export function ResearchDemoSurface({
         </aside>
 
           <div className="space-y-7">
+          <details className="lab-stage overflow-hidden">
+            <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-5 py-5 [&::-webkit-details-marker]:hidden">
+              <div>
+                <div className="text-xs text-muted mb-1">Companion and Paper Tools</div>
+                <div className="text-sm text-text-primary">
+                  Replay questions, canonical paper anchors, and publishing tools live here when you want to move beyond the core viewer and analytics.
+                </div>
+              </div>
+              <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                Open when needed
+              </div>
+            </summary>
+
+            <div className="space-y-7 border-t border-rule bg-[linear-gradient(180deg,rgba(250,250,249,0.94),rgba(255,255,255,0.98))] p-5">
             <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
             <div className="lab-stage p-6 shadow-[0_20px_44px_rgba(15,23,42,0.05)]">
               <div className="text-xs text-muted mb-1">Published scenario summary</div>
@@ -3311,7 +3320,7 @@ export function ResearchDemoSurface({
                           Keep note-taking and public publishing available without leaving them expanded across the full page.
                         </div>
                       </div>
-                      <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                      <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[0.6875rem] font-medium text-text-primary">
                         Open when needed
                       </div>
                     </summary>
@@ -3356,6 +3365,10 @@ export function ResearchDemoSurface({
                   </details>
                 </div>
               </div>
+            </div>
+            </div>
+            </div>
+          </details>
 
               <SimulationAnalyticsDesk
                 description="Dune-style analytics over the frozen replay metrics: named dashboard reads, shareable links, and exported query bundles inside the same published workspace."
@@ -3377,264 +3390,322 @@ export function ResearchDemoSurface({
                 metricCards={analyticsMetricCards}
                 blocks={analyticsBlocks}
               >
-                <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-                  <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Named dashboards</div>
-                  <div className="mt-2 text-xs leading-5 text-muted">
-                    These dashboard links hold an authored analytics posture inside the paper workspace, so a reader can reopen the same query instead of reconstructing it from scratch.
-                  </div>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {analyticsDashboardPresetCards.map(preset => (
-                      <div
-                        key={preset.id}
-                        className={cn(
-                          'rounded-xl border px-4 py-4 transition-colors',
-                          preset.active
-                            ? 'border-accent bg-surface-active'
-                            : 'border-rule bg-surface-active',
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-sm font-medium text-text-primary">{preset.label}</div>
-                            <div className="mt-1 text-xs leading-5 text-muted">{preset.note}</div>
+                <details className="mt-4 overflow-hidden rounded-xl border border-rule bg-white">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+                    <div>
+                      <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Analytics shortcuts</div>
+                      <div className="mt-1 text-sm text-text-primary">
+                        Saved dashboards, share links, and replay prompts sit behind one compact drawer instead of taking over the desk.
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <span className="rounded-full border border-rule bg-surface-active px-3 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                        {analyticsDashboardPresetCards.length} dashboards
+                      </span>
+                      {analyticsPromptLaunchers.length > 0 ? (
+                        <span className="rounded-full border border-rule bg-surface-active px-3 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                          {analyticsPromptLaunchers.length} prompts
+                        </span>
+                      ) : null}
+                    </div>
+                  </summary>
+
+                  <div className="grid gap-4 border-t border-rule px-4 py-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                    <div>
+                      <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Named dashboards</div>
+                      <div className="mt-2 text-xs leading-5 text-muted">
+                        Reopen authored analytics postures without rebuilding the query by hand.
+                      </div>
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        {analyticsDashboardPresetCards.map(preset => (
+                          <div
+                            key={preset.id}
+                            className={cn(
+                              'rounded-xl border px-4 py-4 transition-colors',
+                              preset.active
+                                ? 'border-accent bg-surface-active'
+                                : 'border-rule bg-surface-active',
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-medium text-text-primary">{preset.label}</div>
+                                <div className="mt-1 text-xs leading-5 text-muted">{preset.note}</div>
+                              </div>
+                              {preset.active ? (
+                                <span className="rounded-full bg-accent px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-white">
+                                  Live
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                onClick={() => applyAnalyticsDashboardPreset(preset)}
+                                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                              >
+                                Open dashboard
+                              </button>
+                              <button
+                                onClick={() => void handleCopyShareUrl(preset.url)}
+                                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                              >
+                                Copy link
+                              </button>
+                            </div>
                           </div>
-                          {preset.active ? (
-                            <span className="rounded-full bg-accent px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-white">
-                              Live
-                            </span>
-                          ) : null}
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Ask from this query</div>
+                      <div className="mt-2 text-xs leading-5 text-muted">
+                        Launch replay questions from the current analytics posture without opening another full utility band.
+                      </div>
+                      {analyticsPromptLaunchers.length > 0 ? (
+                        <div className="mt-4 grid gap-3">
+                          {analyticsPromptLaunchers.map(item => (
+                            <button
+                              key={item.label}
+                              onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
+                              className="rounded-xl border border-rule bg-surface-active px-4 py-4 text-left transition-colors hover:border-border-hover"
+                            >
+                              <div className="text-sm font-medium text-text-primary">{item.label}</div>
+                              <div className="mt-1 text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">{item.detail}</div>
+                              <div className="mt-3 text-xs leading-5 text-muted">{item.prompt}</div>
+                            </button>
+                          ))}
                         </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <button
-                            onClick={() => applyAnalyticsDashboardPreset(preset)}
-                            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                          >
-                            Open dashboard
-                          </button>
-                          <button
-                            onClick={() => void handleCopyShareUrl(preset.url)}
-                            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                          >
-                            Copy link
-                          </button>
+                      ) : (
+                        <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4 text-sm leading-6 text-text-primary">
+                          Pick a dashboard posture first, then launch a replay question from that frozen query state.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </details>
+              </SimulationAnalyticsDesk>
+
+              <details className="lab-stage overflow-hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+                  <div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Replay utilities</div>
+                    <div className="mt-1 text-sm text-text-primary">
+                      Comparison controls and raw replay utilities stay available without interrupting the main viewer scan path.
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <span className="rounded-full border border-rule bg-surface-active px-3 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                      {splitCompareActive ? 'Compare live' : 'Compare ready'}
+                    </span>
+                    <span className="rounded-full border border-rule bg-surface-active px-3 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                      Artifacts
+                    </span>
+                  </div>
+                </summary>
+
+                <div className="border-t border-rule px-5 py-5">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => applyViewPreset('compare')}
+                      className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                    >
+                      Activate split compare
+                    </button>
+                    <button
+                      onClick={() => applyAudienceMode('reviewer')}
+                      className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                    >
+                      Reviewer mode
+                    </button>
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="mb-1.5 block text-xs text-muted">Compare against</label>
+                    <select
+                      value={comparisonDataset?.path ?? ''}
+                      onChange={event => setComparePath(event.target.value)}
+                      className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
+                    >
+                      {comparisonCandidates.map(entry => (
+                        <option key={entry.path} value={entry.path}>
+                          {entry.evaluation} · {entry.paradigm} · {entry.result}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                    <div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-xl border border-accent bg-white px-4 py-4">
+                          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Active scenario</div>
+                          <div className="mt-2 text-sm font-medium text-text-primary">
+                            {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'No scenario'}
+                          </div>
+                          <div className="mt-1 text-xs text-muted">{selectedDataset?.result ?? 'N/A'}</div>
+                          <div className="mt-3 text-xs leading-5 text-muted">
+                            {selectedMetadata?.description ?? 'Select a scenario to reveal its published description.'}
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison scenario</div>
+                          <div className="mt-2 text-sm font-medium text-text-primary">
+                            {comparisonDataset ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}` : 'No comparison'}
+                          </div>
+                          <div className="mt-1 text-xs text-muted">{comparisonDataset?.result ?? 'N/A'}</div>
+                          <div className="mt-3 text-xs leading-5 text-muted">
+                            {comparisonDataset?.metadata?.description ?? 'Choose a second scenario to compare against the active replay.'}
+                          </div>
                         </div>
                       </div>
-                    ))}
+
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {comparisonMetrics.map(metric => {
+                          const currentValue = metric.current
+                          const compareValue = metric.compare
+                          const hasBoth = typeof currentValue === 'number' && typeof compareValue === 'number'
+                          const difference = hasBoth ? currentValue - compareValue : null
+                          const differenceLabel = difference == null
+                            ? 'No delta'
+                            : difference > 0
+                              ? 'Higher than comparison'
+                              : difference < 0
+                                ? 'Lower than comparison'
+                                : 'Matches comparison'
+
+                          return (
+                            <div key={metric.label} className="rounded-xl border border-rule bg-white px-4 py-4">
+                              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
+                              <div className="mt-3 flex items-end justify-between gap-3">
+                                <div>
+                                  <div className="text-xs text-muted">Active</div>
+                                  <div className="mt-1 text-sm font-medium text-text-primary">{metric.format(currentValue)}</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-xs text-muted">Compare</div>
+                                  <div className="mt-1 text-sm font-medium text-text-primary">{metric.format(compareValue)}</div>
+                                </div>
+                              </div>
+                              <div className="mt-3 text-xs text-muted">{differenceLabel}</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
+                        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison readout</div>
+                        <div className="mt-2 text-sm leading-6 text-text-primary">{comparisonNarrative}</div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Viewer actions</div>
+                      <div className="mt-2 text-xs leading-5 text-muted">
+                        Stay in the embedded replay by default. Reach for artifacts only when you need the underlying files.
+                      </div>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                        <button
+                          onClick={handleFocusViewer}
+                          disabled={!selectedDataset}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Return to replay
+                        </button>
+                        <button
+                          onClick={handleLaunchViewer}
+                          disabled={!selectedDataset}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Open standalone viewer →
+                        </button>
+                        <a
+                          href={datasetUrl ?? undefined}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={cn(
+                            'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
+                            !datasetUrl && 'pointer-events-none opacity-60',
+                          )}
+                        >
+                          Download data.json
+                        </a>
+                        <button
+                          onClick={() => setShowConfig(current => !current)}
+                          disabled={!selectionConfig}
+                          className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {showConfig ? 'Hide config' : 'Inspect config'}
+                        </button>
+                        <a
+                          href={sourceUrl ?? undefined}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={cn(
+                            'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
+                            !sourceUrl && 'pointer-events-none opacity-60',
+                          )}
+                        >
+                          View source
+                        </a>
+                      </div>
+
+                      {showConfig && selectionConfig && (
+                        <div className="mt-4 rounded-xl border border-rule bg-surface-active p-4">
+                          <div className="mb-2 text-xs text-muted">Selection config</div>
+                          <pre className="overflow-x-auto text-xs text-text-primary">{selectionConfig}</pre>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
+              </details>
 
-                {analyticsPromptLaunchers.length > 0 ? (
-                  <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-                    <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Ask from this query</div>
-                    <div className="mt-2 text-xs leading-5 text-muted">
-                      These prompts open the replay inquiry flow against the current analytics view and slot posture.
+              <details className="lab-stage overflow-hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+                  <div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Paper context</div>
+                    <div className="mt-1 text-sm text-text-primary">
+                      Audience framing and synchronized paper-side notes are still available, but they no longer compete with the replay dashboard.
                     </div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      {analyticsPromptLaunchers.map(item => (
-                        <button
-                          key={item.label}
-                          onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
-                          className="rounded-xl border border-rule bg-surface-active px-4 py-4 text-left transition-colors hover:border-border-hover"
-                        >
-                          <div className="text-sm font-medium text-text-primary">{item.label}</div>
-                          <div className="mt-1 text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">{item.detail}</div>
-                          <div className="mt-3 text-xs leading-5 text-muted">{item.prompt}</div>
-                        </button>
+                  </div>
+                  <div className="rounded-full border border-rule bg-surface-active px-3 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                    {paperNotes.length} notes
+                  </div>
+                </summary>
+
+                <div className="grid gap-5 border-t border-rule px-5 py-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                  <div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">{activeAudienceBrief.title}</div>
+                    <div className="mt-2 text-sm text-text-primary">{activeAudienceBrief.summary}</div>
+                    <div className="mt-4 space-y-3">
+                      {activeAudienceBrief.items.map(item => (
+                        <div key={item} className="rounded-xl border border-rule bg-white px-4 py-4 text-sm leading-6 text-text-primary">
+                          {item}
+                        </div>
                       ))}
                     </div>
                   </div>
-                ) : null}
-              </SimulationAnalyticsDesk>
 
-              <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">Comparison desk</div>
-                <div className="text-sm text-text-primary">
-                  Put the active published replay beside another checked-in scenario so the paper can highlight tradeoffs instead of presenting one curve in isolation.
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    onClick={() => applyViewPreset('compare')}
-                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                  >
-                    Activate split compare
-                  </button>
-                  <button
-                    onClick={() => applyAudienceMode('reviewer')}
-                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                  >
-                    Switch to reviewer mode
-                  </button>
-                </div>
-
-                <div className="mt-4">
-                  <label className="text-xs text-muted mb-1.5 block">Compare against</label>
-                  <select
-                    value={comparisonDataset?.path ?? ''}
-                    onChange={event => setComparePath(event.target.value)}
-                    className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
-                  >
-                    {comparisonCandidates.map(entry => (
-                      <option key={entry.path} value={entry.path}>
-                        {entry.evaluation} · {entry.paradigm} · {entry.result}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-accent bg-white px-4 py-4">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Active scenario</div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">
-                      {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'No scenario'}
+                  <div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Paper note rail</div>
+                    <div className="mt-2 text-xs leading-5 text-muted">
+                      These notes follow the selected scenario and lens so the surrounding paper stays synchronized with the evidence surface.
                     </div>
-                    <div className="mt-1 text-xs text-muted">{selectedDataset?.result ?? 'N/A'}</div>
-                    <div className="mt-3 text-xs leading-5 text-muted">
-                      {selectedMetadata?.description ?? 'Select a scenario to reveal its published description.'}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison scenario</div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">
-                      {comparisonDataset ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}` : 'No comparison'}
-                    </div>
-                    <div className="mt-1 text-xs text-muted">{comparisonDataset?.result ?? 'N/A'}</div>
-                    <div className="mt-3 text-xs leading-5 text-muted">
-                      {comparisonDataset?.metadata?.description ?? 'Choose a second scenario to compare against the active replay.'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {comparisonMetrics.map(metric => {
-                    const currentValue = metric.current
-                    const compareValue = metric.compare
-                    const hasBoth = typeof currentValue === 'number' && typeof compareValue === 'number'
-                    const difference = hasBoth ? currentValue - compareValue : null
-                    const differenceLabel = difference == null
-                      ? 'No delta'
-                      : difference > 0
-                        ? 'Higher than comparison'
-                        : difference < 0
-                          ? 'Lower than comparison'
-                          : 'Matches comparison'
-
-                    return (
-                      <div key={metric.label} className="rounded-xl border border-rule bg-white px-4 py-4">
-                        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
-                        <div className="mt-3 flex items-end justify-between gap-3">
-                          <div>
-                            <div className="text-xs text-muted">Active</div>
-                            <div className="mt-1 text-sm font-medium text-text-primary">{metric.format(currentValue)}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs text-muted">Compare</div>
-                            <div className="mt-1 text-sm font-medium text-text-primary">{metric.format(compareValue)}</div>
-                          </div>
+                    <div className="mt-4 space-y-3">
+                      {paperNotes.map(note => (
+                        <div key={note.title} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{note.title}</div>
+                          <div className="mt-2 text-sm leading-6 text-text-primary">{note.body}</div>
                         </div>
-                        <div className="mt-3 text-xs text-muted">{differenceLabel}</div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison readout</div>
-                  <div className="mt-2 text-sm leading-6 text-text-primary">{comparisonNarrative}</div>
-                </div>
-              </div>
-
-              <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">Viewer actions</div>
-                <div className="text-sm text-text-primary">
-                  Stay in the embedded replay by default. Only reach for standalone or raw artifacts when you need the underlying files.
-                </div>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <button
-                    onClick={handleFocusViewer}
-                    disabled={!selectedDataset}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Return to replay
-                  </button>
-                  <button
-                    onClick={handleLaunchViewer}
-                    disabled={!selectedDataset}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Open standalone viewer →
-                  </button>
-                  <a
-                    href={datasetUrl ?? undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={cn(
-                      'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
-                      !datasetUrl && 'pointer-events-none opacity-60',
-                    )}
-                  >
-                    Download data.json
-                  </a>
-                  <button
-                    onClick={() => setShowConfig(current => !current)}
-                    disabled={!selectionConfig}
-                    className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {showConfig ? 'Hide config' : 'Inspect config'}
-                  </button>
-                  <a
-                    href={sourceUrl ?? undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={cn(
-                      'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
-                      !sourceUrl && 'pointer-events-none opacity-60',
-                    )}
-                  >
-                    View source
-                  </a>
-                </div>
-
-                {showConfig && selectionConfig && (
-                  <div className="mt-4 rounded-xl border border-rule bg-surface-active p-4">
-                    <div className="text-xs text-muted mb-2">Selection config</div>
-                    <pre className="overflow-x-auto text-xs text-text-primary">{selectionConfig}</pre>
+                      ))}
+                    </div>
                   </div>
-                )}
-              </div>
-
-              <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">{activeAudienceBrief.title}</div>
-                <div className="text-sm text-text-primary">
-                  {activeAudienceBrief.summary}
                 </div>
-                <div className="mt-4 space-y-3">
-                  {activeAudienceBrief.items.map(item => (
-                    <div key={item} className="rounded-xl border border-rule bg-white px-4 py-4 text-sm leading-6 text-text-primary">
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">Paper note rail</div>
-                <div className="text-sm text-text-primary">
-                  These notes change with the selected scenario and lens, so the surrounding paper can stay synchronized with the evidence surface.
-                </div>
-                <div className="mt-4 space-y-3">
-                  {paperNotes.map(note => (
-                    <div key={note.title} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{note.title}</div>
-                      <div className="mt-2 text-sm leading-6 text-text-primary">{note.body}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              </details>
             </div>
           </div>
-        </div>
-      </div>
 
     </div>
   )
