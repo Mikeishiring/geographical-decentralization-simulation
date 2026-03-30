@@ -10,9 +10,6 @@ import { QueryHistory, type HistoryEntry } from '../components/explore/QueryHist
 import { ShimmerLoading } from '../components/explore/ShimmerBlock'
 import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { explore, getApiHealth, getExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
-import { NodeConstellation } from '../components/decorative/NodeConstellation'
-import { ModeBanner } from '../components/layout/ModeBanner'
-import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
 import type { TabId } from '../components/layout/TabNav'
@@ -45,7 +42,7 @@ export function FindingsPage({
   isActive = true,
   onQueryChange,
   onExplorationIdChange,
-  onTabChange,
+  onTabChange: _onTabChange,
 }: {
   initialQuery?: string | null
   initialExplorationId?: string | null
@@ -281,53 +278,15 @@ export function FindingsPage({
 
   return (
     <div>
-      <div className="mb-5">
-        <ModeBanner
-          eyebrow="Mode"
-          title="Curated questions plus AI interpretation"
-          detail="Use this page for bounded, paper-backed questions. The responses can synthesize and interpret, but the paper and published results remain the canonical sources."
-          tone="interpretation"
+      {/* Search surface */}
+      <div className="mb-8">
+        <QueryBar
+          onSubmit={handleQuery}
+          loading={loading}
+          disabled={queryBarDisabled}
+          disabledReason={queryBarDisabledReason}
+          helperText={queryBarHelperText}
         />
-      </div>
-
-      {/* Page header with constellation decoration */}
-      <div className="mb-6 relative">
-        <NodeConstellation className="absolute right-0 top-0 w-32 h-32 opacity-40 pointer-events-none hidden sm:block" />
-
-        <p className="text-[11px] text-text-faint mb-2 leading-relaxed max-w-xl">
-          An interactive companion for the geo-decentralization paper. Pick a lens below, or ask a question about latency, MEV corridors, or protocol design.
-        </p>
-        <h1 className="text-xl sm:text-2xl font-bold text-text-primary font-serif leading-tight max-w-lg">
-          Start with the paper’s sharpest questions.
-        </h1>
-        <p className="mt-2 text-sm text-muted max-w-2xl leading-relaxed">
-          Curated lenses for the stakes, paradoxes, and model limitations. Then ask a bounded question.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-muted">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-success" />
-            Curated lenses
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-warning" />
-            Prior readings
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent dot-pulse" />
-            Fresh interpretation
-          </span>
-        </div>
-
-        <div className="mt-3">
-          <QueryBar
-            onSubmit={handleQuery}
-            loading={loading}
-            disabled={queryBarDisabled}
-            disabledReason={queryBarDisabledReason}
-            helperText={queryBarHelperText}
-          />
-        </div>
       </div>
 
       <QueryHistory
@@ -543,13 +502,6 @@ export function FindingsPage({
         )}
       </AnimatePresence>
 
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Read the full paper', hint: 'Editorial reading guide with annotations', onClick: () => onTabChange('paper') },
-          { label: 'Drill into sections', hint: 'Accordion view of every argument & block', onClick: () => onTabChange('deep-dive') },
-          { label: 'Run a simulation', hint: 'Test parameters with the exact model', onClick: () => onTabChange('simulation') },
-        ]} />
-      )}
     </div>
   )
 }
