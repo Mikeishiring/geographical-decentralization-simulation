@@ -9,6 +9,7 @@ export type TabId = 'explore' | 'paper' | 'results'
 interface TabNavProps {
   activeTab: TabId
   onTabChange: (tab: TabId) => void
+  onTabIntent?: (tab: TabId) => void
 }
 
 const tabs: { id: TabId; label: string; shortLabel: string; hint: string }[] = [
@@ -17,7 +18,7 @@ const tabs: { id: TabId; label: string; shortLabel: string; hint: string }[] = [
   { id: 'results', label: 'Results', shortLabel: 'Results', hint: 'Published simulation results & experiments' },
 ]
 
-export function TabNav({ activeTab, onTabChange }: TabNavProps) {
+export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
   const tabRefs = React.useRef<Map<TabId, HTMLButtonElement>>(new Map())
   const [hoveredTab, setHoveredTab] = useState<TabId | null>(null)
 
@@ -37,8 +38,12 @@ export function TabNav({ activeTab, onTabChange }: TabNavProps) {
                   ref={el => { if (el) tabRefs.current.set(tab.id, el) }}
                   role="tab"
                   onClick={() => onTabChange(tab.id)}
-                  onMouseEnter={() => setHoveredTab(tab.id)}
+                  onMouseEnter={() => {
+                    setHoveredTab(tab.id)
+                    onTabIntent?.(tab.id)
+                  }}
                   onMouseLeave={() => setHoveredTab(null)}
+                  onFocus={() => onTabIntent?.(tab.id)}
                   onKeyDown={e => {
                     const currentIndex = tabs.findIndex(t => t.id === tab.id)
                     if (e.key === 'ArrowRight') {
