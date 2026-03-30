@@ -14,7 +14,7 @@ export function StatBlock({ block }: StatBlockProps) {
       className="bg-white border border-border-subtle rounded-xl p-5 topo-bg relative overflow-hidden group geo-accent-bar transition-shadow hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
     >
       {/* Faint coordinate corner — reveals on hover */}
-      <span aria-hidden="true" className="coord-label absolute top-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <span aria-hidden="true" className="coord-label absolute top-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
         §
       </span>
 
