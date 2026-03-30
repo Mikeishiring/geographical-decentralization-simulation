@@ -7,10 +7,10 @@ export const SPRING_SNAPPY = { type: 'spring' as const, stiffness: 360, damping:
 /** Instant transition — used when prefers-reduced-motion is active */
 export const INSTANT = { duration: 0 } as const
 
-/** Hover lift preset — subtle card elevation on hover */
+/** Hover lift preset — barely-there elevation, Agentation-inspired restraint */
 export const HOVER_LIFT = {
-  whileHover: { y: -1, scale: 1.002, boxShadow: '0 12px 28px rgba(26,26,26,0.08)' },
-  whileTap: { scale: 0.985 },
+  whileHover: { y: -0.5, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' },
+  whileTap: { scale: 0.995 },
   transition: SPRING_SOFT,
 } as const
 

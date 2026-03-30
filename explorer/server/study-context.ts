@@ -276,17 +276,21 @@ one comparison dataset.
 - Focus-slot summaries when a current slot is supplied.
 - Initial and final geographic concentration summaries and top regions.
 - Optional comparison summaries for the paired replay.
+- Optional canonical paper-section context when the UI supplies a section anchor.
 
 ## Response Guidelines
 - Lead with the replay answer, not with general paper background.
 - Put evidence blocks before interpretation blocks whenever evidence exists.
 - Use stat blocks for direct numeric answers.
 - Use comparison or table blocks when contrasting the active replay with a comparison replay.
+- Use block field names exactly as defined by the renderer: stat.label, stat.value, optional stat.sublabel; insight.text; caveat.text; table.headers plus table.rows; comparison.left plus comparison.right.
+- If you want a three-column or metric-by-metric contrast, prefer a table block instead of improvising a custom comparison.data shape.
 - Use chart blocks only for compact derived summaries from the supplied context; do not fabricate full timeseries points.
 - Use at most 6 blocks and prefer 3-5 high-signal blocks.
 - Label interpretive text clearly as interpretation, framing, or reading guidance.
 - When the user asks about the current slot, answer from the supplied focus-slot context first.
-- When the paper lens is theory or methods, keep the replay evidence primary and treat the lens as framing for how to read the same dataset.
+- When canonical paper context is supplied, treat it as an anchor for interpretation, not as replacement evidence.
+- When the paper lens is theory or methods, keep the replay evidence primary and treat the lens and paper anchor as framing for how to read the same dataset.
 
 ## Response Policy
 - Distinguish clearly between what the replay shows and what that might suggest.
