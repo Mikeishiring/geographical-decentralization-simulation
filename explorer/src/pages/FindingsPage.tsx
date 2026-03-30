@@ -12,7 +12,6 @@ import { QueryHistory, type HistoryEntry } from '../components/explore/QueryHist
 import { ShimmerLoading } from '../components/explore/ShimmerBlock'
 import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, listExplorations, publishExploration, type Exploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
-import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
 import type { TabId } from '../components/layout/TabNav'
@@ -478,7 +477,7 @@ export function FindingsPage({
             <span className="text-xs text-muted">Read one claim, question it, then move into the paper, results, or public notes only when you need to.</span>
           </div>
 
-          <div className="rounded-xl border border-rule bg-white divide-y divide-rule">
+          <div className="stagger-reveal rounded-xl border border-rule bg-white divide-y divide-rule">
             {canonicalClaimCards.map(card => (
               <button
                 key={card.id}
@@ -523,7 +522,7 @@ export function FindingsPage({
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" role="group" aria-label="Topic cards">
+        <div className="stagger-reveal grid grid-cols-2 sm:grid-cols-4 gap-3" role="group" aria-label="Topic cards">
           {TOPIC_CARDS.map(card => {
             const isActive = activeTopic?.id === card.id && !showAi
             const isDimmed = (activeTopic !== null || showAi) && !isActive
@@ -532,7 +531,6 @@ export function FindingsPage({
               <motion.button
                 key={card.id}
                 onClick={() => handleTopicClick(card)}
-                layout
                 whileTap={{ scale: 0.985 }}
                 transition={SPRING}
                 aria-label={card.title}
@@ -566,7 +564,7 @@ export function FindingsPage({
 
       {/* Navigation cards — cross-tab wayfinding (default state only) */}
       {!showAi && !showTopic && onTabChange && (
-        <div className="mb-8 rounded-xl border border-rule bg-white divide-y divide-rule">
+        <div className="stagger-reveal mb-8 rounded-xl border border-rule bg-white divide-y divide-rule">
           {([
             { tab: 'paper' as TabId, eyebrow: 'Read the canonical source', title: 'Open the paper guide', detail: 'Go section by section through the paper when you want the exact claim, method, or caveat.' },
             { tab: 'results' as TabId, eyebrow: 'Inspect evidence', title: 'Open Results', detail: 'Start with the published replay, then open the exact lab only if you need fresh evidence.' },
@@ -605,7 +603,7 @@ export function FindingsPage({
             )}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="stagger-reveal grid gap-3 md:grid-cols-3">
             {communityPreviewNotes.map(exploration => (
               <button
                 key={exploration.id}
@@ -868,13 +866,6 @@ export function FindingsPage({
         )}
       </AnimatePresence>
 
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Read the full paper', hint: 'Canonical paper text with the editorial guide', onClick: () => onTabChange('paper') },
-          { label: 'Open simulation', hint: 'Inspect published scenarios or run a fresh exact experiment', onClick: () => onTabChange('results') },
-          { label: 'Browse community notes', hint: 'See public human-authored responses to paper readings and exact runs', onClick: () => onTabChange('community') },
-        ]} />
-      )}
     </div>
   )
 }
