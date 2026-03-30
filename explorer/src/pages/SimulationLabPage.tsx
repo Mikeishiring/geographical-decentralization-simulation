@@ -19,8 +19,6 @@ import {
 } from '../components/simulation/simulation-constants'
 import { createExploration, getApiHealth, publishExploration } from '../lib/api'
 import { downloadSimulationExportArchive } from '../lib/simulation-export'
-import { ModeBanner } from '../components/layout/ModeBanner'
-import { Wayfinder } from '../components/layout/Wayfinder'
 import type { TabId } from '../components/layout/TabNav'
 import { cn } from '../lib/cn'
 import {
@@ -822,17 +820,6 @@ export function SimulationLabPage({
         </div>
       </div>
 
-      <div className="mb-5">
-        <ModeBanner
-          eyebrow="Mode"
-          title={surfaceMode === 'research' ? 'Published research scenarios' : 'Experimental exact run'}
-          detail={surfaceMode === 'research'
-            ? 'This side stays on the frozen researcher datasets and viewer contract. It is for reproducing the published scenarios, not inventing new ones.'
-            : 'This side runs fresh exact simulations with the same engine. Use it for bounded comparisons, then publish a community note only after you have read the manifest and artifacts.'}
-          tone={surfaceMode === 'research' ? 'canonical' : 'experimental'}
-        />
-      </div>
-
       {surfaceMode === 'research' ? (
         <ResearchDemoSurface
           catalogScriptUrl={`${APP_BASE_URL}/research-demo/assets/research-catalog.js`}
@@ -1033,13 +1020,6 @@ export function SimulationLabPage({
             />
           )}
         </>
-      )}
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Explore findings', hint: 'Curated lenses, guided questions, and paper-backed interpretation', onClick: () => onTabChange('explore') },
-          { label: 'Browse community notes', hint: 'See human-framed notes from paper readings and exact runs', onClick: () => onTabChange('community') },
-          { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
-        ]} />
       )}
         </>
       )}
