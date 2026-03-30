@@ -173,6 +173,13 @@ function createRateLimitMiddleware(
 
   return (req, res, next) => {
     const now = Date.now()
+
+    for (const [bucketId, bucket] of buckets) {
+      if (bucket.resetAt <= now) {
+        buckets.delete(bucketId)
+      }
+    }
+
     const requesterId = `${label}:${getRequesterId(req)}`
     const bucket = buckets.get(requesterId)
 

@@ -484,14 +484,14 @@ export function SimConfigPanel({
               onClick={onSubmit}
               whileTap={{ scale: 0.98 }}
               transition={SPRING}
-              disabled={isSubmitting}
+              disabled={isSubmitting || canCancel}
               className={cn(
                 'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
                 'bg-white text-slate-950 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60',
               )}
             >
               <Play className="h-4 w-4" />
-              {isSubmitting ? 'Submitting…' : 'Run Exact Simulation'}
+              {isSubmitting ? 'Submitting…' : canCancel ? 'Run In Progress…' : 'Run Exact Simulation'}
             </motion.button>
 
             <div className="grid gap-3 sm:grid-cols-2">
