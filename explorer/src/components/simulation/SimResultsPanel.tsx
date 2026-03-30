@@ -1,6 +1,7 @@
-import { startTransition } from 'react'
+import { startTransition, useEffect, useState } from 'react'
 import { ArrowUpRight, Check, Copy, Download } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
+import { TimeSeriesBlock } from '../blocks/TimeSeriesBlock'
 import { cn } from '../../lib/cn'
 import {
   attestationCutoffMs,
@@ -53,6 +54,14 @@ interface SimResultsPanelProps {
   readonly overviewBundleOptions: ReadonlyArray<OverviewBundleOption | SimulationOverviewBundle>
   readonly selectedBundle: SimulationArtifactBundle
   readonly onSelectBundle: (bundle: SimulationArtifactBundle) => void
+  readonly exactChartSeries: ReadonlyArray<{
+    readonly artifactName: string
+    readonly label: string
+    readonly description: string
+    readonly kind: SimulationArtifact['kind']
+    readonly values: readonly number[]
+  }>
+  readonly isExactChartDeckLoading: boolean
   readonly selectedOverviewBundleMetrics: SimulationOverviewBundle | null
   readonly overviewBlocks: readonly Block[]
   readonly isOverviewLoading: boolean
@@ -75,6 +84,257 @@ interface ExactMetricCard {
   readonly label: string
   readonly value: string
   readonly suffix?: string
+  readonly note?: string
+}
+
+type ExactChartSeries = SimResultsPanelProps['exactChartSeries'][number]
+
+const CHART_VISUALS: Record<string, {
+  readonly title: string
+  readonly unit: string
+  readonly yLabel: string
+  readonly color: string
+  readonly glow: string
+}> = {
+  'avg_mev.json': {
+    title: 'Average MEV earned',
+    unit: 'ETH',
+    yLabel: 'ETH',
+    color: '#2563EB',
+    glow: 'rgba(37, 99, 235, 0.16)',
+  },
+  'supermajority_success.json': {
+    title: 'Supermajority success',
+    unit: '%',
+    yLabel: 'Success (%)',
+    color: '#0F766E',
+    glow: 'rgba(15, 118, 110, 0.16)',
+  },
+  'failed_block_proposals.json': {
+    title: 'Failed block proposals',
+    unit: 'count',
+    yLabel: 'Count',
+    color: '#C2553A',
+    glow: 'rgba(194, 85, 58, 0.18)',
+  },
+  'utility_increase.json': {
+    title: 'Utility increase',
+    unit: 'ETH',
+    yLabel: 'ETH',
+    color: '#7C3AED',
+    glow: 'rgba(124, 58, 237, 0.16)',
+  },
+  'proposal_time_avg.json': {
+    title: 'Average proposal time',
+    unit: 'ms',
+    yLabel: 'Milliseconds',
+    color: '#D97706',
+    glow: 'rgba(217, 119, 6, 0.16)',
+  },
+  'attestation_sum.json': {
+    title: 'Aggregate attestations',
+    unit: 'sum',
+    yLabel: 'Aggregate attestations',
+    color: '#16A34A',
+    glow: 'rgba(22, 163, 74, 0.16)',
+  },
+}
+
+function formatExactChartValue(value: number): string {
+  if (!Number.isFinite(value)) return '0'
+  if (Math.abs(value) >= 1000) return value.toLocaleString(undefined, { maximumFractionDigits: 0 })
+  if (Math.abs(value) >= 100) return value.toLocaleString(undefined, { maximumFractionDigits: 1 })
+  if (Math.abs(value) >= 10) return value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+  return value.toLocaleString(undefined, { maximumFractionDigits: 4 })
+}
+
+function buildSparkline(values: readonly number[], width = 220, height = 72): string {
+  if (values.length === 0) return ''
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  return values.map((value, index) => {
+    const x = (index / Math.max(values.length - 1, 1)) * width
+    const y = height - (((value - min) / range) * (height - 8) + 4)
+    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`
+  }).join(' ')
+}
+
+function ExactChartDeck({
+  series,
+  loading,
+}: {
+  readonly series: ReadonlyArray<ExactChartSeries>
+  readonly loading: boolean
+}) {
+  const [pinnedArtifactName, setPinnedArtifactName] = useState<string | null>(series[0]?.artifactName ?? null)
+  const [hoveredArtifactName, setHoveredArtifactName] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (series.length === 0) {
+      setPinnedArtifactName(null)
+      return
+    }
+    if (!pinnedArtifactName || !series.some(entry => entry.artifactName === pinnedArtifactName)) {
+      setPinnedArtifactName(series[0].artifactName)
+    }
+  }, [pinnedArtifactName, series])
+
+  const activeArtifactName = hoveredArtifactName ?? pinnedArtifactName
+  const focusedSeries = series.find(entry => entry.artifactName === activeArtifactName) ?? series[0] ?? null
+  const focusedVisual = focusedSeries ? CHART_VISUALS[focusedSeries.artifactName] : null
+  const focusedLatest = focusedSeries?.values.at(-1) ?? null
+  const focusedPeak = focusedSeries ? Math.max(...focusedSeries.values) : null
+  const focusedStart = focusedSeries?.values[0] ?? null
+  const focusedDelta = focusedLatest != null && focusedStart != null ? focusedLatest - focusedStart : null
+  const focusedBlock = !focusedSeries || !focusedVisual
+    ? null
+    : {
+        type: 'timeseries' as const,
+        title: focusedVisual.title,
+        xLabel: 'Slot',
+        yLabel: focusedVisual.yLabel,
+        series: [
+          {
+            label: focusedSeries.label,
+            color: focusedVisual.color,
+            data: focusedSeries.values.map((value, index) => ({ x: index + 1, y: value })),
+          },
+        ],
+      }
+
+  return (
+    <div className="lab-stage p-5 mb-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="text-xs text-muted mb-1">Interactive chart deck</div>
+          <div className="text-sm text-text-primary">
+            Six emitted exact series, styled as one reading surface instead of a one-artifact-at-a-time browser.
+          </div>
+        </div>
+        <div className="text-xs text-muted">
+          Hover a card to preview it, click to pin it, then inspect the full raw slot curve below.
+        </div>
+      </div>
+
+      {loading && series.length === 0 && (
+        <div className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="lab-skeleton lab-skeleton-block h-[380px]" />
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="lab-skeleton lab-skeleton-block h-[94px]" />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!loading && focusedSeries && focusedVisual && focusedBlock && (
+        <div className="mt-4 grid gap-4 xl:grid-cols-[1.18fr_0.82fr]">
+          <div className="overflow-hidden rounded-[1.4rem] border border-border-subtle bg-[radial-gradient(circle_at_12%_0%,rgba(37,99,235,0.08),transparent_28%),radial-gradient(circle_at_100%_10%,rgba(194,85,58,0.08),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,243,239,0.92))] p-4 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Focused measurement</div>
+                <div className="mt-2 text-lg font-semibold text-text-primary">{focusedVisual.title}</div>
+                <div className="mt-1 max-w-2xl text-sm leading-6 text-muted">{focusedSeries.description}</div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+                {[
+                  { label: 'Latest', value: focusedLatest },
+                  { label: 'Peak', value: focusedPeak },
+                  { label: 'Delta', value: focusedDelta },
+                ].map(metric => (
+                  <div
+                    key={metric.label}
+                    className="rounded-2xl border border-border-subtle bg-white/88 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]"
+                  >
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{metric.label}</div>
+                    <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
+                      {metric.value == null ? '—' : formatExactChartValue(metric.value)}
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted">{focusedVisual.unit}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <TimeSeriesBlock block={focusedBlock} />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            {series.map(entry => {
+              const visual = CHART_VISUALS[entry.artifactName]
+              const latest = entry.values.at(-1) ?? 0
+              const start = entry.values[0] ?? 0
+              const peak = Math.max(...entry.values)
+              const delta = latest - start
+              const sparkline = buildSparkline(entry.values)
+              const isFocused = entry.artifactName === focusedSeries.artifactName
+              const isPinned = entry.artifactName === pinnedArtifactName
+
+              return (
+                <button
+                  key={entry.artifactName}
+                  onClick={() => setPinnedArtifactName(entry.artifactName)}
+                  onMouseEnter={() => setHoveredArtifactName(entry.artifactName)}
+                  onMouseLeave={() => setHoveredArtifactName(null)}
+                  className={cn(
+                    'group relative overflow-hidden rounded-[1.25rem] border px-4 py-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-border-hover',
+                    isFocused
+                      ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.08),rgba(255,255,255,0.98))] shadow-[0_16px_36px_rgba(37,99,235,0.12)]'
+                      : 'border-border-subtle bg-white/92',
+                  )}
+                  style={{ boxShadow: isFocused ? `0 18px 40px ${visual?.glow ?? 'rgba(37,99,235,0.12)'}` : undefined }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">
+                        {isPinned ? 'Pinned chart' : isFocused ? 'Previewing now' : 'Hover to preview'}
+                      </div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">{visual?.title ?? entry.label}</div>
+                      <div className="mt-1 text-xs leading-5 text-muted line-clamp-2">{entry.description}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Latest</div>
+                      <div className="mt-2 text-sm font-semibold tabular-nums text-text-primary">
+                        {formatExactChartValue(latest)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 overflow-hidden rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(250,250,248,1),rgba(244,243,239,0.92))] px-3 py-3">
+                    <svg viewBox="0 0 220 72" className="w-full" preserveAspectRatio="none">
+                      <path d={sparkline} fill="none" stroke={visual?.color ?? '#2563EB'} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+                    {[
+                      { label: 'Start', value: start },
+                      { label: 'Peak', value: peak },
+                      { label: 'Delta', value: delta },
+                    ].map(metric => (
+                      <div key={metric.label} className="rounded-lg border border-border-subtle bg-white/82 px-2.5 py-2">
+                        <div className="uppercase tracking-[0.12em] text-text-faint">{metric.label}</div>
+                        <div className="mt-1 font-medium tabular-nums text-text-primary">
+                          {formatExactChartValue(metric.value)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {!loading && series.length === 0 && (
+        <div className="mt-4 rounded-[1.15rem] border border-dashed border-border-subtle bg-surface-active/70 px-5 py-12 text-center text-sm text-muted">
+          This exact run did not emit any interactive chart series.
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function SimResultsPanel({
@@ -82,6 +342,8 @@ export function SimResultsPanel({
   overviewBundleOptions,
   selectedBundle,
   onSelectBundle,
+  exactChartSeries,
+  isExactChartDeckLoading,
   selectedOverviewBundleMetrics,
   overviewBlocks,
   isOverviewLoading,
@@ -102,35 +364,41 @@ export function SimResultsPanel({
   const exactMetricCards: readonly ExactMetricCard[] = [
     {
       key: 'finalAverageMev',
-      label: 'finalAverageMev',
+      label: 'Final average MEV',
       value: formatNumber(manifest.summary.finalAverageMev, 4),
       suffix: 'ETH',
+      note: 'Ending reward surface',
     },
     {
       key: 'finalSupermajoritySuccess',
-      label: 'finalSupermajoritySuccess',
+      label: 'Supermajority success',
       value: `${formatNumber(manifest.summary.finalSupermajoritySuccess, 2)}%`,
+      note: 'Consensus completion',
     },
     {
       key: 'finalFailedBlockProposals',
-      label: 'finalFailedBlockProposals',
+      label: 'Failed proposals',
       value: formatNumber(manifest.summary.finalFailedBlockProposals, 0),
+      note: 'Final emitted count',
     },
     {
       key: 'finalUtilityIncrease',
-      label: 'finalUtilityIncrease',
+      label: 'Utility increase',
       value: formatNumber(manifest.summary.finalUtilityIncrease, 4),
       suffix: 'ETH',
+      note: 'Net improvement',
     },
     {
       key: 'slotsRecorded',
-      label: 'slotsRecorded',
+      label: 'Slots recorded',
       value: manifest.summary.slotsRecorded.toLocaleString(),
+      note: 'Manifest coverage',
     },
     {
       key: 'runtimeSeconds',
-      label: 'runtimeSeconds',
+      label: 'Runtime',
       value: `${formatNumber(manifest.runtimeSeconds, 2)}s`,
+      note: manifest.cacheHit ? 'Served from exact cache' : 'Fresh exact execution',
     },
   ] as const
 
@@ -183,10 +451,40 @@ export function SimResultsPanel({
               {card.suffix && (
                 <div className="mt-1 text-xs text-muted">{card.suffix}</div>
               )}
+              {card.note && (
+                <div className="mt-2 text-[11px] leading-5 text-muted">{card.note}</div>
+              )}
             </div>
           ))}
         </div>
       </div>
+
+      <div className="grid gap-3 mb-6 md:grid-cols-3">
+        <div className="lab-lens-card px-4 py-4">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Reading mode</div>
+          <div className="mt-2 text-sm font-medium text-text-primary">Live exact experiment</div>
+          <div className="mt-1 text-xs leading-5 text-muted">
+            This view is assembled from the current manifest and emitted artifact sidecars for one exact run.
+          </div>
+        </div>
+        <div className="lab-lens-card px-4 py-4">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Chart integrity</div>
+          <div className="mt-2 text-sm font-medium text-text-primary">Raw slot ordering preserved</div>
+          <div className="mt-1 text-xs leading-5 text-muted">
+            Hover, preview, and pinning only change the reading posture. They do not smooth or reinterpret the emitted series.
+          </div>
+        </div>
+        <div className="lab-lens-card px-4 py-4">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Comparability</div>
+          <div className="mt-2 text-sm font-medium text-text-primary">{paperComparability.title}</div>
+          <div className="mt-1 text-xs leading-5 text-muted">{paperComparability.detail}</div>
+        </div>
+      </div>
+
+      <ExactChartDeck
+        series={exactChartSeries}
+        loading={isExactChartDeckLoading}
+      />
 
       <div className="lab-stage p-5 mb-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

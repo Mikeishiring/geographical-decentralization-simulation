@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Search, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
@@ -37,6 +37,7 @@ interface QueryBarProps {
 
 export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperText }: QueryBarProps) {
   const [query, setQuery] = useState('')
+  const inputRef = useRef<HTMLInputElement | null>(null)
   const isEnabled = !disabled && !loading
   const placeholder = disabled
     ? disabledReason ?? 'The reading guide is unavailable right now.'
@@ -46,12 +47,16 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
     const trimmed = query.trim()
     if (!trimmed || !isEnabled) return
     onSubmit?.(trimmed)
-    setQuery('')
   }
 
   const handleChip = (text: string) => {
     if (!isEnabled) return
-    onSubmit?.(text)
+    setQuery(text)
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      const end = text.length
+      inputRef.current?.setSelectionRange(end, end)
+    })
   }
 
   return (
@@ -67,6 +72,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
             <Search className="w-4 h-4 text-muted shrink-0" />
           )}
           <input
+            ref={inputRef}
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
@@ -101,7 +107,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
                 Best first prompts
               </span>
               <span className="text-[11px] text-text-faint">
-                Click to ask directly
+                Click to fill the question box
               </span>
             </div>
 

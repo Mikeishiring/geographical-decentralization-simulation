@@ -25,7 +25,7 @@ function getInitialTab(): TabId {
     : raw
   const tab = migrated as TabId | null
   if (tab && VALID_TABS.includes(tab)) return tab
-  if (params.get('q') || params.get('eid')) return 'explore'
+  if (params.get('q') || params.get('eid') || params.get('topic')) return 'explore'
   return 'paper'
 }
 

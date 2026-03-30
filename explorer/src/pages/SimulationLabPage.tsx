@@ -53,6 +53,14 @@ interface WorkerFailure {
   readonly error: string
 }
 
+interface ExactChartSeriesData {
+  readonly artifactName: string
+  readonly label: string
+  readonly description: string
+  readonly kind: SimulationArtifact['kind']
+  readonly values: readonly number[]
+}
+
 type RunnerStatus = 'idle' | 'submitting' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
 
 function selectDefaultArtifact(artifacts: readonly SimulationArtifact[]): string | null {
@@ -200,6 +208,14 @@ function formatJobTimestamp(value: string | undefined): string | null {
     hour: 'numeric',
     minute: '2-digit',
   }).format(timestamp)
+}
+
+function parseExactChartSeries(rawText: string): readonly number[] {
+  const parsed = JSON.parse(rawText) as unknown
+  if (!Array.isArray(parsed)) {
+    throw new Error('Expected an array of numeric chart values.')
+  }
+  return parsed.map(value => (typeof value === 'number' && Number.isFinite(value) ? value : 0))
 }
 
 function PendingRunSurface({
@@ -617,6 +633,37 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
     staleTime: Infinity,
   })
   const selectedArtifactRawText = artifactQuery.data ?? null
+  const exactChartArtifacts = useMemo(
+    () => manifest?.artifacts.filter(artifact => artifact.renderable && artifact.kind === 'timeseries') ?? [],
+    [manifest],
+  )
+
+  const exactChartQueries = useQueries({
+    queries: exactChartArtifacts.map(artifact => ({
+      queryKey: ['simulation-chart-artifact', currentJobId, artifact.name, artifact.sha256],
+      queryFn: async () => parseExactChartSeries(await getSimulationArtifact(currentJobId!, artifact.name)),
+      enabled: Boolean(currentJobId),
+      staleTime: Infinity,
+    })),
+  })
+
+  const exactChartSeries = useMemo<readonly ExactChartSeriesData[]>(
+    () => exactChartArtifacts.flatMap((artifact, index) => {
+      const values = exactChartQueries[index]?.data
+      if (!values) return []
+      return [{
+        artifactName: artifact.name,
+        label: artifact.label,
+        description: artifact.description,
+        kind: artifact.kind,
+        values,
+      }]
+    }),
+    [exactChartArtifacts, exactChartQueries],
+  )
+
+  const isExactChartDeckLoading = exactChartArtifacts.length > 0
+    && exactChartSeries.length < exactChartArtifacts.length
 
   useEffect(() => {
     if (!selectedArtifact || !selectedArtifactRawText || !workerRef.current) {
@@ -924,6 +971,7 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
         onCancel={onCancel}
         paperScenarioLabels={paperScenarioLabels(config)}
         paperComparability={paperComparability}
+        runnerStatus={status}
       />
 
       {(currentJobId || submitMutation.isError) && (
@@ -964,6 +1012,8 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
             overviewBundleOptions={overviewBundleOptions}
             selectedBundle={selectedBundle}
             onSelectBundle={setSelectedBundle}
+            exactChartSeries={exactChartSeries}
+            isExactChartDeckLoading={isExactChartDeckLoading}
             selectedOverviewBundleMetrics={selectedOverviewBundleMetrics}
             overviewBlocks={overviewBlocks}
             isOverviewLoading={isOverviewLoading}
@@ -994,7 +1044,7 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
               published={publishedSimulationKey === simulationPublishContextKey}
               isPublishing={publishMutation.isPending}
               error={(publishMutation.error as Error | null)?.message ?? null}
-              onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
+              onViewPublished={undefined}
               onPublish={payload => publishMutation.mutate({
                 contextKey: simulationPublishContextKey,
                 ...payload,
@@ -1008,8 +1058,8 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
 
       {onTabChange && (
         <Wayfinder links={[
-          { label: 'Explore findings', hint: 'Curated lenses & AI interpretation', onClick: () => onTabChange('findings') },
-          { label: 'See community notes', hint: 'Published readings and exact-run notes', onClick: () => onTabChange('history') },
+          { label: 'Explore findings', hint: 'Curated lenses and paper-backed readings', onClick: () => onTabChange('explore') },
+          { label: 'Start another exact run', hint: 'Stay in Results and launch a different bounded scenario', onClick: () => onTabChange('results') },
           { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
         ]} />
       )}

@@ -706,6 +706,29 @@ export function PublishedDatasetViewer({
         </div>
 
         <div className="px-5 py-5">
+          <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="lab-lens-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Playback</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{playing ? 'Autoplay active' : 'Manual review'}</div>
+              <div className="mt-1 text-xs text-muted">Step {stepSize} · slot {countLabel(slot + 1)} of {countLabel(totalSlots)}</div>
+            </div>
+            <div className="lab-lens-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Top region</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{topRegion?.region?.city ?? 'No active region'}</div>
+              <div className="mt-1 text-xs text-muted">{regionShareLabel(topRegion, totalValidators)} of visible validators</div>
+            </div>
+            <div className="lab-lens-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Source footprint</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{sourceRoleLabel(dataset.sourceRole)}</div>
+              <div className="mt-1 text-xs text-muted">{sourceFootprint.length} macro regions represented</div>
+            </div>
+            <div className="lab-lens-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Truth boundary</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Frozen published payload</div>
+              <div className="mt-1 text-xs text-muted">Viewer controls change playback only. They do not alter the dataset.</div>
+            </div>
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <StatBlock block={{ type: 'stat', value: `${countLabel(slot + 1)} / ${countLabel(totalSlots)}`, label: 'Current slot', sublabel: `Playback step ${stepSize}`, delta: playing ? 'Autoplay active' : 'Paused', sentiment: 'neutral' }} />
             <StatBlock block={{ type: 'stat', value: countLabel(currentRegions.length), label: 'Active regions', sublabel: `${countLabel(totalValidators)} validators visible in this slot`, delta: `${currentRegions.length - initialRegions.length >= 0 ? '+' : ''}${countLabel(currentRegions.length - initialRegions.length)} vs slot 1`, sentiment: currentRegions.length <= initialRegions.length ? 'positive' : 'neutral' }} />
@@ -722,26 +745,34 @@ export function PublishedDatasetViewer({
           <div>
             <div className="text-xs text-muted">Playback controls</div>
             <div className="mt-1 text-sm text-text-primary">Scrub the frozen published trajectory without leaving the app.</div>
+            <div className="mt-2 text-xs text-muted">
+              The control language mirrors the original viewer, but the surface is tuned to match the rest of the explorer.
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => setPlaying(previous => !previous)} className={cn('inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors', playing ? 'bg-accent text-white' : 'border border-border-subtle bg-white text-text-primary hover:border-border-hover')}>
+            <button onClick={() => setPlaying(previous => !previous)} className={cn('inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all hover:-translate-y-0.5', playing ? 'bg-accent text-white shadow-[0_16px_30px_rgba(37,99,235,0.18)]' : 'border border-border-subtle bg-white text-text-primary hover:border-border-hover')}>
               {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
               {playing ? 'Pause' : 'Play'}
             </button>
-            <button onClick={() => { setPlaying(false); setSlot(0) }} className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary hover:border-border-hover transition-colors">
+            <button onClick={() => { setPlaying(false); setSlot(0) }} className="inline-flex items-center gap-1.5 rounded-xl border border-border-subtle bg-white px-3.5 py-2.5 text-xs text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover">
               <RotateCcw className="h-3.5 w-3.5" />
               Reset
             </button>
             {[1, 10, 50].map(option => (
-              <button key={option} onClick={() => setStepSize(option as 1 | 10 | 50)} className={cn('rounded-lg border px-3 py-2 text-xs font-medium transition-colors', stepSize === option ? 'border-accent bg-white text-accent' : 'border-border-subtle bg-white text-text-primary hover:border-border-hover')}>
+              <button key={option} onClick={() => setStepSize(option as 1 | 10 | 50)} className={cn('rounded-xl border px-3.5 py-2.5 text-xs font-medium transition-all hover:-translate-y-0.5', stepSize === option ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent shadow-[0_12px_24px_rgba(37,99,235,0.08)]' : 'border-border-subtle bg-white text-text-primary hover:border-border-hover')}>
                 Step {option}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="mt-5">
+        <div className="mt-5 rounded-[1.15rem] border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,244,240,0.9))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
+            <span className="lab-chip">{playing ? 'Autoplay active' : 'Paused for inspection'}</span>
+            <span className="lab-chip">Step {stepSize}</span>
+            <span className="lab-chip">Slot {countLabel(slot + 1)} of {countLabel(totalSlots)}</span>
+          </div>
           <input type="range" min={0} max={lastSlot} step={1} value={slot} onChange={event => { setPlaying(false); setSlot(Number(event.target.value)) }} className="w-full accent-accent" aria-label="Simulation slot" />
           <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted">
             <span>slot 1</span>
