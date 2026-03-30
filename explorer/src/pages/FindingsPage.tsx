@@ -30,6 +30,36 @@ const dotColor: Record<string, string> = {
   generated: 'bg-accent',
 }
 
+function FollowUpPrompts({
+  title,
+  prompts,
+  onSelect,
+}: {
+  readonly title: string
+  readonly prompts: readonly string[]
+  readonly onSelect: (query: string) => void
+}) {
+  if (prompts.length === 0) return null
+  return (
+    <div className="mt-6 pt-4 border-t border-rule">
+      <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-2 block">
+        {title}
+      </span>
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+        {prompts.map((query, index) => (
+          <button
+            key={`${query}-${index}`}
+            onClick={() => onSelect(query)}
+            className="text-[0.75rem] text-muted hover:text-accent transition-colors underline underline-offset-2 decoration-rule hover:decoration-accent"
+          >
+            {query}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const CANONICAL_ENTRY_IDS = ['ssp-vs-msp', 'attestation-threshold', 'initial-distribution', 'policy-implications'] as const
 const PAPER_SECTION_DETAILS = new Map(PAPER_SECTIONS.map(section => [section.id, `${section.number} ${section.title}`]))
 function fallbackCuratedProvenance(label: string, detail: string): ExploreProvenance {
@@ -450,32 +480,38 @@ export function FindingsPage({
         )}
       </div>
 
+      <div className="mb-6">
+        <QueryBar
+          onSubmit={handleQuery}
+          loading={loading}
+          disabled={queryBarDisabled}
+          disabledReason={queryBarDisabledReason}
+        />
+      </div>
+
       {!showAi && !showTopic && (
         <div className="mb-6">
           {paperSectionHint && onTabChange && (
-            <div className="mb-4 rounded-xl border border-accent/20 bg-accent/[0.04] px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical section available</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">
-                This link points to {paperSectionHint} in the paper guide.
+            <div className="mb-4 rounded-xl border border-accent/20 bg-accent/[0.04] px-4 py-3">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical section available</div>
+                  <div className="mt-1 text-sm font-medium text-text-primary">
+                    This link points to {paperSectionHint} in the paper guide.
+                  </div>
+                </div>
+                <button
+                  onClick={() => onTabChange('paper')}
+                  className="arrow-link shrink-0"
+                >
+                  Open paper section
+                </button>
               </div>
-              <p className="mt-1 max-w-3xl text-xs leading-5 text-muted">
-                Explore is the right place for claims, questions, and public responses. For the canonical source section tied to this anchor, open the Paper tab.
-              </p>
-              <button
-                onClick={() => onTabChange('paper')}
-                className="arrow-link mt-3"
-              >
-                Open paper section
-              </button>
             </div>
           )}
 
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Start here</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">Paper-backed entry claims</div>
-            </div>
-            <span className="text-xs text-muted">Open one claim first, then question it or carry it into the paper, results, or community.</span>
+          <div className="mb-3">
+            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Start here</span>
           </div>
 
           <div className="rounded-xl border border-rule bg-white divide-y divide-rule">
@@ -486,26 +522,15 @@ export function FindingsPage({
                 className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
               >
                 <div className="min-w-0">
-                  <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical claim</span>
-                  <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">{card.title}</div>
+                  <div className="text-[0.8125rem] font-medium leading-6 text-text-primary">{card.title}</div>
                   <div className="mt-0.5 text-xs leading-5 text-muted">{card.description}</div>
                 </div>
                 <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
               </button>
             ))}
           </div>
-
         </div>
       )}
-
-      <div className="mb-6">
-        <QueryBar
-          onSubmit={handleQuery}
-          loading={loading}
-          disabled={queryBarDisabled}
-          disabledReason={queryBarDisabledReason}
-        />
-      </div>
 
       {/* Topic cards */}
       <div className="mb-8">
@@ -763,25 +788,7 @@ export function FindingsPage({
               />
             )}
 
-            {aiResponse.followUps.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-rule">
-                <span className="text-xs text-muted mb-2 block">
-                  {promptSectionTitle}
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {promptOptions.map((query, index) => (
-                    <button
-                      key={`${query}-${index}`}
-                      onClick={() => handleQuery(query)}
-                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
-                      title={`Ask: ${query}`}
-                    >
-                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <FollowUpPrompts title={promptSectionTitle} prompts={aiResponse.followUps} onSelect={handleQuery} />
           </motion.div>
         ) : showTopic && activeTopic ? (
           <motion.div
@@ -816,25 +823,7 @@ export function FindingsPage({
                 })}
               />
             )}
-            {promptOptions.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-rule">
-                <span className="text-xs text-muted mb-2 block">
-                  {promptSectionTitle}
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {promptOptions.map((query, index) => (
-                    <button
-                      key={`${query}-${index}`}
-                      onClick={() => handleQuery(query)}
-                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
-                      title={`Ask: ${query}`}
-                    >
-                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <FollowUpPrompts title={promptSectionTitle} prompts={promptOptions} onSelect={handleQuery} />
           </motion.div>
         ) : (
           <motion.div
@@ -845,25 +834,7 @@ export function FindingsPage({
             transition={SPRING}
           >
             <BlockCanvas blocks={DEFAULT_BLOCKS} />
-            {promptOptions.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-rule">
-                <span className="text-xs text-muted mb-2 block">
-                  {promptSectionTitle}
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {promptOptions.map((query, index) => (
-                    <button
-                      key={`${query}-${index}`}
-                      onClick={() => handleQuery(query)}
-                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
-                      title={`Ask: ${query}`}
-                    >
-                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <FollowUpPrompts title={promptSectionTitle} prompts={promptOptions} onSelect={handleQuery} />
           </motion.div>
         )}
       </AnimatePresence>
