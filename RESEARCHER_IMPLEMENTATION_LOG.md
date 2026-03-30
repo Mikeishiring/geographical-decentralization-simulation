@@ -175,3 +175,33 @@ This log is intentionally short and skim-first. It tracks the core engineering s
 
 - Truth-first note:
   This pass tightened presentation discipline around the exact surface. It does not add new paper metrics to the live manifest, and it does not change the canonical simulation outputs.
+
+## Paper Metrics Back Into The Exact Worker Surface
+
+- `simulation.py`
+  Restored and hardened an exact sidecar export for paper-facing geography/profit concentration metrics. The canonical simulator now writes `paper_geography_metrics.json` alongside the usual exact outputs and keeps `region_counter_per_slot.json` available for faithful downstream derivation. The same file also now exits non-zero on unexpected runtime errors instead of printing a traceback and returning success.
+
+- `explorer/server/simulation_worker.py`
+  The exact worker now advertises `paper_geography_metrics.json` as a renderable artifact, exposes a new `paper-metrics` overview bundle, and folds the final exact values into the manifest summary as:
+  `finalGeographicGini`, `finalGeographicHhi`, `finalGeographicLiveness`, and `finalGeographicProfitVarianceCv`.
+
+- `explorer/server/index.ts`, `explorer/src/lib/simulation-api.ts`, `explorer/src/types/simulation-view.ts`, `explorer/src/lib/simulation-artifact-blocks.ts`
+  Wired the new paper-facing metric keys, artifact name, and bundle name through the explorer server/tooling/types so the website can request and render them without inventing synthetic substitutes.
+
+- `explorer/server/exploration-store.ts`
+  Improved public exploration search scoring while fixing the smoke suite. Search now considers publication metadata and block text more directly and scores search-token coverage rather than only harsh token-overlap ratios, which better matches how users actually search the site.
+
+- `explorer/scripts/smoke-explorer.ts`
+  Extended the smoke checks to cover the exact canonical SSP case more deeply and verify the richer manifest/artifact surface.
+
+- Validation:
+  `npm run build` in `explorer/`, `npm run smoke` in `explorer/`, `python -m py_compile simulation.py explorer/server/simulation_worker.py`, and `python tests/simulation_benchmark.py --repeat 1 --strict` all passed after this pass. The canonical strict benchmark hashes remained unchanged:
+  `e28f5bd96ab518a4d633b0d243c084f9b5ff86ae81789df642b9a760cdc20aa7`,
+  `f2454193986c899a15f533db2c9b4e99f0a7ee26bd47bdaa7231b85af1c56917`,
+  `cdb604c409dd1d52f7a7efa3c2a1989bb85170b54e3bc308f124933ab6a7866a`.
+
+- Production check on March 30, 2026:
+  Railway is healthy (`readyWorkers = 6`) and a live canonical small SSP run still matches the checked exact summary values for `finalAverageMev`, `finalSupermajoritySuccess`, and `finalFailedBlockProposals`. However, production is still on the older manifest surface: the live manifest does not yet expose `paper_geography_metrics.json`, the `paper-metrics` bundle, or the new `finalGeographic*` summary fields. That gap is deployment state, not a remaining local code gap.
+
+- Truth-first note:
+  This pass does not invent the paper metrics. It derives them from the exact geography and profit outputs emitted by the canonical simulator, then surfaces them more literally in the explorer manifest and rendering path.
