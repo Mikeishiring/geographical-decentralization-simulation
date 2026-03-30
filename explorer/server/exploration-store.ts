@@ -258,14 +258,14 @@ export class ExplorationStore {
     if (options?.experiment) {
       pool = pool.filter(e => e.experimentTags.includes(options.experiment!))
     }
-    if (options?.verifiedOnly) {
-      pool = pool.filter(e => e.verified)
+    if (typeof options?.verifiedOnly === 'boolean') {
+      pool = pool.filter(e => e.verified === options.verifiedOnly)
     }
-    if (options?.publishedOnly) {
-      pool = pool.filter(e => e.publication.published)
+    if (typeof options?.publishedOnly === 'boolean') {
+      pool = pool.filter(e => e.publication.published === options.publishedOnly)
     }
-    if (options?.featuredOnly) {
-      pool = pool.filter(e => e.publication.featured)
+    if (typeof options?.featuredOnly === 'boolean') {
+      pool = pool.filter(e => e.publication.featured === options.featuredOnly)
     }
     if (options?.surface) {
       pool = pool.filter(e => e.surface === options.surface)
@@ -357,6 +357,30 @@ export class ExplorationStore {
     return updated
   }
 
+  applyEditorial(id: string, input: {
+    readonly verified?: boolean
+    readonly featured?: boolean
+    readonly editorNote?: string
+  }): Exploration | null {
+    const index = this.explorations.findIndex(e => e.id === id)
+    if (index === -1) return null
+
+    const existing = this.explorations[index]
+    const updated: Exploration = {
+      ...existing,
+      verified: input.verified ?? existing.verified,
+      publication: {
+        ...existing.publication,
+        featured: input.featured ?? existing.publication.featured,
+        editorNote: input.editorNote ?? existing.publication.editorNote,
+      },
+    }
+
+    this.setExplorations(this.explorations.map((e, i) => (i === index ? updated : e)))
+    this.schedulePersist()
+    return updated
+  }
+
   publish(id: string, publication: {
     readonly title: string
     readonly takeaway: string
@@ -433,10 +457,12 @@ export class ExplorationStore {
   private setExplorations(explorations: Exploration[]): void {
     this.explorations = explorations
     this.byId = new Map(explorations.map(exploration => [exploration.id, exploration]))
-    this.byNormalizedQuery = new Map(
-      explorations
-        .filter(exploration => exploration.surface === 'reading')
-        .map(exploration => [exploration.normalizedQuery, exploration]),
-    )
+    const nextByNormalizedQuery = new Map<string, Exploration>()
+    for (const exploration of explorations) {
+      if (exploration.surface !== 'reading') continue
+      if (nextByNormalizedQuery.has(exploration.normalizedQuery)) continue
+      nextByNormalizedQuery.set(exploration.normalizedQuery, exploration)
+    }
+    this.byNormalizedQuery = nextByNormalizedQuery
   }
 }

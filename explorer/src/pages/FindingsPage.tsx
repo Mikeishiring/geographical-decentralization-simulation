@@ -429,6 +429,44 @@ export function FindingsPage({
           />
         </div>
       </div>
+<<<<<<< Updated upstream
+=======
+
+      {!showAi && !showTopic && onTabChange && (
+        <div className="mb-8 grid gap-3 lg:grid-cols-3">
+          <button
+            onClick={() => onTabChange('paper')}
+            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+          >
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Read first</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">Open the paper guide</div>
+            <div className="mt-1 text-xs leading-5 text-muted">
+              Start here if you want the cleanest paper-backed overview before asking a question.
+            </div>
+          </button>
+
+          <button
+            onClick={() => onTabChange('simulation')}
+            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+          >
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Verify with data</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">Open published results</div>
+            <div className="mt-1 text-xs leading-5 text-muted">
+              Use the frozen researcher datasets when you want the canonical scenarios rather than an interpretation.
+            </div>
+          </button>
+
+          <div className="rounded-xl border border-accent/20 bg-[linear-gradient(180deg,rgba(37,99,235,0.05),rgba(255,255,255,0.96))] px-4 py-4">
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Ask here</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">Use Findings for bounded questions</div>
+            <div className="mt-1 text-xs leading-5 text-muted">
+              Great questions compare paradigms, isolate a mechanism, or ask where confidence should stop.
+            </div>
+          </div>
+        </div>
+      )}
+
+>>>>>>> Stashed changes
       <QueryHistory
         entries={history}
         onSelect={handleHistorySelect}
@@ -621,14 +659,16 @@ export function FindingsPage({
                 defaultTitle={readingPublishTitle}
                 defaultTakeaway={readingPublishTakeaway}
                 helperText={readingPublishHelper}
-                publishLabel="Publish human-authored note"
-                successLabel="Published human-authored note"
-                published={currentReadingPublished}
-                isPublishing={publishMutation.isPending}
-                error={(publishMutation.error as Error | null)?.message ?? null}
-                onPublish={payload => publishMutation.mutate({
-                  contextKey: readingPublishContextKey,
-                  ...payload,
+              publishLabel="Publish human-authored note"
+              successLabel="Published human-authored note"
+              viewPublishedLabel="Open Community"
+              published={currentReadingPublished}
+              isPublishing={publishMutation.isPending}
+              error={(publishMutation.error as Error | null)?.message ?? null}
+              onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
+              onPublish={payload => publishMutation.mutate({
+                contextKey: readingPublishContextKey,
+                ...payload,
                 })}
               />
             )}
@@ -671,9 +711,11 @@ export function FindingsPage({
                 helperText={readingPublishHelper}
                 publishLabel="Publish human-authored note"
                 successLabel="Published human-authored note"
+                viewPublishedLabel="Open Community"
                 published={currentReadingPublished}
                 isPublishing={publishMutation.isPending}
                 error={(publishMutation.error as Error | null)?.message ?? null}
+                onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
                 onPublish={payload => publishMutation.mutate({
                   contextKey: readingPublishContextKey,
                   ...payload,

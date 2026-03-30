@@ -65,6 +65,11 @@ interface HistoryEntry {
   readonly summary: string
 }
 
+async function parseApiError(res: Response, fallback: string): Promise<Error> {
+  const body = await res.json().catch(() => ({ error: res.statusText })) as Record<string, unknown>
+  return new Error(typeof body.error === 'string' ? body.error : fallback)
+}
+
 export async function explore(
   query: string,
   history: readonly HistoryEntry[] = [],
@@ -282,7 +287,7 @@ export async function createExploration(input: {
   })
 
   if (!res.ok) {
-    throw new Error(`Failed to create exploration: ${res.statusText}`)
+    throw await parseApiError(res, `Failed to create exploration: ${res.statusText}`)
   }
 
   const raw = (await res.json()) as RawExploration
@@ -304,7 +309,7 @@ export async function publishExploration(
   })
 
   if (!res.ok) {
-    throw new Error(`Failed to publish exploration: ${res.statusText}`)
+    throw await parseApiError(res, `Failed to publish exploration: ${res.statusText}`)
   }
 
   const raw = (await res.json()) as RawExploration
