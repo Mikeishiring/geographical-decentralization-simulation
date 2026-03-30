@@ -792,23 +792,30 @@ export function SimulationLabPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4 mb-5">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-2 h-2 rounded-full bg-accent shrink-0" />
-          <h1 className="text-base font-semibold text-text-primary truncate">Simulation</h1>
-          <span className="text-xs text-muted hidden sm:inline">Published scenarios, exact experiments, and artifact-backed interpretation</span>
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-2.5 lg:items-center">
+          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent lg:mt-0" />
+          <div className="min-w-0">
+            <h1 className="text-base font-semibold text-text-primary">Simulation</h1>
+            <p className="mt-1 text-xs leading-5 text-muted lg:hidden">
+              Published scenarios, exact experiments, and artifact-backed interpretation
+            </p>
+          </div>
+          <span className="hidden text-xs text-muted lg:inline">
+            Published scenarios, exact experiments, and artifact-backed interpretation
+          </span>
         </div>
 
-        <div className="inline-flex rounded-full border border-border-subtle bg-white p-0.5 shrink-0">
+        <div className="grid w-full grid-cols-2 rounded-[1rem] border border-border-subtle bg-white p-1 lg:inline-flex lg:w-auto lg:rounded-full lg:p-0.5">
           <button
             onClick={() => setSurfaceMode('research')}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${surfaceMode === 'research' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
+            className={`rounded-full px-3 py-2 text-center text-xs font-medium transition-colors lg:py-1.5 ${surfaceMode === 'research' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
           >
             Published scenarios
           </button>
           <button
             onClick={() => setSurfaceMode('lab')}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${surfaceMode === 'lab' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
+            className={`rounded-full px-3 py-2 text-center text-xs font-medium transition-colors lg:py-1.5 ${surfaceMode === 'lab' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
           >
             Run exact experiment
           </button>
@@ -841,8 +848,7 @@ export function SimulationLabPage({
               Run fresh exact simulations inside our shell and let the explorer grow into the result surface.
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-              The lab stays on the canonical engine, but the experience now behaves like a premium instrument panel:
-              configure the run, watch the queue and execution state, and inspect the manifest and artifacts without any hard context switch.
+              Configure a bounded exact run, watch the queue and execution state, then inspect the manifest and artifacts without leaving the page.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {paperScenarioLabels(config).map(label => (
@@ -996,7 +1002,7 @@ export function SimulationLabPage({
               sourceLabel="Publish this exact run as a community note"
               defaultTitle={simulationPublishTitle}
               defaultTakeaway={simulationPublishTakeaway}
-              helperText="Only intentionally published exact-run notes appear on the community surface. Add your own title and takeaway so the public note reflects what you saw in the artifacts, not just raw assistant phrasing."
+              helperText="Only intentionally published exact-run notes appear on the community surface. Add your own title and takeaway so the public note reflects what you saw in the artifacts, not just the default guide phrasing."
               publishLabel="Publish human-authored note"
               successLabel="Published human-authored note"
               viewPublishedLabel="Open Community"

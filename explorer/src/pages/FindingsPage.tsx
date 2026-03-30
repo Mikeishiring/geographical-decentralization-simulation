@@ -400,7 +400,7 @@ export function FindingsPage({
         />
       </div>
 
-      {/* Page header — framed for cold visitors */}
+      {/* Page header */}
       <div className="mb-6 relative">
         <NodeConstellation className="absolute right-0 top-0 w-32 h-32 opacity-40 pointer-events-none hidden sm:block" />
 
@@ -414,32 +414,6 @@ export function FindingsPage({
           Ethereum validator geography is shaped by latency and protocol timing rules. Both block-building paradigms push toward concentration, but through different mechanisms — and the same protocol change can help one while hurting the other.
         </p>
       </div>
-
-      {/* Executive summary — key findings shown immediately */}
-      {!showAi && !showTopic && (
-        <div className="mb-8">
-          <BlockCanvas blocks={DEFAULT_BLOCKS} />
-          {promptOptions.length > 0 && (
-            <div className="mt-6 pt-4 border-t border-rule">
-              <span className="text-xs text-muted mb-2 block">
-                {promptSectionTitle}
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {promptOptions.map((query, index) => (
-                  <button
-                    key={`${query}-${index}`}
-                    onClick={() => handleQuery(query)}
-                    className="text-xs text-muted hover:text-accent transition-colors group/followup"
-                    title={`Ask: ${query}`}
-                  >
-                    <span className="group-hover/followup:underline underline-offset-2">{query}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="mb-6">
         <QueryBar
@@ -775,7 +749,36 @@ export function FindingsPage({
               </div>
             )}
           </motion.div>
-        ) : null}
+        ) : (
+          <motion.div
+            key="default"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={SPRING}
+          >
+            <BlockCanvas blocks={DEFAULT_BLOCKS} />
+            {promptOptions.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-rule">
+                <span className="text-xs text-muted mb-2 block">
+                  {promptSectionTitle}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {promptOptions.map((query, index) => (
+                    <button
+                      key={`${query}-${index}`}
+                      onClick={() => handleQuery(query)}
+                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                      title={`Ask: ${query}`}
+                    >
+                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {onTabChange && (

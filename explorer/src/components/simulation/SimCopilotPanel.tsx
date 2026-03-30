@@ -41,9 +41,9 @@ export function SimCopilotPanel({
       <div className="lab-stage-soft m-3 p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="lab-section-title">Assistant Framing</div>
+            <div className="lab-section-title">Simulation Guide</div>
             <div className="mt-2 text-sm font-medium text-text-primary">
-              The exact run surface stays primary. The assistant is an opt-in interpretation layer.
+              The exact run surface stays primary. The guide is an opt-in interpretation layer.
             </div>
           </div>
           <div className="max-w-xl text-xs leading-5 text-muted">
@@ -54,10 +54,10 @@ export function SimCopilotPanel({
 
         <div className="mt-4 rounded-2xl border border-border-subtle/90 bg-white/80 px-4 py-3 text-xs leading-5 text-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
           {isHealthLoading
-            ? 'Checking assistant availability...'
+            ? 'Checking guide availability...'
             : copilotAvailable
-              ? 'Assistant framing is available for bounded exact-mode questions. Use it when you want help comparing scenarios, explaining a run, or reordering supported visuals.'
-              : 'Assistant framing is offline. Add ANTHROPIC_API_KEY to explorer/.env to enable bounded simulation guidance.'}
+              ? 'Guide framing is available for bounded exact-mode questions. Use it when you want help comparing scenarios, explaining a run, or reordering supported visuals.'
+              : 'Guide framing is offline. Add ANTHROPIC_API_KEY to explorer/.env to enable bounded simulation guidance.'}
         </div>
       </div>
 
@@ -81,7 +81,7 @@ export function SimCopilotPanel({
             )}
           >
             <Sparkles className="h-4 w-4" />
-            Open assistant
+            Open guide
           </button>
         </div>
       )}
@@ -98,7 +98,7 @@ export function SimCopilotPanel({
               onClick={() => setAssistantOpen(false)}
               className="text-xs text-muted transition-colors hover:text-text-primary"
             >
-              Hide assistant
+              Hide guide
             </button>
           </div>
 
@@ -135,7 +135,7 @@ export function SimCopilotPanel({
                   ? 'Checking...'
                   : isMutating
                     ? 'Thinking...'
-                    : 'Ask assistant'}
+                    : 'Ask guide'}
               </button>
 
               {copilotResponse?.proposedConfig && (
@@ -198,11 +198,11 @@ export function SimCopilotPanel({
                 </div>
               </div>
 
-              <div className="rounded-[1.25rem] border border-border-subtle bg-white/90 px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">
-                  Assistant framing
-                </div>
-                <div className="mt-2 text-sm leading-6 text-text-primary">{copilotResponse.summary}</div>
+                <div className="rounded-[1.25rem] border border-border-subtle bg-white/90 px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">
+                    Guide framing
+                  </div>
+                  <div className="mt-2 text-sm leading-6 text-text-primary">{copilotResponse.summary}</div>
                 {copilotResponse.guidance && (
                   <div className="mt-3 rounded-xl border border-border-subtle/90 bg-surface-active px-4 py-3">
                     <div className="text-[11px] uppercase tracking-[0.14em] text-text-faint">Guide interpretation</div>
@@ -214,10 +214,10 @@ export function SimCopilotPanel({
                     ? 'Proposed bounded run'
                     : copilotResponse.mode === 'guidance'
                       ? 'Guidance only'
-                      : 'Current exact result with assistant framing'}
+                      : 'Current exact result with guide framing'}
                   {copilotResponse.cached
-                    ? ' · assistant reused cached study context'
-                    : ' · fresh assistant response over the bounded simulation surface'}
+                    ? ' · guide reused cached study context'
+                    : ' · fresh guide response over the bounded simulation surface'}
                 </div>
               </div>
 
