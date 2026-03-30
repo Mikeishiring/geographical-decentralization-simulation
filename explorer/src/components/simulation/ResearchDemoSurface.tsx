@@ -2320,9 +2320,9 @@ export function ResearchDemoSurface({
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2 2xl:flex-row">
                         {primaryCanvasAnnotations.map(note => (
-                          <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/80 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                          <div key={note.title} className="max-w-[18rem] rounded-xl border border-white/10 bg-[#0F172A]/72 px-3 py-2.5 text-white shadow-lg backdrop-blur-md">
                             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-300">{note.title}</div>
-                            <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
+                            <div className="mt-1.5 text-[11px] leading-5 text-white/85">{note.body}</div>
                           </div>
                         ))}
                       </div>
@@ -2350,9 +2350,9 @@ export function ResearchDemoSurface({
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2">
                         {comparisonCanvasAnnotations.map(note => (
-                          <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/78 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                          <div key={note.title} className="max-w-[18rem] rounded-xl border border-white/10 bg-[#0F172A]/72 px-3 py-2.5 text-white shadow-lg backdrop-blur-md">
                             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-300">{note.title}</div>
-                            <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
+                            <div className="mt-1.5 text-[11px] leading-5 text-white/85">{note.body}</div>
                           </div>
                         ))}
                       </div>
@@ -2373,9 +2373,9 @@ export function ResearchDemoSurface({
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2 2xl:flex-row">
                     {primaryCanvasAnnotations.map(note => (
-                      <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/80 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                      <div key={note.title} className="max-w-[18rem] rounded-xl border border-white/10 bg-[#0F172A]/72 px-3 py-2.5 text-white shadow-lg backdrop-blur-md">
                         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-300">{note.title}</div>
-                        <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
+                        <div className="mt-1.5 text-[11px] leading-5 text-white/85">{note.body}</div>
                       </div>
                     ))}
                   </div>
@@ -2472,161 +2472,154 @@ export function ResearchDemoSurface({
             </div>
           </div>
 
-          <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
-            <div className="lab-stage p-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
-              <div className="text-xs text-muted mb-1">Scenarios</div>
-              <div className="text-sm text-text-primary">
-                Swap the published replay without leaving the viewer.
-              </div>
-              <div className="mt-4 grid gap-2">
-                {spotlightDatasets.map(entry => {
-                  const isActive = selectedDataset?.path === entry.path
-                  return (
-                    <button
-                      key={`${entry.evaluation}-${entry.paradigm}-${entry.result}`}
-                      onClick={() => {
-                        setSelectedEvaluation(entry.evaluation)
-                        setSelectedParadigm(entry.paradigm)
-                        setSelectedResult(entry.result)
-                      }}
-                      className={cn(
-                        'rounded-xl border px-4 py-3 text-left transition-colors',
-                        isActive
-                          ? 'border-accent bg-white'
-                          : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
-                      )}
-                    >
-                      <div className="flex flex-wrap gap-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-                        <span>{entry.evaluation}</span>
-                        <span>{entry.paradigm}</span>
-                      </div>
-                      <div className="mt-2 text-sm font-medium text-text-primary">{entry.result}</div>
-                      <div className="mt-2 text-xs leading-5 text-muted">
-                        {entry.metadata?.description ?? 'Published scenario ready for replay inside the paper workspace.'}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="lab-stage p-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
-              <div className="text-xs text-muted mb-1">Live controls</div>
-              <div className="text-sm text-text-primary">
-                Change the active lens while the replay stays on screen.
-              </div>
-
-              <div className="mt-4">
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Audience</div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
-                  {audienceProfiles.map(profile => (
-                    <button
-                      key={profile.id}
-                      onClick={() => applyAudienceMode(profile.id)}
-                      className={cn(
-                        'rounded-xl border px-3 py-3 text-left transition-colors',
-                        audienceMode === profile.id
-                          ? 'border-accent bg-white'
-                          : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
-                      )}
-                    >
-                      <div className="text-xs font-medium text-text-primary">{profile.label}</div>
-                      <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{profile.description}</div>
-                    </button>
-                  ))}
+          <aside className="xl:sticky xl:top-24 xl:self-start">
+            <div className="lab-stage overflow-hidden p-0 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
+              <div className="border-b border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-5 py-4">
+                <div className="text-xs text-muted mb-1">Viewer controls</div>
+                <div className="text-sm text-text-primary">
+                  Swap the published replay, change the live lens, and keep the world view running in place.
                 </div>
               </div>
 
-              <div className="mt-4">
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Presets</div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-                  {viewPresets.map(preset => (
-                    <button
-                      key={preset.id}
-                      onClick={() => applyViewPreset(preset.id)}
-                      className={cn(
-                        'rounded-xl border px-3 py-3 text-left transition-colors',
-                        matchedViewPreset?.id === preset.id
-                          ? 'border-accent bg-white'
-                          : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
-                      )}
-                    >
-                      <div className="text-xs font-medium text-text-primary">{preset.label}</div>
-                      <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{preset.description}</div>
-                    </button>
-                  ))}
+              <div className="space-y-4 px-5 py-4">
+                <div>
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Active replay</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">
+                    {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'Awaiting dataset'}
+                  </div>
+                  <div className="mt-1 text-xs leading-5 text-muted">
+                    {selectedDataset?.result ?? 'Choose a published scenario to keep the replay anchored to a checked-in result.'}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
+                    <span className="lab-chip">{themeLabel(theme)} theme</span>
+                    <span className="lab-chip">step {step}</span>
+                    <span className="lab-chip">{autoplay ? 'Autoplay on' : 'Manual scrub'}</span>
+                    {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number}</span> : null}
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-4">
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Lens</div>
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  {paperLenses.map(lens => (
-                    <button
-                      key={lens.id}
-                      onClick={() => setPaperLens(lens.id)}
-                      className={cn(
-                        'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
-                        paperLens === lens.id
-                          ? 'border-accent bg-white text-accent'
-                          : 'border-rule bg-white text-text-primary hover:border-border-hover',
-                      )}
-                    >
-                      {lens.label}
-                    </button>
-                  ))}
+                <div className="grid gap-2">
+                  {spotlightDatasets.map(entry => {
+                    const isActive = selectedDataset?.path === entry.path
+                    return (
+                      <button
+                        key={`${entry.evaluation}-${entry.paradigm}-${entry.result}`}
+                        onClick={() => {
+                          setSelectedEvaluation(entry.evaluation)
+                          setSelectedParadigm(entry.paradigm)
+                          setSelectedResult(entry.result)
+                        }}
+                        className={cn(
+                          'rounded-xl border px-4 py-3 text-left transition-colors',
+                          isActive
+                            ? 'border-accent bg-white'
+                            : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
+                        )}
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                          <span>{entry.evaluation}</span>
+                          <span>{entry.paradigm}</span>
+                          <span>{entry.result}</span>
+                        </div>
+                        <div className="mt-2 text-xs leading-5 text-muted">
+                          {entry.metadata?.description ?? 'Published scenario ready for replay inside the simulation viewer.'}
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
-              </div>
-            </div>
 
-            <div className="lab-stage p-5">
-              <div className="text-xs text-muted mb-1">Active replay</div>
-              <div className="text-sm text-text-primary">
-                {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'Awaiting dataset'}
-              </div>
-              <div className="mt-1 text-xs leading-5 text-muted">
-                {selectedDataset?.metadata?.description ?? 'Choose a published scenario to keep the replay anchored to a checked-in result.'}
-              </div>
+                <div className="grid gap-3 rounded-xl border border-rule bg-surface-active px-4 py-4">
+                  <div>
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Audience</div>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
+                      {audienceProfiles.map(profile => (
+                        <button
+                          key={profile.id}
+                          onClick={() => applyAudienceMode(profile.id)}
+                          className={cn(
+                            'rounded-xl border px-3 py-2 text-left transition-colors',
+                            audienceMode === profile.id
+                              ? 'border-accent bg-white'
+                              : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                          )}
+                        >
+                          <div className="text-xs font-medium text-text-primary">{profile.label}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
-                <span className="lab-chip">{themeLabel(theme)} theme</span>
-                <span className="lab-chip">step {step}</span>
-                <span className="lab-chip">{autoplay ? 'Autoplay on' : 'Manual scrub'}</span>
-                {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number}</span> : null}
-              </div>
+                  <div>
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">View</div>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                      {viewPresets.map(preset => (
+                        <button
+                          key={preset.id}
+                          onClick={() => applyViewPreset(preset.id)}
+                          className={cn(
+                            'rounded-xl border px-3 py-2 text-left transition-colors',
+                            matchedViewPreset?.id === preset.id
+                              ? 'border-accent bg-white'
+                              : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                          )}
+                        >
+                          <div className="text-xs font-medium text-text-primary">{preset.label}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-                <button
-                  onClick={handleFillDemoValues}
-                  className="rounded-full border border-rule bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                >
-                  Reset opening view
-                </button>
-                <button
-                  onClick={() => void handleCopyShareUrl()}
-                  className="rounded-full border border-rule bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                >
-                  Copy paper view
-                </button>
-                <button
-                  onClick={() => applyViewPreset('compare')}
-                  className="rounded-full border border-rule bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                >
-                  Compare with foil
-                </button>
-                <a
-                  href={paperSectionUrl || undefined}
-                  className={cn(
-                    'rounded-full border border-rule bg-surface-active px-3 py-2 text-center text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
-                    !paperSectionUrl && 'pointer-events-none opacity-60',
-                  )}
-                >
-                  Jump to paper section
-                </a>
-              </div>
+                  <div>
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Lens</div>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {paperLenses.map(lens => (
+                        <button
+                          key={lens.id}
+                          onClick={() => setPaperLens(lens.id)}
+                          className={cn(
+                            'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                            paperLens === lens.id
+                              ? 'border-accent bg-white text-accent'
+                              : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                          )}
+                        >
+                          {lens.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
 
-              <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4 text-xs leading-5 text-muted">
-                This rail stays tied to the published, precomputed evidence from the paper.
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    onClick={handleFillDemoValues}
+                    className="rounded-full border border-rule bg-white px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Reset opening view
+                  </button>
+                  <button
+                    onClick={() => void handleCopyShareUrl()}
+                    className="rounded-full border border-rule bg-white px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Copy paper view
+                  </button>
+                  <button
+                    onClick={() => applyViewPreset('compare')}
+                    className="rounded-full border border-rule bg-white px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Compare with foil
+                  </button>
+                  <a
+                    href={paperSectionUrl || undefined}
+                    className={cn(
+                      'rounded-full border border-rule bg-white px-3 py-2 text-center text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                      !paperSectionUrl && 'pointer-events-none opacity-60',
+                    )}
+                  >
+                    Jump to paper section
+                  </a>
+                </div>
               </div>
             </div>
           </aside>
