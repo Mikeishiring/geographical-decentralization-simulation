@@ -7,14 +7,7 @@ const FOOTER_LINKS = [
 export function Footer() {
   return (
     <footer className="mt-16">
-      {/* Gradient accent line — mirrors Header */}
-      <div
-        className="h-px"
-        style={{
-          background: 'linear-gradient(90deg, #2563EB 0%, #C2553A 50%, #16A34A 100%)',
-          opacity: 0.2,
-        }}
-      />
+      <div className="h-px bg-rule" />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-col gap-5">

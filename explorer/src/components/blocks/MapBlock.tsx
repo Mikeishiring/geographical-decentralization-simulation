@@ -375,7 +375,7 @@ export function MapBlock({ block }: MapBlockProps) {
                     )}
                   </div>
                   {tooltip.rank < block.regions.length && (
-                    <div className="mt-0.5 pl-4 text-[9px] font-mono text-white/35">
+                    <div className="mt-0.5 pl-4 text-[0.5625rem] font-mono text-white/35">
                       #{tooltip.rank + 1} of {block.regions.length}
                     </div>
                   )}
@@ -525,7 +525,7 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
           <span className="text-[0.625rem]">Dominant</span>
         </span>
       </div>
-      <p className="text-[9px] text-text-faint mt-1.5 leading-tight">
+      <p className="text-[0.5625rem] text-text-faint mt-1.5 leading-tight">
         Node size and color reflect relative validator share. Paper metrics: Gini<sub>g</sub>, HHI<sub>g</sub>.
       </p>
     </div>
