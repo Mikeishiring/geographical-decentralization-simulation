@@ -3,7 +3,8 @@ FROM node:20-bookworm-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 python3-pip python3-venv ca-certificates \
+  && apt-get install -y --no-install-recommends python3 python3-pip python3-venv ca-certificates git git-lfs \
+  && git lfs install \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -17,6 +18,9 @@ RUN npm ci
 
 WORKDIR /app
 COPY . .
+
+# Resolve Git LFS pointers to actual file content (dashboard/simulations/*.json)
+RUN if [ -d .git ]; then git lfs pull && rm -rf .git; fi
 
 WORKDIR /app/explorer
 RUN npm run build
