@@ -20,16 +20,19 @@ const DEFAULT_PYTHON_EXECUTABLE = process.platform === 'win32' ? 'python' : 'pyt
 const DETECTED_PARALLELISM = Math.max(1, availableParallelism())
 const MAX_WORKER_POOL_SIZE = 8
 const TARGET_PRODUCTION_WORKER_POOL_SIZE = 8
-const REQUESTED_WORKER_POOL_SIZE = Number(
-  process.env.SIMULATION_WORKERS
-    ?? (process.env.NODE_ENV === 'production'
+const CONFIGURED_WORKER_POOL_SIZE = Number(process.env.SIMULATION_WORKERS)
+const REQUESTED_WORKER_POOL_SIZE = Number.isFinite(CONFIGURED_WORKER_POOL_SIZE)
+  ? Math.trunc(CONFIGURED_WORKER_POOL_SIZE)
+  : (process.env.NODE_ENV === 'production'
       ? TARGET_PRODUCTION_WORKER_POOL_SIZE
-      : DETECTED_PARALLELISM),
-)
+      : DETECTED_PARALLELISM)
+const EFFECTIVE_REQUESTED_WORKER_POOL_SIZE = process.env.NODE_ENV === 'production'
+  ? Math.max(TARGET_PRODUCTION_WORKER_POOL_SIZE, REQUESTED_WORKER_POOL_SIZE)
+  : REQUESTED_WORKER_POOL_SIZE
 const DEFAULT_WORKER_POOL_SIZE = Math.max(
   1,
   Math.min(
-    Number.isFinite(REQUESTED_WORKER_POOL_SIZE) ? Math.trunc(REQUESTED_WORKER_POOL_SIZE) : DETECTED_PARALLELISM,
+    EFFECTIVE_REQUESTED_WORKER_POOL_SIZE,
     MAX_WORKER_POOL_SIZE,
   ),
 )
@@ -606,9 +609,10 @@ export class SimulationRuntime {
     const busyWorkers = this.workers.filter(worker => worker.currentJobId !== null).length
     return {
       detectedParallelism: DETECTED_PARALLELISM,
-      requestedWorkerPoolSize: Number.isFinite(REQUESTED_WORKER_POOL_SIZE)
-        ? Math.trunc(REQUESTED_WORKER_POOL_SIZE)
+      configuredWorkerPoolSize: Number.isFinite(CONFIGURED_WORKER_POOL_SIZE)
+        ? Math.trunc(CONFIGURED_WORKER_POOL_SIZE)
         : null,
+      requestedWorkerPoolSize: EFFECTIVE_REQUESTED_WORKER_POOL_SIZE,
       workerPoolSize: this.workerPoolSize,
       maxQueueLength: this.maxQueueLength,
       maxStoredJobs: this.maxStoredJobs,
