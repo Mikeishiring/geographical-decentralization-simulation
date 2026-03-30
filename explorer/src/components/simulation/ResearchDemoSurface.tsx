@@ -347,10 +347,13 @@ export function ResearchDemoSurface({
         theme,
         step,
         autoplay,
+        paperLens,
+        audienceMode,
+        comparePath: comparePath || null,
       },
       metadata: selectedDataset.metadata ?? {},
     }, null, 2)
-  }, [autoplay, selectedDataset, step, theme])
+  }, [audienceMode, autoplay, comparePath, paperLens, selectedDataset, step, theme])
 
   const paperLenses = useMemo(() => ([
     {
@@ -589,15 +592,6 @@ export function ResearchDemoSurface({
     },
   ] as const), [])
 
-  const currentViewSummary = useMemo(() => {
-    const playbackLabel = autoplay ? 'autoplay on' : 'manual scrub'
-    const compareLabel = comparisonDataset
-      ? `comparison loaded against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm}`
-      : 'single-scenario focus'
-
-    return `${audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode with ${matchedViewPreset?.label ?? 'Custom'} stack: ${themeLabel(theme)} theme, step ${step}, ${playbackLabel}, ${paperLens} lens, ${compareLabel}.`
-  }, [audienceMode, audienceProfiles, autoplay, comparisonDataset, matchedViewPreset, paperLens, step, theme])
-
   const applyViewPreset = (presetId: (typeof viewPresets)[number]['id']) => {
     const preset = viewPresets.find(entry => entry.id === presetId)
     if (!preset) return
@@ -621,66 +615,280 @@ export function ResearchDemoSurface({
 
   const splitCompareActive = matchedViewPreset?.id === 'compare' && !!comparisonDataset
 
-  const shareUrl = useMemo(() => {
+  const buildWorkspaceUrl = (overrides?: Partial<{
+    selectedEvaluation: string
+    selectedParadigm: string
+    selectedResult: string
+    datasetPath: string
+    theme: WorkspaceTheme
+    step: WorkspaceStep
+    autoplay: boolean
+    paperLens: PaperLens
+    comparePath: string
+    audienceMode: AudienceMode
+  }>) => {
     if (typeof window === 'undefined') return ''
 
     const url = new URL(window.location.href)
     const params = url.searchParams
 
-    if (selectedEvaluation) params.set('evaluation', selectedEvaluation)
-    if (selectedParadigm) params.set('paradigm', selectedParadigm)
-    if (selectedResult) params.set('result', selectedResult)
-    if (selectedDataset?.path) params.set('dataset', selectedDataset.path)
-    params.set('theme', theme)
-    params.set('step', String(step))
-    params.set('autoplay', String(autoplay))
-    params.set('lens', paperLens)
-    params.set('audience', audienceMode)
+    const nextState = {
+      selectedEvaluation,
+      selectedParadigm,
+      selectedResult,
+      datasetPath: selectedDataset?.path ?? '',
+      theme,
+      step,
+      autoplay,
+      paperLens,
+      comparePath: comparisonDataset?.path ?? comparePath,
+      audienceMode,
+      ...overrides,
+    }
 
-    if (comparisonDataset?.path) {
-      params.set('compare', comparisonDataset.path)
-    } else if (comparePath) {
-      params.set('compare', comparePath)
+    if (nextState.selectedEvaluation) params.set('evaluation', nextState.selectedEvaluation)
+    if (nextState.selectedParadigm) params.set('paradigm', nextState.selectedParadigm)
+    if (nextState.selectedResult) params.set('result', nextState.selectedResult)
+    if (nextState.datasetPath) params.set('dataset', nextState.datasetPath)
+    params.set('theme', nextState.theme)
+    params.set('step', String(nextState.step))
+    params.set('autoplay', String(nextState.autoplay))
+    params.set('lens', nextState.paperLens)
+    params.set('audience', nextState.audienceMode)
+
+    if (nextState.comparePath) {
+      params.set('compare', nextState.comparePath)
     } else {
       params.delete('compare')
     }
 
     return url.toString()
-  }, [
-    audienceMode,
-    autoplay,
-    comparePath,
-    comparisonDataset?.path,
-    paperLens,
-    selectedDataset?.path,
-    selectedEvaluation,
-    selectedParadigm,
-    selectedResult,
-    step,
-    theme,
-  ])
+  }
 
-  const handleCopyShareUrl = async () => {
-    if (!shareUrl || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+  const applyWorkspacePose = (config: {
+    theme: WorkspaceTheme
+    step: WorkspaceStep
+    autoplay: boolean
+    paperLens: PaperLens
+    audienceMode: AudienceMode
+    comparePath?: string
+  }) => {
+    setAudienceMode(config.audienceMode)
+    setTheme(config.theme)
+    setStep(config.step)
+    setAutoplay(config.autoplay)
+    setPaperLens(config.paperLens)
+    setComparePath(config.comparePath ?? '')
+  }
+
+  const shareUrl = buildWorkspaceUrl()
+
+  const handleCopyShareUrl = async (targetUrl = shareUrl) => {
+    if (!targetUrl || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
       setShareStatus('failed')
       return
     }
 
     try {
-      await navigator.clipboard.writeText(shareUrl)
+      await navigator.clipboard.writeText(targetUrl)
       setShareStatus('copied')
     } catch {
       setShareStatus('failed')
     }
   }
 
+  const savedWorkspaceViews = [
+    {
+      id: 'paper-overview',
+      label: 'Paper overview',
+      note: 'Reader-first opening state.',
+      config: {
+        audienceMode: 'reader' as const,
+        theme: 'dark' as const,
+        step: 10 as const,
+        autoplay: true,
+        paperLens: 'evidence' as const,
+        comparePath: '',
+      },
+    },
+    {
+      id: 'theory-section',
+      label: 'Theory section',
+      note: 'Assumptions and mechanism view.',
+      config: {
+        audienceMode: 'reader' as const,
+        theme: 'auto' as const,
+        step: 10 as const,
+        autoplay: false,
+        paperLens: 'theory' as const,
+        comparePath: '',
+      },
+    },
+    {
+      id: 'methods-appendix',
+      label: 'Methods appendix',
+      note: 'Manual inspection and provenance.',
+      config: {
+        audienceMode: 'researcher' as const,
+        theme: 'light' as const,
+        step: 1 as const,
+        autoplay: false,
+        paperLens: 'methods' as const,
+        comparePath: '',
+      },
+    },
+    {
+      id: 'reviewer-link',
+      label: 'Reviewer compare',
+      note: 'Split-view comparison posture.',
+      config: {
+        audienceMode: 'reviewer' as const,
+        theme: 'light' as const,
+        step: 10 as const,
+        autoplay: false,
+        paperLens: 'evidence' as const,
+        comparePath: comparisonDataset?.path ?? comparisonCandidates[0]?.path ?? '',
+      },
+    },
+  ].map(view => ({
+    ...view,
+    url: buildWorkspaceUrl({
+      theme: view.config.theme,
+      step: view.config.step,
+      autoplay: view.config.autoplay,
+      paperLens: view.config.paperLens,
+      audienceMode: view.config.audienceMode,
+      comparePath: view.config.comparePath,
+    }),
+  }))
+
+  const chapterRoutes = [
+    {
+      id: 'chapter-overview',
+      label: '1. Published overview',
+      note: 'Open on animated evidence with the replay already moving.',
+      config: {
+        audienceMode: 'reader' as const,
+        theme: 'dark' as const,
+        step: 10 as const,
+        autoplay: true,
+        paperLens: 'evidence' as const,
+        comparePath: '',
+      },
+    },
+    {
+      id: 'chapter-theory',
+      label: '2. Mechanism and assumptions',
+      note: 'Shift into theory mode and tie the replay to the new formal section.',
+      config: {
+        audienceMode: 'reader' as const,
+        theme: 'auto' as const,
+        step: 10 as const,
+        autoplay: false,
+        paperLens: 'theory' as const,
+        comparePath: '',
+      },
+    },
+    {
+      id: 'chapter-compare',
+      label: '3. Comparative read',
+      note: 'Open the foil scenario in split compare for reviewer-style reading.',
+      config: {
+        audienceMode: 'reviewer' as const,
+        theme: 'light' as const,
+        step: 10 as const,
+        autoplay: false,
+        paperLens: 'evidence' as const,
+        comparePath: comparisonDataset?.path ?? comparisonCandidates[0]?.path ?? '',
+      },
+    },
+    {
+      id: 'chapter-appendix',
+      label: '4. Methods appendix',
+      note: 'Switch to manual scrubbing and provenance-oriented reading.',
+      config: {
+        audienceMode: 'researcher' as const,
+        theme: 'light' as const,
+        step: 1 as const,
+        autoplay: false,
+        paperLens: 'methods' as const,
+        comparePath: '',
+      },
+    },
+  ].map(chapter => ({
+    ...chapter,
+    url: buildWorkspaceUrl({
+      theme: chapter.config.theme,
+      step: chapter.config.step,
+      autoplay: chapter.config.autoplay,
+      paperLens: chapter.config.paperLens,
+      audienceMode: chapter.config.audienceMode,
+      comparePath: chapter.config.comparePath,
+    }),
+  }))
+
+  const activeChapterRoute = chapterRoutes.find(chapter =>
+    chapter.config.audienceMode === audienceMode
+    && chapter.config.theme === theme
+    && chapter.config.step === step
+    && chapter.config.autoplay === autoplay
+    && chapter.config.paperLens === paperLens
+    && (chapter.config.comparePath || '') === (comparisonDataset?.path ?? comparePath ?? ''),
+  ) ?? null
+
+  const currentViewSummary = useMemo(() => {
+    const playbackLabel = autoplay ? 'autoplay on' : 'manual scrub'
+    const compareLabel = comparisonDataset
+      ? `comparison loaded against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm}`
+      : 'single-scenario focus'
+
+    const chapterLabel = activeChapterRoute ? ` ${activeChapterRoute.label}.` : ''
+    return `${audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode with ${matchedViewPreset?.label ?? 'Custom'} stack: ${themeLabel(theme)} theme, step ${step}, ${playbackLabel}, ${paperLens} lens, ${compareLabel}.${chapterLabel}`
+  }, [activeChapterRoute, audienceMode, audienceProfiles, autoplay, comparisonDataset, matchedViewPreset, paperLens, step, theme])
+
+  const activeAudienceBrief = useMemo(() => {
+    if (audienceMode === 'reviewer') {
+      return {
+        title: 'Reviewer brief',
+        summary: 'Push on comparisons, assumptions, and provenance rather than reading the replay as a standalone narrative.',
+        items: [
+          'Check whether the foil scenario materially changes the interpretation or only the presentation.',
+          'Inspect migration cost, delta, cutoff, and gamma before trusting the visual story.',
+          'Use methods and compare postures to verify the paper is not overstating a single replay.',
+        ],
+      }
+    }
+
+    if (audienceMode === 'researcher') {
+      return {
+        title: 'Researcher brief',
+        summary: 'Treat this as an analytical workspace: scrub manually, move across scenarios, and use the companion as a structured notebook.',
+        items: [
+          'Prefer step 1 or step 10 with autoplay off when tracing delicate slot changes.',
+          'Use the paper lenses to move between explanation, evidence, and method discipline.',
+          'Keep the published contract visible while deciding whether a deeper live simulation is worth running.',
+        ],
+      }
+    }
+
+    return {
+      title: 'Reader brief',
+      summary: 'Lead with visual evidence and let the interface carry the paper into a more interactive, accessible form.',
+      items: [
+        'Start in the published replay instead of a launcher or parameter form.',
+        'Use scenario spotlights and saved views as authored entry points into the paper.',
+        'Move into theory or comparison only after the core replay story is legible.',
+      ],
+    }
+  }, [audienceMode])
+
   const paperNotes = useMemo(() => {
     const notes = [
       {
-        title: 'Published contract',
+        title: 'Published source',
         body: selectedDataset
-          ? `${selectedDataset.path} is the checked-in result contract for this scenario. Readers are interacting with published evidence, not waiting on a fresh full-scale run.`
-          : 'Select a scenario to reveal the published result contract.',
+          ? `${selectedDataset.path} is the published source for this scenario. Readers are interacting with checked-in evidence, not waiting on a fresh full-scale run.`
+          : 'Select a scenario to reveal the published source for this replay.',
       },
       {
         title: paperLens === 'theory' ? 'Theory hook' : paperLens === 'methods' ? 'Method reading' : 'Evidence reading',
@@ -691,10 +899,10 @@ export function ResearchDemoSurface({
             : 'Start with the map and concentration metrics, then trace how latency and liveness respond as slot progression unfolds.',
       },
       {
-        title: 'Companion prompt',
+        title: 'Question draft',
         body: assistantDraft
           ? `Current draft: ${assistantDraft}`
-          : 'Seed the research companion with a prompt to turn the selected result into an explorable conversation.',
+          : 'Draft a question tied to this selected replay so you can carry it into the reading guide or a community note.',
       },
     ]
 
@@ -732,6 +940,44 @@ export function ResearchDemoSurface({
       },
     ] as const
   }, [assistantDraft, comparisonDataset, currentViewSummary, paperLens, selectedDataset, selectedMetadata])
+
+  const primaryCanvasAnnotations = useMemo(() => {
+    if (!selectedDataset) return []
+
+    return [
+      {
+        title: paperLens === 'theory' ? 'Theory read' : paperLens === 'methods' ? 'Methods read' : 'Start here',
+        body: paperLens === 'theory'
+          ? `Use this replay to explain how cost ${formatEth(selectedMetadata?.cost)}, delta ${formatMilliseconds(selectedMetadata?.delta)}, cutoff ${formatMilliseconds(selectedMetadata?.cutoff)}, and gamma ${typeof selectedMetadata?.gamma === 'number' ? formatNumber(selectedMetadata.gamma, 4) : 'N/A'} shape the trajectory.`
+          : paperLens === 'methods'
+            ? 'Read this as a checked-in published payload. The selector rail changes the evidence contract, not a full-scale rerun.'
+            : 'Begin with the geography and concentration plots, then trace latency and liveness as the slot progression advances.',
+      },
+      {
+        title: 'View posture',
+        body: currentViewSummary,
+      },
+      {
+        title: activeAudienceBrief.title,
+        body: activeAudienceBrief.summary,
+      },
+    ]
+  }, [activeAudienceBrief, currentViewSummary, paperLens, selectedDataset, selectedMetadata])
+
+  const comparisonCanvasAnnotations = useMemo(() => {
+    if (!comparisonDataset) return []
+
+    return [
+      {
+        title: 'Foil scenario',
+        body: `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} gives the comparison anchor. Use it to ask what changes materially versus what remains stable.`,
+      },
+      {
+        title: 'Compare prompt',
+        body: comparisonNarrative,
+      },
+    ]
+  }, [comparisonDataset, comparisonNarrative])
 
   useEffect(() => {
     setAssistantDraft(assistantPrompts[0]?.prompt ?? '')
@@ -853,22 +1099,22 @@ export function ResearchDemoSurface({
   const interactionModes = [
     {
       title: 'Instant published replay',
-      description: 'For this paper, the precomputed result should be visible immediately. Readers should land on evidence, not a launcher.',
+      description: 'For this paper, readers land on published evidence immediately instead of starting from a launcher screen.',
     },
     {
       title: 'Configurable simulator depth',
       description: 'Interaction can deepen progressively. Keep published playback accessible, then let power users move into smaller live simulation controls.',
     },
     {
-      title: 'Research companion layer',
-      description: 'Future paper updates can expose theory walk-throughs and a result-aware assistant without forcing every study into the same interface contract.',
+      title: 'Question and theory layers',
+      description: 'This workspace can support theory walk-throughs and question drafting without displacing the published replay itself.',
     },
   ] as const
 
-  const futureHooks = [
-    'Queryable agent aware of published run outputs and slot-level changes.',
-    'Theory sections with explorable assumptions, notation, and causal explanations.',
-    'Dune-like analytical layers for data studies where live querying makes sense.',
+  const workspaceSupports = [
+    'Shareable linked views that preserve scenario, lens, and comparison state.',
+    'Question drafting that stays grounded in the selected published replay.',
+    'Theory and methods reading modes that stay aligned to the same evidence surface.',
   ] as const
 
   if (catalogError) {
@@ -1010,6 +1256,9 @@ export function ResearchDemoSurface({
                       <span className="lab-chip">{activeViewer.dataset.paradigm}</span>
                       <span className="lab-chip">{activeViewer.dataset.result}</span>
                       <span className="lab-chip">{audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode</span>
+                      {activeChapterRoute ? (
+                        <span className="lab-chip">{activeChapterRoute.label}</span>
+                      ) : null}
                       <span className="lab-chip">{matchedViewPreset?.label ?? 'Custom'} preset</span>
                       <span className="lab-chip">{themeLabel(theme)} theme</span>
                       <span className="lab-chip">step {step}</span>
@@ -1028,12 +1277,22 @@ export function ResearchDemoSurface({
                   </div>
                   <div className="mt-1 text-xs text-muted">{activeViewer.dataset.result}</div>
                 </div>
-                <PublishedDatasetViewer
-                  key={`primary:${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
-                  viewerBaseUrl={viewerBaseUrl}
-                  dataset={activeViewer.dataset}
-                  initialSettings={activeViewer.settings}
-                />
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2 2xl:flex-row">
+                    {primaryCanvasAnnotations.map(note => (
+                      <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/80 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-slate-300">{note.title}</div>
+                        <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <PublishedDatasetViewer
+                    key={`primary:${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
+                    viewerBaseUrl={viewerBaseUrl}
+                    dataset={activeViewer.dataset}
+                    initialSettings={activeViewer.settings}
+                  />
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -1044,21 +1303,41 @@ export function ResearchDemoSurface({
                   </div>
                   <div className="mt-1 text-xs text-muted">{comparisonDataset.result}</div>
                 </div>
-                <PublishedDatasetViewer
-                  key={`compare:${comparisonDataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
-                  viewerBaseUrl={viewerBaseUrl}
-                  dataset={comparisonDataset}
-                  initialSettings={activeViewer.settings}
-                />
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2">
+                    {comparisonCanvasAnnotations.map(note => (
+                      <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/78 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-slate-300">{note.title}</div>
+                        <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <PublishedDatasetViewer
+                    key={`compare:${comparisonDataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
+                    viewerBaseUrl={viewerBaseUrl}
+                    dataset={comparisonDataset}
+                    initialSettings={activeViewer.settings}
+                  />
+                </div>
               </div>
             </div>
           ) : (
-            <PublishedDatasetViewer
-              key={`${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
-              viewerBaseUrl={viewerBaseUrl}
-              dataset={activeViewer.dataset}
-              initialSettings={activeViewer.settings}
-            />
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2 2xl:flex-row">
+                {primaryCanvasAnnotations.map(note => (
+                  <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/80 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-slate-300">{note.title}</div>
+                    <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
+                  </div>
+                ))}
+              </div>
+              <PublishedDatasetViewer
+                key={`${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
+                viewerBaseUrl={viewerBaseUrl}
+                dataset={activeViewer.dataset}
+                initialSettings={activeViewer.settings}
+              />
+            </div>
           )}
         </section>
       )}
@@ -1068,7 +1347,7 @@ export function ResearchDemoSurface({
           <div className="lab-stage p-5">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <div className="text-xs text-muted mb-1">Control rail</div>
+                <div className="text-xs text-muted mb-1">Scenario selector</div>
                 <div className="text-sm text-text-primary">
                   Switch among frozen published scenarios without leaving the main canvas.
                 </div>
@@ -1077,7 +1356,7 @@ export function ResearchDemoSurface({
                 onClick={handleFillDemoValues}
                 className="text-xs text-muted transition-colors hover:text-text-primary"
               >
-                Fill demo values
+                Load reference view
               </button>
             </div>
 
@@ -1135,7 +1414,7 @@ export function ResearchDemoSurface({
                 {selectedDataset?.path ?? 'Choose a dataset'}
               </div>
               <div className="mt-2 text-xs text-muted">
-                The `Local` / `External` switch changes the frozen published payload path, not the simulation engine.
+                Switching Local versus External changes which published scenario you are reading. It does not change the exact-run engine.
               </div>
             </div>
           </div>
@@ -1143,7 +1422,7 @@ export function ResearchDemoSurface({
           <div className="lab-stage p-5">
             <div className="text-xs text-muted mb-1">View settings</div>
             <div className="text-sm text-text-primary mb-4">
-              The published canvas, paper lens, assistant context, and comparison posture should all read from the same settings stack.
+              These settings keep the replay, reading lens, question drafting, and comparison posture aligned.
             </div>
 
             <div className="mb-4">
@@ -1266,6 +1545,9 @@ export function ResearchDemoSurface({
               </div>
               <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted">
                 <span className="lab-chip">{audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode</span>
+                {activeChapterRoute ? (
+                  <span className="lab-chip">{activeChapterRoute.label}</span>
+                ) : null}
                 <span className="lab-chip">{themeLabel(theme)} theme</span>
                 <span className="lab-chip">step {step}</span>
                 <span className="lab-chip">{autoplay ? 'Autoplay on' : 'Manual scrub'}</span>
@@ -1286,13 +1568,13 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
-              <div className="text-xs text-text-faint">Shareable view</div>
+              <div className="text-xs text-text-faint">Share this reading view</div>
               <div className="mt-2 text-xs leading-5 text-muted">
-                The URL now tracks scenario, audience mode, lens, playback posture, and comparison target.
+                The link preserves the scenario, audience mode, reading lens, playback posture, and comparison target.
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
-                  onClick={handleCopyShareUrl}
+                  onClick={() => void handleCopyShareUrl()}
                   className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
                   Copy share link
@@ -1318,12 +1600,106 @@ export function ResearchDemoSurface({
                 </div>
               ) : null}
             </div>
+
+            <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
+              <div className="text-xs text-text-faint">Saved views</div>
+              <div className="mt-3 grid gap-3">
+                {savedWorkspaceViews.map(view => (
+                  <div key={view.id} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <div className="text-sm font-medium text-text-primary">{view.label}</div>
+                        <div className="mt-1 text-xs leading-5 text-muted">{view.note}</div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => applyWorkspacePose(view.config)}
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                        >
+                          Apply
+                        </button>
+                        <button
+                          onClick={() => void handleCopyShareUrl(view.url)}
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                        >
+                          Copy URL
+                        </button>
+                        <a
+                          href={view.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                        >
+                          Open
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 border-t border-border-subtle pt-4">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Entry point chips</div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => void handleCopyShareUrl()}
+                    className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Export current state
+                  </button>
+                  {savedWorkspaceViews.map(view => (
+                    <a
+                      key={`${view.id}-chip`}
+                      href={view.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                    >
+                      {view.label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
+              <div className="text-xs text-text-faint">Paper chapters</div>
+              <div className="mt-2 text-xs leading-5 text-muted">
+                These are authored reading routes. They should feel closer to paper sections than to generic dashboard presets.
+              </div>
+              <div className="mt-3 space-y-3">
+                {chapterRoutes.map(chapter => (
+                  <div key={chapter.id} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <div className="text-sm font-medium text-text-primary">{chapter.label}</div>
+                        <div className="mt-1 text-xs leading-5 text-muted">{chapter.note}</div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => applyWorkspacePose(chapter.config)}
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                        >
+                          Open chapter
+                        </button>
+                        <button
+                          onClick={() => void handleCopyShareUrl(chapter.url)}
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                        >
+                          Copy link
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="lab-stage p-5">
-            <div className="text-xs text-muted mb-1">Interaction spectrum</div>
+            <div className="text-xs text-muted mb-1">Reading workflow</div>
             <div className="text-sm text-text-primary">
-              The level of interaction can vary by paper. This study should start with a rich published replay and leave room for deeper layers.
+              This study starts with published evidence, then adds comparison and drafting layers only where they help interpretation.
             </div>
             <div className="mt-4 space-y-3">
               {interactionModes.map(mode => (
@@ -1428,9 +1804,9 @@ export function ResearchDemoSurface({
 
             <div className="space-y-6">
               <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">Research companion</div>
+                <div className="text-xs text-muted mb-1">Question drafting</div>
                 <div className="text-sm text-text-primary">
-                  This is the scaffold for a result-aware assistant. It should answer against the selected published run, not generic paper copy.
+                  Draft a question tied to the selected published replay so your next reading or note starts from the evidence already on screen.
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -1463,12 +1839,15 @@ export function ResearchDemoSurface({
                     <span className="lab-chip">{selectedDataset?.result ?? 'No result'}</span>
                     <span className="lab-chip">{selectedDataset?.sourceRole ?? 'No source role'}</span>
                     <span className="lab-chip">{matchedViewPreset?.label ?? 'Custom'} preset</span>
+                    {activeChapterRoute ? (
+                      <span className="lab-chip">{activeChapterRoute.label}</span>
+                    ) : null}
                     <span className="lab-chip">{themeLabel(theme)} theme</span>
                     <span className="lab-chip">step {step}</span>
                     <span className="lab-chip">{paperLens} lens</span>
                   </div>
                   <div className="mt-3 text-xs leading-5 text-muted">
-                    When backend wiring lands, this draft can be executed against the selected published payload, slot metrics, and future theory annotations.
+                    Use this draft to guide a reading, compare scenarios, or frame a public note against this selected replay.
                   </div>
                 </div>
 
@@ -1676,13 +2055,27 @@ export function ResearchDemoSurface({
               </div>
 
               <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">Future interaction hooks</div>
+                <div className="text-xs text-muted mb-1">What this workspace supports</div>
                 <div className="text-sm text-text-primary">
-                  This page now leaves a clear runway for richer paper interfaces without pretending every study needs live data or full simulator freedom.
+                  This workspace is meant to stay legible: published replay first, then aligned layers for comparison, interpretation, and sharing.
                 </div>
                 <div className="mt-4 space-y-3">
-                  {futureHooks.map(item => (
+                  {workspaceSupports.map(item => (
                     <div key={item} className="rounded-xl border border-border-subtle bg-white px-4 py-3 text-sm text-text-primary">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="lab-stage p-5">
+                <div className="text-xs text-muted mb-1">{activeAudienceBrief.title}</div>
+                <div className="text-sm text-text-primary">
+                  {activeAudienceBrief.summary}
+                </div>
+                <div className="mt-4 space-y-3">
+                  {activeAudienceBrief.items.map(item => (
+                    <div key={item} className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-sm leading-6 text-text-primary">
                       {item}
                     </div>
                   ))}

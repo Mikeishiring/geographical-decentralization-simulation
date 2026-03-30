@@ -84,7 +84,7 @@ export function Header() {
               >
                 Yang, Oz, Wu, Zhang (2025)
                 <span className="text-text-faint"> · </span>
-                <span className="text-text-faint">Paper guide, exact-run surface, and public research notes</span>
+                <span className="text-text-faint">Paper reading guide, published replay, and community notes</span>
               </motion.p>
             </motion.div>
 

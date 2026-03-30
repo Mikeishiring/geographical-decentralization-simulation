@@ -13,11 +13,12 @@ import { existsSync } from 'node:fs'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import Anthropic from '@anthropic-ai/sdk'
-import { STUDY_CONTEXT, SIMULATION_COPILOT_CONTEXT } from './study-context.ts'
+import { STUDY_CONTEXT, SIMULATION_COPILOT_CONTEXT, PUBLISHED_REPLAY_COPILOT_CONTEXT } from './study-context.ts'
 import { buildTools } from './catalog.ts'
 import { SimulationRuntime, parseSimulationRequest, type SimulationRequest } from './simulation-runtime.ts'
 import { ExplorationStore, normalizeQuery, type ExplorationSurface, type ListOptions } from './exploration-store.ts'
 import { OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../src/data/default-blocks.ts'
+import { GCP_REGIONS } from '../src/data/gcp-regions.ts'
 import {
   buildSimulationArtifactBundle,
   buildSimulationSummaryChart,
@@ -36,6 +37,7 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXPLORER_ROOT = path.resolve(__dirname, '..')
+const DASHBOARD_DIR = path.resolve(EXPLORER_ROOT, '..', 'dashboard')
 const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
 const MISSING_ANTHROPIC_CONFIG_MESSAGE = 'Anthropic API is not configured on this server. Add ANTHROPIC_API_KEY to explorer/.env or your shell environment.'
 
@@ -205,6 +207,7 @@ function createRateLimitMiddleware(
 
 const exploreRateLimit = createRateLimitMiddleware('explore', 60_000, 24)
 const simulationCopilotRateLimit = createRateLimitMiddleware('simulation-copilot', 60_000, 18)
+const publishedReplayCopilotRateLimit = createRateLimitMiddleware('published-replay-copilot', 60_000, 18)
 const simulationSubmitRateLimit = createRateLimitMiddleware('simulations', 60_000, 10)
 
 const app = express()
@@ -218,8 +221,11 @@ const exploreTools = allTools.filter(tool => tool.name !== 'render_simulation_vi
 const simulationCopilotTools = allTools.filter(
   tool => tool.name !== 'render_blocks' && tool.name !== 'verify_exploration',
 )
+const renderBlocksTool = allTools.find(tool => tool.name === 'render_blocks') ?? null
 const simulationRuntime = new SimulationRuntime()
 const explorationStore = new ExplorationStore()
+const publishedReplayDatasetCache = new Map<string, PublishedReplayPayload>()
+const publishedRegionLookup = new Map(GCP_REGIONS.map(region => [region.id, region] as const))
 
 interface ExploreRequest {
   query: string
@@ -267,6 +273,67 @@ interface SimulationCopilotResponse {
   blocks: readonly Block[]
   model: string
   cached: boolean
+}
+
+interface PublishedReplayCopilotRequest {
+  question: string
+  datasetPath?: string | null
+  datasetLabel?: string | null
+  sourceRole?: string | null
+  comparePath?: string | null
+  compareLabel?: string | null
+  compareSourceRole?: string | null
+  focusSlot?: number | null
+  paperLens?: 'evidence' | 'theory' | 'methods' | null
+  audienceMode?: 'reader' | 'reviewer' | 'researcher' | null
+  currentViewSummary?: string | null
+}
+
+interface PublishedReplayCopilotResponse {
+  summary: string
+  blocks: readonly Block[]
+  followUps: string[]
+  truthBoundary: {
+    label: string
+    detail: string
+  }
+  model: string
+  cached: boolean
+  provenance: {
+    source: 'generated'
+    label: string
+    detail: string
+    canonical: boolean
+    datasetPath: string
+    comparePath?: string
+  }
+}
+
+interface PublishedReplayMetrics {
+  readonly clusters?: readonly number[]
+  readonly total_distance?: readonly number[]
+  readonly avg_nnd?: readonly number[]
+  readonly nni?: readonly number[]
+  readonly mev?: readonly number[]
+  readonly attestations?: readonly number[]
+  readonly proposal_times?: readonly number[]
+  readonly gini?: readonly number[]
+  readonly hhi?: readonly number[]
+  readonly liveness?: readonly number[]
+  readonly failed_block_proposals?: readonly number[]
+}
+
+interface PublishedReplayPayload {
+  readonly v?: number
+  readonly delta?: number
+  readonly cutoff?: number
+  readonly cost?: number
+  readonly gamma?: number
+  readonly description?: string
+  readonly n_slots?: number
+  readonly metrics?: PublishedReplayMetrics
+  readonly sources?: ReadonlyArray<readonly [string, string]>
+  readonly slots?: Record<string, ReadonlyArray<readonly [string, number]>>
 }
 
 interface CreateExplorationRequest {
@@ -1067,6 +1134,391 @@ function buildTruthBoundary(
   return {
     label: 'Assistant framing over exact outputs',
     detail: 'The numbers and charts come from the exact manifest and artifacts for the loaded run. The ordering, emphasis, and narrative are secondary model framing.',
+  }
+}
+
+function isWithinDirectory(directoryPath: string, candidatePath: string): boolean {
+  const relative = path.relative(directoryPath, candidatePath)
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))
+}
+
+function sourceRoleLabel(sourceRole: string | null | undefined): string {
+  if (sourceRole === 'signal') return 'signal sources'
+  if (sourceRole === 'supplier') return 'supplier sources'
+  return 'information sources'
+}
+
+function normalizePublishedDatasetPath(rawPath: string | null | undefined): string | null {
+  const trimmed = rawPath?.trim().replace(/\\/g, '/')
+  if (!trimmed) return null
+  const resolved = path.resolve(DASHBOARD_DIR, trimmed)
+  if (!isWithinDirectory(DASHBOARD_DIR, resolved)) return null
+  return existsSync(resolved) ? resolved : null
+}
+
+async function loadPublishedReplayPayload(datasetPath: string): Promise<PublishedReplayPayload> {
+  const cacheKey = path.resolve(datasetPath)
+  const cached = publishedReplayDatasetCache.get(cacheKey)
+  if (cached) return cached
+
+  const raw = await fs.readFile(cacheKey, 'utf8')
+  const parsed = JSON.parse(raw) as PublishedReplayPayload
+  publishedReplayDatasetCache.set(cacheKey, parsed)
+  return parsed
+}
+
+function totalPublishedSlots(payload: PublishedReplayPayload): number {
+  return Math.max(
+    1,
+    payload.n_slots ?? 0,
+    payload.metrics?.gini?.length ?? 0,
+    payload.metrics?.hhi?.length ?? 0,
+    payload.metrics?.liveness?.length ?? 0,
+    payload.metrics?.mev?.length ?? 0,
+    payload.metrics?.proposal_times?.length ?? 0,
+    payload.metrics?.failed_block_proposals?.length ?? 0,
+    Object.keys(payload.slots ?? {}).length,
+  )
+}
+
+function clampPublishedSlot(slot: number | null | undefined, payload: PublishedReplayPayload): number {
+  const lastSlot = Math.max(0, totalPublishedSlots(payload) - 1)
+  if (typeof slot !== 'number' || !Number.isFinite(slot)) return lastSlot
+  return Math.max(0, Math.min(Math.trunc(slot), lastSlot))
+}
+
+function readPublishedMetricValue(
+  series: readonly number[] | undefined,
+  slot: number,
+): number | null {
+  if (!series?.length) return null
+  const clampedIndex = Math.max(0, Math.min(slot, series.length - 1))
+  const value = series[clampedIndex]
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function formatPublishedMetricValue(
+  key: keyof PublishedReplayMetrics,
+  value: number | null,
+): string {
+  if (value == null) return 'N/A'
+
+  switch (key) {
+    case 'mev':
+      return `${formatMetricNumber(value, 4)} ETH`
+    case 'proposal_times':
+      return `${formatMetricNumber(value, 1)} ms`
+    case 'gini':
+    case 'hhi':
+    case 'nni':
+    case 'avg_nnd':
+      return formatMetricNumber(value, 4)
+    case 'attestations':
+    case 'liveness':
+    case 'clusters':
+    case 'failed_block_proposals':
+      return formatMetricNumber(value, 0)
+    case 'total_distance':
+      return formatMetricNumber(value, 2)
+    default:
+      return formatMetricNumber(value, 4)
+  }
+}
+
+function publishedMetricLabel(key: keyof PublishedReplayMetrics): string {
+  switch (key) {
+    case 'clusters':
+      return 'clusters'
+    case 'total_distance':
+      return 'total distance'
+    case 'avg_nnd':
+      return 'average nearest-neighbor distance'
+    case 'nni':
+      return 'nearest-neighbor index'
+    case 'mev':
+      return 'average MEV'
+    case 'attestations':
+      return 'attestations'
+    case 'proposal_times':
+      return 'proposal time'
+    case 'gini':
+      return 'gini'
+    case 'hhi':
+      return 'HHI'
+    case 'liveness':
+      return 'liveness'
+    case 'failed_block_proposals':
+      return 'failed block proposals'
+    default:
+      return key
+  }
+}
+
+function summarizePublishedSeries(
+  key: keyof PublishedReplayMetrics,
+  series: readonly number[] | undefined,
+): string | null {
+  if (!series?.length) return null
+
+  const numeric = series.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+  if (numeric.length === 0) return null
+
+  const first = numeric[0] ?? null
+  const mid = numeric[Math.floor((numeric.length - 1) / 2)] ?? null
+  const last = numeric[numeric.length - 1] ?? null
+  const min = Math.min(...numeric)
+  const max = Math.max(...numeric)
+
+  return `- ${publishedMetricLabel(key)}: start=${formatPublishedMetricValue(key, first)}, mid=${formatPublishedMetricValue(key, mid)}, final=${formatPublishedMetricValue(key, last)}, min=${formatPublishedMetricValue(key, min)}, max=${formatPublishedMetricValue(key, max)}`
+}
+
+function readPublishedSlotRegions(
+  payload: PublishedReplayPayload,
+  slot: number,
+): Array<{
+  readonly regionId: string
+  readonly count: number
+  readonly city: string | null
+  readonly macroRegion: string
+}> {
+  const entries = payload.slots?.[String(slot)] ?? []
+  return entries
+    .map(([regionId, count]) => {
+      const region = publishedRegionLookup.get(regionId)
+      return {
+        regionId,
+        count: Number(count) || 0,
+        city: region?.city ?? null,
+        macroRegion: region?.macroRegion ?? 'Unknown',
+      }
+    })
+    .filter(entry => entry.count > 0)
+    .sort((left, right) => right.count - left.count)
+}
+
+function summarizePublishedRegions(
+  regions: ReadonlyArray<{
+    readonly regionId: string
+    readonly count: number
+    readonly city: string | null
+  }>,
+): string {
+  if (regions.length === 0) return 'no active regions'
+  return regions
+    .slice(0, 5)
+    .map(region => `${region.city ?? region.regionId} (${region.regionId})=${region.count}`)
+    .join(', ')
+}
+
+function summarizePublishedSourceFootprint(
+  payload: PublishedReplayPayload,
+): string | null {
+  const counts = new Map<string, number>()
+  for (const source of payload.sources ?? []) {
+    const regionId = source[1]
+    const macroRegion = publishedRegionLookup.get(regionId)?.macroRegion ?? 'Unknown'
+    counts.set(macroRegion, (counts.get(macroRegion) ?? 0) + 1)
+  }
+
+  if (counts.size === 0) return null
+
+  return [...counts.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .map(([region, count]) => `${region}=${count}`)
+    .join(', ')
+}
+
+function buildPublishedSlotSummary(
+  payload: PublishedReplayPayload,
+  slot: number,
+): {
+  readonly slotIndex: number
+  readonly slotNumber: number
+  readonly totalSlots: number
+  readonly activeRegions: number
+  readonly totalValidators: number
+  readonly dominantRegion:
+    | {
+        readonly regionId: string
+        readonly city: string | null
+        readonly count: number
+        readonly share: number
+      }
+    | null
+  readonly metrics: Record<string, number | null>
+  readonly topRegions: string
+} {
+  const totalSlots = totalPublishedSlots(payload)
+  const regions = readPublishedSlotRegions(payload, slot)
+  const totalValidators = regions.reduce((sum, region) => sum + region.count, 0)
+  const dominantRegion = regions[0]
+    ? {
+        regionId: regions[0].regionId,
+        city: regions[0].city,
+        count: regions[0].count,
+        share: totalValidators > 0 ? (regions[0].count / totalValidators) * 100 : 0,
+      }
+    : null
+
+  return {
+    slotIndex: slot,
+    slotNumber: slot + 1,
+    totalSlots,
+    activeRegions: regions.length,
+    totalValidators,
+    dominantRegion,
+    metrics: {
+      gini: readPublishedMetricValue(payload.metrics?.gini, slot),
+      hhi: readPublishedMetricValue(payload.metrics?.hhi, slot),
+      liveness: readPublishedMetricValue(payload.metrics?.liveness, slot),
+      total_distance: readPublishedMetricValue(payload.metrics?.total_distance, slot),
+      proposal_times: readPublishedMetricValue(payload.metrics?.proposal_times, slot),
+      mev: readPublishedMetricValue(payload.metrics?.mev, slot),
+      failed_block_proposals: readPublishedMetricValue(payload.metrics?.failed_block_proposals, slot),
+      clusters: readPublishedMetricValue(payload.metrics?.clusters, slot),
+      attestations: readPublishedMetricValue(payload.metrics?.attestations, slot),
+    },
+    topRegions: summarizePublishedRegions(regions),
+  }
+}
+
+function summarizePublishedSlotSnapshot(
+  label: string,
+  snapshot: ReturnType<typeof buildPublishedSlotSummary>,
+): string[] {
+  const lines = [
+    `## ${label}`,
+    `- slot: ${snapshot.slotNumber} / ${snapshot.totalSlots}`,
+    `- activeRegions: ${snapshot.activeRegions}`,
+    `- validatorsVisible: ${snapshot.totalValidators}`,
+  ]
+
+  if (snapshot.dominantRegion) {
+    lines.push(
+      `- dominantRegion: ${(snapshot.dominantRegion.city ?? snapshot.dominantRegion.regionId)} (${snapshot.dominantRegion.regionId}) with ${snapshot.dominantRegion.count} validators (${formatMetricNumber(snapshot.dominantRegion.share, 1)}%)`,
+    )
+  }
+
+  for (const [key, value] of Object.entries(snapshot.metrics)) {
+    lines.push(`- ${publishedMetricLabel(key as keyof PublishedReplayMetrics)}: ${formatPublishedMetricValue(key as keyof PublishedReplayMetrics, value)}`)
+  }
+
+  lines.push(`- topRegions: ${snapshot.topRegions}`)
+  return lines
+}
+
+async function buildPublishedReplayContext(
+  request: PublishedReplayCopilotRequest,
+): Promise<{
+  readonly datasetPath: string
+  readonly comparePath?: string
+  readonly context: string
+}> {
+  const datasetPath = normalizePublishedDatasetPath(request.datasetPath)
+  if (!datasetPath) {
+    throw new Error('The selected published dataset could not be resolved.')
+  }
+
+  const payload = await loadPublishedReplayPayload(datasetPath)
+  const totalSlots = totalPublishedSlots(payload)
+  const focusSlot = clampPublishedSlot(request.focusSlot, payload)
+  const finalSlot = Math.max(0, totalSlots - 1)
+  const focusSnapshot = buildPublishedSlotSummary(payload, focusSlot)
+  const finalSnapshot = buildPublishedSlotSummary(payload, finalSlot)
+  const initialSnapshot = buildPublishedSlotSummary(payload, 0)
+
+  const comparePath = normalizePublishedDatasetPath(request.comparePath)
+  const comparePayload = comparePath ? await loadPublishedReplayPayload(comparePath) : null
+  const compareFinalSnapshot = comparePayload
+    ? buildPublishedSlotSummary(comparePayload, Math.max(0, totalPublishedSlots(comparePayload) - 1))
+    : null
+
+  const metricDigestLines = ([
+    'gini',
+    'hhi',
+    'liveness',
+    'mev',
+    'proposal_times',
+    'failed_block_proposals',
+    'total_distance',
+    'clusters',
+    'attestations',
+  ] as const)
+    .map(key => summarizePublishedSeries(key, payload.metrics?.[key]))
+    .filter((line): line is string => Boolean(line))
+
+  const compareMetricLines = comparePayload && compareFinalSnapshot
+    ? ([
+        'gini',
+        'hhi',
+        'liveness',
+        'mev',
+        'proposal_times',
+        'failed_block_proposals',
+      ] as const)
+        .map(key => {
+          const primaryValue = finalSnapshot.metrics[key]
+          const compareValue = compareFinalSnapshot.metrics[key]
+          if (primaryValue == null || compareValue == null) return null
+          return `- ${publishedMetricLabel(key)}: active=${formatPublishedMetricValue(key, primaryValue)}, comparison=${formatPublishedMetricValue(key, compareValue)}`
+        })
+        .filter((line): line is string => Boolean(line))
+    : []
+
+  const parts = [
+    '## Active Published Replay',
+    `- label: ${request.datasetLabel?.trim() || path.relative(DASHBOARD_DIR, datasetPath).replace(/\\/g, '/')}`,
+    `- datasetPath: ${path.relative(DASHBOARD_DIR, datasetPath).replace(/\\/g, '/')}`,
+    `- sourceRole: ${sourceRoleLabel(request.sourceRole)}`,
+    `- audienceMode: ${request.audienceMode ?? 'reader'}`,
+    `- paperLens: ${request.paperLens ?? 'evidence'}`,
+    `- totalSlots: ${totalSlots}`,
+    `- validators: ${payload.v ?? 'N/A'}`,
+    `- migrationCost: ${payload.cost ?? 'N/A'}`,
+    `- deltaMs: ${payload.delta ?? 'N/A'}`,
+    `- cutoffMs: ${payload.cutoff ?? 'N/A'}`,
+    `- gamma: ${payload.gamma ?? 'N/A'}`,
+    `- description: ${payload.description ?? 'No description supplied.'}`,
+  ]
+
+  if (request.currentViewSummary?.trim()) {
+    parts.push(`- currentViewSummary: ${request.currentViewSummary.trim()}`)
+  }
+
+  const sourceFootprint = summarizePublishedSourceFootprint(payload)
+  if (sourceFootprint) {
+    parts.push(`- sourceFootprint: ${sourceFootprint}`)
+  }
+
+  parts.push(
+    ...summarizePublishedSlotSnapshot('Focus Slot Readout', focusSnapshot),
+    ...summarizePublishedSlotSnapshot('Initial Slot Readout', initialSnapshot),
+    ...summarizePublishedSlotSnapshot('Final Slot Readout', finalSnapshot),
+  )
+
+  if (metricDigestLines.length > 0) {
+    parts.push('## Replay Metric Digests', ...metricDigestLines)
+  }
+
+  if (comparePayload && comparePath) {
+    parts.push(
+      '## Comparison Replay',
+      `- label: ${request.compareLabel?.trim() || path.relative(DASHBOARD_DIR, comparePath).replace(/\\/g, '/')}`,
+      `- datasetPath: ${path.relative(DASHBOARD_DIR, comparePath).replace(/\\/g, '/')}`,
+      `- sourceRole: ${sourceRoleLabel(request.compareSourceRole)}`,
+      `- description: ${comparePayload.description ?? 'No description supplied.'}`,
+      ...summarizePublishedSlotSnapshot('Comparison Final Slot', compareFinalSnapshot!),
+    )
+
+    if (compareMetricLines.length > 0) {
+      parts.push('## Final Metric Comparison', ...compareMetricLines)
+    }
+  }
+
+  return {
+    datasetPath,
+    comparePath: comparePath ?? undefined,
+    context: parts.join('\n'),
   }
 }
 
