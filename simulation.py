@@ -294,72 +294,72 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="SSP",
+        default=None,
         choices=["SSP", "MSP"],
-        help="Type of model to simulate: 'SSP' or 'MSP' (default: 'SSP')",
+        help="Type of model to simulate: 'SSP' or 'MSP' (default: YAML config or 'SSP')",
     )
     parser.add_argument(
         "--validators",
         type=int,
-        default=1000,
-        help="Number of validators to simulate (default: 1000)",
+        default=None,
+        help="Number of validators to simulate (default: YAML config or 1000)",
     )
     parser.add_argument(
         "--slots",
         type=int,
-        default=1000,
-        help="Number of slots to simulate (default: 1000)",
+        default=None,
+        help="Number of slots to simulate (default: YAML config or 1000)",
     )
     parser.add_argument(
         "--cost",
         type=float,
-        default=0.0001,
-        help="Cost for migration (default: 0.0001)",
+        default=None,
+        help="Cost for migration (default: YAML config or 0.0001)",
     )
     parser.add_argument(
         "--time_window",
         type=int,
-        default=10,
-        help="Time window for migration checks (default: 10)",
+        default=None,
+        help="Time window for migration checks (default: YAML config or 10)",
     )
     parser.add_argument(
         "--fast",
         type=bool,
-        default=False,
+        default=None,
         action=argparse.BooleanOptionalAction,
-        help="Enable fast mode for latency computation (default: False)",
+        help="Enable fast mode for latency computation (default: YAML config or False)",
     )
     parser.add_argument(
         "--distribution",
         type=str,
-        default="homogeneous",
+        default=None,
         choices=["homogeneous", "heterogeneous", "random", "homogeneous-gcp"],
-        help="Validator distribution strategy (default: homogeneous)"
+        help="Validator distribution strategy (default: YAML config or homogeneous)"
     )
     parser.add_argument(
         "--info-distribution",
         type=str,
-        default="homogeneous",
+        default=None,
         choices=["homogeneous", "heterogeneous"],
-        help="Distribution of information sources (default: homogeneous)"
+        help="Distribution of information sources (default: YAML config or homogeneous)"
     )
     parser.add_argument(
         "--gamma",
         type=float,
-        default=0.6667,
-        help="Attestation threshold (\\gamma, γ) (default: 0.6667)",
+        default=None,
+        help="Attestation threshold (\\gamma, γ) (default: YAML config or 0.6667)",
     )
     parser.add_argument(
         "--delta",
         type=int,
-        default=12000,
-        help="Slot time (\\Delta, Δ) in milliseconds (default: 12000)",
+        default=None,
+        help="Slot time (\\Delta, Δ) in milliseconds (default: YAML config or 12000)",
     )
     parser.add_argument(
         "--cutoff",
         type=int,
-        default=4000,
-        help="Cutoff time for attestations in milliseconds (default: 4000)",
+        default=None,
+        help="Cutoff time for attestations in milliseconds (default: YAML config or 4000)",
     )
     parser.add_argument(
         "--seed",
@@ -381,32 +381,63 @@ if __name__ == "__main__":
         config = load_simulation_config(args.config)
         # Extract top-level simulation parameters from config
         simulation_name = config.get("simulation_name", "Default Simulation")
-        model = args.model if args.model else config.get("model", "SSP")
+        model = args.model if args.model is not None else config.get("model", "SSP")
         # Use 'iterations' from YAML as num_slots
-        num_slots = args.slots if args.slots else config.get("iterations", 1000)
+        num_slots = args.slots if args.slots is not None else config.get("iterations", 1000)
         num_validators = (
-            args.validators if args.validators else config.get("num_validators", 1000)
+            args.validators
+            if args.validators is not None
+            else config.get("validators", config.get("num_validators", 1000))
         )
         input_folder = config.get("input_folder", args.input_dir)
         output_folder = config.get("output_folder", "output")
+        distribution = (
+            args.distribution
+            if args.distribution is not None
+            else config.get("distribution", "homogeneous")
+        )
+        info_distribution = (
+            args.info_distribution
+            if args.info_distribution is not None
+            else config.get("info_distribution", "homogeneous")
+        )
 
         # Initialize Consensus Settings
         consensus_parameters = config.get("consensus_settings", {})
         consensus_settings = ConsensusSettings(**consensus_parameters)
-        consensus_settings.attestation_threshold = args.gamma
-        consensus_settings.slot_duration_ms = args.delta
-        consensus_settings.attestation_time_ms = args.cutoff
+        gamma = (
+            args.gamma
+            if args.gamma is not None
+            else config.get("gamma", consensus_settings.attestation_threshold)
+        )
+        delta = (
+            args.delta
+            if args.delta is not None
+            else config.get("delta", consensus_settings.slot_duration_ms)
+        )
+        cutoff = (
+            args.cutoff
+            if args.cutoff is not None
+            else config.get("cutoff", consensus_settings.attestation_time_ms)
+        )
+        consensus_settings.attestation_threshold = gamma
+        consensus_settings.slot_duration_ms = delta
+        consensus_settings.attestation_time_ms = cutoff
 
         # Time window for migration checks
         time_window = (
-            args.time_window if args.time_window else config.get("time_window", 10)
+            args.time_window if args.time_window is not None else config.get("time_window", 10)
         )  # Default to 10
 
         # fast mode
-        fast_mode = args.fast
+        fast_mode = args.fast if args.fast is not None else config.get("fast_mode", False)
 
         # cost for migration
-        cost = args.cost if args.cost is not None else config.get("migration_cost", 0.0001)
+        cost = (
+            args.cost
+            if args.cost is not None
+            else config.get("migration_cost", config.get("cost", 0.0001))
+        )
         seed = args.seed if args.seed is not None else config.get("seed", DEFAULT_SIMULATION_SEED)
         latency_std_dev_ratio = (
             args.latency_std_dev_ratio
@@ -419,7 +450,7 @@ if __name__ == "__main__":
         if args.output_dir == "default":
             output_folder = os.path.join(
                 output_folder,
-                f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{args.gamma}_delta_{args.delta}_cutoff_{args.cutoff}_latstd_{latency_std_dev_ratio}_seed_{seed}",
+                f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{gamma}_delta_{delta}_cutoff_{cutoff}_latstd_{latency_std_dev_ratio}_seed_{seed}",
             )
         else:
             output_folder = args.output_dir
@@ -447,7 +478,7 @@ if __name__ == "__main__":
                 f"Using all {len(validators)} validators from CSV as it's less than configured {num_validators}."
             )
 
-        if args.info_distribution == "homogeneous":
+        if info_distribution == "homogeneous":
             signal_profiles, relay_profiles = homogeneous_info_sources(gcp_regions)
         else:
             signal_profiles_data = config.get("signal_profiles", [])
@@ -457,13 +488,13 @@ if __name__ == "__main__":
 
 
         # Initialize Validator Distribution
-        if args.distribution == "homogeneous-gcp": # homogeneous across all GCP regions
+        if distribution == "homogeneous-gcp": # homogeneous across all GCP regions
             validators = homogeneous_validators_per_gcp(gcp_regions, num_validators)
-        elif args.distribution == "homogeneous": # homogeneous across macro regions
+        elif distribution == "homogeneous": # homogeneous across macro regions
             validators = homogeneous_validators(gcp_regions, num_validators)
-        elif args.distribution == "random": # random across all GCP regions
+        elif distribution == "random": # random across all GCP regions
             validators = random_validators(gcp_regions, num_validators)
-        elif args.distribution == "heterogeneous": # real-world heterogeneous from CSV
+        elif distribution == "heterogeneous": # real-world heterogeneous from CSV
             pass
 
         # Get Proposer Timing Strategies

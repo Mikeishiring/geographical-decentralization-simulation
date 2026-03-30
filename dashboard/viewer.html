@@ -95,6 +95,12 @@
       margin-bottom: 10px;
       flex-wrap: wrap;
     }
+    .toolbar-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
     input[type="range"] {
       flex: 1;
       min-width: 180px;
@@ -132,6 +138,12 @@
     }
     button:hover { filter: brightness(1.05); }
     button:active { transform: translateY(1px); }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      box-shadow: none;
+      filter: saturate(0.8);
+    }
     html:not(.dark) button {
       color: #1a1f1c;
       background: linear-gradient(135deg, #e4bc8a, #cf9b63);
@@ -195,6 +207,7 @@
       border-radius: 999px;
       background: rgba(26,31,28,0.15);
       accent-color: var(--brand-2);
+      transition: background .2s ease;
     }
     html.dark input[type="range"] {
       background: rgba(255,255,255,0.2);
@@ -218,9 +231,572 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
       cursor: pointer;
     }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(8,14,13,0.24);
+      color: var(--fg);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    html:not(.dark) .status-pill {
+      border-color: rgba(26,31,28,0.08);
+      background: rgba(255,255,255,0.62);
+    }
+    .status-pill.secondary {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .status-pill[data-state="loading"],
+    .status-pill[data-state="exporting"] {
+      background: rgba(244,178,103,0.18);
+      border-color: rgba(244,178,103,0.38);
+    }
+    .status-pill[data-state="playing"] {
+      background: rgba(95,208,195,0.18);
+      border-color: rgba(95,208,195,0.38);
+    }
+    .status-pill[data-state="paused"],
+    .status-pill[data-state="scrubbing"] {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.22);
+    }
+    html:not(.dark) .status-pill[data-state="playing"] {
+      background: rgba(46,166,154,0.16);
+      border-color: rgba(46,166,154,0.28);
+    }
+    html:not(.dark) .status-pill[data-state="paused"],
+    html:not(.dark) .status-pill[data-state="scrubbing"] {
+      background: rgba(26,31,28,0.05);
+      border-color: rgba(26,31,28,0.1);
+    }
+    .wrap {
+      display: grid;
+      grid-template-columns: minmax(0, 1.34fr) minmax(320px, 0.66fr);
+      grid-template-areas:
+        "toolbar toolbar"
+        "desc desc"
+        "globe info"
+        "plots plots";
+      gap: 18px;
+    }
+    .toolbar {
+      grid-area: toolbar;
+      position: relative;
+      padding: 26px;
+      border-radius: 28px;
+      overflow: hidden;
+      margin-bottom: 0;
+      display: grid;
+      gap: 18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.08)),
+        radial-gradient(520px 280px at 0% 0%, rgba(211,139,69,0.16), transparent 70%),
+        radial-gradient(420px 220px at 100% 0%, rgba(95,208,195,0.14), transparent 72%);
+      animation: rise .75s ease both;
+    }
+    .toolbar::after {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      border: 1px solid rgba(255,255,255,0.05);
+      pointer-events: none;
+    }
+    .hero-shell {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.18fr) minmax(340px, 0.82fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+    .hero-copy {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+    .hero-brow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      width: fit-content;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(211,139,69,0.16), rgba(95,208,195,0.12));
+      border: 1px solid rgba(255,255,255,0.14);
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .hero-copy .brand {
+      margin-bottom: 0;
+      gap: 16px;
+      align-items: center;
+    }
+    .hero-copy .logo {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.14);
+    }
+    .hero-title {
+      margin: 0;
+      font-size: clamp(34px, 4.4vw, 56px);
+      line-height: 0.96;
+      letter-spacing: -0.04em;
+      font-family: "Fraunces", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    }
+    .hero-lead {
+      margin: 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.74;
+    }
+    .hero-badges {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .hero-badge {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.12);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+      min-height: 104px;
+    }
+    html.dark .hero-badge {
+      background: rgba(255,255,255,0.035);
+    }
+    .hero-badge span {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .hero-badge strong {
+      display: block;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+    .hero-badge small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .timeline-shell {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 16px;
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05)),
+        radial-gradient(260px 180px at 100% 0%, rgba(95,208,195,0.12), transparent 70%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    html.dark .timeline-shell {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03)),
+        radial-gradient(260px 180px at 100% 0%, rgba(95,208,195,0.13), transparent 70%);
+    }
+    .timeline-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .timeline-copy {
+      display: grid;
+      gap: 6px;
+    }
+    .timeline-copy strong {
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+    .timeline-copy span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .timeline-status-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .timeline-track {
+      display: grid;
+      gap: 10px;
+    }
+    .timeline-track-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .toolbar-controls {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .control-stack {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+    .control-field {
+      display: grid;
+      gap: 7px;
+      min-width: 118px;
+    }
+    .control-field span {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .control-stack button,
+    .control-field select {
+      min-height: 44px;
+    }
+    #desc {
+      grid-area: desc;
+      padding: 20px 22px;
+      margin: 0;
+      border-radius: 22px;
+    }
+    #info {
+      grid-area: info;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px;
+      border-radius: 24px;
+      min-height: 100%;
+    }
+    #globe {
+      grid-area: globe;
+      height: 720px;
+      padding: 18px;
+      border-radius: 24px;
+      margin-top: 0;
+      position: relative;
+    }
+    #globe::after {
+      content: "Global geography";
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      z-index: 2;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(8,14,13,0.24);
+      color: var(--fg);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    html:not(.dark) #globe::after {
+      background: rgba(255,255,255,0.72);
+    }
+    .grid {
+      grid-area: plots;
+      gap: 18px;
+      margin-top: 0;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    }
+    .plot-panel {
+      position: relative;
+      min-height: 432px;
+      padding: 20px;
+      border-radius: 22px;
+      cursor: pointer;
+      transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+    }
+    .plot-panel::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+      opacity: 0.88;
+    }
+    .plot-panel:hover,
+    .plot-panel.is-hovered,
+    .plot-panel.is-featured {
+      transform: translateY(-5px);
+      box-shadow: 0 30px 56px rgba(0,0,0,0.14);
+      border-color: rgba(95,208,195,0.22);
+    }
+    .plot-panel:focus-visible {
+      outline: 3px solid rgba(95,208,195,0.2);
+      outline-offset: 2px;
+    }
+    .plot-panel.is-featured,
+    .plot-panel.plot-panel--wide {
+      grid-column: 1 / -1;
+    }
+    .plot-head {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+      align-items: start;
+    }
+    .plot-head h3 {
+      margin: 6px 0 6px 0;
+      font-size: 24px;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      font-family: "Fraunces", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    }
+    .plot-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      max-width: 340px;
+    }
+    .plot-kicker {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .plot-summary {
+      display: grid;
+      gap: 6px;
+      text-align: right;
+      min-width: 118px;
+    }
+    .plot-value {
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+    .plot-delta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .plot-note {
+      position: relative;
+      z-index: 1;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .plot-panel .plot {
+      position: relative;
+      z-index: 1;
+      height: 312px;
+      padding: 0;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(360px 220px at 8% 0%, rgba(255,255,255,0.12), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+      overflow: hidden;
+      box-shadow: none;
+    }
+    .plot-panel.plot-panel--wide .plot,
+    .plot-panel.is-featured .plot {
+      height: 360px;
+    }
+    .insight-shell {
+      display: grid;
+      gap: 16px;
+      position: relative;
+      z-index: 1;
+    }
+    .insight-copy h2,
+    .story-title {
+      margin: 6px 0 10px 0;
+      font-size: 28px;
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+      font-family: "Fraunces", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    }
+    .insight-copy p,
+    .story-text {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.68;
+    }
+    .insight-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .insight-metric,
+    .rail-panel,
+    .config-chip {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.09);
+      background: rgba(255,255,255,0.12);
+    }
+    html.dark .insight-metric,
+    html.dark .rail-panel,
+    html.dark .config-chip {
+      background: rgba(255,255,255,0.04);
+    }
+    .insight-metric span,
+    .rail-panel span,
+    .config-chip span {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .insight-metric strong,
+    .rail-panel strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+    .insight-metric small,
+    .rail-panel small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .rail-grid {
+      display: grid;
+      gap: 10px;
+    }
+    .slot-summary {
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(95,208,195,0.18);
+      background: linear-gradient(135deg, rgba(95,208,195,0.1), rgba(211,139,69,0.08));
+      color: var(--fg);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    .story-shell {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+      gap: 18px;
+    }
+    .story-kicker,
+    .insight-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .story-kicker::before,
+    .insight-kicker::before {
+      content: "";
+      width: 22px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--brand), transparent);
+    }
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .timeline-status-row .status-pill[data-state="playing"]::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--brand-2);
+      box-shadow: 0 0 0 0 rgba(95,208,195,0.42);
+      animation: pulse 1.4s ease infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(95,208,195,0.42); }
+      70% { box-shadow: 0 0 0 10px rgba(95,208,195,0); }
+      100% { box-shadow: 0 0 0 0 rgba(95,208,195,0); }
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
     @media (max-width: 900px) {
-      .toolbar { gap: 10px; }
-      .toolbar .brand { width: 100%; }
+      .wrap {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "toolbar"
+          "desc"
+          "globe"
+          "info"
+          "plots";
+      }
+      .toolbar,
+      #desc,
+      #info,
+      #globe,
+      .plot-panel {
+        padding: 18px;
+      }
+      .hero-shell,
+      .toolbar-controls,
+      .hero-badges,
+      .story-shell,
+      .config-grid,
+      .insight-grid {
+        grid-template-columns: 1fr;
+      }
+      .timeline-top,
+      .toolbar-controls,
+      .timeline-status-row {
+        gap: 10px;
+      }
+      .plot-panel.plot-panel--wide,
+      .plot-panel.is-featured {
+        grid-column: auto;
+      }
+      .plot-panel.plot-panel--wide .plot,
+      .plot-panel.is-featured .plot {
+        height: 312px;
+      }
       #globe { height: 460px; }
     }
   </style>
@@ -228,28 +804,102 @@
 <body>
 <div class="wrap">
   <div class="toolbar card">
-    <div class="brand">
-      <img class="logo" src="assets/logo.jpg" alt="Logo">
-      <h1>Simulation Viewer</h1>
+    <div class="hero-shell">
+      <div class="hero-copy">
+        <div class="hero-brow">Published Results Viewer</div>
+        <div class="brand">
+          <img class="logo" src="assets/logo.jpg" alt="Logo">
+          <div>
+            <h1 class="hero-title">Geographical Decentralization Atlas</h1>
+          </div>
+        </div>
+        <p class="hero-lead">
+          Explore the published simulation outputs as a living research surface. The map, timeline, and metric cards stay synchronized so the run reads like one continuous story instead of a page of disconnected charts.
+        </p>
+        <div class="hero-badges">
+          <div class="hero-badge">
+            <span>Dataset</span>
+            <strong id="dataset-label">Loading dataset</strong>
+            <small id="dataset-subtitle">Resolving published result metadata</small>
+          </div>
+          <div class="hero-badge">
+            <span>Paradigm</span>
+            <strong id="dataset-model">Research run</strong>
+            <small id="dataset-window">Timeline not loaded yet</small>
+          </div>
+          <div class="hero-badge">
+            <span>Reading</span>
+            <strong id="hero-focus">Awaiting slot playback</strong>
+            <small id="hero-focus-note">Use space to play or pause, and arrows to scrub through slots.</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-shell">
+        <div class="timeline-top">
+          <div class="timeline-copy">
+            <strong>Timeline control</strong>
+            <span>Adjust cadence, switch motion modes, or scrub directly to any slot in the run.</span>
+          </div>
+          <div class="timeline-status-row">
+            <div id="slot-indicator" class="status-pill secondary">Slot 1 / 1</div>
+            <div id="timeline-status" class="status-pill" data-state="loading" aria-live="polite">Loading dataset</div>
+          </div>
+        </div>
+
+        <div class="timeline-track">
+          <input id="slider" type="range" min="0" max="0" step="1" value="0"/>
+          <div class="timeline-track-meta">
+            <span>Start</span>
+            <span id="timeline-percent">0% through run</span>
+            <span>Finish</span>
+          </div>
+        </div>
+
+        <div class="toolbar-controls">
+          <div class="control-stack">
+            <button id="play">Play</button>
+            <button id="pause">Pause</button>
+            <button id="theme">Theme</button>
+            <button id="export">Export</button>
+          </div>
+          <div class="control-stack">
+            <div class="control-field">
+              <span>Step size</span>
+              <select id="step">
+                <option value="1">1 slot</option>
+                <option value="10">10 slots</option>
+                <option value="50">50 slots</option>
+              </select>
+            </div>
+            <div class="control-field">
+              <span>Playback speed</span>
+              <select id="speed">
+                <option value="0.5">0.5x</option>
+                <option value="1">1x</option>
+                <option value="2">2x</option>
+                <option value="4">4x</option>
+              </select>
+            </div>
+          </div>
+          <div class="control-stack">
+            <div class="control-field" style="min-width:160px">
+              <span>Motion system</span>
+              <select id="motion">
+                <option value="auto">Auto</option>
+                <option value="full">Animated</option>
+                <option value="reduce">Reduced</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div style="flex:1"></div>
-    <button id="play">⏵ Play</button>
-    <button id="pause">⏸ Pause</button>
-    <label>Step
-      <select id="step">
-        <option value="1">1</option>
-        <option value="10">10</option>
-        <option value="50">50</option>
-      </select>
-    </label>
-    <input id="slider" type="range" min="0" max="0" step="1" value="0"/>
-    <button id="export" style="margin-right: 4px;">⬇ Export</button>
-    <button id="theme">🌓 Theme</button>
   </div>
   <div id="desc" class="card lead" style="display:none"></div>
   <div id="info" class="card lead"></div>
   <div id="globe" class="card"></div>
-  <div class="grid">
+  <div id="plots-grid" class="grid">
     <div id="Gini" class="card plot"></div>
     <div id="HHI" class="card plot"></div>
     <div id="liveness" class="card plot"></div>
@@ -278,13 +928,17 @@ function readSettings() {
     dataset: RESEARCH_CATALOG.defaultSelection?.path || 'simulations/test/SSP/data/data.json',
     theme: 'auto',
     step: 1,
-    autoplay: false
+    autoplay: false,
+    speed: 1,
+    motion: 'auto'
   };
   const fromQS = {
     dataset: qs.get('dataset') || undefined,
     theme: qs.get('theme') || undefined,
     step: qs.get('step') ? Number(qs.get('step')) : undefined,
-    autoplay: qs.get('autoplay') ? (qs.get('autoplay') === 'true') : undefined
+    autoplay: qs.get('autoplay') ? (qs.get('autoplay') === 'true') : undefined,
+    speed: qs.get('speed') ? Number(qs.get('speed')) : undefined,
+    motion: qs.get('motion') || undefined
   };
   return Object.assign(base, ls || {}, fromQS);
 }
@@ -292,6 +946,204 @@ function readSettings() {
 const SETTINGS = readSettings();
 let dark = (SETTINGS.theme === 'dark')
         || (SETTINGS.theme === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+const MOTION_MEDIA_QUERY = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+
+const CHART_DEFS = {
+  Gini: {
+    label: 'Decentralization',
+    title: 'Gini Coefficient',
+    description: 'Lower values indicate a fairer continental split.',
+    note: 'Distribution fairness across mapped continents.',
+    seriesKey: 'gini',
+    yTitle: 'Gini',
+    decimals: 3,
+    deltaDecimals: 3,
+    suffix: '',
+    colors: { light: '#ba7440', dark: '#f2b56d', fillLight: 'rgba(186,116,64,0.16)', fillDark: 'rgba(242,181,109,0.16)', accentBLight: '#e2b178', accentBDark: '#63d0c2' },
+  },
+  HHI: {
+    label: 'Decentralization',
+    title: 'HHI',
+    description: 'Higher values imply more concentration in fewer regions.',
+    note: 'Concentration pressure at the current slot.',
+    seriesKey: 'hhi',
+    yTitle: 'HHI',
+    decimals: 3,
+    deltaDecimals: 3,
+    suffix: '',
+    colors: { light: '#8a5f9e', dark: '#caa3ff', fillLight: 'rgba(138,95,158,0.16)', fillDark: 'rgba(202,163,255,0.16)', accentBLight: '#d2b6e0', accentBDark: '#7f6de0' },
+  },
+  liveness: {
+    label: 'Coverage',
+    title: 'Liveness Coefficient',
+    description: 'Tracks how many regions remain represented over time.',
+    note: 'Representation resilience across active regions.',
+    seriesKey: 'liveness',
+    yTitle: 'Liveness',
+    decimals: 3,
+    deltaDecimals: 3,
+    suffix: '',
+    colors: { light: '#2f8a7e', dark: '#63d0c2', fillLight: 'rgba(47,138,126,0.16)', fillDark: 'rgba(99,208,194,0.16)', accentBLight: '#8fd7cb', accentBDark: '#f2b56d' },
+  },
+  CV: {
+    label: 'Equity',
+    title: 'Coefficient of Variation',
+    description: 'Profit disparity between continents at the current slot.',
+    note: 'Relative spread of profitability between regions.',
+    seriesKey: 'profit_variance',
+    yTitle: 'CV',
+    decimals: 3,
+    deltaDecimals: 3,
+    suffix: '',
+    colors: { light: '#b6625c', dark: '#d88b84', fillLight: 'rgba(182,98,92,0.16)', fillDark: 'rgba(216,139,132,0.16)', accentBLight: '#e0ada6', accentBDark: '#f0c58a' },
+  },
+  clusters: {
+    label: 'Topology',
+    title: 'Clusters',
+    description: 'How many validator groupings appear in space.',
+    note: 'Spatial fragmentation of the validator set.',
+    seriesKey: 'clusters',
+    yTitle: 'Clusters',
+    decimals: 0,
+    deltaDecimals: 0,
+    suffix: '',
+    colors: { light: '#c38735', dark: '#f0c58a', fillLight: 'rgba(195,135,53,0.18)', fillDark: 'rgba(240,197,138,0.16)', accentBLight: '#efc985', accentBDark: '#63d0c2' },
+  },
+  totaldist: {
+    label: 'Topology',
+    title: 'Total Distance',
+    description: 'Aggregate spatial separation across the validator set.',
+    note: 'Larger values imply broader dispersion.',
+    seriesKey: 'total_distance',
+    yTitle: 'Distance',
+    decimals: 3,
+    deltaDecimals: 3,
+    suffix: '',
+    colors: { light: '#6c739d', dark: '#aeb6ff', fillLight: 'rgba(108,115,157,0.16)', fillDark: 'rgba(174,182,255,0.14)', accentBLight: '#c1c7e8', accentBDark: '#63d0c2' },
+  },
+  avgnnd: {
+    label: 'Topology',
+    title: 'Average NND',
+    description: 'Average nearest-neighbor distance between validators.',
+    note: 'Local spacing in the validator cloud.',
+    seriesKey: 'avg_nnd',
+    yTitle: 'Avg NND',
+    decimals: 3,
+    deltaDecimals: 3,
+    suffix: '',
+    colors: { light: '#6a8f49', dark: '#9fe07f', fillLight: 'rgba(106,143,73,0.18)', fillDark: 'rgba(159,224,127,0.14)', accentBLight: '#bad39d', accentBDark: '#f2b56d' },
+  },
+  nni: {
+    label: 'Topology',
+    title: 'Nearest Neighbor Index',
+    description: 'Compares observed spacing versus random expectation.',
+    note: 'Below 1 trends clustered, above 1 trends dispersed.',
+    seriesKey: 'nni',
+    yTitle: 'NNI',
+    decimals: 3,
+    deltaDecimals: 3,
+    suffix: '',
+    colors: { light: '#4d7b97', dark: '#8bc8f1', fillLight: 'rgba(77,123,151,0.18)', fillDark: 'rgba(139,200,241,0.14)', accentBLight: '#accfe0', accentBDark: '#63d0c2' },
+  },
+  mev: {
+    label: 'Economics',
+    title: 'MEV Earned',
+    description: 'Estimated block value captured through the run.',
+    note: 'Per-slot reward flow in ETH.',
+    seriesKey: 'mev',
+    yTitle: 'ETH',
+    decimals: 4,
+    deltaDecimals: 4,
+    suffix: ' ETH',
+    colors: { light: '#ba7440', dark: '#f2b56d', fillLight: 'rgba(186,116,64,0.18)', fillDark: 'rgba(242,181,109,0.16)', accentBLight: '#f0c58a', accentBDark: '#63d0c2' },
+  },
+  attest: {
+    label: 'Performance',
+    title: 'Attestation Rate',
+    description: 'Share of attestations landing before the cutoff.',
+    note: 'Higher is better for liveness and coordination.',
+    seriesKey: 'attestations',
+    yTitle: 'Attestation %',
+    decimals: 2,
+    deltaDecimals: 2,
+    suffix: '%',
+    colors: { light: '#2f8a7e', dark: '#63d0c2', fillLight: 'rgba(47,138,126,0.18)', fillDark: 'rgba(99,208,194,0.16)', accentBLight: '#9cdbd2', accentBDark: '#f2b56d' },
+  },
+  failed: {
+    label: 'Performance',
+    title: 'Failed Block Proposals',
+    description: 'Slots that did not produce a successful block proposal.',
+    note: 'Operational friction at proposal time.',
+    seriesKey: 'failed_block_proposals',
+    yTitle: 'Count',
+    decimals: 0,
+    deltaDecimals: 0,
+    suffix: '',
+    colors: { light: '#b6625c', dark: '#d88b84', fillLight: 'rgba(182,98,92,0.18)', fillDark: 'rgba(216,139,132,0.16)', accentBLight: '#e0ada6', accentBDark: '#f0c58a' },
+  },
+  proposal: {
+    label: 'Latency',
+    title: 'Proposal Time',
+    description: 'Observed proposal latency as the run evolves.',
+    note: 'The faster this stays, the healthier the pipeline feels.',
+    seriesKey: 'proposal_times',
+    yTitle: 'ms',
+    decimals: 2,
+    deltaDecimals: 2,
+    suffix: ' ms',
+    colors: { light: '#7d5ca9', dark: '#caa3ff', fillLight: 'rgba(125,92,169,0.16)', fillDark: 'rgba(202,163,255,0.16)', accentBLight: '#d7c0f0', accentBDark: '#63d0c2' },
+  },
+  relaydist: {
+    label: 'Sources',
+    title: 'Average Distance to Info Sources',
+    description: 'How accessible the configured relays or signals are to validators.',
+    note: 'Multiple source lines stay synchronized to the same slot cursor.',
+    seriesKey: 'info_avg_distance',
+    yTitle: 'Avg distance',
+    decimals: 3,
+    deltaDecimals: 3,
+    suffix: '',
+    colors: { light: '#4d7b97', dark: '#8bc8f1', fillLight: 'rgba(77,123,151,0.18)', fillDark: 'rgba(139,200,241,0.16)', accentBLight: '#accfe0', accentBDark: '#63d0c2' },
+  },
+};
+
+function sanitizeSpeed(value) {
+  const allowed = [0.5, 1, 2, 4];
+  const parsed = Number(value);
+  return allowed.includes(parsed) ? parsed : 1;
+}
+
+function resolveCatalogEntry(path) {
+  return (RESEARCH_CATALOG.datasets || []).find(entry => entry.path === path) || null;
+}
+
+function safeNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function valueAt(series, index) {
+  if (!Array.isArray(series) || series[index] == null) return 0;
+  return safeNumber(series[index], 0);
+}
+
+function chartStyle(plotId) {
+  const palette = CHART_DEFS[plotId] ? CHART_DEFS[plotId].colors : null;
+  if (!palette) {
+    return {
+      line: dark ? '#f2b56d' : '#ba7440',
+      fill: dark ? 'rgba(242,181,109,0.16)' : 'rgba(186,116,64,0.16)',
+      accentA: dark ? '#f2b56d' : '#ba7440',
+      accentB: dark ? '#63d0c2' : '#d7a260',
+    };
+  }
+  return {
+    line: dark ? palette.dark : palette.light,
+    fill: dark ? palette.fillDark : palette.fillLight,
+    accentA: dark ? palette.dark : palette.light,
+    accentB: dark ? palette.accentBDark : palette.accentBLight,
+  };
+}
 
 function findParam(key, data) {
   const containers = [data, data && data.meta, data && data.config, data && data.params, data && data.parameters];
@@ -314,8 +1166,6 @@ function formatParam(value) {
 
 function updateSummaryPanel(data) {
   const descEl = document.getElementById('desc');
-  if (!descEl) return;
-
   const validatorCount = findParam('|V|', data) ?? findParam('V', data) ?? findParam('v', data) ?? findParam('validators', data) ?? findParam('num_validators', data);
   const nValue = findParam('N', data) ?? findParam('n', data) ?? findParam('num_nodes', data) ?? findParam('n_slots', data);
   const delta = findParam('delta', data);
@@ -333,26 +1183,62 @@ function updateSummaryPanel(data) {
     return;
   }
 
-  const configHTML = hasConfig ? `
-    <div style="display:flex;flex-wrap:wrap;gap:10px">
-      <span><b>Configuration</b></span>
-      <span><b>|V|:</b> ${formatParam(validatorCount)}</span>
-      <span><b>N:</b> ${formatParam(nValue)}</span>
-      <span><b>cost:</b> ${formatParam(cost)}</span>
-      <span><b>Δ:</b> ${formatParam(delta)} ms</span>
-      <span><b>cutoff:</b> ${formatParam(cutoff)} ms</span>
-      <span><b>γ:</b> ${formatParam(gamma)}</span>
-    </div>` : '';
-  const summaryHTML = hasSummary ? `<div style="margin-top:8px"><b>Summary:</b> ${summary}</div>` : '';
-  descEl.innerHTML = `${configHTML}${summaryHTML}`;
+  descEl.innerHTML = `
+    <div class="story-shell">
+      <section>
+        <div class="story-kicker">Experiment frame</div>
+        <h2 class="story-title">Configuration snapshot</h2>
+        <p class="story-text">This panel preserves the high-level experiment framing from the published result, so the live map and charts stay grounded in the exact run setup you are inspecting.</p>
+        ${hasConfig ? `
+          <div class="config-grid">
+            <div class="config-chip"><span>|V|</span><strong>${formatParam(validatorCount)}</strong></div>
+            <div class="config-chip"><span>N</span><strong>${formatParam(nValue)}</strong></div>
+            <div class="config-chip"><span>cost</span><strong>${formatParam(cost)}</strong></div>
+            <div class="config-chip"><span>Delta</span><strong>${formatParam(delta)} ms</strong></div>
+            <div class="config-chip"><span>cutoff</span><strong>${formatParam(cutoff)} ms</strong></div>
+            <div class="config-chip"><span>gamma</span><strong>${formatParam(gamma)}</strong></div>
+          </div>
+        ` : ''}
+      </section>
+      <section>
+        <div class="story-kicker">Research note</div>
+        <h2 class="story-title">How to read this result</h2>
+        <p class="story-text">${hasSummary ? summary : 'This result does not ship with an explicit narrative summary, so the atlas emphasizes synchronized motion and chart context to surface the behavior slot by slot.'}</p>
+      </section>
+    </div>
+  `;
   descEl.style.display = 'block';
+}
+
+function updateHeroMeta() {
+  const entry = resolveCatalogEntry(SETTINGS.dataset);
+  const segments = String(SETTINGS.dataset || '').split('/').filter(Boolean);
+  document.getElementById('dataset-label').textContent = entry ? entry.evaluation : (segments[segments.length - 3] || 'Custom dataset');
+  document.getElementById('dataset-subtitle').textContent = entry
+    ? `${entry.paradigm} • ${entry.result}`
+    : (segments.slice(-2).join(' / ') || SETTINGS.dataset);
+  document.getElementById('dataset-model').textContent = entry ? entry.paradigm : (findParam('model', DATA) || 'Research run');
+  document.getElementById('dataset-window').textContent = `${nSlots} slots available in this run`;
+}
+
+function updateHeroFocus(index) {
+  const metrics = DATA.metrics || {};
+  const mev = valueAt(metrics.mev, index);
+  const attest = valueAt(metrics.attestations, index);
+  const clusters = valueAt(metrics.clusters, index);
+  document.getElementById('hero-focus').textContent = `MEV ${formatNumber(mev, 4)} ETH • Attest ${formatNumber(attest, 2)}%`;
+  document.getElementById('hero-focus-note').textContent = `Slot ${index + 1} currently shows ${formatNumber(clusters, 0)} spatial clusters with the map and metric cards locked to the same moment.`;
 }
 
 let DATA = null;
 let playing = !!SETTINGS.autoplay;
 let slot = 0;
 let stepSize = SETTINGS.step || 1;
+let speedMultiplier = sanitizeSpeed(SETTINGS.speed);
+let motionPreference = ['auto', 'full', 'reduce'].includes(SETTINGS.motion) ? SETTINGS.motion : 'auto';
 let drawFrame = 0;
+let lastAdvanceAt = null;
+let interactionState = 'loading';
 
 let nSlots = 1;
 let FULL_X = [0];
@@ -363,11 +1249,216 @@ let RELAY_NAMES = [];
 
 let plotsReady = false;
 let globeReady = false;
-const SLOT_TRANSITION_MS = 240;
-const SLOT_EASING = "cubic-in-out";
+const BASE_STEP_MS = 820;
+const BASE_TRANSITION_MS = 260;
+const SLOT_EASING = 'cubic-in-out';
+const PLOT_IDS = Object.keys(CHART_DEFS);
+const RELAY_PALETTE_LIGHT = ['#ba7440', '#2f8a7e', '#7d5ca9', '#b6625c', '#4d7b97', '#6a8f49', '#c38735'];
+const RELAY_PALETTE_DARK = ['#f2b56d', '#63d0c2', '#caa3ff', '#d88b84', '#8bc8f1', '#9fe07f', '#f0c58a'];
 
 let RAW_GCP_CSV = null;
 let RAW_DATA_JSON = null;
+
+function prefersReducedMotionEnabled() {
+  return motionPreference === 'reduce'
+    || (motionPreference === 'auto' && !!(MOTION_MEDIA_QUERY && MOTION_MEDIA_QUERY.matches));
+}
+
+function getMotionSettings() {
+  const reduced = prefersReducedMotionEnabled();
+  const transitionMs = reduced ? 0 : Math.max(120, Math.round(BASE_TRANSITION_MS / speedMultiplier));
+  const stepMs = reduced
+    ? Math.max(120, Math.round(520 / speedMultiplier))
+    : Math.max(transitionMs + 160, Math.round(BASE_STEP_MS / speedMultiplier));
+  return {
+    reduced,
+    transitionMs,
+    frameMs: transitionMs,
+    stepMs,
+    easing: reduced ? 'linear' : SLOT_EASING,
+  };
+}
+
+function currentThemeSetting() {
+  return dark ? 'dark' : 'light';
+}
+
+function persistViewerSettings() {
+  try {
+    localStorage.setItem('app_settings', JSON.stringify({
+      dataset: SETTINGS.dataset,
+      theme: currentThemeSetting(),
+      step: stepSize,
+      autoplay: playing,
+      speed: speedMultiplier,
+      motion: motionPreference,
+    }));
+  } catch (_) {}
+}
+
+function setPlaybackState(nextState) {
+  interactionState = nextState;
+  updateStatusUI();
+}
+
+function updateStatusUI() {
+  const slotIndicator = document.getElementById('slot-indicator');
+  const status = document.getElementById('timeline-status');
+  const playBtn = document.getElementById('play');
+  const pauseBtn = document.getElementById('pause');
+  const motion = getMotionSettings();
+  const slotNumber = Math.min(Math.max(slot + 1, 1), Math.max(nSlots, 1));
+
+  slotIndicator.textContent = `Slot ${slotNumber} / ${Math.max(nSlots, 1)}`;
+  status.dataset.state = interactionState;
+
+  if (interactionState === 'loading') {
+    status.textContent = 'Loading dataset';
+  } else if (interactionState === 'exporting') {
+    status.textContent = 'Exporting dataset';
+  } else if (interactionState === 'playing') {
+    status.textContent = `Playing • ${speedMultiplier}x • ${motion.reduced ? 'reduced motion' : 'animated'}`;
+  } else if (interactionState === 'scrubbing') {
+    status.textContent = `Scrubbing • ${motion.reduced ? 'reduced motion' : 'animated'}`;
+  } else if (interactionState === 'paused') {
+    status.textContent = `Paused • ${motion.reduced ? 'reduced motion' : 'animated'}`;
+  } else {
+    status.textContent = `Ready • ${motion.reduced ? 'reduced motion' : 'animated'}`;
+  }
+
+  playBtn.disabled = playing;
+  pauseBtn.disabled = !playing;
+}
+
+function updateSliderProgress(index) {
+  const slider = document.getElementById('slider');
+  const percentLabel = document.getElementById('timeline-percent');
+  const max = Math.max(nSlots - 1, 1);
+  const ratio = max <= 0 ? 0 : Math.min(Math.max(index / max, 0), 1);
+  const progress = Math.round(ratio * 1000) / 10;
+  const active = dark ? '#63d0c2' : '#ba7440';
+  const mid = dark ? '#f2b56d' : '#d7a260';
+  const inactive = dark ? 'rgba(255,255,255,0.14)' : 'rgba(26,31,28,0.12)';
+  slider.style.background = `linear-gradient(90deg, ${active} 0%, ${mid} ${progress}%, ${inactive} ${progress}%, ${inactive} 100%)`;
+  if (percentLabel) percentLabel.textContent = `${Math.round(ratio * 100)}% through run`;
+}
+
+function formatNumber(value, decimals = 2) {
+  const numeric = safeNumber(value, 0);
+  return decimals === 0 ? String(Math.round(numeric)) : numeric.toFixed(decimals);
+}
+
+function formatSignedDelta(value, decimals = 2, suffix = '') {
+  const numeric = safeNumber(value, 0);
+  const rounded = decimals === 0 ? Math.round(numeric) : Number(numeric.toFixed(decimals));
+  if (rounded === 0) return 'Flat vs previous slot';
+  const prefix = rounded > 0 ? '+' : '';
+  return `${prefix}${decimals === 0 ? rounded : rounded.toFixed(decimals)}${suffix} vs previous slot`;
+}
+
+function upgradePlotCards() {
+  for (const plotId of PLOT_IDS) {
+    const plotEl = document.getElementById(plotId);
+    if (!plotEl || plotEl.dataset.upgraded === 'true') continue;
+
+    const config = CHART_DEFS[plotId];
+    const style = chartStyle(plotId);
+    const wrapper = document.createElement('article');
+    wrapper.className = `plot-panel card${plotId === 'relaydist' ? ' plot-panel--wide' : ''}`;
+    wrapper.dataset.plotCard = plotId;
+    wrapper.tabIndex = 0;
+    wrapper.setAttribute('role', 'button');
+    wrapper.setAttribute('aria-pressed', 'false');
+    wrapper.style.setProperty('--accent-a', style.accentA);
+    wrapper.style.setProperty('--accent-b', style.accentB);
+
+    plotEl.classList.remove('card');
+    plotEl.classList.remove('plot');
+
+    plotEl.parentNode.insertBefore(wrapper, plotEl);
+    wrapper.innerHTML = `
+      <div class="plot-head">
+        <div>
+          <div class="plot-kicker">${config.label}</div>
+          <h3>${config.title}</h3>
+          <p>${config.description}</p>
+        </div>
+        <div class="plot-summary">
+          <div id="${plotId}-value" class="plot-value">--</div>
+          <div id="${plotId}-delta" class="plot-delta">${config.note}</div>
+        </div>
+      </div>
+    `;
+    wrapper.appendChild(plotEl);
+    wrapper.insertAdjacentHTML('beforeend', `<div class="plot-note">${config.note}</div>`);
+    plotEl.dataset.upgraded = 'true';
+  }
+}
+
+function bindPlotCardInteractions() {
+  const grid = document.getElementById('plots-grid');
+  if (!grid || grid.dataset.bound === 'true') return;
+  grid.dataset.bound = 'true';
+
+  function toggleFeatured(card) {
+    const alreadyFeatured = card.classList.contains('is-featured');
+    document.querySelectorAll('[data-plot-card]').forEach(item => {
+      item.classList.remove('is-featured');
+      item.setAttribute('aria-pressed', 'false');
+    });
+    if (!alreadyFeatured) {
+      card.classList.add('is-featured');
+      card.setAttribute('aria-pressed', 'true');
+      const plotId = card.dataset.plotCard;
+      if (plotId && window.Plotly) {
+        requestAnimationFrame(() => Plotly.Plots.resize(document.getElementById(plotId)));
+      }
+    }
+  }
+
+  grid.addEventListener('click', event => {
+    const card = event.target.closest('[data-plot-card]');
+    if (!card) return;
+    toggleFeatured(card);
+  });
+
+  grid.addEventListener('keydown', event => {
+    const card = event.target.closest('[data-plot-card]');
+    if (!card) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      toggleFeatured(card);
+    }
+  });
+}
+
+function attachPlotInteractions(plotId) {
+  const plotEl = document.getElementById(plotId);
+  if (!plotEl || plotEl.dataset.eventsBound === 'true' || typeof plotEl.on !== 'function') return;
+  plotEl.dataset.eventsBound = 'true';
+  const card = plotEl.closest('[data-plot-card]');
+  if (!card) return;
+
+  plotEl.on('plotly_hover', () => card.classList.add('is-hovered'));
+  plotEl.on('plotly_unhover', () => card.classList.remove('is-hovered'));
+}
+
+function cursorShape(index) {
+  return {
+    type: 'line',
+    xref: 'x',
+    yref: 'paper',
+    x0: index,
+    x1: index,
+    y0: 0,
+    y1: 1,
+    line: {
+      color: dark ? 'rgba(244,178,103,0.75)' : 'rgba(143,83,38,0.62)',
+      width: 1.5,
+      dash: 'dot',
+    },
+  };
+}
 
 function scheduleDraw() {
   if (drawFrame) return;
@@ -378,25 +1469,49 @@ function scheduleDraw() {
 }
 
 function plotlyTheme(isDark, title = '', yTitle = '') {
-  if (isDark) {
-    return {
-      title,
-      paper_bgcolor: '#101b18',
-      plot_bgcolor: '#101b18',
-      font: { color: '#f3f3ef', size: 12 },
-      colorway: ['#f4b267', '#5fd0c3', '#f7d08a', '#9ad4c7', '#e6a59c'],
-      xaxis: { title: { text: 'Slot' }, gridcolor: '#2f3d38', tickfont: { size: 11 } },
-      yaxis: { title: { text: yTitle }, gridcolor: '#2f3d38', tickfont: { size: 11 } }
-    };
-  }
   return {
-    title,
-    paper_bgcolor: 'rgba(244,239,229,0.75)',
-    plot_bgcolor: 'rgba(244,239,229,0.75)',
-    font: { color: '#1a1f1c', size: 12 },
-    colorway: ['#d89046', '#2ea69a', '#c97c5d', '#6a9c7e', '#9a7e6b'],
-    xaxis: { title: { text: 'Slot' }, gridcolor: '#d6d3c8', tickfont: { size: 11 } },
-    yaxis: { title: { text: yTitle }, gridcolor: '#d6d3c8', tickfont: { size: 11 } }
+    title: {
+      text: title,
+      font: {
+        family: '"Fraunces", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif',
+        size: 18,
+        color: isDark ? '#f6f2eb' : '#231e18',
+      },
+    },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: {
+      color: isDark ? '#f6f2eb' : '#231e18',
+      size: 12,
+      family: '"Plus Jakarta Sans", "Segoe UI", sans-serif',
+    },
+    colorway: isDark
+      ? ['#f2b56d', '#63d0c2', '#caa3ff', '#d88b84', '#8bc8f1', '#9fe07f']
+      : ['#ba7440', '#2f8a7e', '#7d5ca9', '#b6625c', '#4d7b97', '#6a8f49'],
+    hoverlabel: {
+      bgcolor: isDark ? 'rgba(10,18,16,0.92)' : 'rgba(255,251,244,0.96)',
+      bordercolor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(44,31,16,0.08)',
+      font: {
+        color: isDark ? '#f6f2eb' : '#231e18',
+        family: '"Plus Jakarta Sans", "Segoe UI", sans-serif',
+      },
+    },
+    xaxis: {
+      title: { text: 'Slot' },
+      gridcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(40,30,16,0.08)',
+      zerolinecolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(40,30,16,0.08)',
+      linecolor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(40,30,16,0.12)',
+      tickfont: { size: 11, color: isDark ? '#d6ccbe' : '#6b5d4f' },
+      titlefont: { size: 12, color: isDark ? '#d6ccbe' : '#6b5d4f' },
+    },
+    yaxis: {
+      title: { text: yTitle },
+      gridcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(40,30,16,0.08)',
+      zerolinecolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(40,30,16,0.08)',
+      linecolor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(40,30,16,0.12)',
+      tickfont: { size: 11, color: isDark ? '#d6ccbe' : '#6b5d4f' },
+      titlefont: { size: 12, color: isDark ? '#d6ccbe' : '#6b5d4f' },
+    }
   };
 }
 
@@ -503,18 +1618,129 @@ async function loadData() {
       RELAY_LON.push(0);
     }
   }
+  updateHeroMeta();
 }
 
-function drawGlobe(index) {
+function computeCountryCounts(index) {
   const countryCounts = new Map();
   for (const [region, count] of (DATA.slots[index] || [])) {
     const row = DATA.gcpData && DATA.gcpData.get(String(region));
     const country = extractCountry(row && row.location);
-    const validators = Number(count) || 0;
+    const validators = safeNumber(count, 0);
     if (COUNTRY_ISO3[country]) {
       countryCounts.set(country, (countryCounts.get(country) || 0) + validators);
     }
   }
+  return countryCounts;
+}
+
+function topCountrySummary(index) {
+  const countryCounts = computeCountryCounts(index);
+  const sorted = Array.from(countryCounts.entries()).sort((a, b) => b[1] - a[1]);
+  const total = sorted.reduce((sum, [, count]) => sum + count, 0);
+  if (!sorted.length || total <= 0) {
+    return {
+      name: 'No mapped country data',
+      detail: 'No ISO-mapped countries were available for this slot.',
+      mappedValidators: 0,
+    };
+  }
+  const [country, count] = sorted[0];
+  const share = total > 0 ? (count / total) * 100 : 0;
+  return {
+    name: country,
+    detail: `${count} validators • ${formatNumber(share, 1)}% of mapped validators`,
+    mappedValidators: total,
+  };
+}
+
+function updateInsightPanel(index) {
+  const metrics = DATA.metrics || {};
+  const insightItems = [
+    { label: 'Clusters', value: formatNumber(valueAt(metrics.clusters, index), 0), note: 'Spatial groupings' },
+    { label: 'Total distance', value: formatNumber(valueAt(metrics.total_distance, index), 3), note: 'Aggregate spread' },
+    { label: 'Avg NND', value: formatNumber(valueAt(metrics.avg_nnd, index), 3), note: 'Local spacing' },
+    { label: 'MEV', value: `${formatNumber(valueAt(metrics.mev, index), 4)} ETH`, note: 'Value captured' },
+    { label: 'Attestation', value: `${formatNumber(valueAt(metrics.attestations, index), 2)}%`, note: 'Before cutoff' },
+    { label: 'Proposal time', value: `${formatNumber(valueAt(metrics.proposal_times, index), 2)} ms`, note: 'Latency profile' },
+  ];
+  document.getElementById('info').innerHTML = `
+    <div class="insight-shell">
+      <div class="insight-copy">
+        <div class="insight-kicker">Slot narrative</div>
+        <h2>What this slot says</h2>
+        <p>Follow the live metrics beside the globe to understand what changed at the current playback point.</p>
+      </div>
+      <div class="insight-grid">
+        ${insightItems.map(item => `
+          <div class="insight-metric">
+            <span>${item.label}</span>
+            <strong>${item.value}</strong>
+            <small>${item.note}</small>
+          </div>
+        `).join('')}
+      </div>
+      <div class="rail-grid">
+        <div class="rail-panel">
+          <span>Lead country</span>
+          <strong id="top-country">Awaiting data</strong>
+          <small id="top-country-detail">The dominant mapped country will appear here once the run loads.</small>
+        </div>
+        <div class="rail-panel">
+          <span>Progress</span>
+          <strong id="slot-progress">0%</strong>
+          <small id="slot-progress-detail">No timeline data loaded yet.</small>
+        </div>
+      </div>
+      <div id="slot-summary" class="slot-summary">The slot narrative will update as soon as the dataset is ready.</div>
+    </div>
+  `;
+
+  const topCountry = topCountrySummary(index);
+  const percent = Math.round(((index + 1) / Math.max(nSlots, 1)) * 100);
+  const topCountryEl = document.getElementById('top-country');
+  const topCountryDetailEl = document.getElementById('top-country-detail');
+  const slotProgressEl = document.getElementById('slot-progress');
+  const slotProgressDetailEl = document.getElementById('slot-progress-detail');
+  const slotSummaryEl = document.getElementById('slot-summary');
+
+  if (topCountryEl) topCountryEl.textContent = topCountry.name;
+  if (topCountryDetailEl) topCountryDetailEl.textContent = topCountry.detail;
+  if (slotProgressEl) slotProgressEl.textContent = `${percent}%`;
+  if (slotProgressDetailEl) slotProgressDetailEl.textContent = `Slot ${index + 1} of ${nSlots}`;
+  if (slotSummaryEl) {
+    slotSummaryEl.textContent = `At slot ${index + 1}, ${topCountry.name === 'No mapped country data' ? 'the mapped validator picture is incomplete' : `${topCountry.name} leads the mapped footprint`} while the run sits at Gini ${formatNumber(valueAt(metrics.gini, index), 3)}, ${formatNumber(valueAt(metrics.clusters, index), 0)} clusters, ${formatNumber(valueAt(metrics.attestations, index), 2)}% attestation rate, and ${formatNumber(valueAt(metrics.proposal_times, index), 2)} ms proposal time.`;
+  }
+}
+
+function relaySummary(index) {
+  const row = Array.isArray(DATA.metrics?.info_avg_distance?.[index]) ? DATA.metrics.info_avg_distance[index] : [];
+  const values = row.map(value => safeNumber(value, NaN)).filter(Number.isFinite);
+  if (!values.length) return 0;
+  return Math.min(...values);
+}
+
+function updateChartSummaries(index) {
+  for (const plotId of PLOT_IDS) {
+    const config = CHART_DEFS[plotId];
+    let current;
+    let previous;
+    if (plotId === 'relaydist') {
+      current = relaySummary(index);
+      previous = index > 0 ? relaySummary(index - 1) : current;
+    } else {
+      current = valueAt(DATA.metrics?.[config.seriesKey], index);
+      previous = index > 0 ? valueAt(DATA.metrics?.[config.seriesKey], index - 1) : current;
+    }
+    const valueEl = document.getElementById(`${plotId}-value`);
+    const deltaEl = document.getElementById(`${plotId}-delta`);
+    if (valueEl) valueEl.textContent = `${formatNumber(current, config.decimals)}${config.suffix}`;
+    if (deltaEl) deltaEl.textContent = index === 0 ? 'Opening slot' : formatSignedDelta(current - previous, config.deltaDecimals, config.suffix);
+  }
+}
+
+function drawGlobe(index) {
+  const countryCounts = computeCountryCounts(index);
 
   let maxCountryCount = 1;
   for (const count of countryCounts.values()) {
@@ -592,6 +1818,19 @@ function drawGlobe(index) {
     return;
   }
 
+  const traceUpdate = {
+    locations: [locations],
+    z: [values],
+    zmax: [maxCountryCount],
+    text: [hoverText],
+  };
+  const motion = getMotionSettings();
+
+  if (motion.reduced || motion.transitionMs === 0) {
+    Plotly.restyle('globe', traceUpdate, [0]);
+    return;
+  }
+
   Plotly.animate('globe', {
     data: [{
       locations: locations,
@@ -600,8 +1839,8 @@ function drawGlobe(index) {
       text: hoverText,
     }]
   }, {
-    transition: { duration: SLOT_TRANSITION_MS, easing: SLOT_EASING },
-    frame: { duration: SLOT_TRANSITION_MS, redraw: false },
+    transition: { duration: motion.transitionMs, easing: motion.easing },
+    frame: { duration: motion.frameMs, redraw: true },
   });
 }
 
@@ -616,6 +1855,13 @@ function animateLineToSlot(divId, fullY, index) {
   const y = safeY.slice(0, targetLen);
   const cursorX = x.length ? [x[x.length - 1]] : [0];
   const cursorY = y.length ? [y[y.length - 1]] : [0];
+  const motion = getMotionSettings();
+
+  if (motion.reduced || motion.transitionMs === 0) {
+    Plotly.restyle(divId, { x: [x], y: [y] }, [0]);
+    Plotly.restyle(divId, { x: [cursorX], y: [cursorY] }, [1]);
+    return;
+  }
 
   Plotly.animate(divId, {
     data: [
@@ -623,11 +1869,9 @@ function animateLineToSlot(divId, fullY, index) {
       { x: cursorX, y: cursorY },
     ],
   }, {
-    transition: { duration: SLOT_TRANSITION_MS, easing: SLOT_EASING },
-    frame: { duration: SLOT_TRANSITION_MS, redraw: false },
+    transition: { duration: motion.transitionMs, easing: motion.easing },
+    frame: { duration: motion.frameMs, redraw: false },
   });
-
-  Plotly.relayout(divId, { 'xaxis.range': visibleRange(index) });
 }
 
 function syncMetricLines(index) {
@@ -650,27 +1894,31 @@ function syncMetricLines(index) {
   for (const [id, series] of syncs) {
     animateLineToSlot(id, series, index);
   }
+  updateLineWindows(index);
 }
 
 function drawLine(divId, x, y, title, yTitle = '') {
   const el = document.getElementById(divId);
   const height = (el.clientHeight || 360) * 0.94;
+  const theme = plotlyTheme(dark, title, yTitle);
   const layout = {
-    ...plotlyTheme(dark, title, yTitle),
+    ...theme,
     height,
     margin: { l: 60, r: 20, t: 40, b: 40 },
     hovermode: 'x unified',
     xaxis: {
-      ...(plotlyTheme(dark, title, yTitle).xaxis),
+      ...theme.xaxis,
       autorange: false,
       range: [0, 0]
-    }
+    },
+    shapes: [cursorShape(0)],
   };
   const safeX = Array.isArray(x) ? x : [];
   const safeY = Array.isArray(y) ? y : [];
   const firstX = safeX.length ? [safeX[0]] : [0];
   const firstY = safeY.length ? [safeY[0]] : [0];
   const lineColor = layout.colorway ? layout.colorway[0] : '#d89046';
+  const cursorBorder = dark ? '#0f1f1b' : '#ffffff';
 
   Plotly.newPlot(divId, [{
     type: 'scatter',
@@ -687,7 +1935,7 @@ function drawLine(divId, x, y, title, yTitle = '') {
       size: 8,
       symbol: 'diamond',
       color: lineColor,
-      line: { color: '#ffffff', width: 1.5 },
+      line: { color: cursorBorder, width: 1.5 },
     },
     hoverinfo: 'skip',
     showlegend: false,
@@ -720,16 +1968,18 @@ function drawRelayDist() {
     });
   }
 
+  const theme = plotlyTheme(dark, 'Avg Distance to Info Sources', 'Avg. Distance to Info Sources');
   const layout = {
-    ...plotlyTheme(dark, 'Avg Distance to Info Sources', 'Avg. Distance to Info Sources'),
+    ...theme,
     height,
     margin: { l: 60, r: 20, t: 40, b: 40 },
     hovermode: 'x unified',
     xaxis: {
-      ...(plotlyTheme(dark, '', '').xaxis),
+      ...plotlyTheme(dark, '', '').xaxis,
       autorange: false,
       range: [0, 0]
-    }
+    },
+    shapes: [cursorShape(0)],
   };
   Plotly.newPlot('relaydist', traces, layout, { displaylogo: false, responsive: true, displayModeBar: false });
   Plotly.relayout('relaydist', { showlegend: false });
@@ -737,41 +1987,39 @@ function drawRelayDist() {
 
 function infoHTML(index) {
   const metrics = DATA.metrics;
-  const number = value => Number.isFinite(value) ? value : 0;
+  const valueAt = series => Array.isArray(series) && series[index] != null ? series[index] : 0;
+  const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
   return `
     <div style="display:flex;flex-wrap:wrap;gap:18px">
       <span><b>Slot</b> ${index + 1}</span>
-      <span>Clusters: ${metrics.clusters[index]}</span>
-      <span>Total Distance: ${number(metrics.total_distance[index]).toFixed(4)}</span>
-      <span>Avg NND: ${number(metrics.avg_nnd[index]).toFixed(4)}</span>
-      <span>NNI: ${number(metrics.nni[index]).toFixed(4)}</span>
-      <span>MEV: ${number(metrics.mev[index]).toFixed(4)}</span>
-      <span>Attest: ${number(metrics.attestations[index]).toFixed(2)}%</span>
-      <span>Proposal Time: ${number(metrics.proposal_times[index]).toFixed(2)} ms</span>
+      <span>Clusters: ${number(valueAt(metrics.clusters)).toFixed(0)}</span>
+      <span>Total Distance: ${number(valueAt(metrics.total_distance)).toFixed(4)}</span>
+      <span>Avg NND: ${number(valueAt(metrics.avg_nnd)).toFixed(4)}</span>
+      <span>NNI: ${number(valueAt(metrics.nni)).toFixed(4)}</span>
+      <span>MEV: ${number(valueAt(metrics.mev)).toFixed(4)}</span>
+      <span>Attest: ${number(valueAt(metrics.attestations)).toFixed(2)}%</span>
+      <span>Proposal Time: ${number(valueAt(metrics.proposal_times)).toFixed(2)} ms</span>
     </div>`;
 }
 
+function updatePlotWindow(divId, index) {
+  Plotly.relayout(divId, {
+    'xaxis.range': visibleRange(index),
+    shapes: [cursorShape(index)],
+  });
+}
+
 function updateLineWindows(index) {
-  const range = visibleRange(index);
-  const plotRange = { 'xaxis.range': range };
-  Plotly.relayout('Gini', plotRange);
-  Plotly.relayout('HHI', plotRange);
-  Plotly.relayout('liveness', plotRange);
-  Plotly.relayout('CV', plotRange);
-  Plotly.relayout('clusters', plotRange);
-  Plotly.relayout('totaldist', plotRange);
-  Plotly.relayout('avgnnd', plotRange);
-  Plotly.relayout('nni', plotRange);
-  Plotly.relayout('mev', plotRange);
-  Plotly.relayout('attest', plotRange);
-  Plotly.relayout('failed', plotRange);
-  Plotly.relayout('proposal', plotRange);
-  Plotly.relayout('relaydist', plotRange);
+  for (const plotId of PLOT_IDS) {
+    updatePlotWindow(plotId, index);
+  }
 }
 
 function drawAll() {
   document.getElementById('info').innerHTML = infoHTML(slot);
   document.getElementById('slider').value = String(slot);
+  updateSliderProgress(slot);
+  updateStatusUI();
 
   if (!plotsReady) {
     drawGlobe(slot);
@@ -801,25 +2049,70 @@ function drawAll() {
 
 function tick() {
   if (playing) {
-    slot = (slot + stepSize) % nSlots;
-    scheduleDraw();
+    const now = performance.now();
+    const motion = getMotionSettings();
+    if (lastAdvanceAt == null) {
+      lastAdvanceAt = now;
+      return;
+    }
+    if ((now - lastAdvanceAt) >= motion.stepMs) {
+      slot = (slot + stepSize) % nSlots;
+      lastAdvanceAt = now;
+      scheduleDraw();
+    }
+  } else {
+    lastAdvanceAt = null;
   }
 }
 
-document.getElementById('play').onclick = () => { playing = true; };
-document.getElementById('pause').onclick = () => { playing = false; };
-document.getElementById('step').onchange = event => { stepSize = parseInt(event.target.value, 10) || 1; };
+document.getElementById('play').onclick = () => {
+  playing = true;
+  lastAdvanceAt = null;
+  setPlaybackState('playing');
+  persistViewerSettings();
+};
+document.getElementById('pause').onclick = () => {
+  playing = false;
+  setPlaybackState('paused');
+  persistViewerSettings();
+};
+document.getElementById('step').onchange = event => {
+  stepSize = parseInt(event.target.value, 10) || 1;
+  persistViewerSettings();
+  updateStatusUI();
+};
+document.getElementById('speed').onchange = event => {
+  speedMultiplier = sanitizeSpeed(event.target.value);
+  lastAdvanceAt = null;
+  persistViewerSettings();
+  updateStatusUI();
+};
+document.getElementById('motion').onchange = event => {
+  motionPreference = ['auto', 'full', 'reduce'].includes(event.target.value) ? event.target.value : 'auto';
+  plotsReady = false;
+  globeReady = false;
+  persistViewerSettings();
+  updateStatusUI();
+  scheduleDraw();
+};
 document.getElementById('theme').onclick = () => {
   dark = !dark;
   document.documentElement.classList.toggle('dark', dark);
   plotsReady = false;
   globeReady = false;
+  persistViewerSettings();
+  updateSliderProgress(slot);
+  updateStatusUI();
   scheduleDraw();
 };
 document.getElementById('slider').oninput = event => {
   slot = parseInt(event.target.value, 10) || 0;
   playing = false;
+  setPlaybackState('scrubbing');
   scheduleDraw();
+};
+document.getElementById('slider').onchange = () => {
+  if (!playing) setPlaybackState('paused');
 };
 
 document.getElementById('export').onclick = async () => {
@@ -828,6 +2121,8 @@ document.getElementById('export').onclick = async () => {
   const zip = new JSZip();
   const btn = document.getElementById('export');
   btn.disabled = true;
+  const previousState = interactionState;
+  setPlaybackState('exporting');
 
   try {
     zip.file('data.json', RAW_DATA_JSON || JSON.stringify(DATA, null, 2));
@@ -848,16 +2143,38 @@ document.getElementById('export').onclick = async () => {
     console.error('Export failed', err);
   } finally {
     btn.disabled = false;
+    setPlaybackState(playing ? 'playing' : previousState === 'loading' ? 'ready' : previousState);
   }
 };
 
+if (MOTION_MEDIA_QUERY) {
+  const handleMotionMediaChange = () => {
+    if (motionPreference !== 'auto') return;
+    plotsReady = false;
+    globeReady = false;
+    updateStatusUI();
+    scheduleDraw();
+  };
+  if (typeof MOTION_MEDIA_QUERY.addEventListener === 'function') {
+    MOTION_MEDIA_QUERY.addEventListener('change', handleMotionMediaChange);
+  } else if (typeof MOTION_MEDIA_QUERY.addListener === 'function') {
+    MOTION_MEDIA_QUERY.addListener(handleMotionMediaChange);
+  }
+}
+
 (async function boot() {
   document.documentElement.classList.toggle('dark', dark);
+  document.getElementById('step').value = String(stepSize);
+  document.getElementById('speed').value = String(speedMultiplier);
+  document.getElementById('motion').value = motionPreference;
+  updateStatusUI();
   await loadData();
   drawAll();
   playing = !!SETTINGS.autoplay;
   stepSize = SETTINGS.step || 1;
-  setInterval(tick, 250);
+  setPlaybackState(playing ? 'playing' : 'ready');
+  updateSliderProgress(slot);
+  setInterval(tick, 50);
 })().catch(err => {
   console.error(err);
   document.body.insertAdjacentHTML('beforeend', `<pre style="color:#ffb4b4;background:#2e1a1a;padding:10px;border-radius:8px">${String(err)}</pre>`);

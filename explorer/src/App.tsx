@@ -68,11 +68,12 @@ function readRouteState(): ExplorerRouteState {
 
 function writeRouteState(next: ExplorerRouteState, replace = false) {
   const url = new URL(window.location.href)
+  const shouldKeepExplicitTab = next.tab !== 'paper' || Boolean(next.query) || Boolean(next.explorationId)
 
-  if (next.tab === 'paper') {
-    url.searchParams.delete('tab')
-  } else {
+  if (shouldKeepExplicitTab) {
     url.searchParams.set('tab', next.tab)
+  } else {
+    url.searchParams.delete('tab')
   }
 
   if (next.query) {

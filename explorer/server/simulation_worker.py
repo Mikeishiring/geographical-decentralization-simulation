@@ -824,10 +824,8 @@ def run_job(job_id: str, raw_config: dict[str, Any]) -> dict[str, Any]:
     cache_key = compute_simulation_cache_key(cache_context)
     cache_dir = CACHE_ROOT / cache_key
 
-    if cache_dir.exists():
-        ensure_derived_outputs(cache_dir)
-
     if required_outputs_present(cache_dir):
+        ensure_derived_outputs(cache_dir)
         return ensure_manifest(
             job_id=job_id,
             config=config,
