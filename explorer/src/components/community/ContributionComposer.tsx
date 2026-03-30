@@ -52,7 +52,12 @@ export function ContributionComposer({
     }
   }, [published])
 
-  const canSubmit = title.trim().length > 0 && takeaway.trim().length > 0 && !isPublishing
+  const trimmedDefaultTitle = defaultTitle.trim()
+  const trimmedDefaultTakeaway = defaultTakeaway.trim()
+  const trimmedTitle = title.trim()
+  const trimmedTakeaway = takeaway.trim()
+  const hasIntentionalEdit = trimmedTitle !== trimmedDefaultTitle || trimmedTakeaway !== trimmedDefaultTakeaway
+  const canSubmit = trimmedTitle.length > 0 && trimmedTakeaway.length > 0 && hasIntentionalEdit && !isPublishing
 
   return (
     <div className="mt-5 rounded-xl border border-border-subtle bg-white/92 px-4 py-4">
@@ -69,6 +74,9 @@ export function ContributionComposer({
           </p>
           <p className="mt-2 max-w-2xl text-[11px] text-text-faint">
             Published notes are human-authored framing layers over paper-backed readings or exact-run artifacts. They are not raw model output dumps.
+          </p>
+          <p className="mt-1 max-w-2xl text-[11px] text-text-faint">
+            To publish, edit the draft title or takeaway so the note reflects your own read of the evidence.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {[
@@ -158,8 +166,8 @@ export function ContributionComposer({
 
             <button
               onClick={() => onPublish({
-                title: title.trim(),
-                takeaway: takeaway.trim(),
+                title: trimmedTitle,
+                takeaway: trimmedTakeaway,
                 author: author.trim(),
               })}
               disabled={!canSubmit}
@@ -167,6 +175,12 @@ export function ContributionComposer({
             >
               {isPublishing ? 'Publishing…' : publishLabel}
             </button>
+
+            {!hasIntentionalEdit && (
+              <div className="rounded-lg border border-border-subtle bg-surface-active px-3 py-2 text-[11px] leading-5 text-text-faint">
+                Edit the title or takeaway before publishing. Default draft text is a starting point, not the public artifact.
+              </div>
+            )}
           </div>
         </div>
       )}
