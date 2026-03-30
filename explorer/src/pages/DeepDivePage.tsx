@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowUpRight, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { SPRING } from '../lib/theme'
 import { PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
@@ -102,40 +102,40 @@ export function DeepDivePage() {
         </div>
       </div>
 
-      <div className="mb-6 grid gap-3 md:grid-cols-3">
+      <div className="mb-6 rounded-xl border border-rule bg-white divide-y divide-rule">
         <a
           href="https://arxiv.org/abs/2509.21475"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-lg border border-border-subtle bg-white px-4 py-3 transition-colors hover:border-border-hover"
+          className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 transition-colors hover:bg-surface-active/50"
         >
-          <div className="text-xs text-muted">Canonical paper</div>
-          <div className="mt-1 flex items-center justify-between gap-3 text-sm font-medium text-text-primary">
-            <span>Open arXiv source</span>
-            <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+          <div className="min-w-0">
+            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical paper</span>
+            <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">Open arXiv source</div>
           </div>
+          <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
         </a>
         <a
           href="?tab=results"
-          className="rounded-lg border border-border-subtle bg-white px-4 py-3 text-left transition-colors hover:border-border-hover"
+          className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 transition-colors hover:bg-surface-active/50"
         >
-          <div className="text-xs text-muted">Canonical results</div>
-          <div className="mt-1 flex items-center justify-between gap-3 text-sm font-medium text-text-primary">
-            <span>Open published simulation selector</span>
-            <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+          <div className="min-w-0">
+            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical results</span>
+            <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">Open published simulation selector</div>
           </div>
+          <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
         </a>
         <a
           href="https://github.com/syang-ng/geographical-decentralization-simulation"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-lg border border-border-subtle bg-white px-4 py-3 transition-colors hover:border-border-hover"
+          className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 transition-colors hover:bg-surface-active/50"
         >
-          <div className="text-xs text-muted">Implementation source</div>
-          <div className="mt-1 flex items-center justify-between gap-3 text-sm font-medium text-text-primary">
-            <span>Open repository</span>
-            <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+          <div className="min-w-0">
+            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Implementation source</span>
+            <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">Open repository</div>
           </div>
+          <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
         </a>
       </div>
 
@@ -209,7 +209,7 @@ export function DeepDivePage() {
                     className="overflow-hidden"
                   >
                     <div className="border-t border-border-subtle px-4 pb-4 pt-3">
-                      <div className="mb-4 rounded-md border border-border-subtle bg-[#FAFAF8] px-3 py-3 text-xs text-muted">
+                      <div className="mb-4 rounded-md border border-border-subtle bg-surface-active px-3 py-3 text-xs text-muted">
                         <span className="font-medium text-text-primary">Start here if:</span> {sectionEntryLine(section)}
                       </div>
                       <BlockCanvas blocks={section.blocks} />

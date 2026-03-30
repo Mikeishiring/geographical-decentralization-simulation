@@ -337,7 +337,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
       {/* ── Sticky reading-mode bar ── */}
       <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-border-subtle sm:-mx-6 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-0.5 rounded-lg border border-border-subtle bg-[#FAFAF8] p-1">
+          <div className="flex items-center gap-0.5 rounded-lg border border-border-subtle bg-surface-active p-1">
             {(Object.keys(MODE_META) as ReaderMode[]).map(mode => {
               const meta = MODE_META[mode]
               const Icon = meta.icon
@@ -576,7 +576,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                 </div>
 
                 {section.blocks.length > 0 && (
-                  <div className="mt-8 rounded-lg border border-border-subtle bg-[#FAFAF8] p-5">
+                  <div className="mt-8 rounded-lg border border-border-subtle bg-surface-active p-5">
                     <BlockCanvas blocks={section.blocks} showExport={false} />
                   </div>
                 )}
@@ -736,7 +736,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                   </div>
 
                   <div className={cn(focusMode ? 'space-y-4' : 'xl:col-span-5 space-y-4', figuresFirst && 'xl:order-1')}>
-                    <div className="border border-border-subtle rounded-md p-4 bg-[#FAFAF8]">
+                    <div className="border border-border-subtle rounded-md p-4 bg-surface-active">
                       <BlockCanvas blocks={section.blocks} showExport={false} />
                     </div>
                     <p className="px-1 text-xs leading-6 text-muted">

@@ -281,7 +281,7 @@ export function PublishedReplayNotesPanel({
         </button>
       </div>
 
-      <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+      <div className="mt-4 rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Pinned context</div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
           <span className="lab-chip">{datasetLabel(dataset)}</span>
@@ -314,7 +314,7 @@ export function PublishedReplayNotesPanel({
         ))}
       </div>
 
-      <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+      <div className="mt-4 rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Note anchor</div>
         <div className="mt-3 flex flex-wrap gap-2">
           {anchorOptions.map(option => (
@@ -362,7 +362,7 @@ export function PublishedReplayNotesPanel({
         </div>
       ) : null}
 
-      <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+      <div className="mt-4 rounded-xl border border-border-subtle bg-surface-active px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Thread for this slot</div>
@@ -400,14 +400,14 @@ export function PublishedReplayNotesPanel({
               {note.replies.length > 0 ? (
                 <div className="mt-4 space-y-2 border-t border-border-subtle pt-3">
                   {note.replies.map(reply => (
-                    <div key={reply.id} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-3 py-3">
+                    <div key={reply.id} className="rounded-xl border border-border-subtle bg-surface-active px-3 py-3">
                       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{formatTimestamp(reply.createdAt)}</div>
                       <div className="mt-2 text-xs leading-5 text-text-primary">{reply.text}</div>
                     </div>
                   ))}
                 </div>
               ) : null}
-              <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-3 py-3">
+              <div className="mt-4 rounded-xl border border-border-subtle bg-surface-active px-3 py-3">
                 <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Reply</div>
                 <textarea
                   value={replyDrafts[note.id] ?? ''}
