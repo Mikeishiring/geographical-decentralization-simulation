@@ -4,8 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Search, ArrowUpDown, ThumbsUp, ThumbsDown, Tag, ChevronDown, ChevronUp, Users, Sparkles, Link2 } from 'lucide-react'
 import { getExploration, listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
-import { ModeBanner } from '../components/layout/ModeBanner'
-import { Wayfinder } from '../components/layout/Wayfinder'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SOFT } from '../lib/theme'
 import type { TabId } from '../components/layout/TabNav'
@@ -162,13 +160,6 @@ export function ExploreHistoryPage({
 
   return (
     <div className="space-y-6">
-      <ModeBanner
-        eyebrow="Mode"
-        title="Community contributions"
-        detail="Only intentionally published notes appear here. Findings and Simulation can save secondary context, but the public surface is reserved for human-authored titles and takeaways layered over paper-backed readings or exact-run artifacts."
-        tone="editorial"
-      />
-
       {(onGoToFindings || onTabChange) && (
         <div className="rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,246,242,0.96))] px-4 py-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -339,13 +330,6 @@ export function ExploreHistoryPage({
         </div>
       )}
 
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Ask the paper', hint: 'Curated lenses, implications, and guided readings', onClick: () => onTabChange('explore') },
-          { label: 'Run exact experiments', hint: 'Use the simulation lab, then publish a note intentionally', onClick: () => onTabChange('results') },
-          { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
-        ]} />
-      )}
     </div>
   )
 }
@@ -762,13 +746,6 @@ function EmptyState({
 }) {
   return (
     <div className="space-y-6">
-      <ModeBanner
-        eyebrow="Mode"
-        title="Community contributions"
-        detail="This page becomes useful once people publish intentional notes from Findings or the Simulation Lab. The public surface is for human-authored framing over evidence, not for raw saved readings."
-        tone="editorial"
-      />
-
       <div className="grid gap-3 md:grid-cols-3">
         {[
           {

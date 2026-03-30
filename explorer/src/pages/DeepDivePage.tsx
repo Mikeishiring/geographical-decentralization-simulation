@@ -2,11 +2,8 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowUpRight, ChevronDown } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
-import { ModeBanner } from '../components/layout/ModeBanner'
-import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
-import type { TabId } from '../components/layout/TabNav'
 
 function summarizeSection(section: PaperSection): string[] {
   const tags: string[] = []
@@ -52,7 +49,7 @@ function sectionEntryLine(section: PaperSection): string {
   }
 }
 
-export function DeepDivePage({ onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
+export function DeepDivePage() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     () => new Set(PAPER_SECTIONS.length > 0 ? [PAPER_SECTIONS[0].id] : []),
   )
@@ -76,15 +73,6 @@ export function DeepDivePage({ onTabChange }: { onTabChange?: (tab: TabId) => vo
 
   return (
     <div>
-      <div className="mb-4">
-        <ModeBanner
-          eyebrow="Mode"
-          title="Editorial argument map"
-          detail="This page reorganizes the paper into expandable claims, paradoxes, and caveats. It is still paper-backed, but it is a guided reading layer rather than a canonical dataset view."
-          tone="editorial"
-        />
-      </div>
-
       {/* Page header */}
       <div className="mb-6">
         <div className="flex items-center justify-between gap-4">
@@ -127,18 +115,16 @@ export function DeepDivePage({ onTabChange }: { onTabChange?: (tab: TabId) => vo
             <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
           </div>
         </a>
-        {onTabChange && (
-          <button
-            onClick={() => onTabChange('results')}
-            className="rounded-lg border border-border-subtle bg-white px-4 py-3 text-left transition-colors hover:border-border-hover"
-          >
-            <div className="text-xs text-muted">Canonical results</div>
-            <div className="mt-1 flex items-center justify-between gap-3 text-sm font-medium text-text-primary">
-              <span>Open published simulation selector</span>
-              <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
-            </div>
-          </button>
-        )}
+        <a
+          href="?tab=results"
+          className="rounded-lg border border-border-subtle bg-white px-4 py-3 text-left transition-colors hover:border-border-hover"
+        >
+          <div className="text-xs text-muted">Canonical results</div>
+          <div className="mt-1 flex items-center justify-between gap-3 text-sm font-medium text-text-primary">
+            <span>Open published simulation selector</span>
+            <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+          </div>
+        </a>
         <a
           href="https://github.com/syang-ng/geographical-decentralization-simulation"
           target="_blank"
@@ -236,12 +222,6 @@ export function DeepDivePage({ onTabChange }: { onTabChange?: (tab: TabId) => vo
         })}
       </div>
 
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Test these claims', hint: 'Run parameter experiments yourself', onClick: () => onTabChange('results') },
-          { label: 'Ask a question', hint: 'AI-guided exploration of the paper', onClick: () => onTabChange('explore') },
-        ]} />
-      )}
     </div>
   )
 }
