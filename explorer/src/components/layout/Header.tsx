@@ -1,25 +1,45 @@
+import { NodeConstellation } from '../decorative/NodeConstellation'
+
 export function Header() {
   return (
-    <header className="border-b border-rule">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-[0.9375rem] sm:text-base font-medium text-text-primary leading-tight tracking-[-0.01em]">
-              Geographical Decentralization in Ethereum
+    <header className="border-b border-rule relative overflow-hidden">
+      {/* Animated network mesh — atmosphere, not decoration */}
+      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] opacity-[0.18] pointer-events-none select-none" aria-hidden="true">
+        <NodeConstellation className="w-full h-full" />
+      </div>
+
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
+        <div className="flex items-start justify-between gap-6">
+          <div className="min-w-0 max-w-xl">
+            {/* Eyebrow — what this is */}
+            <p className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+              Interactive paper edition
+            </p>
+
+            {/* Title — what it's about */}
+            <h1 className="mt-1.5 text-base sm:text-lg font-semibold text-text-primary leading-snug tracking-[-0.01em]">
+              Geographical Decentralization in Ethereum Block Building
             </h1>
-            <p className="text-[0.75rem] text-muted mt-1">
+
+            {/* One-liner — the paper's core question */}
+            <p className="mt-1.5 text-[0.8125rem] leading-relaxed text-muted max-w-lg">
+              How validator geography and paradigm choice shape centralization pressure under SSP and MSP.
+            </p>
+
+            {/* Authors + citation */}
+            <p className="mt-2 text-[0.6875rem] text-text-faint">
               Yang, Oz, Wu, Zhang (2025)
               <span className="text-rule"> · </span>
-              <span className="text-text-faint">arXiv:2509.21475</span>
+              arXiv:2509.21475
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 pt-0.5">
+          <div className="flex items-center gap-2 shrink-0 pt-6">
             <a
               href="https://arxiv.org/abs/2509.21475"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-2.5 py-1 text-[0.6875rem] text-muted transition-colors hover:text-accent"
+              className="inline-flex items-center rounded-full border border-rule bg-white px-2.5 py-1 text-[0.6875rem] text-muted transition-colors hover:text-accent hover:border-accent/20"
             >
               Paper →
             </a>
@@ -27,7 +47,7 @@ export function Header() {
               href="https://github.com/syang-ng/geographical-decentralization-simulation"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-2.5 py-1 text-[0.6875rem] text-muted transition-colors hover:text-accent"
+              className="inline-flex items-center rounded-full border border-rule bg-white px-2.5 py-1 text-[0.6875rem] text-muted transition-colors hover:text-accent hover:border-accent/20"
             >
               Source →
             </a>
