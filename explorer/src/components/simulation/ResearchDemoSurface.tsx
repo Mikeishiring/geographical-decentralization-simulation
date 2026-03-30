@@ -77,7 +77,6 @@ interface ResearchDemoSurfaceProps {
   readonly catalogScriptUrl: string
   readonly viewerBaseUrl: string
   readonly onOpenCommunityExploration?: (explorationId: string) => void
-  readonly onOpenExactLab?: () => void
   readonly onTabChange?: (tab: TabId) => void
 }
 
@@ -359,7 +358,6 @@ export function ResearchDemoSurface({
   catalogScriptUrl,
   viewerBaseUrl,
   onOpenCommunityExploration,
-  onOpenExactLab,
   onTabChange,
 }: ResearchDemoSurfaceProps) {
   const initialWorkspaceState = useMemo(() => readInitialWorkspaceState(), [])
@@ -1760,7 +1758,7 @@ export function ResearchDemoSurface({
         items: [
           'Prefer step 1 or step 10 with autoplay off when tracing delicate slot changes.',
           'Use the paper lenses to move between explanation, evidence, and method discipline.',
-          'Keep the published contract visible while deciding whether a deeper live simulation is worth running.',
+          'Keep the published contract visible while deciding whether deeper inspection is worth it.',
         ],
       }
     }
@@ -1769,8 +1767,8 @@ export function ResearchDemoSurface({
       title: 'Reader brief',
       summary: 'Lead with visual evidence and let the interface carry the paper into a more interactive, accessible form.',
       items: [
-        'Start in the published replay instead of a launcher or parameter form.',
-        'Use scenario spotlights and saved views as authored entry points into the paper.',
+        'Start in the published replay instead of a setup or parameter form.',
+        'Use scenario spotlights and reading routes as authored entry points into the paper.',
         'Move into theory or comparison only after the core replay story is legible.',
       ],
     }
@@ -1824,7 +1822,7 @@ export function ResearchDemoSurface({
     }
 
     return selectedMetadata?.description
-      ?? 'The published workspace opens on the checked-in replay so readers start from evidence instead of a launcher.'
+      ?? 'The published workspace opens on the checked-in replay so readers start from evidence instead of a setup screen.'
   })()
 
   const resultSnapshotCards = useMemo<ResultSnapshotCard[]>(() => {
@@ -2200,7 +2198,7 @@ export function ResearchDemoSurface({
     return (
       <div className="lab-stage p-5">
         <div className="py-12 text-sm text-muted text-center">
-          Loading frozen research launcher…
+          Loading published paper replay…
         </div>
       </div>
     )
@@ -2209,116 +2207,73 @@ export function ResearchDemoSurface({
   return (
     <div className="space-y-6">
       <div className="lab-stage overflow-hidden p-0">
-        <div className="grid xl:grid-cols-[minmax(0,1.4fr)_400px] 2xl:grid-cols-[minmax(0,1.5fr)_430px]">
-          <div className="p-7 md:p-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
-              Published Research Demo
-            </div>
-            <h2 className="mt-4 max-w-5xl text-4xl font-semibold tracking-tight text-text-primary md:text-[2.8rem] md:leading-[1.05]">
-              Interactive paper workspace for geographical decentralization
-            </h2>
-            <div className="mt-5 max-w-5xl space-y-3 text-[15px] leading-7 text-muted">
-              {introParagraphs.map(paragraph => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-            </div>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <span className="lab-chip">Instant preview</span>
-              <span className="lab-chip">Configurable simulator depth</span>
-              <span className="lab-chip">Theory-ready paper companion</span>
+        <div className="border-b border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-5 py-4">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="max-w-4xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
+                Published Simulation Viewer
+              </div>
+              <h2 className="mt-3 text-xl font-semibold tracking-tight text-text-primary md:text-2xl">
+                World replay first, analytics directly underneath
+              </h2>
+              <div className="mt-2 text-sm leading-6 text-muted">
+                {introParagraphs[0] ?? 'The precomputed world map and timeline load immediately on results, with controls and analytics bound to the same frozen paper replay.'}
+              </div>
             </div>
 
-            <div className="mt-8">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Use this workspace</div>
-              <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <button
-                  onClick={() => {
-                    applyAudienceMode('reader')
-                    setPaperLens('evidence')
-                  }}
-                  className="rounded-[1.35rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4 text-left shadow-[0_14px_30px_rgba(15,23,42,0.04)] transition-all hover:border-border-hover hover:shadow-[0_18px_34px_rgba(15,23,42,0.07)]"
-                >
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">1. Read the scenario</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">Set an evidence-first posture</div>
-                  <div className="mt-2 text-xs leading-5 text-muted">
-                    Keep the published replay on screen and start with geography, concentration, and liveness before asking for interpretation.
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    applyAudienceMode('reviewer')
-                    if (comparisonDataset) {
-                      handlePrimeReplayQuestion(
-                        viewerSnapshot
-                          ? `Compare the active replay at slot ${viewerSnapshot.slotNumber.toLocaleString()} against ${comparisonDataset.paradigm} and tell me what changes materially.`
-                          : `What is materially different between the active replay and ${comparisonDataset.paradigm}?`,
-                        true,
-                      )
-                    }
-                  }}
-                  className="rounded-[1.35rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4 text-left shadow-[0_14px_30px_rgba(15,23,42,0.04)] transition-all hover:border-border-hover hover:shadow-[0_18px_34px_rgba(15,23,42,0.07)]"
-                >
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">2. Test a comparison</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">Open the foil and ask one grounded question</div>
-                  <div className="mt-2 text-xs leading-5 text-muted">
-                    This turns on the comparison posture and, when a foil is available, immediately asks the replay guide to explain the material delta.
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    applyViewPreset('analysis')
-                    setPaperLens('theory')
+            <div className="flex flex-wrap gap-2 xl:max-w-[420px] xl:justify-end">
+              <button
+                onClick={() => {
+                  applyAudienceMode('reader')
+                  setPaperLens('evidence')
+                }}
+                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+              >
+                Evidence view
+              </button>
+              <button
+                onClick={() => {
+                  applyViewPreset('compare')
+                  if (comparisonDataset) {
                     handlePrimeReplayQuestion(
-                      selectedPaperSection
-                        ? `Use ${selectedPaperSection.number} ${selectedPaperSection.title} to explain the main mechanism visible in this replay.`
-                        : 'What mechanism seems to drive the concentration pattern in this replay?',
+                      viewerSnapshot
+                        ? `Compare the active replay at slot ${viewerSnapshot.slotNumber.toLocaleString()} against ${comparisonDataset.paradigm} and tell me what changes materially.`
+                        : `What is materially different between the active replay and ${comparisonDataset.paradigm}?`,
                       true,
                     )
-                  }}
-                  className="rounded-[1.35rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4 text-left shadow-[0_14px_30px_rgba(15,23,42,0.04)] transition-all hover:border-border-hover hover:shadow-[0_18px_34px_rgba(15,23,42,0.07)]"
-                >
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">3. Trace the mechanism</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">Bind the replay to the paper framing</div>
-                  <div className="mt-2 text-xs leading-5 text-muted">
-                    Shift into the theory lens and ask a section-grounded question so the answer stays attached to the canonical argument.
-                  </div>
-                </button>
-
-                <button
-                  onClick={onOpenExactLab}
-                  disabled={!onOpenExactLab}
-                  className={cn(
-                    'rounded-2xl border px-4 py-4 text-left transition-all',
-                    onOpenExactLab
-                      ? 'border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] shadow-[0_14px_30px_rgba(15,23,42,0.04)] hover:border-border-hover hover:shadow-[0_18px_34px_rgba(15,23,42,0.07)]'
-                      : 'cursor-not-allowed border-rule bg-surface-active text-muted',
-                  )}
-                >
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">4. Reproduce it exactly</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">Jump to the exact-run lab</div>
-                  <div className="mt-2 text-xs leading-5 text-muted">
-                    Use the published replay to orient yourself first, then move into the exact engine only when you need a fresh bounded run.
-                  </div>
-                </button>
-              </div>
-
-              <div className="mt-3 text-xs leading-5 text-muted">
-                These controls adjust the current workspace. They do not generate a new page or silently rerun the full simulation.
-              </div>
-
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {heroSnapshotCards.map(card => (
-                  <div key={card.label} className="rounded-[1.2rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.92))] px-4 py-4 shadow-[0_12px_24px_rgba(15,23,42,0.03)]">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
-                    <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
-                  </div>
-                ))}
-              </div>
+                  }
+                }}
+                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+              >
+                Compare foil
+              </button>
+              <button
+                onClick={() => {
+                  applyViewPreset('analysis')
+                  setPaperLens('theory')
+                  handlePrimeReplayQuestion(
+                    selectedPaperSection
+                      ? `Use ${selectedPaperSection.number} ${selectedPaperSection.title} to explain the main mechanism visible in this replay.`
+                      : 'What mechanism seems to drive the concentration pattern in this replay?',
+                    true,
+                  )
+                }}
+                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+              >
+                Ask mechanism
+              </button>
             </div>
           </div>
+        </div>
+
+        <div className="grid gap-3 px-5 py-4 md:grid-cols-2 xl:grid-cols-4">
+          {heroSnapshotCards.map(card => (
+            <div key={card.label} className="rounded-[1rem] border border-rule bg-white px-4 py-4">
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
+              <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -2332,9 +2287,9 @@ export function ResearchDemoSurface({
               <div className="border-b border-rule bg-surface-active px-5 py-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                   <div>
-                    <div className="text-xs text-muted mb-1">Live published canvas</div>
+                    <div className="text-xs text-muted mb-1">World replay</div>
                     <div className="text-sm text-text-primary">
-                      The precomputed result is rendered immediately. Change the dataset or playback controls and the canvas rebinds without sending the reader back through a launcher flow.
+                      The precomputed world map and timeline are already live. Change the published scenario or playback controls and the viewer rebinds in place.
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
@@ -2365,9 +2320,9 @@ export function ResearchDemoSurface({
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2 2xl:flex-row">
                         {primaryCanvasAnnotations.map(note => (
-                          <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/80 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                          <div key={note.title} className="max-w-[18rem] rounded-xl border border-white/10 bg-[#0F172A]/72 px-3 py-2.5 text-white shadow-lg backdrop-blur-md">
                             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-300">{note.title}</div>
-                            <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
+                            <div className="mt-1.5 text-[11px] leading-5 text-white/85">{note.body}</div>
                           </div>
                         ))}
                       </div>
@@ -2395,9 +2350,9 @@ export function ResearchDemoSurface({
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2">
                         {comparisonCanvasAnnotations.map(note => (
-                          <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/78 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                          <div key={note.title} className="max-w-[18rem] rounded-xl border border-white/10 bg-[#0F172A]/72 px-3 py-2.5 text-white shadow-lg backdrop-blur-md">
                             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-300">{note.title}</div>
-                            <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
+                            <div className="mt-1.5 text-[11px] leading-5 text-white/85">{note.body}</div>
                           </div>
                         ))}
                       </div>
@@ -2418,9 +2373,9 @@ export function ResearchDemoSurface({
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2 2xl:flex-row">
                     {primaryCanvasAnnotations.map(note => (
-                      <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/80 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                      <div key={note.title} className="max-w-[18rem] rounded-xl border border-white/10 bg-[#0F172A]/72 px-3 py-2.5 text-white shadow-lg backdrop-blur-md">
                         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-300">{note.title}</div>
-                        <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
+                        <div className="mt-1.5 text-[11px] leading-5 text-white/85">{note.body}</div>
                       </div>
                     ))}
                   </div>
@@ -2517,161 +2472,154 @@ export function ResearchDemoSurface({
             </div>
           </div>
 
-          <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
-            <div className="lab-stage p-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
-              <div className="text-xs text-muted mb-1">Scenario spotlights</div>
-              <div className="text-sm text-text-primary">
-                Switch the live canvas from the right rail instead of starting from a launcher.
-              </div>
-              <div className="mt-4 grid gap-2">
-                {spotlightDatasets.map(entry => {
-                  const isActive = selectedDataset?.path === entry.path
-                  return (
-                    <button
-                      key={`${entry.evaluation}-${entry.paradigm}-${entry.result}`}
-                      onClick={() => {
-                        setSelectedEvaluation(entry.evaluation)
-                        setSelectedParadigm(entry.paradigm)
-                        setSelectedResult(entry.result)
-                      }}
-                      className={cn(
-                        'rounded-xl border px-4 py-3 text-left transition-colors',
-                        isActive
-                          ? 'border-accent bg-white'
-                          : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
-                      )}
-                    >
-                      <div className="flex flex-wrap gap-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-                        <span>{entry.evaluation}</span>
-                        <span>{entry.paradigm}</span>
-                      </div>
-                      <div className="mt-2 text-sm font-medium text-text-primary">{entry.result}</div>
-                      <div className="mt-2 text-xs leading-5 text-muted">
-                        {entry.metadata?.description ?? 'Published scenario ready for replay inside the paper workspace.'}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="lab-stage p-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
-              <div className="text-xs text-muted mb-1">Quick posture</div>
-              <div className="text-sm text-text-primary">
-                Adjust the reading mode while keeping the result on screen.
-              </div>
-
-              <div className="mt-4">
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Audience</div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
-                  {audienceProfiles.map(profile => (
-                    <button
-                      key={profile.id}
-                      onClick={() => applyAudienceMode(profile.id)}
-                      className={cn(
-                        'rounded-xl border px-3 py-3 text-left transition-colors',
-                        audienceMode === profile.id
-                          ? 'border-accent bg-white'
-                          : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
-                      )}
-                    >
-                      <div className="text-xs font-medium text-text-primary">{profile.label}</div>
-                      <div className="mt-1 text-[11px] leading-5 text-muted">{profile.description}</div>
-                    </button>
-                  ))}
+          <aside className="xl:sticky xl:top-24 xl:self-start">
+            <div className="lab-stage overflow-hidden p-0 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
+              <div className="border-b border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-5 py-4">
+                <div className="text-xs text-muted mb-1">Viewer controls</div>
+                <div className="text-sm text-text-primary">
+                  Swap the published replay, change the live lens, and keep the world view running in place.
                 </div>
               </div>
 
-              <div className="mt-4">
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Presets</div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-                  {viewPresets.map(preset => (
-                    <button
-                      key={preset.id}
-                      onClick={() => applyViewPreset(preset.id)}
-                      className={cn(
-                        'rounded-xl border px-3 py-3 text-left transition-colors',
-                        matchedViewPreset?.id === preset.id
-                          ? 'border-accent bg-white'
-                          : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
-                      )}
-                    >
-                      <div className="text-xs font-medium text-text-primary">{preset.label}</div>
-                      <div className="mt-1 text-[11px] leading-5 text-muted">{preset.description}</div>
-                    </button>
-                  ))}
+              <div className="space-y-4 px-5 py-4">
+                <div>
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Active replay</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">
+                    {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'Awaiting dataset'}
+                  </div>
+                  <div className="mt-1 text-xs leading-5 text-muted">
+                    {selectedDataset?.result ?? 'Choose a published scenario to keep the replay anchored to a checked-in result.'}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
+                    <span className="lab-chip">{themeLabel(theme)} theme</span>
+                    <span className="lab-chip">step {step}</span>
+                    <span className="lab-chip">{autoplay ? 'Autoplay on' : 'Manual scrub'}</span>
+                    {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number}</span> : null}
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-4">
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Lens</div>
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  {paperLenses.map(lens => (
-                    <button
-                      key={lens.id}
-                      onClick={() => setPaperLens(lens.id)}
-                      className={cn(
-                        'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
-                        paperLens === lens.id
-                          ? 'border-accent bg-white text-accent'
-                          : 'border-rule bg-white text-text-primary hover:border-border-hover',
-                      )}
-                    >
-                      {lens.label}
-                    </button>
-                  ))}
+                <div className="grid gap-2">
+                  {spotlightDatasets.map(entry => {
+                    const isActive = selectedDataset?.path === entry.path
+                    return (
+                      <button
+                        key={`${entry.evaluation}-${entry.paradigm}-${entry.result}`}
+                        onClick={() => {
+                          setSelectedEvaluation(entry.evaluation)
+                          setSelectedParadigm(entry.paradigm)
+                          setSelectedResult(entry.result)
+                        }}
+                        className={cn(
+                          'rounded-xl border px-4 py-3 text-left transition-colors',
+                          isActive
+                            ? 'border-accent bg-white'
+                            : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
+                        )}
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                          <span>{entry.evaluation}</span>
+                          <span>{entry.paradigm}</span>
+                          <span>{entry.result}</span>
+                        </div>
+                        <div className="mt-2 text-xs leading-5 text-muted">
+                          {entry.metadata?.description ?? 'Published scenario ready for replay inside the simulation viewer.'}
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
-              </div>
-            </div>
 
-            <div className="lab-stage p-5">
-              <div className="text-xs text-muted mb-1">Selection anchor</div>
-              <div className="text-sm text-text-primary">
-                {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'Awaiting dataset'}
-              </div>
-              <div className="mt-1 text-xs leading-5 text-muted">
-                {selectedDataset?.metadata?.description ?? 'Choose a published scenario to keep the replay anchored to a checked-in result.'}
-              </div>
+                <div className="grid gap-3 rounded-xl border border-rule bg-surface-active px-4 py-4">
+                  <div>
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Audience</div>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
+                      {audienceProfiles.map(profile => (
+                        <button
+                          key={profile.id}
+                          onClick={() => applyAudienceMode(profile.id)}
+                          className={cn(
+                            'rounded-xl border px-3 py-2 text-left transition-colors',
+                            audienceMode === profile.id
+                              ? 'border-accent bg-white'
+                              : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                          )}
+                        >
+                          <div className="text-xs font-medium text-text-primary">{profile.label}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
-                <span className="lab-chip">{themeLabel(theme)} theme</span>
-                <span className="lab-chip">step {step}</span>
-                <span className="lab-chip">{autoplay ? 'Autoplay on' : 'Manual scrub'}</span>
-                {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number}</span> : null}
-              </div>
+                  <div>
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">View</div>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                      {viewPresets.map(preset => (
+                        <button
+                          key={preset.id}
+                          onClick={() => applyViewPreset(preset.id)}
+                          className={cn(
+                            'rounded-xl border px-3 py-2 text-left transition-colors',
+                            matchedViewPreset?.id === preset.id
+                              ? 'border-accent bg-white'
+                              : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                          )}
+                        >
+                          <div className="text-xs font-medium text-text-primary">{preset.label}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-                <button
-                  onClick={handleFillDemoValues}
-                  className="rounded-full border border-rule bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                >
-                  Load reference view
-                </button>
-                <button
-                  onClick={() => void handleCopyShareUrl()}
-                  className="rounded-full border border-rule bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                >
-                  Copy share link
-                </button>
-                <button
-                  onClick={() => applyViewPreset('compare')}
-                  className="rounded-full border border-rule bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                >
-                  Activate split compare
-                </button>
-                <a
-                  href={paperSectionUrl || undefined}
-                  className={cn(
-                    'rounded-full border border-rule bg-surface-active px-3 py-2 text-center text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
-                    !paperSectionUrl && 'pointer-events-none opacity-60',
-                  )}
-                >
-                  Open paper section
-                </a>
-              </div>
+                  <div>
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Lens</div>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {paperLenses.map(lens => (
+                        <button
+                          key={lens.id}
+                          onClick={() => setPaperLens(lens.id)}
+                          className={cn(
+                            'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                            paperLens === lens.id
+                              ? 'border-accent bg-white text-accent'
+                              : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                          )}
+                        >
+                          {lens.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
 
-              <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4 text-xs leading-5 text-muted">
-                New experiments still live on the exact-run surface. This rail stays tied to the published, precomputed evidence.
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    onClick={handleFillDemoValues}
+                    className="rounded-full border border-rule bg-white px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Reset opening view
+                  </button>
+                  <button
+                    onClick={() => void handleCopyShareUrl()}
+                    className="rounded-full border border-rule bg-white px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Copy paper view
+                  </button>
+                  <button
+                    onClick={() => applyViewPreset('compare')}
+                    className="rounded-full border border-rule bg-white px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Compare with foil
+                  </button>
+                  <a
+                    href={paperSectionUrl || undefined}
+                    className={cn(
+                      'rounded-full border border-rule bg-white px-3 py-2 text-center text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                      !paperSectionUrl && 'pointer-events-none opacity-60',
+                    )}
+                  >
+                    Jump to paper section
+                  </a>
+                </div>
               </div>
             </div>
           </aside>
@@ -2679,26 +2627,40 @@ export function ResearchDemoSurface({
       )}
 
       <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
+        <aside className="xl:sticky xl:top-24 xl:self-start">
+          <details className="lab-stage overflow-hidden">
+            <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-5 py-5 [&::-webkit-details-marker]:hidden">
+              <div>
+                <div className="text-xs text-muted mb-1">Advanced replay controls</div>
+                <div className="text-sm text-text-primary">
+                  Scenario switching, reading controls, share state, and authored routes live here when you need them.
+                </div>
+              </div>
+              <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                Open when needed
+              </div>
+            </summary>
+
+            <div className="space-y-6 border-t border-rule bg-[linear-gradient(180deg,rgba(250,250,249,0.94),rgba(255,255,255,0.98))] p-5">
           <div className="lab-stage p-5">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <div className="text-xs text-muted mb-1">Scenario selector</div>
+                <div className="text-xs text-muted mb-1">Published scenario</div>
                 <div className="text-sm text-text-primary">
-                  Switch among frozen published scenarios without leaving the main canvas.
+                  Switch among frozen published scenarios without leaving the live replay.
                 </div>
               </div>
               <button
                 onClick={handleFillDemoValues}
                 className="text-xs text-muted transition-colors hover:text-text-primary"
               >
-                Load reference view
+                Reset opening view
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-xs text-muted mb-1.5 block">Dataset</label>
+                <label className="text-xs text-muted mb-1.5 block">Published dataset</label>
                 <select
                   value={selectedEvaluation}
                   onChange={event => setSelectedEvaluation(event.target.value)}
@@ -2711,7 +2673,7 @@ export function ResearchDemoSurface({
               </div>
 
               <div>
-                <label className="text-xs text-muted mb-1.5 block">Block building</label>
+                <label className="text-xs text-muted mb-1.5 block">Paradigm</label>
                 <div className="grid grid-cols-2 gap-2">
                   {paradigmOptions.map(option => (
                     <button
@@ -2731,7 +2693,7 @@ export function ResearchDemoSurface({
               </div>
 
               <div>
-                <label className="text-xs text-muted mb-1.5 block">Result</label>
+                <label className="text-xs text-muted mb-1.5 block">Scenario variant</label>
                 <select
                   value={selectedResult}
                   onChange={event => setSelectedResult(event.target.value)}
@@ -2745,24 +2707,24 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-3">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Dataset path</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Published dataset path</div>
               <div className="mt-2 break-all text-sm font-medium text-text-primary">
                 {selectedDataset?.path ?? 'Choose a dataset'}
               </div>
               <div className="mt-2 text-xs text-muted">
-                Switching Local versus External changes which published scenario you are reading. It does not change the exact-run engine.
+                Switching Local versus External changes which published evidence packet you are reading.
               </div>
             </div>
           </div>
 
           <div className="lab-stage p-5">
-            <div className="text-xs text-muted mb-1">View settings</div>
+            <div className="text-xs text-muted mb-1">Reading controls</div>
             <div className="text-sm text-text-primary mb-4">
-              These settings keep the replay, reading lens, question drafting, and comparison posture aligned.
+              These settings keep the replay, reading lens, companion, and comparison posture aligned.
             </div>
 
             <div className="mb-4">
-              <label className="text-xs text-muted mb-1.5 block">Audience mode</label>
+              <label className="text-xs text-muted mb-1.5 block">Reading mode</label>
               <div className="grid gap-2 sm:grid-cols-3">
                 {audienceProfiles.map(profile => (
                   <button
@@ -2776,14 +2738,14 @@ export function ResearchDemoSurface({
                     )}
                   >
                     <div className="text-xs font-medium text-text-primary">{profile.label}</div>
-                    <div className="mt-1 text-[11px] leading-5 text-muted">{profile.description}</div>
+                    <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{profile.description}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="mb-4">
-              <label className="text-xs text-muted mb-1.5 block">Presets</label>
+              <label className="text-xs text-muted mb-1.5 block">Reading presets</label>
               <div className="grid gap-2 sm:grid-cols-2">
                 {viewPresets.map(preset => (
                   <button
@@ -2797,7 +2759,7 @@ export function ResearchDemoSurface({
                     )}
                   >
                     <div className="text-xs font-medium text-text-primary">{preset.label}</div>
-                    <div className="mt-1 text-[11px] leading-5 text-muted">{preset.description}</div>
+                    <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{preset.description}</div>
                   </button>
                 ))}
               </div>
@@ -2875,7 +2837,7 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="mt-4 rounded-[1.2rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-5 py-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)]">
-              <div className="text-xs text-text-faint">Current view stack</div>
+              <div className="text-xs text-text-faint">Current reading stack</div>
               <div className="mt-1 text-sm font-medium text-text-primary">
                 {matchedViewPreset?.label ?? 'Custom'} preset
               </div>
@@ -2907,7 +2869,7 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="mt-4 rounded-[1.2rem] border border-rule bg-[linear-gradient(180deg,rgba(250,250,249,0.98),rgba(246,248,250,0.95))] px-5 py-4 shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
-              <div className="text-xs text-text-faint">Share this reading view</div>
+              <div className="text-xs text-text-faint">Share paper view</div>
               <div className="mt-2 text-xs leading-5 text-muted">
                 The link preserves the scenario, audience mode, reading lens, replay question, paper anchor, and current slot posture.
               </div>
@@ -2930,7 +2892,7 @@ export function ResearchDemoSurface({
                   Open linked view
                 </a>
               </div>
-              <div className="mt-3 break-all text-[11px] leading-5 text-muted">
+              <div className="mt-3 break-all text-[0.6875rem] leading-5 text-muted">
                 {shareUrl || 'Share link will appear once the workspace state is hydrated.'}
               </div>
               {shareStatus !== 'idle' ? (
@@ -2941,7 +2903,7 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="mt-4 rounded-[1.2rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-5 py-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)]">
-              <div className="text-xs text-text-faint">Saved views</div>
+              <div className="text-xs text-text-faint">Reading routes</div>
               <div className="mt-3 grid gap-3">
                 {savedWorkspaceViews.map(view => (
                   <div key={view.id} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
@@ -3002,7 +2964,7 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="mt-4 rounded-[1.2rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-5 py-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)]">
-              <div className="text-xs text-text-faint">Paper chapters</div>
+              <div className="text-xs text-text-faint">Paper sections</div>
               <div className="mt-2 text-xs leading-5 text-muted">
                 These are authored reading routes. They should feel closer to paper sections than to generic dashboard presets.
               </div>
@@ -3033,14 +2995,16 @@ export function ResearchDemoSurface({
                 ))}
               </div>
             </div>
-          </div>
+            </div>
+            </div>
+          </details>
 
         </aside>
 
           <div className="space-y-7">
             <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
             <div className="lab-stage p-6 shadow-[0_20px_44px_rgba(15,23,42,0.05)]">
-              <div className="text-xs text-muted mb-1">Scenario summary</div>
+              <div className="text-xs text-muted mb-1">Published scenario summary</div>
               <div className="text-sm text-text-primary">
                 {selectedDataset?.metadata?.description ?? 'Select a dataset to see the published scenario description.'}
               </div>
@@ -3142,12 +3106,12 @@ export function ResearchDemoSurface({
                     <div className="rounded-[1.25rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.78))] px-4 py-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)]">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div>
-                          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Draft question</div>
+                          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Draft inquiry</div>
                           <div className="mt-2 text-sm leading-6 text-text-primary">
                             Write against what the replay is doing right now, then ask for explanation, challenge, or synthesis.
                           </div>
                         </div>
-                        <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                        <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[0.6875rem] font-medium text-text-primary">
                           {assistantDraft.trim() ? 'Draft ready' : 'Pick a prompt starter'}
                         </div>
                       </div>
@@ -3183,7 +3147,7 @@ export function ResearchDemoSurface({
                           onClick={handleFocusViewer}
                           className="rounded-full border border-rule bg-white px-4 py-2 text-xs font-medium text-text-primary transition-all hover:border-border-hover"
                         >
-                          Back to live replay
+                          Return to replay
                         </button>
                         <button
                           onClick={() => {
@@ -3201,7 +3165,7 @@ export function ResearchDemoSurface({
                       <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                           <div>
-                            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Section evidence preview</div>
+                            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Section context preview</div>
                             <div className="mt-2 text-sm font-medium text-text-primary">
                               {selectedPaperSection.number} {selectedPaperSection.title}
                             </div>
@@ -3209,7 +3173,7 @@ export function ResearchDemoSurface({
                               Keep theory and methods questions grounded in the same canonical paper section the replay companion receives.
                             </div>
                           </div>
-                          <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                          <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[0.6875rem] font-medium text-text-primary">
                             {paperSectionContext ? 'Paper context attached' : 'Paper context unavailable'}
                           </div>
                         </div>
@@ -3267,7 +3231,7 @@ export function ResearchDemoSurface({
 
                   <div className="space-y-4">
                     <div className="rounded-xl border border-rule bg-white px-4 py-4">
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Active context</div>
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Replay context</div>
                       <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
                         <span className="lab-chip">{selectedDataset?.evaluation ?? 'No scenario'}</span>
                         <span className="lab-chip">{selectedDataset?.paradigm ?? 'No mode'}</span>
@@ -3279,7 +3243,7 @@ export function ResearchDemoSurface({
                         {splitCompareActive && comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
                       </div>
                       <div className="mt-3 text-xs leading-5 text-muted">
-                        Use this context to frame a reading, compare scenarios, or publish a public note against the exact replay state you are inspecting.
+                        Use this context to frame a reading, compare scenarios, or attach a note to the replay state you are inspecting.
                       </div>
                     </div>
 
@@ -3339,46 +3303,62 @@ export function ResearchDemoSurface({
                 </div>
 
                 <div className="border-t border-rule px-5 py-5">
-                  <PublishedReplayNotesPanel
-                    dataset={selectedDataset}
-                    comparisonDataset={splitCompareActive ? comparisonDataset : null}
-                    viewerSnapshot={viewerSnapshot}
-                    comparisonViewerSnapshot={splitCompareActive ? comparisonViewerSnapshot : null}
-                    paperLens={paperLens}
-                    audienceMode={audienceMode}
-                  />
+                  <details className="overflow-hidden rounded-[1.2rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))]">
+                    <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-4 py-4 [&::-webkit-details-marker]:hidden">
+                      <div>
+                        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper-side notes</div>
+                        <div className="mt-2 text-sm leading-6 text-text-primary">
+                          Keep note-taking and public publishing available without leaving them expanded across the full page.
+                        </div>
+                      </div>
+                      <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                        Open when needed
+                      </div>
+                    </summary>
 
-                  {replayPublishContextKey ? (
-                    <div className="mt-4">
-                      <ContributionComposer
-                        key={replayPublishContextKey}
-                        sourceLabel="Publish this replay-backed reading to the community surface"
-                        defaultTitle={replayPublishTitle}
-                        defaultTakeaway={replayPublishTakeaway}
-                        helperText="The published note carries the current replay question, the selected paper section, and the active slot posture in its evidence bundle. Edit the title or takeaway so the public note reflects your own reading of the replay."
-                        publishLabel="Publish replay note"
-                        successLabel="Published replay note"
-                        viewPublishedLabel="Open Community"
-                        published={publishedReplayContextKey === replayPublishContextKey}
-                        isPublishing={publishReplayMutation.isPending}
-                        error={(publishReplayMutation.error as Error | null)?.message ?? null}
-                        onViewPublished={publishedReplayExplorationId && onOpenCommunityExploration
-                          ? () => onOpenCommunityExploration(publishedReplayExplorationId)
-                          : onTabChange
-                            ? () => onTabChange('community')
-                            : undefined}
-                        onPublish={payload => publishReplayMutation.mutate({
-                          contextKey: replayPublishContextKey,
-                          ...payload,
-                        })}
+                    <div className="border-t border-rule px-4 py-4">
+                      <PublishedReplayNotesPanel
+                        dataset={selectedDataset}
+                        comparisonDataset={splitCompareActive ? comparisonDataset : null}
+                        viewerSnapshot={viewerSnapshot}
+                        comparisonViewerSnapshot={splitCompareActive ? comparisonViewerSnapshot : null}
+                        paperLens={paperLens}
+                        audienceMode={audienceMode}
                       />
+
+                      {replayPublishContextKey ? (
+                        <div className="mt-4">
+                          <ContributionComposer
+                            key={replayPublishContextKey}
+                            sourceLabel="Publish this replay-backed reading to the community surface"
+                            defaultTitle={replayPublishTitle}
+                            defaultTakeaway={replayPublishTakeaway}
+                            helperText="The published note carries the current replay question, the selected paper section, and the active slot posture in its evidence bundle. Edit the title or takeaway so the public note reflects your own reading of the replay."
+                            publishLabel="Publish replay note"
+                            successLabel="Published replay note"
+                            viewPublishedLabel="Open Community"
+                            published={publishedReplayContextKey === replayPublishContextKey}
+                            isPublishing={publishReplayMutation.isPending}
+                            error={(publishReplayMutation.error as Error | null)?.message ?? null}
+                            onViewPublished={publishedReplayExplorationId && onOpenCommunityExploration
+                              ? () => onOpenCommunityExploration(publishedReplayExplorationId)
+                              : onTabChange
+                                ? () => onTabChange('community')
+                                : undefined}
+                            onPublish={payload => publishReplayMutation.mutate({
+                              contextKey: replayPublishContextKey,
+                              ...payload,
+                            })}
+                          />
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
+                  </details>
                 </div>
               </div>
 
               <SimulationAnalyticsDesk
-                description="This is the next Dune-like layer: exact query presets over the frozen replay metrics, shareable in the same published workspace."
+                description="Dune-style analytics over the frozen replay metrics: named dashboard reads, shareable links, and exported query bundles inside the same published workspace."
                 copyLabel="Copy analytics view"
                 onCopyShareUrl={() => void handleCopyShareUrl()}
                 onCopyQueryJson={() => void handleCopyAnalyticsJson()}
@@ -3398,7 +3378,7 @@ export function ResearchDemoSurface({
                 blocks={analyticsBlocks}
               >
                 <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Named dashboards</div>
+                  <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Named dashboards</div>
                   <div className="mt-2 text-xs leading-5 text-muted">
                     These dashboard links hold an authored analytics posture inside the paper workspace, so a reader can reopen the same query instead of reconstructing it from scratch.
                   </div>
@@ -3409,7 +3389,7 @@ export function ResearchDemoSurface({
                         className={cn(
                           'rounded-xl border px-4 py-4 transition-colors',
                           preset.active
-                            ? 'border-accent bg-[#FAFAF8]'
+                            ? 'border-accent bg-surface-active'
                             : 'border-rule bg-surface-active',
                         )}
                       >
@@ -3419,7 +3399,7 @@ export function ResearchDemoSurface({
                             <div className="mt-1 text-xs leading-5 text-muted">{preset.note}</div>
                           </div>
                           {preset.active ? (
-                            <span className="rounded-full bg-accent px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white">
+                            <span className="rounded-full bg-accent px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-white">
                               Live
                             </span>
                           ) : null}
@@ -3445,7 +3425,7 @@ export function ResearchDemoSurface({
 
                 {analyticsPromptLaunchers.length > 0 ? (
                   <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Ask from this query</div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Ask from this query</div>
                     <div className="mt-2 text-xs leading-5 text-muted">
                       These prompts open the replay inquiry flow against the current analytics view and slot posture.
                     </div>
@@ -3454,10 +3434,10 @@ export function ResearchDemoSurface({
                         <button
                           key={item.label}
                           onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
-                          className="rounded-xl border border-rule bg-[#FAFAF8] px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                          className="rounded-xl border border-rule bg-surface-active px-4 py-4 text-left transition-colors hover:border-border-hover"
                         >
                           <div className="text-sm font-medium text-text-primary">{item.label}</div>
-                          <div className="mt-1 text-[11px] uppercase tracking-[0.12em] text-text-faint">{item.detail}</div>
+                          <div className="mt-1 text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">{item.detail}</div>
                           <div className="mt-3 text-xs leading-5 text-muted">{item.prompt}</div>
                         </button>
                       ))}
@@ -3565,9 +3545,9 @@ export function ResearchDemoSurface({
               </div>
 
               <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">Actions</div>
+                <div className="text-xs text-muted mb-1">Viewer actions</div>
                 <div className="text-sm text-text-primary">
-                  Stay in the embedded preview by default. Drop into standalone or raw artifacts only when the workflow calls for it.
+                  Stay in the embedded replay by default. Only reach for standalone or raw artifacts when you need the underlying files.
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   <button
@@ -3575,7 +3555,7 @@ export function ResearchDemoSurface({
                     disabled={!selectedDataset}
                     className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Jump to live preview
+                    Return to replay
                   </button>
                   <button
                     onClick={handleLaunchViewer}
@@ -3600,7 +3580,7 @@ export function ResearchDemoSurface({
                     disabled={!selectionConfig}
                     className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {showConfig ? 'Hide config' : 'View config'}
+                    {showConfig ? 'Hide config' : 'Inspect config'}
                   </button>
                   <a
                     href={sourceUrl ?? undefined}
@@ -3612,14 +3592,6 @@ export function ResearchDemoSurface({
                     )}
                   >
                     View source
-                  </a>
-                  <a
-                    href={`${viewerBaseUrl}/`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover sm:col-span-2"
-                  >
-                    Open Original Published Launcher
                   </a>
                 </div>
 

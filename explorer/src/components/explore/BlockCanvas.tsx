@@ -38,7 +38,7 @@ export function BlockCanvas({ blocks, showExport = true }: BlockCanvasProps) {
         <div className="flex justify-end">
           <button
             onClick={handleExport}
-            className="flex items-center gap-1 px-2 py-1 rounded text-[9px] text-muted/50 hover:text-muted transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded text-[0.5625rem] text-muted/50 hover:text-muted transition-colors"
             title="Export block data as JSON"
           >
             <Download className="w-2.5 h-2.5" />
