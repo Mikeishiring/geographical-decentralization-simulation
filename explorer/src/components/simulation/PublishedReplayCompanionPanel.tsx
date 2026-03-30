@@ -274,11 +274,11 @@ export function PublishedReplayCompanionPanel({
     comparisonViewerSnapshot?.slotIndex,
     dataset,
     isAnthropicEnabled,
+    mutation,
     mutation.isPending,
     onAutoRunHandled,
     paperLens,
     paperSection?.id,
-    submitQuestion,
     viewerSnapshot?.slotIndex,
   ])
 
