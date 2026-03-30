@@ -73,7 +73,7 @@ export function QueryHistory({ entries, onSelect, activeQuery }: QueryHistoryPro
                 transition={{ ...SPRING, delay: i * 0.03 }}
                 onClick={() => onSelect(entry)}
                 title={`${entry.summary} · ${entry.response.provenance.label}`}
-                whileHover={{ y: -2 }}
+
                 className={cn(
                   'min-w-[220px] max-w-[260px] shrink-0 rounded-xl border px-3 py-2 text-left transition-all',
                   isActive
