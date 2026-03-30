@@ -81,17 +81,6 @@ export function MapBlock({ block }: MapBlockProps) {
     setHoveredRegion(data?.label ?? null)
   }, [])
 
-  if (regions.length === 0) {
-    return (
-      <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
-        <div className="border-b border-border-subtle px-5 py-3">
-          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
-        </div>
-        <div className="px-5 py-10 text-center text-xs text-muted">No region data available</div>
-      </div>
-    )
-  }
-
   const maxValue = Math.max(...regions.map(r => r.value), 1)
 
   const sorted = useMemo(
@@ -142,6 +131,17 @@ export function MapBlock({ block }: MapBlockProps) {
         : 'translate(-50%, calc(-100% - 12px))',
     }
   }, [tooltip])
+
+  if (regions.length === 0) {
+    return (
+      <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
+        <div className="border-b border-border-subtle px-5 py-3">
+          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
+        </div>
+        <div className="px-5 py-10 text-center text-xs text-muted">No region data available</div>
+      </div>
+    )
+  }
 
   return (
     <div className="overflow-hidden rounded-xl border border-border-subtle bg-white geo-accent-bar">
