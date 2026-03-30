@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
-import { SPRING } from '../../lib/theme'
+import { SPRING, SPRING_SNAPPY } from '../../lib/theme'
 
 export type TabId = 'findings' | 'history' | 'paper' | 'deep-dive' | 'simulation'
 
@@ -28,11 +28,12 @@ export function TabNav({ activeTab, onTabChange }: TabNavProps) {
   }, [activeTab])
 
   return (
-    <div className="sticky top-0 z-20 border-b border-border-subtle bg-white/95 backdrop-blur-sm">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto">
-        <nav className="flex gap-1 min-w-max" role="tablist" aria-label="Explorer sections">
+    <div className="sticky top-0 z-20 border-b border-border-subtle bg-white/95 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto hide-scrollbar">
+        <nav className="flex gap-0.5 min-w-max" role="tablist" aria-label="Explorer sections">
           {tabs.map(tab => {
             const isActive = activeTab === tab.id
+            const isHovered = hoveredTab === tab.id
             return (
               <div key={tab.id} className="relative">
                 <button
@@ -57,36 +58,56 @@ export function TabNav({ activeTab, onTabChange }: TabNavProps) {
                   aria-selected={isActive}
                   tabIndex={isActive ? 0 : -1}
                   className={cn(
-                    'relative flex items-center gap-1.5 px-3 py-3 text-sm transition-colors',
+                    'relative flex items-center gap-1.5 px-3.5 py-3 text-sm transition-colors',
                     isActive
-                      ? 'text-text-primary'
+                      ? 'text-text-primary font-medium'
                       : 'text-muted hover:text-text-primary',
                   )}
                 >
                   {isActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+                    <motion.span
+                      className="w-1.5 h-1.5 rounded-full bg-accent shrink-0"
+                      layoutId="tab-dot"
+                      transition={SPRING}
+                    />
                   )}
                   <span className="text-xs sm:text-sm">{tab.shortLabel}</span>
+
+                  {/* Hover background pill */}
+                  {isHovered && !isActive && (
+                    <motion.div
+                      layoutId="tab-hover-bg"
+                      className="absolute inset-x-1 inset-y-1.5 rounded-md bg-surface-active -z-10"
+                      transition={SPRING_SNAPPY}
+                    />
+                  )}
+
+                  {/* Active underline indicator */}
                   {isActive && (
                     <motion.div
                       layoutId="tab-indicator"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent rounded-full"
+                      className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
+                      style={{
+                        background: 'linear-gradient(90deg, var(--color-accent), var(--color-accent-warm))',
+                      }}
                       transition={SPRING}
                     />
                   )}
                 </button>
 
-                {/* Subtle tooltip on hover */}
+                {/* Spring-animated tooltip */}
                 <AnimatePresence>
-                  {hoveredTab === tab.id && !isActive && (
+                  {isHovered && !isActive && (
                     <motion.div
-                      initial={{ opacity: 0, y: 2 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 2 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 z-30 whitespace-nowrap pointer-events-none"
+                      initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 2, scale: 0.97 }}
+                      transition={SPRING_SNAPPY}
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-30 whitespace-nowrap pointer-events-none"
                     >
-                      <div className="rounded-md bg-text-primary px-2.5 py-1.5 text-[11px] text-white shadow-sm">
+                      <div className="relative rounded-lg bg-[#111827]/90 backdrop-blur-md border border-white/10 px-3 py-1.5 text-[11px] text-white/90 shadow-xl">
+                        {/* Arrow */}
+                        <div className="absolute -top-[5px] left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 bg-[#111827]/90 border-l border-t border-white/10" />
                         {tab.hint}
                       </div>
                     </motion.div>
