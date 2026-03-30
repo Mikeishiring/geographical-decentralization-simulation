@@ -12,7 +12,7 @@ export function TableBlock({ block }: TableBlockProps) {
 
   if (block.rows.length === 0 || block.headers.length === 0) {
     return (
-      <div className="bg-white border border-border-subtle rounded-lg p-5">
+      <div className="bg-white border border-border-subtle rounded-xl p-5">
         <h3 className="text-sm font-medium text-text-primary mb-4">{block.title}</h3>
         <div className="text-center text-xs text-muted py-4">No data available</div>
       </div>
@@ -20,7 +20,7 @@ export function TableBlock({ block }: TableBlockProps) {
   }
 
   return (
-    <div className="bg-white border border-border-subtle rounded-lg p-5 transition-shadow duration-200 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+    <div className="bg-white border border-border-subtle rounded-xl p-5 transition-shadow hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
       <h3 className="text-sm font-medium text-text-primary mb-4">
         {block.title}
       </h3>
@@ -46,7 +46,7 @@ export function TableBlock({ block }: TableBlockProps) {
                 onMouseEnter={() => setHoveredRow(rowIdx)}
                 onMouseLeave={() => setHoveredRow(null)}
                 className={cn(
-                  'border-t border-border-subtle transition-all duration-150',
+                  'border-t border-border-subtle transition-all',
                   highlightSet.has(rowIdx) && 'border-l-2 border-l-accent-warm',
                   hoveredRow === rowIdx && 'bg-accent/[0.03]',
                   hoveredRow !== null && hoveredRow !== rowIdx && 'opacity-50',

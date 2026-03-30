@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { motion } from 'framer-motion'
-import { BLOCK_COLORS } from '../../lib/theme'
+import { BLOCK_COLORS, SPRING_SOFT } from '../../lib/theme'
 import type { TimeSeriesBlock as TimeSeriesBlockType } from '../../types/blocks'
 
 interface TimeSeriesBlockProps {
@@ -241,7 +241,7 @@ export function TimeSeriesBlock({ block }: TimeSeriesBlockProps) {
                       fill={`url(#${gradientBaseId}-${index})`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ duration: 0.4, ease: 'easeOut', delay: index * 0.05 }}
+                      transition={{ ...SPRING_SOFT, delay: index * 0.05 }}
                     />
                   )}
                   <motion.path
@@ -253,7 +253,7 @@ export function TimeSeriesBlock({ block }: TimeSeriesBlockProps) {
                     strokeLinejoin="round"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={{ duration: 0.72, ease: 'easeOut', delay: index * 0.08 }}
+                    transition={{ ...SPRING_SOFT, delay: index * 0.08 }}
                   />
                   {coordinates.map((point, pointIndex) => (
                     (pointIndex % pointStep === 0 || pointIndex === coordinates.length - 1) ? (
