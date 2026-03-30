@@ -10,6 +10,15 @@ export function TableBlock({ block }: TableBlockProps) {
   const highlightSet = new Set(block.highlight ?? [])
   const [hoveredRow, setHoveredRow] = useState<number | null>(null)
 
+  if (block.rows.length === 0 || block.headers.length === 0) {
+    return (
+      <div className="bg-white border border-border-subtle rounded-lg p-5">
+        <h3 className="text-sm font-medium text-text-primary mb-4">{block.title}</h3>
+        <div className="text-center text-xs text-muted py-4">No data available</div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-white border border-border-subtle rounded-lg p-5 transition-shadow duration-200 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
       <h3 className="text-sm font-medium text-text-primary mb-4">

@@ -77,6 +77,7 @@ export const mapBlockSchema = z.object({
     label: z.string().optional(),
   })),
   colorScale: z.enum(['density', 'change', 'binary']).optional(),
+  unit: z.string().optional(),
 })
 
 export const timeSeriesBlockSchema = z.object({

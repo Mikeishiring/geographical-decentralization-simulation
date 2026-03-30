@@ -320,6 +320,14 @@ export function ResearchDemoSurface({
       setSelectedEvaluation(demoEntry.evaluation)
       setSelectedParadigm(demoEntry.paradigm)
       setSelectedResult(demoEntry.result)
+    } else {
+      // Fall back to first available dataset if exact demo match not found
+      const fallback = (catalog?.datasets ?? [])[0]
+      if (fallback) {
+        setSelectedEvaluation(fallback.evaluation)
+        setSelectedParadigm(fallback.paradigm)
+        setSelectedResult(fallback.result)
+      }
     }
 
     setTheme('dark')

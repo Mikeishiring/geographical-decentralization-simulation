@@ -8,6 +8,10 @@ interface ChartBlockProps {
 }
 
 export function ChartBlock({ block }: ChartBlockProps) {
+  if (block.data.length === 0) {
+    return <EmptyBlock title={block.title} />
+  }
+
   const maxValue = Math.max(1, ...block.data.map(d => Math.abs(d.value)))
   const categoryColors = new Map<string, string>()
   let colorIndex = 0
@@ -46,6 +50,17 @@ export function ChartBlock({ block }: ChartBlockProps) {
           <BarChart data={block.data} maxValue={maxValue} unit={block.unit} categoryColors={categoryColors} />
         )}
       </div>
+    </div>
+  )
+}
+
+function EmptyBlock({ title }: { readonly title: string }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
+      <div className="border-b border-border-subtle px-5 py-3">
+        <h3 className="text-sm font-medium text-text-primary">{title}</h3>
+      </div>
+      <div className="px-5 py-8 text-center text-xs text-muted">No data available</div>
     </div>
   )
 }

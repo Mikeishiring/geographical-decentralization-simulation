@@ -45,6 +45,18 @@ function getEdgeOpacity(va: number, vb: number, maxValue: number): number {
 export function MapBlock({ block }: MapBlockProps) {
   const bgId = useId()
   const [tooltip, setTooltip] = useState<{ x: number; y: number; label: string; value: number } | null>(null)
+
+  if (block.regions.length === 0) {
+    return (
+      <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
+        <div className="border-b border-border-subtle px-5 py-3">
+          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
+        </div>
+        <div className="px-5 py-8 text-center text-xs text-muted">No region data available</div>
+      </div>
+    )
+  }
+
   const maxValue = Math.max(...block.regions.map(r => r.value), 1)
 
   const sorted = useMemo(
@@ -86,7 +98,7 @@ export function MapBlock({ block }: MapBlockProps) {
       <div className="border-b border-border-subtle px-5 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent dot-pulse" />
+            <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-accent dot-pulse" />
             <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
           </div>
           <div className="flex items-center gap-3 text-xs text-muted">
@@ -226,7 +238,7 @@ export function MapBlock({ block }: MapBlockProps) {
             >
               <div className="text-white font-medium">{tooltip.label}</div>
               <div className="text-[#94A3B8] tabular-nums">
-                {tooltip.value.toLocaleString()} validators
+                {tooltip.value.toLocaleString()}{block.unit ? ` ${block.unit}` : ''}
               </div>
             </motion.div>
           )}
@@ -264,31 +276,8 @@ export function MapBlock({ block }: MapBlockProps) {
             </div>
           </div>
 
-          {/* Legend — grounded in paper metrics */}
-          {hasVariation && (
-            <div className="rounded-lg border border-border-subtle bg-white p-3 text-xs text-muted">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-2">
-                Stake concentration
-              </div>
-              <div className="space-y-1.5">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#64748B]" /> Low stake share (&lt;10%)
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#2563EB]" /> Moderate (10–30%)
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#C2553A]" /> High concentration (30–60%)
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-3 w-3 rounded-full bg-[#F59E0B]" /> Dominant (&gt;60%)
-                </span>
-              </div>
-              <p className="text-[10px] text-text-faint mt-2">
-                Node size and color reflect relative validator share. Paper metrics: Gini_g, HHI_g.
-              </p>
-            </div>
-          )}
+          {/* Legend — conditional on colorScale */}
+          {hasVariation && <MapLegend colorScale={block.colorScale} />}
 
           <a
             href="https://geo-decentralization.github.io/"
@@ -303,6 +292,67 @@ export function MapBlock({ block }: MapBlockProps) {
           </a>
         </div>
       </div>
+    </div>
+  )
+}
+
+function MapLegend({ colorScale }: { readonly colorScale?: string }) {
+  if (colorScale === 'binary') {
+    return (
+      <div className="rounded-lg border border-border-subtle bg-white p-3 text-xs text-muted">
+        <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-2">Presence</div>
+        <div className="space-y-1.5">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-[#16A34A]" /> Present
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-[#3B3B3B]" /> Absent
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  if (colorScale === 'change') {
+    return (
+      <div className="rounded-lg border border-border-subtle bg-white p-3 text-xs text-muted">
+        <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-2">Change</div>
+        <div className="space-y-1.5">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-[#16A34A]" /> Increase
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-[#DC2626]" /> Decrease
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-[#555]" /> No change
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  // Default: density gradient legend
+  return (
+    <div className="rounded-lg border border-border-subtle bg-white p-3 text-xs text-muted">
+      <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-2">Concentration</div>
+      <div className="space-y-1.5">
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#64748B]" /> Low (&lt;10% of max)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-[#2563EB]" /> Moderate (10–30%)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#C2553A]" /> High (30–60%)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded-full bg-[#F59E0B]" /> Dominant (&gt;60%)
+        </span>
+      </div>
+      <p className="text-[10px] text-text-faint mt-2">
+        Node size and color reflect relative share of the maximum value.
+      </p>
     </div>
   )
 }

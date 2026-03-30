@@ -11,6 +11,15 @@ interface ComparisonBlockProps {
 export function ComparisonBlock({ block }: ComparisonBlockProps) {
   const [hoveredSide, setHoveredSide] = useState<'left' | 'right' | null>(null)
 
+  if (block.left.items.length === 0 && block.right.items.length === 0) {
+    return (
+      <div className="bg-white border border-border-subtle rounded-lg p-5">
+        <h3 className="text-base font-semibold text-text-primary mb-4 font-serif">{block.title}</h3>
+        <div className="text-center text-xs text-muted py-4">No comparison data available</div>
+      </div>
+    )
+  }
+
   return (
     <motion.div
       {...HOVER_LIFT}
@@ -21,7 +30,7 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
       </h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 sm:divide-x sm:divide-border-subtle">
-        {/* Left — SSP / ocean blue dot */}
+        {/* Left column */}
         <div
           onMouseEnter={() => setHoveredSide('left')}
           onMouseLeave={() => setHoveredSide(null)}
@@ -48,7 +57,7 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
           </div>
         </div>
 
-        {/* Right — MSP / terracotta dot */}
+        {/* Right column */}
         <div
           onMouseEnter={() => setHoveredSide('right')}
           onMouseLeave={() => setHoveredSide(null)}

@@ -78,6 +78,7 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
       value: VALIDATOR_COUNTS[r.id] ?? 0,
       label: r.city.split(',')[0],
     })),
+    unit: 'validators',
   },
 
   // Row 6a: Caveat
@@ -108,7 +109,7 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
   },
 ] as const
 
-// The 8 pre-rendered topic cards for Tier 1 (zero API cost)
+// The curated Tier 1 topic cards (zero API cost)
 export interface TopicCard {
   readonly id: string
   readonly title: string
