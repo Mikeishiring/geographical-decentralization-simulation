@@ -105,6 +105,18 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
 
   return (
     <div className="rounded-xl border border-rule bg-canvas px-5 py-6 sm:px-8 sm:py-8">
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Ask the paper</div>
+          <div className="mt-1 text-sm font-medium text-text-primary">
+            Use one bounded question: claim, mechanism, implication, or comparison
+          </div>
+        </div>
+        <div className="max-w-lg text-xs leading-5 text-muted">
+          Best prompts mention the paradigm, metric, or foil you care about. The guide reports evidence first, then offers an interpretation.
+        </div>
+      </div>
+
       <div className={cn(
         'bg-white border border-rule rounded-xl transition-all',
         isEnabled && 'focus-within:border-accent/30 focus-within:ring-2 focus-within:ring-accent/10',
@@ -148,7 +160,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
           >
             <div className="mb-3">
               <span className="text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-                Best first prompts
+                Prompt starters
               </span>
             </div>
 
@@ -193,7 +205,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
             <p className="text-[0.6875rem] text-text-faint leading-relaxed">
               {helperText ?? 'Ask about a mechanism, paradox, or comparison. The guide stays tied to the paper.'}
               <span className="text-rule"> · </span>
-              This box drafts or reopens a reading.
+              This box opens or reopens a private reading, not a public post.
             </p>
           </div>
         )}
