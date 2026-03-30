@@ -93,7 +93,7 @@ export function HeatmapBlock({ block }: HeatmapBlockProps) {
                           backgroundColor: colorFn(value, minVal, maxVal),
                           minWidth: 32,
                           minHeight: 28,
-                          boxShadow: isHovered ? '0 0 0 2px rgba(37,99,235,0.5)' : 'none',
+                          boxShadow: isHovered ? '0 0 0 2px color-mix(in srgb, var(--color-accent) 50%, transparent)' : 'none',
                         }}
                         onMouseEnter={() => setHoveredCell({ row: rowIdx, col: colIdx })}
                         onMouseLeave={() => setHoveredCell(null)}
