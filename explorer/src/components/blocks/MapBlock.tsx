@@ -56,6 +56,10 @@ function curvedEdgePath(x1: number, y1: number, x2: number, y2: number): string 
   return `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`
 }
 
+function finiteValue(value: number | null | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
 interface TooltipData {
   x: number
   y: number
@@ -81,10 +85,10 @@ export function MapBlock({ block }: MapBlockProps) {
     setHoveredRegion(data?.label ?? null)
   }, [])
 
-  const maxValue = Math.max(...regions.map(r => r.value), 1)
+  const maxValue = Math.max(...regions.map(region => finiteValue(region.value)), 1)
 
   const sorted = useMemo(
-    () => [...regions].toSorted((a, b) => b.value - a.value),
+    () => [...regions].toSorted((a, b) => finiteValue(b.value) - finiteValue(a.value)),
     [regions],
   )
   const topRegions = sorted.slice(0, 6)
@@ -92,6 +96,7 @@ export function MapBlock({ block }: MapBlockProps) {
   const edges = useMemo(() => {
     const pts = regions.map(r => ({
       ...r,
+      value: finiteValue(r.value),
       ...latLonToMercator(r.lat, r.lon, SVG_W, SVG_H),
     }))
     const result: { path: string; va: number; vb: number }[] = []
@@ -115,7 +120,7 @@ export function MapBlock({ block }: MapBlockProps) {
     return result
   }, [regions])
 
-  const hasVariation = new Set(regions.map(r => r.value)).size > 1
+  const hasVariation = new Set(regions.map(region => finiteValue(region.value))).size > 1
 
   /* Tooltip edge-clamping: keep it inside the map container */
   const tooltipStyle = useMemo(() => {
@@ -256,8 +261,9 @@ export function MapBlock({ block }: MapBlockProps) {
               .toSorted((a, b) => a.value - b.value)
               .map((region, index) => {
                 const { x, y } = latLonToMercator(region.lat, region.lon, SVG_W, SVG_H)
-                const radius = getDotRadius(region.value, maxValue)
-                const color = getDotColor(region.value, maxValue, block.colorScale)
+                const value = finiteValue(region.value)
+                const radius = getDotRadius(value, maxValue)
+                const color = getDotColor(value, maxValue, block.colorScale)
                 const isTop = topRegions.some(t => t.name === region.name)
                 const rank = sorted.findIndex(r => r.name === region.name)
                 const isHovered = hoveredRegion === (region.label ?? region.name)
@@ -305,9 +311,9 @@ export function MapBlock({ block }: MapBlockProps) {
                       }}
                       transition={{ ...SPRING_SNAPPY, delay: 0.15 + index * 0.012 }}
                       style={{ cursor: 'pointer' }}
-                      aria-label={`${region.label ?? region.name}: ${region.value}`}
+                      aria-label={`${region.label ?? region.name}: ${value}`}
                       onMouseEnter={() =>
-                        handleRegionHover({ x, y, label: region.label ?? region.name, value: region.value, color, rank })
+                        handleRegionHover({ x, y, label: region.label ?? region.name, value, color, rank })
                       }
                       onMouseLeave={() => handleRegionHover(null)}
                     />
@@ -388,8 +394,9 @@ export function MapBlock({ block }: MapBlockProps) {
             </div>
             <div className="space-y-0.5">
               {topRegions.map((region, i) => {
-                const color = getDotColor(region.value, maxValue, block.colorScale)
-                const pct = ((region.value / maxValue) * 100).toFixed(0)
+                const value = finiteValue(region.value)
+                const color = getDotColor(value, maxValue, block.colorScale)
+                const pct = ((value / maxValue) * 100).toFixed(0)
                 const label = region.label ?? region.name
                 const isHovered = hoveredRegion === label
                 return (
@@ -401,7 +408,7 @@ export function MapBlock({ block }: MapBlockProps) {
                     )}
                     onMouseEnter={() => {
                       const { x, y } = latLonToMercator(region.lat, region.lon, SVG_W, SVG_H)
-                      handleRegionHover({ x, y, label, value: region.value, color, rank: i })
+                      handleRegionHover({ x, y, label, value, color, rank: i })
                     }}
                     onMouseLeave={() => handleRegionHover(null)}
                     initial={{ opacity: 0, x: 8 }}
@@ -420,7 +427,7 @@ export function MapBlock({ block }: MapBlockProps) {
                         <span className="text-xs text-text-primary truncate">{label}</span>
                       </div>
                       <span className="text-xs font-semibold tabular-nums text-text-primary shrink-0">
-                        {region.value.toLocaleString()}
+                        {value.toLocaleString()}
                       </span>
                     </div>
                     <div className="h-[3px] rounded-full bg-surface-active mx-0.5 mt-1">

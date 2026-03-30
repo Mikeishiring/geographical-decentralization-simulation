@@ -2011,16 +2011,16 @@ export function ResearchDemoSurface({
                           </div>
                         ))}
                       </div>
-                  <PublishedDatasetViewer
-                    key={`compare:${comparisonDataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}:${initialWorkspaceState.compareFocusSlot ?? 0}`}
-                    viewerBaseUrl={viewerBaseUrl}
-                    dataset={comparisonDataset}
-                    initialSettings={activeViewer.settings}
-                    initialSlotIndex={initialWorkspaceState.compareFocusSlot}
-                    onStateChange={setComparisonViewerSnapshot}
-                    annotationNotes={comparisonSlotNotes}
-                    anchorScope="comparison"
-                  />
+                      <PublishedDatasetViewer
+                        key={`compare:${comparisonDataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}:${initialWorkspaceState.compareFocusSlot ?? 0}`}
+                        viewerBaseUrl={viewerBaseUrl}
+                        dataset={comparisonDataset}
+                        initialSettings={activeViewer.settings}
+                        initialSlotIndex={initialWorkspaceState.compareFocusSlot}
+                        onStateChange={setComparisonViewerSnapshot}
+                        annotationNotes={comparisonSlotNotes}
+                        anchorScope="comparison"
+                      />
                     </div>
                   </div>
                 </div>
@@ -2948,39 +2948,43 @@ export function ResearchDemoSurface({
                   </div>
                 </div>
 
-                <PublishedReplayNotesPanel
-                  dataset={selectedDataset}
-                  comparisonDataset={splitCompareActive ? comparisonDataset : null}
-                  viewerSnapshot={viewerSnapshot}
-                  comparisonViewerSnapshot={splitCompareActive ? comparisonViewerSnapshot : null}
-                  paperLens={paperLens}
-                  audienceMode={audienceMode}
-                />
-
-                {replayPublishContextKey ? (
-                  <ContributionComposer
-                    key={replayPublishContextKey}
-                    sourceLabel="Publish this replay-backed reading to the community surface"
-                    defaultTitle={replayPublishTitle}
-                    defaultTakeaway={replayPublishTakeaway}
-                    helperText="The published note carries the current replay question, the selected paper section, and the active slot posture in its evidence bundle. Edit the title or takeaway so the public note reflects your own reading of the replay."
-                    publishLabel="Publish replay note"
-                    successLabel="Published replay note"
-                    viewPublishedLabel="Open Community"
-                    published={publishedReplayContextKey === replayPublishContextKey}
-                    isPublishing={publishReplayMutation.isPending}
-                    error={(publishReplayMutation.error as Error | null)?.message ?? null}
-                    onViewPublished={publishedReplayExplorationId && onOpenCommunityExploration
-                      ? () => onOpenCommunityExploration(publishedReplayExplorationId)
-                      : onTabChange
-                        ? () => onTabChange('community')
-                        : undefined}
-                    onPublish={payload => publishReplayMutation.mutate({
-                      contextKey: replayPublishContextKey,
-                      ...payload,
-                    })}
+                <div className="border-t border-border-subtle px-5 py-5">
+                  <PublishedReplayNotesPanel
+                    dataset={selectedDataset}
+                    comparisonDataset={splitCompareActive ? comparisonDataset : null}
+                    viewerSnapshot={viewerSnapshot}
+                    comparisonViewerSnapshot={splitCompareActive ? comparisonViewerSnapshot : null}
+                    paperLens={paperLens}
+                    audienceMode={audienceMode}
                   />
-                ) : null}
+
+                  {replayPublishContextKey ? (
+                    <div className="mt-4">
+                      <ContributionComposer
+                        key={replayPublishContextKey}
+                        sourceLabel="Publish this replay-backed reading to the community surface"
+                        defaultTitle={replayPublishTitle}
+                        defaultTakeaway={replayPublishTakeaway}
+                        helperText="The published note carries the current replay question, the selected paper section, and the active slot posture in its evidence bundle. Edit the title or takeaway so the public note reflects your own reading of the replay."
+                        publishLabel="Publish replay note"
+                        successLabel="Published replay note"
+                        viewPublishedLabel="Open Community"
+                        published={publishedReplayContextKey === replayPublishContextKey}
+                        isPublishing={publishReplayMutation.isPending}
+                        error={(publishReplayMutation.error as Error | null)?.message ?? null}
+                        onViewPublished={publishedReplayExplorationId && onOpenCommunityExploration
+                          ? () => onOpenCommunityExploration(publishedReplayExplorationId)
+                          : onTabChange
+                            ? () => onTabChange('community')
+                            : undefined}
+                        onPublish={payload => publishReplayMutation.mutate({
+                          contextKey: replayPublishContextKey,
+                          ...payload,
+                        })}
+                      />
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               <div className="lab-stage p-5">
