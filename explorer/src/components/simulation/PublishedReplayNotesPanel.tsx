@@ -831,10 +831,10 @@ export function PublishedReplayNotesPanel({
               'rounded-xl border bg-white px-4 py-4',
               followedNoteSet.has(note.id) ? 'border-[#0F172A]/12 shadow-[0_16px_30px_rgba(15,23,42,0.08)]' : 'border-rule',
             )}>
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-text-faint">
-                <span className={cn('rounded-full border px-2.5 py-0.5 text-[10px] font-medium', laneBadgeClass(note.communityLane))}>{COMMUNITY_LANES.find(option => option.id === note.communityLane)?.label ?? note.communityLane}</span>
-                <span className={cn('rounded-full border px-2.5 py-0.5 text-[10px] font-medium', contributionBadgeClass(note.contributionType))}>{CONTRIBUTION_TYPES.find(option => option.id === note.contributionType)?.label ?? note.contributionType.replace('_', ' ')}</span>
-                <span className={cn('rounded-full border px-2.5 py-0.5 text-[10px] font-medium', statusBadgeClass(note.status))}>{formatStatusLabel(note.status)}</span>
+              <div className="flex flex-wrap items-center gap-2 text-[0.6875rem] text-text-faint">
+                <span className={cn('rounded-full border px-2.5 py-0.5 text-[0.625rem] font-medium', laneBadgeClass(note.communityLane))}>{COMMUNITY_LANES.find(option => option.id === note.communityLane)?.label ?? note.communityLane}</span>
+                <span className={cn('rounded-full border px-2.5 py-0.5 text-[0.625rem] font-medium', contributionBadgeClass(note.contributionType))}>{CONTRIBUTION_TYPES.find(option => option.id === note.contributionType)?.label ?? note.contributionType.replace('_', ' ')}</span>
+                <span className={cn('rounded-full border px-2.5 py-0.5 text-[0.625rem] font-medium', statusBadgeClass(note.status))}>{formatStatusLabel(note.status)}</span>
                 <span className="lab-chip">slot {note.slotNumber}</span>
                 {(note.annotationScope === 'time_range' || note.annotationScope === 'region_over_time') && note.rangeStartSlotNumber != null && note.rangeEndSlotNumber != null ? (
                   <span className="lab-chip">window {note.rangeStartSlotNumber}-{note.rangeEndSlotNumber}</span>
@@ -851,7 +851,7 @@ export function PublishedReplayNotesPanel({
                       : [...current, note.id]
                   )}
                   className={cn(
-                    'ml-auto rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition-colors',
+                    'ml-auto rounded-full border px-2.5 py-0.5 text-[0.625rem] font-medium transition-colors',
                     followedNoteSet.has(note.id)
                       ? 'border-[#0F172A]/12 bg-[#0F172A] text-white'
                       : 'border-rule bg-white text-text-primary hover:border-border-hover',
@@ -861,7 +861,7 @@ export function PublishedReplayNotesPanel({
                 </button>
               </div>
               {note.contextLabel ? (
-                <div className="mt-2 text-[11px] leading-5 text-muted">{note.contextLabel}</div>
+                <div className="mt-2 text-[0.6875rem] leading-5 text-muted">{note.contextLabel}</div>
               ) : null}
               <div className="mt-3 text-sm leading-6 text-text-primary">{note.note}</div>
               {note.replies.length > 0 ? (
