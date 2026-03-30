@@ -1,5 +1,6 @@
 import type { Block } from '../types/blocks'
 import { GCP_REGIONS } from './gcp-regions'
+import { VALIDATOR_COUNTS } from './validator-counts'
 
 // 9 blocks covering all 9 block types — the "executive summary" of the paper.
 // Zero API calls. Hand-crafted from Yang et al. (2025) arXiv:2509.21475.
@@ -66,18 +67,17 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
     text: 'Higher γ (attestation threshold) → SSP centralizes **MORE** but MSP centralizes **LESS**. In SSP, tighter timing amplifies latency sensitivity — reducing proposer-relay latency yields larger marginal MEV. In MSP, a higher threshold forces proposers to balance attester proximity (quorum) vs signal proximity (value), and these point in **different geographic directions**, dispersing rather than concentrating validators. This is the only protocol parameter with opposite effects across paradigms.',
   },
 
-  // Row 5: Geographic canvas (MapBlock with all 40 regions)
+  // Row 5: Real Ethereum validator distribution across GCP regions
   {
     type: 'map',
-    title: 'Simulation Geographic Canvas — 40 GCP Regions',
+    title: 'Ethereum Validator Distribution — Real Node Counts',
     regions: GCP_REGIONS.map(r => ({
       name: r.id,
       lat: r.lat,
       lon: r.lon,
-      value: 1, // geography canvas only; not a stake allocation claim
+      value: VALIDATOR_COUNTS[r.id] ?? 0,
       label: r.city.split(',')[0],
     })),
-    colorScale: 'binary',
   },
 
   // Row 6a: Caveat

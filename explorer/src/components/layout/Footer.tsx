@@ -29,7 +29,7 @@ export function Footer() {
               rel="noopener noreferrer"
               className="text-xs text-muted hover:text-text-primary transition-colors"
             >
-              3D Viewer
+              Published Demo
             </a>
           </div>
         </div>

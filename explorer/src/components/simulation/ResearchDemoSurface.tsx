@@ -73,6 +73,7 @@ export function ResearchDemoSurface({
   const [theme, setTheme] = useState<'auto' | 'light' | 'dark'>('auto')
   const [step, setStep] = useState<1 | 10 | 50>(1)
   const [autoplay, setAutoplay] = useState(true)
+  const [showConfig, setShowConfig] = useState(false)
 
   useEffect(() => {
     const existing = readResearchCatalog()
@@ -221,8 +222,40 @@ export function ResearchDemoSurface({
     [catalog],
   )
 
+  const viewerUrl = useMemo(() => {
+    if (!selectedDataset) return null
+    const params = new URLSearchParams({
+      dataset: selectedDataset.path,
+      theme,
+      step: String(step),
+      autoplay: String(autoplay),
+    })
+    return `${viewerBaseUrl}/viewer.html?${params.toString()}`
+  }, [autoplay, selectedDataset, step, theme, viewerBaseUrl])
+
+  const datasetUrl = selectedDataset ? `${viewerBaseUrl}/${selectedDataset.path}` : null
+  const sourceUrl = selectedDataset
+    ? `https://github.com/syang-ng/geographical-decentralization-simulation/blob/main/dashboard/${selectedDataset.path}`
+    : null
+  const selectionConfig = useMemo(() => {
+    if (!selectedDataset) return null
+
+    return JSON.stringify({
+      evaluation: selectedDataset.evaluation,
+      paradigm: selectedDataset.paradigm,
+      result: selectedDataset.result,
+      dataset: selectedDataset.path,
+      viewer: {
+        theme,
+        step,
+        autoplay,
+      },
+      metadata: selectedDataset.metadata ?? {},
+    }, null, 2)
+  }, [autoplay, selectedDataset, step, theme])
+
   const handleLaunchViewer = () => {
-    if (!selectedDataset) return
+    if (!selectedDataset || !viewerUrl) return
 
     const settings = {
       dataset: selectedDataset.path,
@@ -237,13 +270,6 @@ export function ResearchDemoSurface({
       // Ignore storage failures and rely on query params.
     }
 
-    const params = new URLSearchParams({
-      dataset: selectedDataset.path,
-      theme,
-      step: String(step),
-      autoplay: String(autoplay),
-    })
-    const viewerUrl = `${viewerBaseUrl}/viewer.html?${params.toString()}`
     const popup = window.open(viewerUrl, '_blank', 'noopener,noreferrer')
     if (!popup) {
       window.location.assign(viewerUrl)
@@ -512,30 +538,66 @@ export function ResearchDemoSurface({
         <div className="lab-stage p-5">
           <div className="text-xs text-muted mb-1">Launch</div>
           <div className="text-sm text-text-primary">
-            Open the frozen viewer with the current researcher-style selection.
+            Move directly from this selection to the canonical viewer or source artifacts.
           </div>
           <div className="mt-2 text-xs text-muted">
-            This opens the viewer against the same static dataset contract as the baseline launcher, while keeping this page in the app.
+            These links stay on the frozen published dataset contract. They do not generate a new simulation.
           </div>
 
-          <div className="flex flex-col gap-3 mt-5 sm:flex-row">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <button
               onClick={handleLaunchViewer}
               disabled={!selectedDataset}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Launch Viewer
+              Open Canonical Viewer
               <ArrowUpRight className="h-4 w-4" />
             </button>
+            <a
+              href={datasetUrl ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                'inline-flex items-center justify-center rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
+                !datasetUrl && 'pointer-events-none opacity-60',
+              )}
+            >
+              Download data.json
+            </a>
+            <button
+              onClick={() => setShowConfig(current => !current)}
+              disabled={!selectionConfig}
+              className="inline-flex items-center justify-center rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {showConfig ? 'Hide config' : 'View config'}
+            </button>
+            <a
+              href={sourceUrl ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                'inline-flex items-center justify-center rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
+                !sourceUrl && 'pointer-events-none opacity-60',
+              )}
+            >
+              View source
+            </a>
             <a
               href={`${viewerBaseUrl}/`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center justify-center rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover"
+              className="inline-flex items-center justify-center rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover sm:col-span-2"
             >
               Open Baseline Page
             </a>
           </div>
+
+          {showConfig && selectionConfig && (
+            <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] p-4">
+              <div className="text-xs text-muted mb-2">Selection config</div>
+              <pre className="overflow-x-auto text-xs text-text-primary">{selectionConfig}</pre>
+            </div>
+          )}
         </div>
       </div>
     </div>

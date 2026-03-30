@@ -15,8 +15,8 @@ const tabs: { id: TabId; label: string; shortLabel: string; hint: string }[] = [
   { id: 'findings', label: 'Findings', shortLabel: 'Findings', hint: 'Curated entry points & AI exploration' },
   { id: 'history', label: 'Explore History', shortLabel: 'History', hint: 'Past explorations & community votes' },
   { id: 'paper', label: 'Paper', shortLabel: 'Paper', hint: 'Full paper with editorial reading guide' },
-  { id: 'deep-dive', label: 'Deep Dive', shortLabel: 'Dive', hint: 'Section-by-section argument & blocks' },
-  { id: 'simulation', label: 'Simulation Lab', shortLabel: 'Sim', hint: 'Run your own parameter experiments' },
+  { id: 'deep-dive', label: 'Deep Dive', shortLabel: 'Deep Dive', hint: 'Section-by-section argument & blocks' },
+  { id: 'simulation', label: 'Simulation', shortLabel: 'Simulation', hint: 'Published results plus exact parameter experiments' },
 ]
 
 export function TabNav({ activeTab, onTabChange }: TabNavProps) {
@@ -29,8 +29,8 @@ export function TabNav({ activeTab, onTabChange }: TabNavProps) {
 
   return (
     <div className="sticky top-0 z-20 border-b border-border-subtle bg-white/95 backdrop-blur-sm">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <nav className="flex gap-1" role="tablist" aria-label="Explorer sections">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto">
+        <nav className="flex gap-1 min-w-max" role="tablist" aria-label="Explorer sections">
           {tabs.map(tab => {
             const isActive = activeTab === tab.id
             return (

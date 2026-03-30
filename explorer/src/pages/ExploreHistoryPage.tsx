@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Search, ArrowUpDown, ThumbsUp, ThumbsDown, Tag, ChevronDown, ChevronUp } from 'lucide-react'
 import { listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
+import { ModeBanner } from '../components/layout/ModeBanner'
 import { Wayfinder } from '../components/layout/Wayfinder'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SOFT } from '../lib/theme'
@@ -75,11 +76,18 @@ export function ExploreHistoryPage({
   }
 
   if (explorations.length === 0 && !search) {
-    return <EmptyState onGoToFindings={onGoToFindings} />
+    return <EmptyState onGoToFindings={onGoToFindings} onTabChange={onTabChange} />
   }
 
   return (
     <div className="space-y-6">
+      <ModeBanner
+        eyebrow="Mode"
+        title="Saved interpretations and prior readings"
+        detail="This archive mixes curated findings, saved AI interpretations, and shared explorations. Treat it as secondary context, not as the canonical paper or published-results surface."
+        tone="interpretation"
+      />
+
       <HistoryHeader
         search={search}
         sort={sort}
@@ -352,24 +360,56 @@ function FollowUpList({
   )
 }
 
-function EmptyState({ onGoToFindings }: { readonly onGoToFindings?: () => void }) {
+function EmptyState({
+  onGoToFindings,
+  onTabChange,
+}: {
+  readonly onGoToFindings?: () => void
+  readonly onTabChange?: (tab: TabId) => void
+}) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center">
-      <Tag className="w-8 h-8 text-text-faint mb-4" />
-      <h2 className="text-lg font-medium text-text-primary mb-2">No explorations yet</h2>
-      <p className="text-sm text-muted max-w-md mb-5">
-        Ask a sharp question on the Findings tab to seed this archive. The best entries usually
-        explain a paradox, compare paradigms, or pressure-test a caveat.
-      </p>
-      {onGoToFindings && (
-        <button
-          onClick={onGoToFindings}
-          className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-accent text-white hover:bg-accent/90 transition-colors"
-        >
-          <Search className="w-4 h-4" />
-          Start exploring
-        </button>
-      )}
+    <div className="space-y-6">
+      <ModeBanner
+        eyebrow="Mode"
+        title="Saved interpretations and prior readings"
+        detail="This archive is useful after you have generated or saved explorations. If you want canonical material first, go to the paper or the published simulation results."
+        tone="interpretation"
+      />
+
+      <div className="flex flex-col items-center justify-center rounded-xl border border-border-subtle bg-white py-20 text-center">
+        <Tag className="w-8 h-8 text-text-faint mb-4" />
+        <h2 className="text-lg font-medium text-text-primary mb-2">No explorations yet</h2>
+        <p className="text-sm text-muted max-w-md mb-5">
+          Ask a sharp question on the Findings page to seed this archive. The strongest entries usually explain a paradox, compare paradigms, or pressure-test a caveat.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {onGoToFindings && (
+            <button
+              onClick={onGoToFindings}
+              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-accent text-white hover:bg-accent/90 transition-colors"
+            >
+              <Search className="w-4 h-4" />
+              Start exploring
+            </button>
+          )}
+          {onTabChange && (
+            <>
+              <button
+                onClick={() => onTabChange('paper')}
+                className="rounded-md border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+              >
+                Read the paper
+              </button>
+              <button
+                onClick={() => onTabChange('simulation')}
+                className="rounded-md border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+              >
+                Open published results
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
