@@ -1861,18 +1861,20 @@ export function ResearchDemoSurface({
 
     const chapterLabel = activeChapterRoute ? ` ${activeChapterRoute.label}.` : ''
     const paperAnchorLabel = selectedPaperSection ? ` Paper anchor: ${selectedPaperSection.number} ${selectedPaperSection.title}.` : ''
+    const analyticsLabel = ` Analytics desk: ${analyticsView}.`
     const primaryReplaySummary = describeViewerSnapshot(viewerSnapshot, 'Primary replay')
     const compareReplaySummary = splitCompareActive
       ? describeViewerSnapshot(comparisonViewerSnapshot, 'Comparison replay')
       : null
 
     return [
-      `${audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode with ${matchedViewPreset?.label ?? 'Custom'} stack: ${themeLabel(theme)} theme, step ${step}, ${playbackLabel}, ${paperLens} lens, ${compareLabel}.${chapterLabel}${paperAnchorLabel}`,
+      `${audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode with ${matchedViewPreset?.label ?? 'Custom'} stack: ${themeLabel(theme)} theme, step ${step}, ${playbackLabel}, ${paperLens} lens, ${compareLabel}.${chapterLabel}${paperAnchorLabel}${analyticsLabel}`,
       primaryReplaySummary,
       compareReplaySummary,
     ].filter(Boolean).join(' ')
   }, [
     activeChapterRoute,
+    analyticsView,
     audienceMode,
     audienceProfiles,
     autoplay,
@@ -2207,6 +2209,7 @@ export function ResearchDemoSurface({
     params.set('autoplay', String(autoplay))
     params.set('lens', paperLens)
     params.set('audience', audienceMode)
+    params.set('analytics', analyticsView)
 
     if (comparisonDataset?.path) {
       params.set('compare', comparisonDataset.path)
@@ -2242,6 +2245,7 @@ export function ResearchDemoSurface({
 
     window.history.replaceState({}, '', `${url.pathname}?${params.toString()}${url.hash}`)
   }, [
+    analyticsView,
     assistantDraft,
     audienceMode,
     autoplay,
@@ -3516,6 +3520,74 @@ export function ResearchDemoSurface({
                     </div>
                   ) : null}
                 </div>
+              </div>
+
+              <div className="lab-stage p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <div className="text-xs text-muted mb-1">Analytics desk</div>
+                    <div className="text-sm text-text-primary">
+                      This is the next Dune-like layer: exact query presets over the frozen replay metrics, shareable in the same published workspace.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => void handleCopyShareUrl()}
+                    className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Copy analytics view
+                  </button>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {analyticsViewOptions.map(view => (
+                    <button
+                      key={view.id}
+                      onClick={() => setAnalyticsView(view.id)}
+                      className={cn(
+                        'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                        analyticsView === view.id
+                          ? 'border-accent bg-white text-accent'
+                          : 'border-border-subtle bg-[#FAFAF8] text-text-primary hover:border-border-hover',
+                      )}
+                    >
+                      {view.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Query framing</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">
+                    {analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics'} query
+                  </div>
+                  <div className="mt-2 text-xs leading-5 text-muted">
+                    {analyticsViewOptions.find(view => view.id === analyticsView)?.description ?? 'Exact metric query over the frozen replay.'}
+                  </div>
+                </div>
+
+                {analyticsStatusMessage ? (
+                  <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4 text-sm text-muted">
+                    {analyticsStatusMessage}
+                  </div>
+                ) : null}
+
+                {!analyticsStatusMessage && analyticsMetricCards.length > 0 ? (
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    {analyticsMetricCards.map(card => (
+                      <div key={card.label} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{card.label}</div>
+                        <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
+                        <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                {!analyticsStatusMessage && analyticsBlocks.length > 0 ? (
+                  <div className="mt-4">
+                    <BlockCanvas blocks={analyticsBlocks} showExport={false} />
+                  </div>
+                ) : null}
               </div>
 
               <div className="lab-stage p-5">
