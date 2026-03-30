@@ -399,32 +399,6 @@ export function FindingsPage({
         </p>
       </div>
 
-      {/* Executive summary — key findings shown immediately */}
-      {!showAi && !showTopic && (
-        <div className="mb-8">
-          <BlockCanvas blocks={DEFAULT_BLOCKS} />
-          {promptOptions.length > 0 && (
-            <div className="mt-6 pt-4 border-t border-rule">
-              <span className="text-xs text-muted mb-2 block">
-                {promptSectionTitle}
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {promptOptions.map((query, index) => (
-                  <button
-                    key={`${query}-${index}`}
-                    onClick={() => handleQuery(query)}
-                    className="text-xs text-muted hover:text-accent transition-colors group/followup"
-                    title={`Ask: ${query}`}
-                  >
-                    <span className="group-hover/followup:underline underline-offset-2">{query}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       <div className="mb-6">
         <QueryBar
           onSubmit={handleQuery}
@@ -727,7 +701,36 @@ export function FindingsPage({
               </div>
             )}
           </motion.div>
-        ) : null}
+        ) : (
+          <motion.div
+            key="default"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={SPRING}
+          >
+            <BlockCanvas blocks={DEFAULT_BLOCKS} />
+            {promptOptions.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-rule">
+                <span className="text-xs text-muted mb-2 block">
+                  {promptSectionTitle}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {promptOptions.map((query, index) => (
+                    <button
+                      key={`${query}-${index}`}
+                      onClick={() => handleQuery(query)}
+                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                      title={`Ask: ${query}`}
+                    >
+                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {onTabChange && (

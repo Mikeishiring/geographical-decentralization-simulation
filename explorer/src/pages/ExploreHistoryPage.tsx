@@ -379,19 +379,24 @@ function HistoryHeader({
   readonly onToggleSort: () => void
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row">
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-        <input
-          type="text"
-          value={search}
-          onChange={event => onSearchChange(event.target.value)}
-          placeholder="Search community notes and saved readings..."
-          className={cn(
-            'w-full rounded-lg border border-border-subtle bg-white py-2.5 pl-10 pr-4 text-sm',
-            'text-text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent',
-          )}
-        />
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+      <div className="flex-1">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            type="text"
+            value={search}
+            onChange={event => onSearchChange(event.target.value)}
+            placeholder="Search titles, takeaways, authors, paradigms, scenarios, or metrics..."
+            className={cn(
+              'w-full rounded-lg border border-border-subtle bg-white py-2.5 pl-10 pr-4 text-sm',
+              'text-text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent',
+            )}
+          />
+        </div>
+        <p className="mt-2 text-xs text-muted">
+          Search checks note titles, human takeaways, authors, paradigm tags, scenario tags, and saved reading text.
+        </p>
       </div>
 
       <button
@@ -743,7 +748,7 @@ function NoResults({ search }: { readonly search: string }) {
     <div className="rounded-xl border border-border-subtle bg-white px-4 py-8 text-center">
       <div className="text-sm font-medium text-text-primary">No matches for “{search}”</div>
       <p className="mt-2 text-sm text-muted">
-        Try a paradigm, scenario family, metric, or contributor name instead.
+        Try a paradigm, scenario family, metric, paper term, or contributor name instead.
       </p>
     </div>
   )

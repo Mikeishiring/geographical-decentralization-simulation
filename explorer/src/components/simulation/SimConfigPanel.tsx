@@ -92,8 +92,8 @@ export function SimConfigPanel({
   const slotsOnAnchor = isAnchorValue(config.slots, SLOT_ANCHORS)
   const migrationCostOnAnchor = isAnchorValue(config.migrationCost, MIGRATION_COST_ANCHORS)
   const inputClassName = 'lab-input-shell w-full rounded-xl px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/10'
-  const anchorButtonClassName = 'lab-option-card rounded-xl px-2.5 py-2 text-center transition-all hover:-translate-y-0.5 hover:border-border-hover'
-  const segmentButtonClassName = 'lab-option-card flex-1 rounded-xl px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover'
+  const anchorButtonClassName = 'lab-option-card min-w-0 rounded-xl px-2.5 py-2 text-center transition-all hover:-translate-y-0.5 hover:border-border-hover'
+  const segmentButtonClassName = 'lab-option-card min-w-0 rounded-xl px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover'
 
   return (
     <div className="lab-stage p-0 mb-6">
@@ -135,7 +135,7 @@ export function SimConfigPanel({
           <label className="text-xs text-muted mb-1.5 block">
             Paradigm
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {(['SSP', 'MSP'] as const).map(paradigm => (
               <button
                 key={paradigm}
@@ -210,7 +210,7 @@ export function SimConfigPanel({
               {config.validators.toLocaleString()}
             </div>
           </div>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
             {VALIDATOR_ANCHORS.map(option => (
               <button
                 key={option.value}
@@ -255,7 +255,7 @@ export function SimConfigPanel({
               {config.slots.toLocaleString()}
             </div>
           </div>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
             {SLOT_ANCHORS.map(option => (
               <button
                 key={option.value}
@@ -310,7 +310,7 @@ export function SimConfigPanel({
               <span>0.005</span>
             </div>
           </div>
-          <div className="mt-3 grid grid-cols-5 gap-2">
+          <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
             {MIGRATION_COST_ANCHORS.map(option => (
               <button
                 key={option.value}
@@ -340,7 +340,7 @@ export function SimConfigPanel({
           <label className="text-xs text-muted mb-1.5 block">
             Attestation Threshold (γ)
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             {THRESHOLD_OPTIONS.map(option => (
               <button
                 key={option.label}
@@ -353,7 +353,7 @@ export function SimConfigPanel({
                 )}
               >
                 <div className="text-sm font-medium">{option.label}</div>
-                <div className="mt-1 text-[10px] uppercase tracking-[0.12em] opacity-70">threshold</div>
+                <div className="mt-1 text-[10px] uppercase tracking-[0.08em] opacity-70">gamma</div>
               </button>
             ))}
           </div>
@@ -363,7 +363,7 @@ export function SimConfigPanel({
           <label className="text-xs text-muted mb-1.5 block">
             Slot Time (Δ)
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {SLOT_OPTIONS.map(option => (
               <button
                 key={option.label}
@@ -383,7 +383,7 @@ export function SimConfigPanel({
         </div>
       </div>
 
-      <div className="mx-3 mb-3 grid gap-4 xl:grid-cols-[1fr_auto]">
+      <div className="mx-3 mb-3 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="lab-stage-soft p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -460,7 +460,7 @@ export function SimConfigPanel({
           </div>
         </div>
 
-        <div className="lab-stage-dark p-5 xl:min-w-[320px]">
+        <div className="lab-stage-dark p-5">
           <div className="lab-loading-orb" />
           <div className="text-[0.68rem] uppercase tracking-[0.16em] text-slate-400">Run controls</div>
           <div className="mt-3 text-lg font-semibold text-white">Launch the exact engine when the scenario is locked.</div>
