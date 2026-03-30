@@ -75,7 +75,7 @@ export function QueryHistory({ entries, onSelect, activeQuery }: QueryHistoryPro
                 title={`${entry.summary} · ${entry.response.provenance.label}`}
                 whileHover={{ y: -2 }}
                 className={cn(
-                  'min-w-[220px] max-w-[260px] shrink-0 rounded-lg border px-3 py-2 text-left transition-all',
+                  'min-w-[220px] max-w-[260px] shrink-0 rounded-xl border px-3 py-2 text-left transition-all',
                   isActive
                     ? 'border-accent bg-white'
                     : 'border-border-subtle bg-white hover:border-border-hover',
