@@ -13,7 +13,7 @@ export function ErrorDisplay({ error, onRetry }: ErrorDisplayProps) {
   const isMissingConfig = error.status === 503 && error.error.includes('Anthropic API is not configured')
 
   return (
-    <div className="bg-white border border-border-subtle rounded-lg p-6 text-center">
+    <div className="bg-white border border-border-subtle rounded-xl p-6 text-center">
       <div className="flex justify-center mb-3">
         {isAuth || isMissingConfig ? (
           <KeyRound className="w-8 h-8 text-muted" />
@@ -45,7 +45,7 @@ export function ErrorDisplay({ error, onRetry }: ErrorDisplayProps) {
       {!isAuth && !isMissingConfig && (
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-border-subtle text-text-primary hover:bg-surface-active transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border-subtle text-text-primary hover:bg-surface-active transition-colors"
         >
           <RefreshCw className="w-3 h-3" />
           Try again
