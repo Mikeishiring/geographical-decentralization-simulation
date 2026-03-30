@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowUpRight } from 'lucide-react'
 import { ContributionComposer } from '../community/ContributionComposer'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import type { TabId } from '../layout/TabNav'
@@ -8,11 +9,23 @@ import { createExploration, publishExploration } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { listPublishedReplayNotes } from '../../lib/published-replay-notes-api'
 import type { PublishedReplayCopilotResponse } from '../../lib/published-replay-api'
-import type { Block } from '../../types/blocks'
+import type { Block, SourceBlock } from '../../types/blocks'
 import { formatNumber } from './simulation-constants'
 import { PublishedReplayCompanionPanel } from './PublishedReplayCompanionPanel'
 import { PublishedReplayNotesPanel } from './PublishedReplayNotesPanel'
 import { PublishedDatasetViewer, type PublishedViewerSnapshot } from './PublishedDatasetViewer'
+import { SimulationAnalyticsDesk } from './SimulationAnalyticsDesk'
+import {
+  ANALYTICS_VIEW_OPTIONS,
+  buildAnalyticsBlocks,
+  buildAnalyticsMetricCards,
+  clampSlotIndex,
+  parseAnalyticsDeckView,
+  type AnalyticsDeckView,
+  type AnalyticsMetricCard,
+  type PublishedAnalyticsPayload,
+  totalSlotsFromPayload,
+} from './simulation-analytics'
 
 interface ResearchMetadata {
   readonly v?: number
@@ -61,7 +74,6 @@ type WorkspaceTheme = 'auto' | 'light' | 'dark'
 type WorkspaceStep = 1 | 10 | 50
 type PaperLens = 'evidence' | 'theory' | 'methods'
 type AudienceMode = 'reader' | 'reviewer' | 'researcher'
-type AnalyticsDeckView = 'concentration' | 'latency' | 'economics' | 'geography'
 
 interface ViewerLaunch {
   readonly dataset: ResearchDatasetEntry
@@ -110,39 +122,6 @@ interface AnalyticsPromptLauncher {
   readonly label: string
   readonly prompt: string
   readonly detail: string
-}
-
-interface PublishedAnalyticsMetrics {
-  readonly clusters?: readonly number[]
-  readonly total_distance?: readonly number[]
-  readonly mev?: readonly number[]
-  readonly attestations?: readonly number[]
-  readonly proposal_times?: readonly number[]
-  readonly gini?: readonly number[]
-  readonly hhi?: readonly number[]
-  readonly liveness?: readonly number[]
-  readonly failed_block_proposals?: readonly number[]
-}
-
-interface PublishedAnalyticsPayload {
-  readonly v?: number
-  readonly description?: string
-  readonly n_slots?: number
-  readonly metrics?: PublishedAnalyticsMetrics
-  readonly sources?: ReadonlyArray<readonly [string, string]>
-  readonly slots?: Record<string, ReadonlyArray<readonly [string, number]>>
-}
-
-interface AnalyticsMetricCard {
-  readonly label: string
-  readonly value: string
-  readonly detail: string
-}
-
-function parseAnalyticsDeckView(value: string | null): AnalyticsDeckView | undefined {
-  return value === 'concentration' || value === 'latency' || value === 'economics' || value === 'geography'
-    ? value
-    : undefined
 }
 
 function readResearchCatalog(): ResearchCatalog | null {
@@ -231,116 +210,6 @@ function readInitialWorkspaceState(): InitialWorkspaceState {
     compareFocusSlot: parseSlotIndex(params.get('compareSlot')),
     analyticsView: parseAnalyticsDeckView(params.get('analytics')),
   }
-}
-
-function totalSlotsFromPayload(payload: PublishedAnalyticsPayload | null): number {
-  return Math.max(
-    1,
-    payload?.n_slots ?? 0,
-    payload?.metrics?.gini?.length ?? 0,
-    payload?.metrics?.mev?.length ?? 0,
-    Object.keys(payload?.slots ?? {}).length,
-  )
-}
-
-function clampSlotIndex(slot: number | null | undefined, totalSlots: number): number {
-  if (typeof slot !== 'number' || !Number.isFinite(slot)) return 0
-  return Math.max(0, Math.min(Math.floor(slot), Math.max(0, totalSlots - 1)))
-}
-
-function readMetricValue(series: readonly number[] | undefined, slot: number): number | null {
-  if (!series?.length) return null
-  const index = Math.max(0, Math.min(slot, series.length - 1))
-  const value = series[index]
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
-}
-
-function sampleSeries(
-  series: readonly number[] | undefined,
-  maxPoints = 240,
-): Array<{ x: number; y: number }> {
-  if (!series?.length) return []
-
-  const step = Math.max(1, Math.ceil(series.length / maxPoints))
-  const points: Array<{ x: number; y: number }> = []
-
-  for (let index = 0; index < series.length; index += step) {
-    const value = series[index]
-    if (typeof value !== 'number' || !Number.isFinite(value)) continue
-    points.push({ x: index + 1, y: value })
-  }
-
-  const lastIndex = series.length - 1
-  const lastValue = series[lastIndex]
-  if (
-    typeof lastValue === 'number'
-    && Number.isFinite(lastValue)
-    && points[points.length - 1]?.x !== lastIndex + 1
-  ) {
-    points.push({ x: lastIndex + 1, y: lastValue })
-  }
-
-  return points
-}
-
-function sampleActiveRegionsSeries(
-  payload: PublishedAnalyticsPayload | null,
-  maxPoints = 240,
-): Array<{ x: number; y: number }> {
-  if (!payload?.slots) return []
-
-  const totalSlots = totalSlotsFromPayload(payload)
-  const step = Math.max(1, Math.ceil(totalSlots / maxPoints))
-  const points: Array<{ x: number; y: number }> = []
-
-  for (let slotIndex = 0; slotIndex < totalSlots; slotIndex += step) {
-    const slotRegions = payload.slots[String(slotIndex)] ?? []
-    points.push({
-      x: slotIndex + 1,
-      y: slotRegions.filter(([, count]) => Number(count) > 0).length,
-    })
-  }
-
-  const finalSlotIndex = Math.max(0, totalSlots - 1)
-  if (points[points.length - 1]?.x !== finalSlotIndex + 1) {
-    const finalRegions = payload.slots[String(finalSlotIndex)] ?? []
-    points.push({
-      x: finalSlotIndex + 1,
-      y: finalRegions.filter(([, count]) => Number(count) > 0).length,
-    })
-  }
-
-  return points
-}
-
-function topRegionsForSlot(
-  payload: PublishedAnalyticsPayload | null,
-  slotIndex: number,
-  limit = 5,
-): Array<{ label: string; count: number; share: number }> {
-  if (!payload?.slots) return []
-
-  const rawRegions = payload.slots[String(slotIndex)] ?? []
-  const totalValidators = payload.v ?? rawRegions.reduce((sum, [, count]) => sum + Number(count || 0), 0)
-
-  return rawRegions
-    .map(([regionId, count]) => ({
-      label: regionId,
-      count: Number(count) || 0,
-      share: totalValidators > 0 ? ((Number(count) || 0) / totalValidators) * 100 : 0,
-    }))
-    .filter(region => region.count > 0)
-    .sort((left, right) => right.count - left.count)
-    .slice(0, limit)
-}
-
-function activeRegionCountAtSlot(
-  payload: PublishedAnalyticsPayload | null,
-  slotIndex: number,
-): number {
-  if (!payload?.slots) return 0
-  const rawRegions = payload.slots[String(slotIndex)] ?? []
-  return rawRegions.filter(([, count]) => Number(count) > 0).length
 }
 
 async function fetchPublishedAnalyticsPayload(
@@ -1250,334 +1119,79 @@ export function ResearchDemoSurface({
     comparisonViewerSnapshot?.slotIndex ?? initialWorkspaceState.compareFocusSlot ?? 0,
     comparisonAnalyticsTotalSlots,
   )
-  const analyticsViewOptions = useMemo(() => ([
-    {
-      id: 'concentration' as const,
-      label: 'Concentration',
-      description: 'Gini, HHI, and region compression over time.',
-    },
-    {
-      id: 'latency' as const,
-      label: 'Latency',
-      description: 'Liveness, proposal timing, and failure posture.',
-    },
-    {
-      id: 'economics' as const,
-      label: 'Economics',
-      description: 'MEV, attestation output, and cluster behavior.',
-    },
-    {
-      id: 'geography' as const,
-      label: 'Geography',
-      description: 'Active-region spread and top-region rank tables.',
-    },
-  ] as const), [])
-  const analyticsMetricCards = useMemo<AnalyticsMetricCard[]>(() => {
-    if (!primaryAnalyticsPayload) return []
+  const analyticsViewOptions = ANALYTICS_VIEW_OPTIONS
+  const analyticsMetricCards = useMemo<AnalyticsMetricCard[]>(
+    () => buildAnalyticsMetricCards({
+      analyticsView,
+      payload: primaryAnalyticsPayload,
+      slot: primaryAnalyticsSlot,
+    }),
+    [analyticsView, primaryAnalyticsPayload, primaryAnalyticsSlot],
+  )
+  const analyticsSourceRefs = useMemo<readonly SourceBlock['refs'][number][]>(() => {
+    if (!selectedDataset) return []
 
-    const metrics = primaryAnalyticsPayload.metrics ?? {}
-    const finalSlot = Math.max(0, primaryAnalyticsTotalSlots - 1)
-    const currentTopRegion = topRegionsForSlot(primaryAnalyticsPayload, primaryAnalyticsSlot, 1)[0] ?? null
-    const finalTopRegion = topRegionsForSlot(primaryAnalyticsPayload, finalSlot, 1)[0] ?? null
-
-    switch (analyticsView) {
-      case 'latency':
-        return [
-          {
-            label: 'Current liveness',
-            value: formatPercentValue(readMetricValue(metrics.liveness, primaryAnalyticsSlot)),
-            detail: `Exact value at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Current proposal time',
-            value: formatOptionalMilliseconds(readMetricValue(metrics.proposal_times, primaryAnalyticsSlot)),
-            detail: `Proposal timing at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Final failed proposals',
-            value: readMetricValue(metrics.failed_block_proposals, finalSlot)?.toLocaleString() ?? 'N/A',
-            detail: 'Frozen final-slot failure count.',
-          },
-          {
-            label: 'Final liveness',
-            value: formatPercentValue(readMetricValue(metrics.liveness, finalSlot)),
-            detail: 'Replay endpoint for network liveness.',
-          },
-        ]
-      case 'economics':
-        return [
-          {
-            label: 'Current MEV',
-            value: formatOptionalEth(readMetricValue(metrics.mev, primaryAnalyticsSlot)),
-            detail: `Exact MEV value at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Final MEV',
-            value: formatOptionalEth(readMetricValue(metrics.mev, finalSlot)),
-            detail: 'Replay endpoint for value capture.',
-          },
-          {
-            label: 'Current attestation',
-            value: readMetricValue(metrics.attestations, primaryAnalyticsSlot)?.toLocaleString() ?? 'N/A',
-            detail: `Attestation count at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Final clusters',
-            value: readMetricValue(metrics.clusters, finalSlot)?.toLocaleString() ?? 'N/A',
-            detail: 'Final geographic cluster count.',
-          },
-        ]
-      case 'geography':
-        return [
-          {
-            label: 'Current active regions',
-            value: activeRegionCountAtSlot(primaryAnalyticsPayload, primaryAnalyticsSlot).toLocaleString(),
-            detail: `Regions with non-zero validators at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Final active regions',
-            value: activeRegionCountAtSlot(primaryAnalyticsPayload, finalSlot).toLocaleString(),
-            detail: 'Replay endpoint for geographic spread.',
-          },
-          {
-            label: 'Current leader',
-            value: currentTopRegion?.label ?? 'N/A',
-            detail: currentTopRegion ? `${formatNumber(currentTopRegion.share, 1)}% share.` : 'No dominant region.',
-          },
-          {
-            label: 'Final leader',
-            value: finalTopRegion?.label ?? 'N/A',
-            detail: finalTopRegion ? `${formatNumber(finalTopRegion.share, 1)}% share.` : 'No dominant region.',
-          },
-        ]
-      case 'concentration':
-      default:
-        return [
-          {
-            label: 'Current Gini',
-            value: readMetricValue(metrics.gini, primaryAnalyticsSlot) != null
-              ? formatNumber(readMetricValue(metrics.gini, primaryAnalyticsSlot) ?? 0, 3)
-              : 'N/A',
-            detail: `Concentration at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Final Gini',
-            value: readMetricValue(metrics.gini, finalSlot) != null
-              ? formatNumber(readMetricValue(metrics.gini, finalSlot) ?? 0, 3)
-              : 'N/A',
-            detail: 'Replay endpoint for concentration.',
-          },
-          {
-            label: 'Current HHI',
-            value: readMetricValue(metrics.hhi, primaryAnalyticsSlot) != null
-              ? formatNumber(readMetricValue(metrics.hhi, primaryAnalyticsSlot) ?? 0, 3)
-              : 'N/A',
-            detail: `HHI at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Active regions now',
-            value: activeRegionCountAtSlot(primaryAnalyticsPayload, primaryAnalyticsSlot).toLocaleString(),
-            detail: 'How many regions still retain validators.',
-          },
-        ]
-    }
-  }, [analyticsView, primaryAnalyticsPayload, primaryAnalyticsSlot, primaryAnalyticsTotalSlots])
-  const analyticsBlocks = useMemo<readonly Block[]>(() => {
-    if (!primaryAnalyticsPayload || !selectedDataset) return []
-
-    const metrics = primaryAnalyticsPayload.metrics ?? {}
-    const finalSlot = Math.max(0, primaryAnalyticsTotalSlots - 1)
-    const currentTopRegions = topRegionsForSlot(primaryAnalyticsPayload, primaryAnalyticsSlot, 5)
-    const finalTopRegions = topRegionsForSlot(primaryAnalyticsPayload, finalSlot, 5)
-    const blocks: Block[] = [
+    return [
       {
-        type: 'source',
-        refs: [
-          {
-            label: 'Analytics view',
-            section: analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics desk',
-            url: shareUrl || undefined,
-          },
-          {
-            label: 'Published dataset JSON',
-            section: selectedDataset.path,
-            url: datasetUrl || undefined,
-          },
-          ...(sourceUrl ? [{
-            label: 'Dataset source file',
-            section: selectedDataset.path,
-            url: sourceUrl,
-          }] : []),
-          ...(selectedPaperSection ? [{
-            label: 'Canonical paper section',
-            section: `${selectedPaperSection.number} ${selectedPaperSection.title}`,
-            url: paperSectionUrl || undefined,
-          }] : []),
-          ...(comparisonDataset && comparisonDatasetUrl ? [{
-            label: 'Comparison dataset JSON',
-            section: comparisonDataset.path,
-            url: comparisonDatasetUrl,
-          }] : []),
-        ],
+        label: 'Analytics view',
+        section: analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics desk',
+        url: shareUrl || undefined,
       },
+      {
+        label: 'Published dataset JSON',
+        section: selectedDataset.path,
+        url: datasetUrl || undefined,
+      },
+      ...(sourceUrl ? [{
+        label: 'Dataset source file',
+        section: selectedDataset.path,
+        url: sourceUrl,
+      }] : []),
+      ...(selectedPaperSection ? [{
+        label: 'Canonical paper section',
+        section: `${selectedPaperSection.number} ${selectedPaperSection.title}`,
+        url: paperSectionUrl || undefined,
+      }] : []),
+      ...(comparisonDataset && comparisonDatasetUrl ? [{
+        label: 'Comparison dataset JSON',
+        section: comparisonDataset.path,
+        url: comparisonDatasetUrl,
+      }] : []),
     ]
-
-    if (analyticsView === 'concentration') {
-      blocks.push(
-        {
-          type: 'timeseries',
-          title: 'Concentration query',
-          series: [
-            { label: 'Gini', data: sampleSeries(metrics.gini), color: '#C2553A' },
-            { label: 'HHI', data: sampleSeries(metrics.hhi), color: '#2563EB' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'Index',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-        {
-          type: 'timeseries',
-          title: 'Active-region spread',
-          series: [
-            { label: 'Active regions', data: sampleActiveRegionsSeries(primaryAnalyticsPayload), color: '#0F766E' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'Regions',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-      )
-    }
-
-    if (analyticsView === 'latency') {
-      blocks.push(
-        {
-          type: 'timeseries',
-          title: 'Liveness query',
-          series: [
-            { label: 'Liveness', data: sampleSeries(metrics.liveness), color: '#16A34A' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'Percent',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-        {
-          type: 'timeseries',
-          title: 'Proposal-time query',
-          series: [
-            { label: 'Proposal time', data: sampleSeries(metrics.proposal_times), color: '#D97706' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'Milliseconds',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-      )
-    }
-
-    if (analyticsView === 'economics') {
-      blocks.push(
-        {
-          type: 'timeseries',
-          title: 'MEV query',
-          series: [
-            { label: 'MEV', data: sampleSeries(metrics.mev), color: '#2563EB' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'ETH',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-        {
-          type: 'timeseries',
-          title: 'Attestation output',
-          series: [
-            { label: 'Attestations', data: sampleSeries(metrics.attestations), color: '#0F766E' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'Count',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-      )
-    }
-
-    if (analyticsView === 'geography') {
-      blocks.push(
-        {
-          type: 'timeseries',
-          title: 'Geographic spread query',
-          series: [
-            { label: 'Active regions', data: sampleActiveRegionsSeries(primaryAnalyticsPayload), color: '#7C3AED' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'Regions',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-        {
-          type: 'table',
-          title: 'Current vs final top regions',
-          headers: ['Rank', `Slot ${primaryAnalyticsSlot + 1}`, 'Final slot'],
-          rows: Array.from({ length: Math.max(currentTopRegions.length, finalTopRegions.length, 3) }, (_, index) => [
-            `#${index + 1}`,
-            currentTopRegions[index]
-              ? `${currentTopRegions[index]!.label} (${formatNumber(currentTopRegions[index]!.share, 1)}%)`
-              : 'N/A',
-            finalTopRegions[index]
-              ? `${finalTopRegions[index]!.label} (${formatNumber(finalTopRegions[index]!.share, 1)}%)`
-              : 'N/A',
-          ]),
-        },
-      )
-    }
-
-    if (comparisonDataset && comparisonAnalyticsPayload) {
-      const compareMetrics = comparisonAnalyticsPayload.metrics ?? {}
-      const compareCurrentSlot = comparisonAnalyticsSlot
-      const compareTopRegion = topRegionsForSlot(comparisonAnalyticsPayload, compareCurrentSlot, 1)[0] ?? null
-      blocks.push({
-        type: 'table',
-        title: 'Current query comparison',
-        headers: ['Metric', 'Active replay', 'Comparison replay'],
-        rows: analyticsView === 'latency'
-          ? [
-              ['Liveness', formatPercentValue(readMetricValue(metrics.liveness, primaryAnalyticsSlot)), formatPercentValue(readMetricValue(compareMetrics.liveness, compareCurrentSlot))],
-              ['Proposal time', formatOptionalMilliseconds(readMetricValue(metrics.proposal_times, primaryAnalyticsSlot)), formatOptionalMilliseconds(readMetricValue(compareMetrics.proposal_times, compareCurrentSlot))],
-              ['Failed proposals', readMetricValue(metrics.failed_block_proposals, primaryAnalyticsSlot)?.toLocaleString() ?? 'N/A', readMetricValue(compareMetrics.failed_block_proposals, compareCurrentSlot)?.toLocaleString() ?? 'N/A'],
-            ]
-          : analyticsView === 'economics'
-            ? [
-                ['MEV', formatOptionalEth(readMetricValue(metrics.mev, primaryAnalyticsSlot)), formatOptionalEth(readMetricValue(compareMetrics.mev, compareCurrentSlot))],
-                ['Attestations', readMetricValue(metrics.attestations, primaryAnalyticsSlot)?.toLocaleString() ?? 'N/A', readMetricValue(compareMetrics.attestations, compareCurrentSlot)?.toLocaleString() ?? 'N/A'],
-                ['Clusters', readMetricValue(metrics.clusters, primaryAnalyticsSlot)?.toLocaleString() ?? 'N/A', readMetricValue(compareMetrics.clusters, compareCurrentSlot)?.toLocaleString() ?? 'N/A'],
-              ]
-            : analyticsView === 'geography'
-              ? [
-                  ['Active regions', activeRegionCountAtSlot(primaryAnalyticsPayload, primaryAnalyticsSlot).toLocaleString(), activeRegionCountAtSlot(comparisonAnalyticsPayload, compareCurrentSlot).toLocaleString()],
-                  ['Leading region', currentTopRegions[0]?.label ?? 'N/A', compareTopRegion?.label ?? 'N/A'],
-                  ['Leading share', currentTopRegions[0] ? `${formatNumber(currentTopRegions[0]!.share, 1)}%` : 'N/A', compareTopRegion ? `${formatNumber(compareTopRegion.share, 1)}%` : 'N/A'],
-                ]
-              : [
-                  ['Gini', readMetricValue(metrics.gini, primaryAnalyticsSlot) != null ? formatNumber(readMetricValue(metrics.gini, primaryAnalyticsSlot) ?? 0, 3) : 'N/A', readMetricValue(compareMetrics.gini, compareCurrentSlot) != null ? formatNumber(readMetricValue(compareMetrics.gini, compareCurrentSlot) ?? 0, 3) : 'N/A'],
-                  ['HHI', readMetricValue(metrics.hhi, primaryAnalyticsSlot) != null ? formatNumber(readMetricValue(metrics.hhi, primaryAnalyticsSlot) ?? 0, 3) : 'N/A', readMetricValue(compareMetrics.hhi, compareCurrentSlot) != null ? formatNumber(readMetricValue(compareMetrics.hhi, compareCurrentSlot) ?? 0, 3) : 'N/A'],
-                  ['Active regions', activeRegionCountAtSlot(primaryAnalyticsPayload, primaryAnalyticsSlot).toLocaleString(), activeRegionCountAtSlot(comparisonAnalyticsPayload, compareCurrentSlot).toLocaleString()],
-                ],
-      })
-    }
-
-    return blocks
   }, [
     analyticsView,
     analyticsViewOptions,
-    comparisonAnalyticsPayload,
-    comparisonAnalyticsSlot,
     comparisonDataset,
     comparisonDatasetUrl,
     datasetUrl,
     paperSectionUrl,
-    primaryAnalyticsPayload,
-    primaryAnalyticsSlot,
-    primaryAnalyticsTotalSlots,
     selectedDataset,
     selectedPaperSection,
     shareUrl,
     sourceUrl,
+  ])
+  const analyticsBlocks = useMemo<readonly Block[]>(() => {
+    if (!primaryAnalyticsPayload || !selectedDataset) return []
+
+    return buildAnalyticsBlocks({
+      analyticsView,
+      primaryPayload: primaryAnalyticsPayload,
+      primarySlot: primaryAnalyticsSlot,
+      sourceRefs: analyticsSourceRefs,
+      primaryLabel: 'Active replay',
+      comparisonPayload: comparisonDataset ? comparisonAnalyticsPayload : null,
+      comparisonSlot: comparisonAnalyticsSlot,
+      comparisonLabel: 'Comparison replay',
+    })
+  }, [
+    analyticsSourceRefs,
+    analyticsView,
+    comparisonAnalyticsPayload,
+    comparisonAnalyticsSlot,
+    comparisonDataset,
+    primaryAnalyticsPayload,
+    primaryAnalyticsSlot,
+    selectedDataset,
   ])
   const analyticsStatusMessage = primaryAnalyticsQuery.isLoading
     ? 'Loading exact analytics queries from the published dataset...'
@@ -2402,7 +2016,7 @@ export function ResearchDemoSurface({
       <div className="lab-stage overflow-hidden p-0">
         <div className="grid xl:grid-cols-[minmax(0,1.25fr)_360px]">
           <div className="p-6 md:p-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
               Published Research Demo
             </div>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight text-text-primary">
@@ -2427,7 +2041,7 @@ export function ResearchDemoSurface({
                     applyAudienceMode('reader')
                     setPaperLens('evidence')
                   }}
-                  className="rounded-2xl border border-rule bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
+                  className="rounded-2xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
                 >
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">1. Read the scenario</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">Set an evidence-first posture</div>
@@ -2448,7 +2062,7 @@ export function ResearchDemoSurface({
                       )
                     }
                   }}
-                  className="rounded-2xl border border-rule bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
+                  className="rounded-2xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
                 >
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">2. Test a comparison</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">Open the foil and ask one grounded question</div>
@@ -2468,7 +2082,7 @@ export function ResearchDemoSurface({
                       true,
                     )
                   }}
-                  className="rounded-2xl border border-rule bg-white px-4 py-4 text-left transition-all hover:border-border-hover"
+                  className="rounded-2xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
                 >
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">3. Trace the mechanism</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">Bind the replay to the paper framing</div>
@@ -2483,8 +2097,8 @@ export function ResearchDemoSurface({
                   className={cn(
                     'rounded-2xl border px-4 py-4 text-left transition-all',
                     onOpenExactLab
-                      ? 'border-rule bg-white hover:border-border-hover'
-                      : 'cursor-not-allowed border-rule bg-surface-active text-muted',
+                      ? 'border-border-subtle bg-white hover:-translate-y-0.5 hover:border-border-hover'
+                      : 'cursor-not-allowed border-border-subtle bg-surface-active text-muted',
                   )}
                 >
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">4. Reproduce it exactly</div>
@@ -2501,7 +2115,7 @@ export function ResearchDemoSurface({
 
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 {heroSnapshotCards.map(card => (
-                  <div key={card.label} className="rounded-2xl border border-rule bg-surface-active px-4 py-4">
+                  <div key={card.label} className="rounded-2xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
                     <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
                     <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
                     <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
@@ -2520,7 +2134,7 @@ export function ResearchDemoSurface({
         >
           <div className="space-y-4">
             <div className="lab-stage overflow-hidden p-0">
-              <div className="border-b border-rule bg-surface-active px-5 py-4">
+              <div className="border-b border-border-subtle bg-[#FAFAF8] px-5 py-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                   <div>
                     <div className="text-xs text-muted mb-1">Live published canvas</div>
@@ -2576,7 +2190,7 @@ export function ResearchDemoSurface({
                   </div>
 
                   <div className="space-y-3">
-                    <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                    <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
                       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison published replay</div>
                       <div className="mt-2 text-sm font-medium text-text-primary">
                         {comparisonDataset.evaluation} · {comparisonDataset.paradigm}
@@ -2631,7 +2245,7 @@ export function ResearchDemoSurface({
 
             <div className="lab-stage overflow-hidden p-0">
               <div className="grid gap-0 xl:grid-cols-[minmax(0,1.08fr)_360px]">
-                <div className="border-b border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.78))] px-5 py-5 xl:border-b-0 xl:border-r">
+                <div className="border-b border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.78))] px-5 py-5 xl:border-b-0 xl:border-r">
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                     {lastReplayAnswer ? 'Replay-backed conclusion' : 'Published findings board'}
                   </div>
@@ -2650,7 +2264,7 @@ export function ResearchDemoSurface({
                         <button
                           key={`findings-${item.label}`}
                           onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-all hover:border-border-hover"
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover"
                         >
                           {item.label}
                         </button>
@@ -2660,11 +2274,11 @@ export function ResearchDemoSurface({
                 </div>
 
                 <div className="space-y-3 bg-white px-5 py-5">
-                  <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                  <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
                     <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Current posture</div>
                     <div className="mt-2 text-sm leading-6 text-text-primary">{currentViewSummary}</div>
                   </div>
-                  <div className="rounded-xl border border-rule bg-white px-4 py-4">
+                  <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
                     <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                       {splitCompareActive && comparisonDataset ? 'Comparison read' : 'Canonical paper anchor'}
                     </div>
@@ -2679,14 +2293,14 @@ export function ResearchDemoSurface({
                         : selectedPaperSection?.description ?? 'Select a paper section to keep the replay interpretation tied to the canonical text.'}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-rule bg-white px-4 py-4">
+                  <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
                     <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Why it matters now</div>
                     <div className="mt-2 text-xs leading-5 text-muted">{activeAudienceBrief.summary}</div>
                   </div>
                 </div>
               </div>
 
-              <div className="border-t border-rule px-5 py-5">
+              <div className="border-t border-border-subtle px-5 py-5">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {resultSnapshotCards.map((card, index) => (
                     <div
@@ -2695,7 +2309,7 @@ export function ResearchDemoSurface({
                         'rounded-[1.15rem] border px-4 py-4 shadow-[0_12px_26px_rgba(15,23,42,0.04)]',
                         index === 0
                           ? 'border-accent/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.88))]'
-                          : 'border-rule bg-white',
+                          : 'border-border-subtle bg-white',
                       )}
                     >
                       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
@@ -2729,7 +2343,7 @@ export function ResearchDemoSurface({
                         'rounded-xl border px-4 py-3 text-left transition-colors',
                         isActive
                           ? 'border-accent bg-white'
-                          : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
+                          : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
                       )}
                     >
                       <div className="flex flex-wrap gap-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
@@ -2763,7 +2377,7 @@ export function ResearchDemoSurface({
                         'rounded-xl border px-3 py-3 text-left transition-colors',
                         audienceMode === profile.id
                           ? 'border-accent bg-white'
-                          : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
+                          : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
                       )}
                     >
                       <div className="text-xs font-medium text-text-primary">{profile.label}</div>
@@ -2784,7 +2398,7 @@ export function ResearchDemoSurface({
                         'rounded-xl border px-3 py-3 text-left transition-colors',
                         matchedViewPreset?.id === preset.id
                           ? 'border-accent bg-white'
-                          : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
+                          : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
                       )}
                     >
                       <div className="text-xs font-medium text-text-primary">{preset.label}</div>
@@ -2805,7 +2419,7 @@ export function ResearchDemoSurface({
                         'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
                         paperLens === lens.id
                           ? 'border-accent bg-white text-accent'
-                          : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                          : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
                       )}
                     >
                       {lens.label}
@@ -2834,26 +2448,26 @@ export function ResearchDemoSurface({
               <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
                 <button
                   onClick={handleFillDemoValues}
-                  className="rounded-full border border-rule bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
                   Load reference view
                 </button>
                 <button
                   onClick={() => void handleCopyShareUrl()}
-                  className="rounded-full border border-rule bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
                   Copy share link
                 </button>
                 <button
                   onClick={() => applyViewPreset('compare')}
-                  className="rounded-full border border-rule bg-surface-active px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
                   Activate split compare
                 </button>
                 <a
                   href={paperSectionUrl || undefined}
                   className={cn(
-                    'rounded-full border border-rule bg-surface-active px-3 py-2 text-center text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                    'rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-center text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
                     !paperSectionUrl && 'pointer-events-none opacity-60',
                   )}
                 >
@@ -2861,7 +2475,7 @@ export function ResearchDemoSurface({
                 </a>
               </div>
 
-              <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4 text-xs leading-5 text-muted">
+              <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4 text-xs leading-5 text-muted">
                 New experiments still live on the exact-run surface. This rail stays tied to the published, precomputed evidence.
               </div>
             </div>
@@ -2893,7 +2507,7 @@ export function ResearchDemoSurface({
                 <select
                   value={selectedEvaluation}
                   onChange={event => setSelectedEvaluation(event.target.value)}
-                  className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
+                  className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
                 >
                   {evaluationOptions.map(option => (
                     <option key={option} value={option}>{option}</option>
@@ -2912,7 +2526,7 @@ export function ResearchDemoSurface({
                         'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
                         selectedParadigm === option
                           ? 'border-accent bg-white text-accent'
-                          : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                          : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
                       )}
                     >
                       {option}
@@ -2926,7 +2540,7 @@ export function ResearchDemoSurface({
                 <select
                   value={selectedResult}
                   onChange={event => setSelectedResult(event.target.value)}
-                  className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
+                  className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
                 >
                   {resultOptions.map(option => (
                     <option key={option} value={option}>{option}</option>
@@ -2935,7 +2549,7 @@ export function ResearchDemoSurface({
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-3">
+            <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-3">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Dataset path</div>
               <div className="mt-2 break-all text-sm font-medium text-text-primary">
                 {selectedDataset?.path ?? 'Choose a dataset'}
@@ -2963,7 +2577,7 @@ export function ResearchDemoSurface({
                       'rounded-xl border px-3 py-3 text-left transition-colors',
                       audienceMode === profile.id
                         ? 'border-accent bg-white'
-                        : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
+                        : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
                     )}
                   >
                     <div className="text-xs font-medium text-text-primary">{profile.label}</div>
@@ -2984,7 +2598,7 @@ export function ResearchDemoSurface({
                       'rounded-xl border px-3 py-3 text-left transition-colors',
                       matchedViewPreset?.id === preset.id
                         ? 'border-accent bg-white'
-                        : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
+                        : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
                     )}
                   >
                     <div className="text-xs font-medium text-text-primary">{preset.label}</div>
@@ -3000,7 +2614,7 @@ export function ResearchDemoSurface({
                 <select
                   value={theme}
                   onChange={event => setTheme(event.target.value as 'auto' | 'light' | 'dark')}
-                  className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
+                  className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
                 >
                   <option value="auto">Auto</option>
                   <option value="light">Light</option>
@@ -3013,7 +2627,7 @@ export function ResearchDemoSurface({
                 <select
                   value={step}
                   onChange={event => setStep(Number(event.target.value) as 1 | 10 | 50)}
-                  className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
+                  className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
                 >
                   <option value={1}>1</option>
                   <option value={10}>10</option>
@@ -3035,7 +2649,7 @@ export function ResearchDemoSurface({
                         'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
                         autoplay === option.value
                           ? 'border-accent bg-white text-accent'
-                          : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                          : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
                       )}
                     >
                       {option.label}
@@ -3055,7 +2669,7 @@ export function ResearchDemoSurface({
                         'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
                         paperLens === lens.id
                           ? 'border-accent bg-white text-accent'
-                          : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                          : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
                       )}
                     >
                       {lens.label}
@@ -3065,7 +2679,7 @@ export function ResearchDemoSurface({
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-3">
+            <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-3">
               <div className="text-xs text-text-faint">Current view stack</div>
               <div className="mt-1 text-sm font-medium text-text-primary">
                 {matchedViewPreset?.label ?? 'Custom'} preset
@@ -3097,7 +2711,7 @@ export function ResearchDemoSurface({
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
+            <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
               <div className="text-xs text-text-faint">Share this reading view</div>
               <div className="mt-2 text-xs leading-5 text-muted">
                 The link preserves the scenario, audience mode, reading lens, replay question, paper anchor, and current slot posture.
@@ -3105,7 +2719,7 @@ export function ResearchDemoSurface({
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   onClick={() => void handleCopyShareUrl()}
-                  className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
                   {assistantDraft.trim() ? 'Copy replay query link' : 'Copy share link'}
                 </button>
@@ -3114,7 +2728,7 @@ export function ResearchDemoSurface({
                   target="_blank"
                   rel="noreferrer"
                   className={cn(
-                    'rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                    'rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
                     !shareUrl && 'pointer-events-none opacity-60',
                   )}
                 >
@@ -3131,11 +2745,11 @@ export function ResearchDemoSurface({
               ) : null}
             </div>
 
-            <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
+            <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
               <div className="text-xs text-text-faint">Saved views</div>
               <div className="mt-3 grid gap-3">
                 {savedWorkspaceViews.map(view => (
-                  <div key={view.id} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                  <div key={view.id} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <div className="text-sm font-medium text-text-primary">{view.label}</div>
@@ -3144,13 +2758,13 @@ export function ResearchDemoSurface({
                       <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => applyWorkspacePose(view.config)}
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                         >
                           Apply
                         </button>
                         <button
                           onClick={() => void handleCopyShareUrl(view.url)}
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                         >
                           Copy URL
                         </button>
@@ -3158,7 +2772,7 @@ export function ResearchDemoSurface({
                           href={view.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                         >
                           Open
                         </a>
@@ -3168,12 +2782,12 @@ export function ResearchDemoSurface({
                 ))}
               </div>
 
-              <div className="mt-4 border-t border-rule pt-4">
+              <div className="mt-4 border-t border-border-subtle pt-4">
                 <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Entry point chips</div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     onClick={() => void handleCopyShareUrl()}
-                    className="rounded-full border border-rule bg-surface-active px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                    className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                   >
                     Export current state
                   </button>
@@ -3183,7 +2797,7 @@ export function ResearchDemoSurface({
                       href={view.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-full border border-rule bg-surface-active px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                      className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                     >
                       {view.label}
                     </a>
@@ -3192,14 +2806,14 @@ export function ResearchDemoSurface({
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
+            <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
               <div className="text-xs text-text-faint">Paper chapters</div>
               <div className="mt-2 text-xs leading-5 text-muted">
                 These are authored reading routes. They should feel closer to paper sections than to generic dashboard presets.
               </div>
               <div className="mt-3 space-y-3">
                 {chapterRoutes.map(chapter => (
-                  <div key={chapter.id} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                  <div key={chapter.id} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <div className="text-sm font-medium text-text-primary">{chapter.label}</div>
@@ -3208,13 +2822,13 @@ export function ResearchDemoSurface({
                       <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => applyWorkspacePose(chapter.config)}
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                         >
                           Open chapter
                         </button>
                         <button
                           onClick={() => void handleCopyShareUrl(chapter.url)}
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                         >
                           Copy link
                         </button>
@@ -3237,31 +2851,31 @@ export function ResearchDemoSurface({
               </div>
 
               <div className="grid grid-cols-2 gap-3 mt-4 text-xs text-muted sm:grid-cols-3">
-                <div className="rounded-lg border border-rule bg-white px-3 py-3">
+                <div className="rounded-lg border border-border-subtle bg-white px-3 py-3">
                   <div className="text-text-faint">Validators</div>
                   <div className="mt-1 text-sm font-medium text-text-primary">
                     {selectedDataset?.metadata?.v?.toLocaleString() ?? 'N/A'}
                   </div>
                 </div>
-                <div className="rounded-lg border border-rule bg-white px-3 py-3">
+                <div className="rounded-lg border border-border-subtle bg-white px-3 py-3">
                   <div className="text-text-faint">Migration cost</div>
                   <div className="mt-1 text-sm font-medium text-text-primary">
                     {formatEth(selectedMetadata?.cost)}
                   </div>
                 </div>
-                <div className="rounded-lg border border-rule bg-white px-3 py-3">
+                <div className="rounded-lg border border-border-subtle bg-white px-3 py-3">
                   <div className="text-text-faint">Delta</div>
                   <div className="mt-1 text-sm font-medium text-text-primary">
                     {formatMilliseconds(selectedMetadata?.delta)}
                   </div>
                 </div>
-                <div className="rounded-lg border border-rule bg-white px-3 py-3">
+                <div className="rounded-lg border border-border-subtle bg-white px-3 py-3">
                   <div className="text-text-faint">Cutoff</div>
                   <div className="mt-1 text-sm font-medium text-text-primary">
                     {formatMilliseconds(selectedMetadata?.cutoff)}
                   </div>
                 </div>
-                <div className="rounded-lg border border-rule bg-white px-3 py-3">
+                <div className="rounded-lg border border-border-subtle bg-white px-3 py-3">
                   <div className="text-text-faint">Gamma</div>
                   <div className="mt-1 text-sm font-medium text-text-primary">
                     {typeof selectedMetadata?.gamma === 'number'
@@ -3269,7 +2883,7 @@ export function ResearchDemoSurface({
                       : 'N/A'}
                   </div>
                 </div>
-                <div className="rounded-lg border border-rule bg-white px-3 py-3">
+                <div className="rounded-lg border border-border-subtle bg-white px-3 py-3">
                   <div className="text-text-faint">Source role</div>
                   <div className="mt-1 text-sm font-medium capitalize text-text-primary">
                     {selectedDataset?.sourceRole ?? 'N/A'}
@@ -3277,14 +2891,14 @@ export function ResearchDemoSurface({
                 </div>
               </div>
 
-              <div className="mt-5 border-t border-rule pt-5">
-                <div className="rounded-xl border border-rule bg-white px-4 py-4">
+              <div className="mt-5 border-t border-border-subtle pt-5">
+                <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{activePaperLens?.eyebrow}</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">{activePaperLens?.title}</div>
                   <div className="mt-2 text-sm leading-6 text-text-primary">{activePaperLens?.body}</div>
                   <div className="mt-4 space-y-2">
                     {activePaperLens?.points.map(point => (
-                      <div key={point} className="rounded-lg bg-surface-active px-3 py-2 text-xs leading-5 text-muted">
+                      <div key={point} className="rounded-lg bg-[#FAFAF8] px-3 py-2 text-xs leading-5 text-muted">
                         {point}
                       </div>
                     ))}
@@ -3295,7 +2909,7 @@ export function ResearchDemoSurface({
 
             <div className="space-y-6">
               <div ref={inquiryRef} className="lab-stage overflow-hidden p-0">
-                <div className="border-b border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-5 py-5">
+                <div className="border-b border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-5 py-5">
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Replay inquiry studio</div>
                   <div className="mt-2 text-sm leading-6 text-text-primary">
                     Use the replay already on screen as the source of truth, keep the question anchored to the paper, and ask the companion without dropping back into a separate workflow.
@@ -3319,10 +2933,10 @@ export function ResearchDemoSurface({
                           key={`${item.label}:${item.prompt}`}
                           onClick={() => handlePrimeReplayQuestion(item.prompt)}
                           className={cn(
-                            'rounded-full border px-3 py-1.5 text-xs font-medium transition-all',
+                            'rounded-full border px-3 py-1.5 text-xs font-medium transition-all hover:-translate-y-0.5',
                             assistantDraft.trim() === item.prompt.trim()
                               ? 'border-accent bg-white text-accent'
-                              : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                              : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
                           )}
                         >
                           {item.label}
@@ -3330,7 +2944,7 @@ export function ResearchDemoSurface({
                       ))}
                     </div>
 
-                    <div className="rounded-[1.25rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.78))] px-4 py-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)]">
+                    <div className="rounded-[1.25rem] border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.78))] px-4 py-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)]">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div>
                           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Draft question</div>
@@ -3338,7 +2952,7 @@ export function ResearchDemoSurface({
                             Write against what the replay is doing right now, then ask for explanation, challenge, or synthesis.
                           </div>
                         </div>
-                        <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                        <div className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
                           {assistantDraft.trim() ? 'Draft ready' : 'Pick a prompt starter'}
                         </div>
                       </div>
@@ -3364,15 +2978,15 @@ export function ResearchDemoSurface({
                           className={cn(
                             'rounded-full px-4 py-2 text-xs font-medium transition-all',
                             assistantDraft.trim()
-                              ? 'bg-[#0F172A] text-white'
-                              : 'cursor-not-allowed border border-rule bg-surface-active text-muted',
+                              ? 'bg-[#0F172A] text-white hover:-translate-y-0.5'
+                              : 'cursor-not-allowed border border-border-subtle bg-surface-active text-muted',
                           )}
                         >
                           Ask replay companion
                         </button>
                         <button
                           onClick={handleFocusViewer}
-                          className="rounded-full border border-rule bg-white px-4 py-2 text-xs font-medium text-text-primary transition-all hover:border-border-hover"
+                          className="rounded-full border border-border-subtle bg-white px-4 py-2 text-xs font-medium text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover"
                         >
                           Back to live replay
                         </button>
@@ -3381,7 +2995,7 @@ export function ResearchDemoSurface({
                             setAssistantDraft('')
                             setPendingAutoReplayQuestion('')
                           }}
-                          className="rounded-full border border-rule bg-white px-4 py-2 text-xs font-medium text-text-primary transition-all hover:border-border-hover"
+                          className="rounded-full border border-border-subtle bg-white px-4 py-2 text-xs font-medium text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover"
                         >
                           Clear draft
                         </button>
@@ -3389,7 +3003,7 @@ export function ResearchDemoSurface({
                     </div>
 
                     {selectedPaperSection ? (
-                      <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                      <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                           <div>
                             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Section evidence preview</div>
@@ -3400,7 +3014,7 @@ export function ResearchDemoSurface({
                               Keep theory and methods questions grounded in the same canonical paper section the replay companion receives.
                             </div>
                           </div>
-                          <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                          <div className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
                             {paperSectionContext ? 'Paper context attached' : 'Paper context unavailable'}
                           </div>
                         </div>
@@ -3411,7 +3025,7 @@ export function ResearchDemoSurface({
                               <button
                                 key={prompt}
                                 onClick={() => handlePrimeReplayQuestion(prompt)}
-                                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                                className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                               >
                                 {prompt}
                               </button>
@@ -3457,7 +3071,7 @@ export function ResearchDemoSurface({
                   </div>
 
                   <div className="space-y-4">
-                    <div className="rounded-xl border border-rule bg-white px-4 py-4">
+                    <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
                       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Active context</div>
                       <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
                         <span className="lab-chip">{selectedDataset?.evaluation ?? 'No scenario'}</span>
@@ -3474,19 +3088,19 @@ export function ResearchDemoSurface({
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                    <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
                       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{activeAudienceBrief.title}</div>
                       <div className="mt-2 text-sm leading-6 text-text-primary">{activeAudienceBrief.summary}</div>
                       <div className="mt-4 space-y-2">
                         {activeAudienceBrief.items.map(item => (
-                          <div key={item} className="rounded-lg border border-rule bg-white px-3 py-3 text-xs leading-5 text-muted">
+                          <div key={item} className="rounded-lg border border-border-subtle bg-white px-3 py-3 text-xs leading-5 text-muted">
                             {item}
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-rule bg-white px-4 py-4">
+                    <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div>
                           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical paper anchor</div>
@@ -3501,7 +3115,7 @@ export function ResearchDemoSurface({
                         <a
                           href={paperSectionUrl || undefined}
                           className={cn(
-                            'rounded-full border border-rule bg-surface-active px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                            'rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
                             !paperSectionUrl && 'pointer-events-none opacity-60',
                           )}
                         >
@@ -3518,7 +3132,7 @@ export function ResearchDemoSurface({
                               'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                               selectedPaperSection?.id === section.id
                                 ? 'border-accent bg-white text-accent'
-                                : 'border-rule bg-surface-active text-text-primary hover:border-border-hover',
+                                : 'border-border-subtle bg-[#FAFAF8] text-text-primary hover:border-border-hover',
                             )}
                           >
                             {section.number} {section.title}
@@ -3529,7 +3143,7 @@ export function ResearchDemoSurface({
                   </div>
                 </div>
 
-                <div className="border-t border-rule px-5 py-5">
+                <div className="border-t border-border-subtle px-5 py-5">
                   <PublishedReplayNotesPanel
                     dataset={selectedDataset}
                     comparisonDataset={splitCompareActive ? comparisonDataset : null}
@@ -3568,60 +3182,19 @@ export function ResearchDemoSurface({
                 </div>
               </div>
 
-              <div className="lab-stage p-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <div className="text-xs text-muted mb-1">Analytics desk</div>
-                    <div className="text-sm text-text-primary">
-                      This is the next Dune-like layer: exact query presets over the frozen replay metrics, shareable in the same published workspace.
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => void handleCopyShareUrl()}
-                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                  >
-                    Copy analytics view
-                  </button>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {analyticsViewOptions.map(view => (
-                    <button
-                      key={view.id}
-                      onClick={() => setAnalyticsView(view.id)}
-                      className={cn(
-                        'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                        analyticsView === view.id
-                          ? 'border-accent bg-white text-accent'
-                          : 'border-rule bg-surface-active text-text-primary hover:border-border-hover',
-                      )}
-                    >
-                      {view.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Query framing</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">
-                    {analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics'} query
-                  </div>
-                  <div className="mt-2 text-xs leading-5 text-muted">
-                    {analyticsViewOptions.find(view => view.id === analyticsView)?.description ?? 'Exact metric query over the frozen replay.'}
-                  </div>
-                  <div className="mt-3 text-[11px] leading-5 text-text-faint">
-                    Use the query to establish what the replay shows first. Only then ask for implications or interpretation.
-                  </div>
-                </div>
-
-                {analyticsStatusMessage ? (
-                  <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4 text-sm text-muted">
-                    {analyticsStatusMessage}
-                  </div>
-                ) : null}
-
-                {!analyticsStatusMessage && analyticsPromptLaunchers.length > 0 ? (
-                  <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
+              <SimulationAnalyticsDesk
+                description="This is the next Dune-like layer: exact query presets over the frozen replay metrics, shareable in the same published workspace."
+                copyLabel="Copy analytics view"
+                onCopyShareUrl={() => void handleCopyShareUrl()}
+                analyticsView={analyticsView}
+                onAnalyticsViewChange={setAnalyticsView}
+                analyticsViewOptions={analyticsViewOptions}
+                statusMessage={analyticsStatusMessage}
+                metricCards={analyticsMetricCards}
+                blocks={analyticsBlocks}
+              >
+                {analyticsPromptLaunchers.length > 0 ? (
+                  <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
                     <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Ask from this query</div>
                     <div className="mt-2 text-xs leading-5 text-muted">
                       These prompts open the replay inquiry flow against the current analytics view and slot posture.
@@ -3631,7 +3204,7 @@ export function ResearchDemoSurface({
                         <button
                           key={item.label}
                           onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
-                          className="rounded-xl border border-rule bg-[#FAFAF8] px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                          className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
                         >
                           <div className="text-sm font-medium text-text-primary">{item.label}</div>
                           <div className="mt-1 text-[11px] uppercase tracking-[0.12em] text-text-faint">{item.detail}</div>
@@ -3641,25 +3214,7 @@ export function ResearchDemoSurface({
                     </div>
                   </div>
                 ) : null}
-
-                {!analyticsStatusMessage && analyticsMetricCards.length > 0 ? (
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    {analyticsMetricCards.map(card => (
-                      <div key={card.label} className="rounded-xl border border-rule bg-white px-4 py-4">
-                        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{card.label}</div>
-                        <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
-                        <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-
-                {!analyticsStatusMessage && analyticsBlocks.length > 0 ? (
-                  <div className="mt-4">
-                    <BlockCanvas blocks={analyticsBlocks} showExport={false} />
-                  </div>
-                ) : null}
-              </div>
+              </SimulationAnalyticsDesk>
 
               <div className="lab-stage p-5">
                 <div className="text-xs text-muted mb-1">Comparison desk</div>
@@ -3669,13 +3224,13 @@ export function ResearchDemoSurface({
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     onClick={() => applyViewPreset('compare')}
-                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                    className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                   >
                     Activate split compare
                   </button>
                   <button
                     onClick={() => applyAudienceMode('reviewer')}
-                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                    className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                   >
                     Switch to reviewer mode
                   </button>
@@ -3686,7 +3241,7 @@ export function ResearchDemoSurface({
                   <select
                     value={comparisonDataset?.path ?? ''}
                     onChange={event => setComparePath(event.target.value)}
-                    className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
+                    className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
                   >
                     {comparisonCandidates.map(entry => (
                       <option key={entry.path} value={entry.path}>
@@ -3708,7 +3263,7 @@ export function ResearchDemoSurface({
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                  <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
                     <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison scenario</div>
                     <div className="mt-2 text-sm font-medium text-text-primary">
                       {comparisonDataset ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}` : 'No comparison'}
@@ -3735,7 +3290,7 @@ export function ResearchDemoSurface({
                           : 'Matches comparison'
 
                     return (
-                      <div key={metric.label} className="rounded-xl border border-rule bg-white px-4 py-4">
+                      <div key={metric.label} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
                         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
                         <div className="mt-3 flex items-end justify-between gap-3">
                           <div>
@@ -3753,7 +3308,7 @@ export function ResearchDemoSurface({
                   })}
                 </div>
 
-                <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
+                <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison readout</div>
                   <div className="mt-2 text-sm leading-6 text-text-primary">{comparisonNarrative}</div>
                 </div>
@@ -3775,16 +3330,17 @@ export function ResearchDemoSurface({
                   <button
                     onClick={handleLaunchViewer}
                     disabled={!selectedDataset}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Open standalone viewer →
+                    Open standalone viewer
+                    <ArrowUpRight className="h-4 w-4" />
                   </button>
                   <a
                     href={datasetUrl ?? undefined}
                     target="_blank"
                     rel="noreferrer"
                     className={cn(
-                      'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
+                      'inline-flex items-center justify-center rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
                       !datasetUrl && 'pointer-events-none opacity-60',
                     )}
                   >
@@ -3793,7 +3349,7 @@ export function ResearchDemoSurface({
                   <button
                     onClick={() => setShowConfig(current => !current)}
                     disabled={!selectionConfig}
-                    className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center justify-center rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {showConfig ? 'Hide config' : 'View config'}
                   </button>
@@ -3802,7 +3358,7 @@ export function ResearchDemoSurface({
                     target="_blank"
                     rel="noreferrer"
                     className={cn(
-                      'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
+                      'inline-flex items-center justify-center rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
                       !sourceUrl && 'pointer-events-none opacity-60',
                     )}
                   >
@@ -3812,14 +3368,14 @@ export function ResearchDemoSurface({
                     href={`${viewerBaseUrl}/`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover sm:col-span-2"
+                    className="inline-flex items-center justify-center rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover sm:col-span-2"
                   >
                     Open Original Published Launcher
                   </a>
                 </div>
 
                 {showConfig && selectionConfig && (
-                  <div className="mt-4 rounded-xl border border-rule bg-surface-active p-4">
+                  <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] p-4">
                     <div className="text-xs text-muted mb-2">Selection config</div>
                     <pre className="overflow-x-auto text-xs text-text-primary">{selectionConfig}</pre>
                   </div>
@@ -3833,7 +3389,7 @@ export function ResearchDemoSurface({
                 </div>
                 <div className="mt-4 space-y-3">
                   {activeAudienceBrief.items.map(item => (
-                    <div key={item} className="rounded-xl border border-rule bg-white px-4 py-4 text-sm leading-6 text-text-primary">
+                    <div key={item} className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-sm leading-6 text-text-primary">
                       {item}
                     </div>
                   ))}
@@ -3847,7 +3403,7 @@ export function ResearchDemoSurface({
                 </div>
                 <div className="mt-4 space-y-3">
                   {paperNotes.map(note => (
-                    <div key={note.title} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                    <div key={note.title} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
                       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{note.title}</div>
                       <div className="mt-2 text-sm leading-6 text-text-primary">{note.body}</div>
                     </div>
