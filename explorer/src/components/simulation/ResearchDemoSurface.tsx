@@ -71,6 +71,12 @@ function formatMilliseconds(value: number | undefined): string {
   return `${formatNumber(value, 0)} ms`
 }
 
+function themeLabel(theme: 'auto' | 'light' | 'dark'): string {
+  if (theme === 'auto') return 'Auto'
+  if (theme === 'dark') return 'Dark'
+  return 'Light'
+}
+
 export function ResearchDemoSurface({
   catalogScriptUrl,
   viewerBaseUrl,
@@ -254,6 +260,7 @@ export function ResearchDemoSurface({
   const sourceUrl = selectedDataset
     ? `https://github.com/syang-ng/geographical-decentralization-simulation/blob/main/dashboard/${selectedDataset.path}`
     : null
+  const selectedMetadata = selectedDataset?.metadata ?? null
   const selectionConfig = useMemo(() => {
     if (!selectedDataset) return null
 
@@ -374,20 +381,28 @@ export function ResearchDemoSurface({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            <div className="rounded-xl border border-border-subtle bg-white px-4 py-3">
+            <div className="lab-lens-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Current selection</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">
+                {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'Awaiting dataset'}
+              </div>
+              <div className="mt-1 text-xs text-muted">
+                {selectedDataset?.result ?? 'Choose a result to inspect the frozen published path.'}
+              </div>
+            </div>
+            <div className="lab-lens-card px-4 py-4">
               <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Surface</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">Static published results</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Static published results</div>
               <div className="mt-1 text-xs text-muted">This side swaps among checked-in published datasets. It does not run new simulations.</div>
             </div>
-            <div className="rounded-xl border border-border-subtle bg-white px-4 py-3">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Controls</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">Viewer settings only</div>
-              <div className="mt-1 text-xs text-muted">Theme, step size, and autoplay affect presentation. They do not change the model.</div>
-            </div>
-            <div className="rounded-xl border border-border-subtle bg-white px-4 py-3">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Parity</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">Canonical dataset selector</div>
-              <div className="mt-1 text-xs text-muted">Scenario, `Local`/`External`, and result choices mirror the frozen researcher catalog.</div>
+            <div className="lab-lens-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Viewer posture</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">
+                {themeLabel(theme)} theme · step {step}
+              </div>
+              <div className="mt-1 text-xs text-muted">
+                {autoplay ? 'Autoplay enabled for quick playback.' : 'Manual slot scrubbing for deliberate inspection.'}
+              </div>
             </div>
           </div>
         </div>
@@ -461,6 +476,29 @@ export function ResearchDemoSurface({
           <div className="mt-4 text-xs text-muted">
             The `Local` / `External` switch mirrors the researcher launcher. It changes which frozen dataset path is opened, not the simulation engine.
           </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="lab-selection-card px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Scenario</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{selectedDataset?.evaluation ?? 'N/A'}</div>
+              <div className="mt-1 text-xs text-muted">Published experiment family</div>
+            </div>
+            <div className="lab-selection-card px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Mode</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{selectedDataset?.paradigm ?? 'N/A'}</div>
+              <div className="mt-1 text-xs text-muted">Local vs external block building</div>
+            </div>
+            <div className="lab-selection-card px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Result file</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{selectedDataset?.result ?? 'N/A'}</div>
+              <div className="mt-1 text-xs text-muted">Frozen published payload path</div>
+            </div>
+            <div className="lab-selection-card px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Dataset path</div>
+              <div className="mt-2 truncate text-sm font-medium text-text-primary">{selectedDataset?.path ?? 'Choose a dataset'}</div>
+              <div className="mt-1 text-xs text-muted">Used by the in-app and standalone viewers</div>
+            </div>
+          </div>
         </div>
 
         <div className="lab-stage p-5">
@@ -529,6 +567,13 @@ export function ResearchDemoSurface({
               Primary path: stay in-app. Standalone exists only for parity with the frozen legacy panel set.
             </div>
           </div>
+
+          <div className="mt-4 lab-selection-card px-4 py-4">
+            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">What this will show</div>
+            <div className="mt-2 text-sm text-text-primary">
+              {selectedMetadata?.description ?? 'Select a dataset to preview the published scenario description.'}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -549,26 +594,26 @@ export function ResearchDemoSurface({
             <div className="rounded-lg border border-border-subtle bg-white px-3 py-3">
               <div className="text-text-faint">Migration cost</div>
               <div className="mt-1 text-sm font-medium text-text-primary">
-                {formatEth(selectedDataset?.metadata?.cost)}
+                {formatEth(selectedMetadata?.cost)}
               </div>
             </div>
             <div className="rounded-lg border border-border-subtle bg-white px-3 py-3">
               <div className="text-text-faint">Delta</div>
               <div className="mt-1 text-sm font-medium text-text-primary">
-                {formatMilliseconds(selectedDataset?.metadata?.delta)}
+                {formatMilliseconds(selectedMetadata?.delta)}
               </div>
             </div>
             <div className="rounded-lg border border-border-subtle bg-white px-3 py-3">
               <div className="text-text-faint">Cutoff</div>
               <div className="mt-1 text-sm font-medium text-text-primary">
-                {formatMilliseconds(selectedDataset?.metadata?.cutoff)}
+                {formatMilliseconds(selectedMetadata?.cutoff)}
               </div>
             </div>
             <div className="rounded-lg border border-border-subtle bg-white px-3 py-3">
               <div className="text-text-faint">Gamma</div>
               <div className="mt-1 text-sm font-medium text-text-primary">
-                {typeof selectedDataset?.metadata?.gamma === 'number'
-                  ? formatNumber(selectedDataset.metadata.gamma, 4)
+                {typeof selectedMetadata?.gamma === 'number'
+                  ? formatNumber(selectedMetadata.gamma, 4)
                   : 'N/A'}
               </div>
             </div>
