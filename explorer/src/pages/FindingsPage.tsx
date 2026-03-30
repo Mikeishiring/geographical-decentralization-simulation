@@ -12,7 +12,6 @@ import { QueryHistory, type HistoryEntry } from '../components/explore/QueryHist
 import { ShimmerLoading } from '../components/explore/ShimmerBlock'
 import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, listExplorations, publishExploration, type Exploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
-import { NodeConstellation } from '../components/decorative/NodeConstellation'
 import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
@@ -33,46 +32,6 @@ const dotColor: Record<string, string> = {
 
 const CANONICAL_ENTRY_IDS = ['ssp-vs-msp', 'attestation-threshold', 'initial-distribution', 'policy-implications'] as const
 const PAPER_SECTION_DETAILS = new Map(PAPER_SECTIONS.map(section => [section.id, `${section.number} ${section.title}`]))
-const IMPLICATION_STRIPS = [
-  {
-    title: 'Timing rules reshape advantage',
-    detail: 'Slot timing and attestation thresholds are not neutral knobs. The paper shows they can reallocate advantage toward low-latency geographies in paradigm-specific ways.',
-  },
-  {
-    title: 'Infrastructure geography matters',
-    detail: 'Relay or source placement changes concentration pressure directly, which means part of the design space lives in infrastructure coordination, not only core protocol code.',
-  },
-  {
-    title: 'Diagnosis is stronger than prescription',
-    detail: 'The paper is strongest when it explains where concentration pressure comes from. Policy recommendations should stay explicitly downstream of that evidence.',
-  },
-] as const
-
-const THESIS_FRAMING = [
-  {
-    title: 'Both SSP and MSP centralize, but not through the same mechanism',
-    detail: 'The core result is not that one paradigm is safe and the other is not. Both create concentration pressure, but the pathway differs across SSP and MSP.',
-  },
-  {
-    title: 'Latency and geography are structural to the outcome',
-    detail: 'Winning validators keep clustering in low-latency regions because network position materially changes the economics and timing of block-building.',
-  },
-  {
-    title: 'Timing rules and infrastructure choices reshape who gains advantage',
-    detail: 'Attestation threshold, slot duration, and source placement all shift the pressure gradient. Those are design and coordination choices, not just implementation details.',
-  },
-] as const
-
-const DESTINATION_LANES: ReadonlyArray<{
-  readonly tab: TabId
-  readonly label: string
-  readonly detail: string
-}> = [
-  { tab: 'paper', label: 'Paper', detail: 'Canonical sections and model setup' },
-  { tab: 'results', label: 'Results', detail: 'Published scenarios and exact runs' },
-  { tab: 'community', label: 'Community', detail: 'Human-authored notes over evidence' },
-]
-
 function fallbackCuratedProvenance(label: string, detail: string): ExploreProvenance {
   return {
     source: 'curated',
@@ -80,19 +39,6 @@ function fallbackCuratedProvenance(label: string, detail: string): ExploreProven
     detail,
     canonical: true,
   }
-}
-
-function summarizeTopicCard(card: TopicCard): readonly string[] {
-  const tags: string[] = []
-  const blockTypes = new Set(card.blocks.map(block => block.type))
-  if (blockTypes.has('chart') || blockTypes.has('timeseries')) tags.push('charts')
-  if (blockTypes.has('table')) tags.push('data table')
-  if (blockTypes.has('comparison')) tags.push('comparison')
-  if (card.blocks.some(block => block.type === 'insight' && block.emphasis === 'surprising')) {
-    tags.push('surprising')
-  }
-  if (card.blocks.some(block => block.type === 'caveat')) tags.push('caveat')
-  return tags.slice(0, 3)
 }
 
 function communityPreviewLabel(exploration: Exploration): string {
@@ -430,13 +376,6 @@ export function FindingsPage({
   const queryBarDisabledReason = apiHealthQuery.isError
     ? 'The API server is unreachable right now.'
     : undefined
-  const queryBarHelperText = apiHealthQuery.isError
-    ? 'The API server is unreachable. Start the explorer API to restore live and cached query routing.'
-    : apiHealthQuery.data?.anthropicEnabled
-      ? 'Fresh guided readings are available. Strongest prompts name one claim, one mechanism or comparison, and what you want explained.'
-      : apiHealthQuery.data
-        ? 'Fresh guided readings are offline. Curated and prior readings still work, but fresh interpretation needs ANTHROPIC_API_KEY in explorer/.env.'
-        : 'Checking reading-guide availability. Best prompts mention a paradigm, metric, experiment, implication, or comparison.'
   const evidencePath = aiResponse
     ? aiResponse.provenance.source === 'curated'
       ? 'Curated paper finding'
@@ -488,32 +427,27 @@ export function FindingsPage({
 
   return (
     <div>
-      {/* Page header — reflect the active reading state without losing the overview framing */}
-      <div className="mb-8 relative">
-        <NodeConstellation className="absolute right-0 top-0 w-32 h-32 opacity-40 pointer-events-none hidden sm:block" />
-
-        <h1 className="text-xl sm:text-2xl font-bold text-text-primary font-serif leading-tight max-w-xl">
-          {showAi || showTopic ? heading : 'Both paradigms centralize — but for different reasons'}
+      {/* Page header */}
+      <div className="mb-8">
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary font-serif leading-tight max-w-xl">
+          {showAi || showTopic ? heading : 'Geography shapes who wins in Ethereum block building'}
         </h1>
         <p className="mt-3 text-sm text-muted max-w-2xl leading-relaxed">
           {showAi || showTopic
             ? interpretationBoundary
-            : 'Ethereum validators cluster in low-latency regions regardless of whether block-building uses SSP or MSP. The paper simulates 10,000+ validators across 40 GCP regions to measure exactly where and why. This page is the publication front door: read the claims, ask a bounded question, then move into the canonical paper, the published results, or public notes.'}
+            : 'This paper simulates how validator geography and block-building paradigms (SSP vs MSP) interact to shape centralization in Ethereum. Start from a claim, ask a question, or move into the paper, results, or community notes.'}
         </p>
-        {!showAi && !showTopic ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {[
-              'Canonical claims first',
-              'Ask sharper paper questions',
-              'Inspect or reproduce scenarios',
-              'Publish human-authored notes',
-            ].map(item => (
-              <span key={item} className="lab-chip">
-                {item}
-              </span>
-            ))}
+        {!showAi && !showTopic && !loading && apiHealthQuery.data && (
+          <div className="mt-2 flex items-center gap-1.5 text-[0.6875rem] text-text-faint">
+            <span className={cn(
+              'w-1.5 h-1.5 rounded-full',
+              apiHealthQuery.data.anthropicEnabled ? 'bg-success' : 'bg-warning',
+            )} />
+            {apiHealthQuery.data.anthropicEnabled
+              ? 'Reading guide online'
+              : 'Curated content only — reading guide needs an API key'}
           </div>
-        ) : null}
+        )}
       </div>
 
       {!showAi && !showTopic && (
@@ -561,82 +495,6 @@ export function FindingsPage({
             ))}
           </div>
 
-          <div className="mt-5 rounded-xl border border-rule bg-white px-4 py-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Why it matters</div>
-                <div className="mt-1 text-sm font-medium text-text-primary">Implications and design posture</div>
-              </div>
-              <div className="max-w-2xl text-xs leading-5 text-muted">
-                These are the paper-backed stakes to keep in mind before turning a finding into a recommendation.
-              </div>
-            </div>
-
-            <div className="mt-4 divide-y divide-rule">
-              {IMPLICATION_STRIPS.map(item => (
-                <div key={item.title} className="py-3 first:pt-0 last:pb-0">
-                  <div className="text-[0.8125rem] font-medium text-text-primary">{item.title}</div>
-                  <div className="mt-0.5 text-xs leading-5 text-muted">{item.detail}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-            <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Publication frame</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">What the paper shows before you ask anything new</div>
-              <div className="mt-4 space-y-3">
-                {THESIS_FRAMING.map(item => (
-                  <div key={item.title} className="rounded-lg border border-border-subtle bg-[#FAFAF8] px-3 py-3">
-                    <div className="text-sm font-medium text-text-primary">{item.title}</div>
-                    <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Three ways in</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">Read first, question second, then move to the right surface</div>
-              <div className="mt-4 space-y-3">
-                {[
-                  {
-                    title: '1. Open a claim',
-                    detail: 'Start from a canonical card when you want the cleanest paper-backed entry point.',
-                  },
-                  {
-                    title: '2. Ask one bounded question',
-                    detail: 'Use the box below for a mechanism, implication, metric, or comparison. Strong prompts name what is being compared or explained.',
-                  },
-                  {
-                    title: '3. Move to the right evidence surface',
-                    detail: 'Use Paper for canonical sections, Results for artifacts and exact runs, and Community for human-authored responses.',
-                  },
-                ].map(item => (
-                  <div key={item.title} className="rounded-lg border border-border-subtle bg-[#FAFAF8] px-3 py-3">
-                    <div className="text-sm font-medium text-text-primary">{item.title}</div>
-                    <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
-                  </div>
-                ))}
-              </div>
-
-              {onTabChange && (
-                <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                  {DESTINATION_LANES.map(item => (
-                    <button
-                      key={item.tab}
-                      onClick={() => onTabChange(item.tab)}
-                      className="rounded-lg border border-border-subtle bg-white px-3 py-3 text-left transition-colors hover:border-border-hover"
-                    >
-                      <div className="text-xs font-medium text-text-primary">{item.label}</div>
-                      <div className="mt-1 text-[11px] leading-5 text-muted">{item.detail}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       )}
 
@@ -646,15 +504,14 @@ export function FindingsPage({
           loading={loading}
           disabled={queryBarDisabled}
           disabledReason={queryBarDisabledReason}
-          helperText={queryBarHelperText}
         />
       </div>
 
-      {/* Topic cards — go deeper into specific findings */}
+      {/* Topic cards */}
       <div className="mb-8">
         <div className="mb-3 flex items-center justify-between">
-          <span className="text-xs text-muted">
-            {showTopic || showAi ? 'Curated lenses' : 'Go deeper'}
+          <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+            {showTopic || showAi ? 'Paper topics' : 'Key findings'}
           </span>
           {(showTopic || showAi) && (
             <button
@@ -681,7 +538,7 @@ export function FindingsPage({
                 aria-label={card.title}
                 aria-pressed={isActive}
                 className={cn(
-                  'text-left rounded-lg border p-4 transition-colors topo-bg group',
+                  'text-left rounded-lg border p-4 transition-colors group',
                   isActive
                     ? 'border-accent bg-white'
                     : isDimmed
@@ -695,14 +552,8 @@ export function FindingsPage({
                 <p className="text-xs text-muted leading-relaxed line-clamp-2 mb-2">
                   {card.description}
                 </p>
-                <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                  <span className="text-[0.625rem] text-text-faint">{card.blocks.length} blocks</span>
-                  {summarizeTopicCard(card).map(tag => (
-                    <span key={tag} className="lab-chip">{tag}</span>
-                  ))}
-                </div>
                 <span className={cn(
-                  'flex items-center gap-1 text-xs',
+                  'text-[0.6875rem]',
                   isActive ? 'text-accent' : 'text-text-faint',
                 )}>
                   {isActive ? 'Viewing' : 'Explore →'}
@@ -711,7 +562,6 @@ export function FindingsPage({
             )
           })}
         </div>
-
       </div>
 
       {/* Navigation cards — cross-tab wayfinding (default state only) */}

@@ -1,6 +1,3 @@
-import { motion } from 'framer-motion'
-import { SPRING_SOFT } from '../../lib/theme'
-
 interface Node {
   readonly x: number
   readonly y: number
@@ -30,13 +27,11 @@ const EDGES: readonly [number, number][] = [
   [5, 6], [6, 7],
 ]
 
-/** Faint dot-and-line network evoking validators spread across geography */
+/** Faint dot-and-line network evoking validators spread across geography.
+ *  Uses CSS animation instead of framer-motion so it works regardless of scroll position. */
 export function NodeConstellation({ className = '' }: { readonly className?: string }) {
   return (
-    <motion.svg
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ ...SPRING_SOFT, delay: 0.5 }}
+    <svg
       className={className}
       viewBox="0 0 100 100"
       fill="none"
@@ -63,8 +58,24 @@ export function NodeConstellation({ className = '' }: { readonly className?: str
           r={node.r}
           fill={node.color}
           opacity={node.opacity}
-        />
+        >
+          {/* Gentle pulse on each node — staggered by index */}
+          <animate
+            attributeName="r"
+            values={`${node.r};${node.r * 1.3};${node.r}`}
+            dur={`${3 + i * 0.4}s`}
+            repeatCount="indefinite"
+            begin={`${i * 0.3}s`}
+          />
+          <animate
+            attributeName="opacity"
+            values={`${node.opacity};${node.opacity * 0.6};${node.opacity}`}
+            dur={`${3 + i * 0.4}s`}
+            repeatCount="indefinite"
+            begin={`${i * 0.3}s`}
+          />
+        </circle>
       ))}
-    </motion.svg>
+    </svg>
   )
 }
