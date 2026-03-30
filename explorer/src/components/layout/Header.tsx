@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+<<<<<<< HEAD
 import { BookOpen, Code } from 'lucide-react'
 import { SPRING_SOFT, SPRING_SNAPPY, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { VALIDATOR_COUNTS } from '../../data/validator-counts'
