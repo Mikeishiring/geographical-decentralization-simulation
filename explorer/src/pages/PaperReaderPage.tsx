@@ -285,7 +285,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
   }
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-12 overflow-x-hidden">
       {/* Paper title hero */}
       <motion.section
         initial={{ opacity: 0, y: 8 }}
@@ -664,7 +664,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         </motion.div>
       ) : (
 
-      <motion.div key={focusMode ? 'focus' : 'editorial'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }} className={cn('grid gap-8', focusMode ? 'xl:grid-cols-[minmax(0,1fr)]' : 'xl:grid-cols-[220px_minmax(0,1fr)]')}>
+      <motion.div key={focusMode ? 'focus' : 'editorial'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }} className={cn('grid gap-8 overflow-hidden', focusMode ? 'xl:grid-cols-[minmax(0,1fr)]' : 'xl:grid-cols-[220px_minmax(0,1fr)]')}>
         {/* TOC sidebar */}
         {!focusMode && (
           <aside className="hidden xl:block xl:sticky xl:top-40 xl:self-start">
@@ -710,7 +710,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                   onClick={() => handleCopySectionLink(activeSection.id)}
                   className="inline-flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-text-primary"
                 >
-                  {copiedSectionId === activeSection.id ? <Check className="h-3 w-3 text-green-600" /> : <Link2 className="h-3 w-3" />}
+                  {copiedSectionId === activeSection.id ? <Check className="h-3 w-3 text-success" /> : <Link2 className="h-3 w-3" />}
                   {copiedSectionId === activeSection.id ? 'Copied!' : 'Copy link'}
                 </button>
               </div>
@@ -745,7 +745,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                       onClick={() => handleCopySectionLink(section.id)}
                       className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted opacity-0 transition-all group-hover:opacity-100 hover:bg-surface-active hover:text-text-primary"
                     >
-                      {copiedSectionId === section.id ? <Check className="h-3 w-3 text-green-600" /> : <Link2 className="h-3 w-3" />}
+                      {copiedSectionId === section.id ? <Check className="h-3 w-3 text-success" /> : <Link2 className="h-3 w-3" />}
                       {copiedSectionId === section.id ? 'Copied!' : 'Link'}
                     </button>
                   </div>
