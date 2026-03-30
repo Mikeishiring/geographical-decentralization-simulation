@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowUpRight } from 'lucide-react'
 import { ContributionComposer } from '../community/ContributionComposer'
+import { BlockCanvas } from '../explore/BlockCanvas'
 import type { TabId } from '../layout/TabNav'
 import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
 import { createExploration, publishExploration } from '../../lib/api'
@@ -319,6 +320,7 @@ export function ResearchDemoSurface({
   const viewerRef = useRef<HTMLElement | null>(null)
   const sharedReplayQuestionRef = useRef(initialWorkspaceState.replayQuestion?.trim() ?? '')
   const sharedPaperSectionRef = useRef(initialWorkspaceState.paperSectionId ?? '')
+  const [pendingAutoReplayQuestion, setPendingAutoReplayQuestion] = useState(initialWorkspaceState.replayQuestion?.trim() ?? '')
   const [viewerSnapshot, setViewerSnapshot] = useState<PublishedViewerSnapshot | null>(null)
   const [comparisonViewerSnapshot, setComparisonViewerSnapshot] = useState<PublishedViewerSnapshot | null>(null)
   const [lastReplayAnswer, setLastReplayAnswer] = useState<{
@@ -488,6 +490,10 @@ export function ResearchDemoSurface({
     () => buildPaperSectionContext(selectedPaperSection),
     [selectedPaperSection],
   )
+  const selectedPaperSectionBlocks = useMemo(
+    () => selectedPaperSection?.blocks.slice(0, 2) ?? [],
+    [selectedPaperSection],
+  )
   const paperSectionUrl = useMemo(() => {
     if (typeof window === 'undefined' || !selectedPaperSection) return ''
 
@@ -635,11 +641,32 @@ export function ResearchDemoSurface({
         prompt: `Interpret the tradeoffs in this result using v=${selectedMetadata?.v?.toLocaleString() ?? 'N/A'}, cost=${formatEth(selectedMetadata?.cost)}, delta=${formatMilliseconds(selectedMetadata?.delta)}, cutoff=${formatMilliseconds(selectedMetadata?.cutoff)}, and gamma=${typeof selectedMetadata?.gamma === 'number' ? formatNumber(selectedMetadata.gamma, 4) : 'N/A'}.`,
       },
       {
-        label: 'Draft theory notes',
-        prompt: `If the paper adds a new theory section for ${selectedDataset.result}, which mechanisms and assumptions should it use to explain the trajectory in this replay?`,
+        label: selectedPaperSection ? `Probe ${selectedPaperSection.number}` : 'Draft theory notes',
+        prompt: selectedPaperSection
+          ? `Use ${selectedPaperSection.number} ${selectedPaperSection.title} to explain the current replay posture, including what the replay supports, where it complicates the paper framing, and which assumptions matter most.`
+          : `If the paper adds a new theory section for ${selectedDataset.result}, which mechanisms and assumptions should it use to explain the trajectory in this replay?`,
       },
     ]
-  }, [selectedDataset, selectedMetadata])
+  }, [selectedDataset, selectedMetadata, selectedPaperSection])
+
+  const paperSectionPromptStarters = useMemo(() => {
+    if (!selectedDataset || !selectedPaperSection) return []
+
+    const prompts = [
+      `What in the active replay most directly supports or challenges ${selectedPaperSection.number} ${selectedPaperSection.title}?`,
+      viewerSnapshot
+        ? `Use slot ${viewerSnapshot.slotNumber.toLocaleString()} to explain how ${selectedPaperSection.number} ${selectedPaperSection.title} should be read.`
+        : `Turn ${selectedPaperSection.number} ${selectedPaperSection.title} into concrete expectations for this published replay.`,
+      comparisonDataset
+        ? `Using ${selectedPaperSection.number} ${selectedPaperSection.title}, what changes materially between the active replay and ${comparisonDataset.paradigm}?`
+        : null,
+      paperLens === 'methods'
+        ? `Which assumptions in ${selectedPaperSection.number} ${selectedPaperSection.title} matter most for interpreting this published replay?`
+        : null,
+    ].filter((value): value is string => Boolean(value))
+
+    return Array.from(new Set(prompts)).slice(0, 4)
+  }, [comparisonDataset, paperLens, selectedDataset, selectedPaperSection, viewerSnapshot])
 
   const spotlightDatasets = useMemo(() => {
     const ordered = selectedDataset
@@ -834,6 +861,12 @@ export function ResearchDemoSurface({
   }
 
   const splitCompareActive = matchedViewPreset?.id === 'compare' && !!comparisonDataset
+  const companionAutoRunQuestion = pendingAutoReplayQuestion
+    && pendingAutoReplayQuestion === assistantDraft.trim()
+    && viewerSnapshot
+    && (!splitCompareActive || !comparisonDataset || comparisonViewerSnapshot)
+      ? pendingAutoReplayQuestion
+      : null
 
   useEffect(() => {
     if (!splitCompareActive || !comparisonDataset) {
@@ -2533,6 +2566,43 @@ export function ResearchDemoSurface({
                   </div>
                 </div>
 
+                {selectedPaperSection ? (
+                  <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Section evidence preview</div>
+                        <div className="mt-2 text-sm font-medium text-text-primary">
+                          {selectedPaperSection.number} {selectedPaperSection.title}
+                        </div>
+                        <div className="mt-2 text-xs leading-5 text-muted">
+                          Keep theory and methods questions grounded in the same canonical paper section the replay companion receives.
+                        </div>
+                      </div>
+                      <div className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                        {paperSectionContext ? 'Paper context attached' : 'Paper context unavailable'}
+                      </div>
+                    </div>
+
+                    {paperSectionPromptStarters.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {paperSectionPromptStarters.map(prompt => (
+                          <button
+                            key={prompt}
+                            onClick={() => setAssistantDraft(prompt)}
+                            className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          >
+                            {prompt}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4">
+                      <BlockCanvas blocks={selectedPaperSectionBlocks} showExport={false} />
+                    </div>
+                  </div>
+                ) : null}
+
                 <PublishedReplayCompanionPanel
                   question={assistantDraft}
                   onQuestionChange={setAssistantDraft}
@@ -2552,6 +2622,8 @@ export function ResearchDemoSurface({
                   currentViewSummary={currentViewSummary}
                   viewerSnapshot={viewerSnapshot}
                   comparisonViewerSnapshot={comparisonViewerSnapshot}
+                  autoRunQuestion={companionAutoRunQuestion}
+                  onAutoRunHandled={() => setPendingAutoReplayQuestion('')}
                   onResponseChange={setLastReplayAnswer}
                 />
 
