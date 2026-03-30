@@ -52,14 +52,14 @@ export function SimCopilotPanel({
           </div>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-rule bg-white/80 px-4 py-3 text-xs leading-5 text-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+        <div className="mt-4 rounded-2xl border border-rule bg-white/80 px-4 py-3 text-xs leading-5 text-muted">
           {isHealthLoading
             ? 'Checking guide availability...'
             : copilotAvailable
               ? 'Guide framing is available for bounded exact-mode questions. Use it when you want help comparing scenarios, explaining a run, or reordering supported visuals.'
               : 'Guide framing is offline. Add ANTHROPIC_API_KEY to explorer/.env to enable bounded simulation guidance.'}
         </div>
-        <div className="mt-3 text-[11px] leading-5 text-text-faint">
+        <div className="mt-3 text-[0.6875rem] leading-5 text-text-faint">
           Guide output stays inside this private run surface until you publish a separate community note in your own words.
         </div>
       </div>
@@ -177,7 +177,7 @@ export function SimCopilotPanel({
 
           {isMutating && !copilotResponse && (
             <div className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-              <div className="rounded-[1.1rem] border border-rule bg-white/80 p-4">
+              <div className="rounded-xl border border-rule bg-white/80 p-4">
                 <div className="lab-skeleton lab-skeleton-line w-1/3" />
                 <div className="mt-3 space-y-3">
                   <div className="lab-skeleton lab-skeleton-line w-full" />
@@ -191,7 +191,7 @@ export function SimCopilotPanel({
 
           {copilotResponse && (
             <div className="mt-5 space-y-4">
-              <div className="rounded-[1.1rem] border border-warning/25 bg-warning/7 px-4 py-4">
+              <div className="rounded-xl border border-warning/25 bg-warning/7 px-4 py-4">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-text-primary">
                   <span className="h-1.5 w-1.5 rounded-full bg-warning" />
                   {copilotResponse.truthBoundary.label}
@@ -201,14 +201,14 @@ export function SimCopilotPanel({
                 </div>
               </div>
 
-                <div className="rounded-[1.25rem] border border-rule bg-white/90 px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                <div className="rounded-xl border border-rule bg-white/90 px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                     Guide framing
                   </div>
                   <div className="mt-2 text-sm leading-6 text-text-primary">{copilotResponse.summary}</div>
                 {copilotResponse.guidance && (
                   <div className="mt-3 rounded-xl border border-rule bg-surface-active px-4 py-3">
-                    <div className="text-[11px] uppercase tracking-[0.14em] text-text-faint">Guide interpretation</div>
+                    <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">Guide interpretation</div>
                     <div className="mt-1 text-xs leading-5 text-muted">{copilotResponse.guidance}</div>
                   </div>
                 )}

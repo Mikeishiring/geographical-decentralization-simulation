@@ -612,7 +612,7 @@ export function FindingsPage({
                   {card.description}
                 </p>
                 <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                  <span className="text-[10px] text-text-faint">{card.blocks.length} blocks</span>
+                  <span className="text-[0.625rem] text-text-faint">{card.blocks.length} blocks</span>
                   {summarizeTopicCard(card).map(tag => (
                     <span key={tag} className="lab-chip">{tag}</span>
                   ))}

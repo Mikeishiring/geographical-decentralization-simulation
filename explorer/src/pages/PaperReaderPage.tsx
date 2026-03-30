@@ -584,7 +584,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                 {index < PAPER_SECTIONS.length - 1 && (
                   <div className="mt-12 flex items-center gap-4">
                     <hr className="flex-1 border-rule" />
-                    <span className="text-[10px] font-mono text-text-faint tracking-widest uppercase">{PAPER_SECTIONS[index + 1]?.number}</span>
+                    <span className="text-[0.625rem] font-mono text-text-faint tracking-widest uppercase">{PAPER_SECTIONS[index + 1]?.number}</span>
                     <hr className="flex-1 border-rule" />
                   </div>
                 )}
