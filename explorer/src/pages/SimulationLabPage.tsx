@@ -872,9 +872,9 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
       ) : (
         <>
       <div className="lab-stage-hero p-6 mb-6">
-        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.9fr]">
+        <div className="flex flex-col gap-5">
           <div>
-            <div className="lab-section-title">Experimental Runner</div>
+            <div className="lab-section-title">Run your own simulation</div>
             <h2 className="mt-3 max-w-3xl text-2xl font-semibold tracking-tight text-text-primary sm:text-[2rem]">
               Run fresh exact simulations inside our shell and let the explorer grow into the result surface.
             </h2>
@@ -892,37 +892,13 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="lab-option-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Default posture</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Fast iteration first</div>
-              <div className="mt-2 text-xs leading-5 text-muted">
-                Starts smaller than the paper catalog so the exact loop stays responsive while you tune the scenario.
-              </div>
-            </div>
-            <div className="lab-option-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Paper-scale ceiling</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">1,000 validators · 10,000 slots</div>
-              <div className="mt-2 text-xs leading-5 text-muted">
-                Matches the upper scale of the published frozen runs when you want closer comparability.
-              </div>
-            </div>
-            <div className="lab-option-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Current config</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">
-                {config.paradigm} · {config.validators.toLocaleString()} validators
-              </div>
-              <div className="mt-2 text-xs leading-5 text-muted">
-                {config.slots.toLocaleString()} slots, {formatEthValue(config.migrationCost)} migration cost, {config.slotTime}s slot time.
-              </div>
-            </div>
-            <div className="lab-option-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Comparability</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">{paperComparability.title}</div>
-              <div className="mt-2 text-xs leading-5 text-muted">
-                {paperComparability.detail}
-              </div>
-            </div>
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              {config.paradigm} · {config.validators.toLocaleString()} validators · {config.slots.toLocaleString()} slots
+            </span>
+            <span className="text-border-subtle">|</span>
+            <span>{paperComparability.title}</span>
           </div>
         </div>
       </div>
@@ -1034,7 +1010,7 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
           {simulationPublishContextKey && (
             <ContributionComposer
               key={simulationPublishContextKey}
-              sourceLabel="Publish this exact run as a community note"
+              sourceLabel="Share your findings from this run"
               defaultTitle={simulationPublishTitle}
               defaultTakeaway={simulationPublishTakeaway}
               helperText="Only intentionally published exact-run notes appear on the community surface. Add your own title and takeaway so the public note reflects what you saw in the artifacts, not just raw assistant phrasing."

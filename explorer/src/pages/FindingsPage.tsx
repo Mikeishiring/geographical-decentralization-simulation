@@ -686,8 +686,8 @@ export function FindingsPage({
                 defaultTakeaway={readingPublishTakeaway}
                 helperText={readingPublishHelper}
                 publishLabel="Publish human-authored note"
-                successLabel="Published human-authored note"
-                viewPublishedLabel="Open Community"
+                successLabel="Note published"
+                viewPublishedLabel="View published"
                 published={currentReadingPublished}
                 isPublishing={publishMutation.isPending}
                 error={(publishMutation.error as Error | null)?.message ?? null}

@@ -1,7 +1,7 @@
 import { useId, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
-import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
+import { SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { WORLD_PATHS } from '../../data/world-paths'
 import type { MapBlock as MapBlockType } from '../../types/blocks'
