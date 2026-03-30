@@ -2509,10 +2509,10 @@ export function ResearchDemoSurface({
       <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
           <div className="lab-stage p-5">
-              <div className="text-xs text-muted mb-1">Viewer controls</div>
-              <div className="text-sm text-text-primary mb-4">
-                Fine-tune the replay presentation. Audience, presets, and lens are in the compact rail above.
-              </div>
+            <div className="text-xs text-muted mb-1">Viewer controls</div>
+            <div className="text-sm text-text-primary mb-4">
+              Fine-tune the replay presentation. Audience, presets, and lens are in the compact rail above.
+            </div>
 
             <div className="space-y-4">
               <div>
@@ -2559,86 +2559,102 @@ export function ResearchDemoSurface({
                       )}
                     >
                       {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            </div>
-          </div>
-
-          <div className="lab-stage p-5">
-            <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-xs text-text-faint">Reading routes</div>
-              <div className="mt-3 grid gap-3">
-                {savedWorkspaceViews.map(view => (
-                  <div key={view.id} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-text-primary">{view.label}</div>
-                        <div className="mt-1 text-xs leading-5 text-muted">{view.note}</div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => applyWorkspacePose(view.config)}
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                        >
-                          Open route
-                        </button>
-                        <button
-                          onClick={() => void handleCopyShareUrl(view.url)}
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                        >
-                          Copy route
-                        </button>
-                        <a
-                          href={view.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                        >
-                          Open route
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-xs text-text-faint">Section routes</div>
-              <div className="mt-2 text-xs leading-5 text-muted">
-                These are authored reading routes. They should feel closer to paper sections than to generic dashboard presets.
-              </div>
-              <div className="mt-3 space-y-3">
-                {chapterRoutes.map(chapter => (
-                  <div key={chapter.id} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-text-primary">{chapter.label}</div>
-                        <div className="mt-1 text-xs leading-5 text-muted">{chapter.note}</div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => applyWorkspacePose(chapter.config)}
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                        >
-                          Follow section
-                        </button>
-                        <button
-                          onClick={() => void handleCopyShareUrl(chapter.url)}
-                          className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                        >
-                          Copy link
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
+
+          <details className="lab-stage overflow-hidden">
+            <summary className="cursor-pointer px-5 py-4 text-xs text-muted select-none transition-colors hover:text-text-primary [&::-webkit-details-marker]:hidden list-none">
+              <span className="flex items-center justify-between gap-3">
+                <span>
+                  Reading routes &amp; sections
+                  <span className="ml-2 text-[0.6875rem] text-text-faint">
+                    {savedWorkspaceViews.length + chapterRoutes.length} authored paths
+                  </span>
+                </span>
+                <span className="text-[0.625rem] text-text-faint">▸</span>
+              </span>
+            </summary>
+            <div className="border-t border-rule px-5 pb-5 pt-4">
+              <div className="text-sm text-text-primary">
+                These are secondary reading aids. Keep them tucked away until you want a guided route through the published replay.
+              </div>
+
+              <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
+                <div className="text-xs text-text-faint">Reading routes</div>
+                <div className="mt-3 grid gap-3">
+                  {savedWorkspaceViews.map(view => (
+                    <div key={view.id} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <div className="text-sm font-medium text-text-primary">{view.label}</div>
+                          <div className="mt-1 text-xs leading-5 text-muted">{view.note}</div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => applyWorkspacePose(view.config)}
+                            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          >
+                            Open route
+                          </button>
+                          <button
+                            onClick={() => void handleCopyShareUrl(view.url)}
+                            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          >
+                            Copy route
+                          </button>
+                          <a
+                            href={view.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          >
+                            Open route
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
+                <div className="text-xs text-text-faint">Section routes</div>
+                <div className="mt-2 text-xs leading-5 text-muted">
+                  These are authored reading routes. They should feel closer to paper sections than to generic dashboard presets.
+                </div>
+                <div className="mt-3 space-y-3">
+                  {chapterRoutes.map(chapter => (
+                    <div key={chapter.id} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <div className="text-sm font-medium text-text-primary">{chapter.label}</div>
+                          <div className="mt-1 text-xs leading-5 text-muted">{chapter.note}</div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => applyWorkspacePose(chapter.config)}
+                            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          >
+                            Follow section
+                          </button>
+                          <button
+                            onClick={() => void handleCopyShareUrl(chapter.url)}
+                            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          >
+                            Copy link
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </details>
 
         </aside>
 
@@ -3016,118 +3032,132 @@ export function ResearchDemoSurface({
                 ) : null}
               </SimulationAnalyticsDesk>
 
-              <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">Foil comparison</div>
-                <div className="text-sm text-text-primary">
-                  Put the active published replay beside another checked-in scenario so the paper can highlight tradeoffs instead of presenting one curve in isolation.
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    onClick={() => applyViewPreset('compare')}
-                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                  >
-                    Open split compare
-                  </button>
-                  <button
-                    onClick={() => applyAudienceMode('reviewer')}
-                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                  >
-                    Switch to reviewer mode
-                  </button>
-                </div>
-
-                <div className="mt-4">
-                  <label className="text-xs text-muted mb-1.5 block">Compare against</label>
-                  <select
-                    value={comparisonDataset?.path ?? ''}
-                    onChange={event => setComparePath(event.target.value)}
-                    className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
-                  >
-                    {comparisonCandidates.map(entry => (
-                      <option key={entry.path} value={entry.path}>
-                        {entry.evaluation} · {entry.paradigm} · {entry.result}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-accent bg-white px-4 py-4">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Active scenario</div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">
-                      {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'No scenario'}
-                    </div>
-                    <div className="mt-1 text-xs text-muted">{selectedDataset?.result ?? 'N/A'}</div>
-                    <div className="mt-3 text-xs leading-5 text-muted">
-                      {selectedMetadata?.description ?? 'Select a scenario to reveal its published description.'}
-                    </div>
+              <details className="lab-stage overflow-hidden" open={splitCompareActive}>
+                <summary className="cursor-pointer px-5 py-4 text-xs text-muted select-none transition-colors hover:text-text-primary [&::-webkit-details-marker]:hidden list-none">
+                  <span className="flex items-center justify-between gap-3">
+                    <span>Foil comparison</span>
+                    <span className="text-[0.625rem] text-text-faint">▸</span>
+                  </span>
+                </summary>
+                <div className="border-t border-rule px-5 pb-5 pt-4">
+                  <div className="text-sm text-text-primary">
+                    Put the active published replay beside another checked-in scenario so the paper can highlight tradeoffs instead of presenting one curve in isolation.
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => applyViewPreset('compare')}
+                      className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                    >
+                      Open split compare
+                    </button>
+                    <button
+                      onClick={() => applyAudienceMode('reviewer')}
+                      className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                    >
+                      Switch to reviewer mode
+                    </button>
                   </div>
 
-                  <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison scenario</div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">
-                      {comparisonDataset ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}` : 'No comparison'}
-                    </div>
-                    <div className="mt-1 text-xs text-muted">{comparisonDataset?.result ?? 'N/A'}</div>
-                    <div className="mt-3 text-xs leading-5 text-muted">
-                      {comparisonDataset?.metadata?.description ?? 'Choose a second scenario to compare against the active replay.'}
-                    </div>
+                  <div className="mt-4">
+                    <label className="text-xs text-muted mb-1.5 block">Compare against</label>
+                    <select
+                      value={comparisonDataset?.path ?? ''}
+                      onChange={event => setComparePath(event.target.value)}
+                      className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
+                    >
+                      {comparisonCandidates.map(entry => (
+                        <option key={entry.path} value={entry.path}>
+                          {entry.evaluation} · {entry.paradigm} · {entry.result}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                </div>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {comparisonMetrics.map(metric => {
-                    const currentValue = metric.current
-                    const compareValue = metric.compare
-                    const hasBoth = typeof currentValue === 'number' && typeof compareValue === 'number'
-                    const difference = hasBoth ? currentValue - compareValue : null
-                    const differenceLabel = difference == null
-                      ? 'No delta'
-                      : difference > 0
-                        ? 'Higher than comparison'
-                        : difference < 0
-                          ? 'Lower than comparison'
-                          : 'Matches comparison'
-
-                    return (
-                      <div key={metric.label} className="rounded-xl border border-rule bg-white px-4 py-4">
-                        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
-                        <div className="mt-3 flex items-end justify-between gap-3">
-                          <div>
-                            <div className="text-xs text-muted">Active</div>
-                            <div className="mt-1 text-sm font-medium text-text-primary">{metric.format(currentValue)}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs text-muted">Compare</div>
-                            <div className="mt-1 text-sm font-medium text-text-primary">{metric.format(compareValue)}</div>
-                          </div>
-                        </div>
-                        <div className="mt-3 text-xs text-muted">{differenceLabel}</div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-accent bg-white px-4 py-4">
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Active scenario</div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">
+                        {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'No scenario'}
                       </div>
-                    )
-                  })}
-                </div>
-
-                <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison readout</div>
-                  <div className="mt-2 text-sm leading-6 text-text-primary">{comparisonNarrative}</div>
-                </div>
-              </div>
-
-              <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">Paper-side notes</div>
-                <div className="text-sm text-text-primary">
-                  These notes change with the selected scenario and lens, so the surrounding paper can stay synchronized with the evidence surface.
-                </div>
-                <div className="mt-4 space-y-3">
-                  {paperNotes.map(note => (
-                    <div key={note.title} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{note.title}</div>
-                      <div className="mt-2 text-sm leading-6 text-text-primary">{note.body}</div>
+                      <div className="mt-1 text-xs text-muted">{selectedDataset?.result ?? 'N/A'}</div>
+                      <div className="mt-3 text-xs leading-5 text-muted">
+                        {selectedMetadata?.description ?? 'Select a scenario to reveal its published description.'}
+                      </div>
                     </div>
-                  ))}
+
+                    <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison scenario</div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">
+                        {comparisonDataset ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}` : 'No comparison'}
+                      </div>
+                      <div className="mt-1 text-xs text-muted">{comparisonDataset?.result ?? 'N/A'}</div>
+                      <div className="mt-3 text-xs leading-5 text-muted">
+                        {comparisonDataset?.metadata?.description ?? 'Choose a second scenario to compare against the active replay.'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {comparisonMetrics.map(metric => {
+                      const currentValue = metric.current
+                      const compareValue = metric.compare
+                      const hasBoth = typeof currentValue === 'number' && typeof compareValue === 'number'
+                      const difference = hasBoth ? currentValue - compareValue : null
+                      const differenceLabel = difference == null
+                        ? 'No delta'
+                        : difference > 0
+                          ? 'Higher than comparison'
+                          : difference < 0
+                            ? 'Lower than comparison'
+                            : 'Matches comparison'
+
+                      return (
+                        <div key={metric.label} className="rounded-xl border border-rule bg-white px-4 py-4">
+                          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
+                          <div className="mt-3 flex items-end justify-between gap-3">
+                            <div>
+                              <div className="text-xs text-muted">Active</div>
+                              <div className="mt-1 text-sm font-medium text-text-primary">{metric.format(currentValue)}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs text-muted">Compare</div>
+                              <div className="mt-1 text-sm font-medium text-text-primary">{metric.format(compareValue)}</div>
+                            </div>
+                          </div>
+                          <div className="mt-3 text-xs text-muted">{differenceLabel}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison readout</div>
+                    <div className="mt-2 text-sm leading-6 text-text-primary">{comparisonNarrative}</div>
+                  </div>
                 </div>
-              </div>
+              </details>
+
+              <details className="lab-stage overflow-hidden">
+                <summary className="cursor-pointer px-5 py-4 text-xs text-muted select-none transition-colors hover:text-text-primary [&::-webkit-details-marker]:hidden list-none">
+                  <span className="flex items-center justify-between gap-3">
+                    <span>Paper-side notes &amp; publishing</span>
+                    <span className="text-[0.625rem] text-text-faint">▸</span>
+                  </span>
+                </summary>
+                <div className="border-t border-rule px-5 pb-5 pt-4">
+                  <div className="text-sm text-text-primary">
+                    These notes change with the selected scenario and lens, so the surrounding paper can stay synchronized with the evidence surface.
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {paperNotes.map(note => (
+                      <div key={note.title} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
+                        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{note.title}</div>
+                        <div className="mt-2 text-sm leading-6 text-text-primary">{note.body}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </details>
 
               <details className="lab-stage">
                 <summary className="cursor-pointer px-5 py-4 text-xs text-muted select-none transition-colors hover:text-text-primary [&::-webkit-details-marker]:hidden list-none">
