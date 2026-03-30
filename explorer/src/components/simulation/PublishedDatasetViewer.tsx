@@ -336,14 +336,40 @@ function noteIntentClass(intent: PublishedViewerAnnotationNote['intent']): strin
   return 'border-[#7C3AED]/18 bg-[#F5F3FF] text-[#6D28D9]'
 }
 
+function resolvedMetricAnchorKey(note: PublishedViewerAnnotationNote): string | null {
+  if (note.anchorKind === 'metric' && typeof note.anchorKey === 'string') return note.anchorKey
+  if (note.anchorKind === 'comparison' && typeof note.anchorKey === 'string' && note.anchorKey.startsWith('metric:')) {
+    return note.anchorKey.slice('metric:'.length)
+  }
+  return null
+}
+
+function isRegionAnchoredNote(note: PublishedViewerAnnotationNote): boolean {
+  return note.anchorKind === 'region'
+    || (note.anchorKind === 'comparison' && typeof note.anchorKey === 'string' && note.anchorKey.startsWith('region:'))
+}
+
 function noteFocusArea(note: PublishedViewerAnnotationNote): PublishedViewerFocusArea {
   if (note.anchorKind === 'region') return 'geography'
-  if (note.anchorKind === 'comparison') return 'performance'
-  if (note.anchorKind === 'metric') {
-    if (note.anchorKey === 'gini' || note.anchorKey === 'hhi' || note.anchorKey === 'liveness') {
+  if (note.anchorKind === 'comparison') {
+    if (typeof note.anchorKey === 'string' && note.anchorKey.startsWith('region:')) {
+      return 'geography'
+    }
+    const metricKey = resolvedMetricAnchorKey(note)
+    if (metricKey === 'gini' || metricKey === 'hhi' || metricKey === 'liveness') {
       return 'concentration'
     }
-    if (note.anchorKey === 'proposal_time' || note.anchorKey === 'mev' || note.anchorKey === 'total_distance') {
+    if (metricKey === 'proposal_time' || metricKey === 'mev' || metricKey === 'total_distance') {
+      return 'performance'
+    }
+    return 'performance'
+  }
+  if (note.anchorKind === 'metric') {
+    const metricKey = resolvedMetricAnchorKey(note)
+    if (metricKey === 'gini' || metricKey === 'hhi' || metricKey === 'liveness') {
+      return 'concentration'
+    }
+    if (metricKey === 'proposal_time' || metricKey === 'mev' || metricKey === 'total_distance') {
       return 'performance'
     }
   }
@@ -365,7 +391,8 @@ function noteMatchesMetric(
   note: PublishedViewerAnnotationNote,
   keys: readonly string[],
 ): boolean {
-  return note.anchorKind === 'metric' && typeof note.anchorKey === 'string' && keys.includes(note.anchorKey)
+  const metricKey = resolvedMetricAnchorKey(note)
+  return metricKey != null && keys.includes(metricKey)
 }
 
 function noteMatchesRegion(
@@ -373,7 +400,35 @@ function noteMatchesRegion(
   regionId: string,
   regionLabel: string,
 ): boolean {
-  return note.anchorKind === 'region' && (note.anchorKey === regionId || note.anchorKey === regionLabel)
+  if (note.anchorKind === 'region') {
+    return note.anchorKey === regionId || note.anchorKey === regionLabel
+  }
+  if (note.anchorKind === 'comparison' && typeof note.anchorKey === 'string' && note.anchorKey.startsWith('region:')) {
+    const comparisonKey = note.anchorKey.slice('region:'.length)
+    return comparisonKey === regionId || comparisonKey === regionLabel
+  }
+  return false
+}
+
+function buildPublishedReplayAnchorSelection(
+  anchorScope: 'primary' | 'comparison',
+  detail: {
+    kind: 'general' | 'region' | 'metric' | 'comparison'
+    key: string
+    label: string
+  },
+) {
+  if (anchorScope === 'comparison') {
+    if (detail.kind === 'general' || detail.kind === 'comparison') {
+      return { kind: 'comparison' as const, key: 'comparison', label: 'Comparison posture' }
+    }
+    if (detail.kind === 'region') {
+      return { kind: 'comparison' as const, key: `region:${detail.key}`, label: `Comparison ${detail.label}` }
+    }
+    return { kind: 'comparison' as const, key: `metric:${detail.key}`, label: `Comparison ${detail.label}` }
+  }
+
+  return detail
 }
 
 function dispatchPublishedReplayAnchorSelection(detail: {
@@ -392,6 +447,7 @@ function PublishedGeoCard({
   selectedNoteId,
   onSelectNote,
   focusAreaActive,
+  anchorScope,
 }: {
   title: string
   regions: readonly RegionCount[]
@@ -399,6 +455,7 @@ function PublishedGeoCard({
   selectedNoteId?: string | null
   onSelectNote?: (id: string) => void
   focusAreaActive?: boolean
+  anchorScope: 'primary' | 'comparison'
 }) {
   const sortedRegions = [...regions].sort((left, right) => right.count - left.count)
   const topRegions = sortedRegions.slice(0, 6)
@@ -406,7 +463,7 @@ function PublishedGeoCard({
   const totalValidators = sortedRegions.reduce((sum, region) => sum + region.count, 0)
   const maxValue = Math.max(...sortedRegions.map(region => region.count), 1)
   const dominantRegion = topRegions[0] ?? null
-  const regionAnchoredNotes = annotationNotes?.filter(note => note.anchorKind === 'region') ?? []
+  const regionAnchoredNotes = annotationNotes?.filter(note => isRegionAnchoredNote(note)) ?? []
 
   const svgWidth = 820
   const svgHeight = 430
@@ -540,11 +597,11 @@ function PublishedGeoCard({
                 return (
                   <g
                     key={region.regionId}
-                    onClick={() => dispatchPublishedReplayAnchorSelection({
+                    onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, {
                       kind: 'region',
                       key: region.regionId,
                       label: `Region · ${geoRegion.city}`,
-                    })}
+                    }))}
                     style={{ cursor: 'pointer' }}
                   >
                     <circle
@@ -585,12 +642,12 @@ function PublishedGeoCard({
                   <button
                     key={region.regionId}
                     type="button"
-                    onClick={() => dispatchPublishedReplayAnchorSelection({
+                    onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, {
                       kind: 'region',
                       key: region.regionId,
                       label: `Region · ${regionLabel}`,
-                    })}
-                    className="block w-full text-left"
+                    }))}
+                    className="block w-full rounded-xl px-2 py-2 text-left transition-colors hover:bg-surface-active"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
@@ -657,6 +714,7 @@ export function PublishedDatasetViewer({
   onClose,
   onStateChange,
   annotationNotes = [] as readonly PublishedViewerAnnotationNote[],
+  anchorScope = 'primary',
 }: PublishedDatasetViewerProps) {
   const [viewerState, setViewerState] = useState<ViewerState>({
     status: 'loading',
@@ -825,19 +883,52 @@ export function PublishedDatasetViewer({
     methods: annotationNotes.filter(note => note.intent === 'methods').length,
   }), [annotationNotes])
   const metricNoteCounts = useMemo(() => ({
-    geography: annotationNotes.filter(note => note.anchorKind === 'region').length,
+    geography: annotationNotes.filter(note => isRegionAnchoredNote(note)).length,
     gini: annotationNotes.filter(note => noteMatchesMetric(note, ['gini'])).length,
     concentration: annotationNotes.filter(note => noteMatchesMetric(note, ['gini', 'hhi', 'liveness'])).length,
     performance: annotationNotes.filter(note => noteMatchesMetric(note, ['proposal_time', 'mev', 'total_distance'])).length,
     mev: annotationNotes.filter(note => noteMatchesMetric(note, ['mev'])).length,
     proposalTime: annotationNotes.filter(note => noteMatchesMetric(note, ['proposal_time'])).length,
-    methods: annotationNotes.filter(note => note.anchorKind === 'comparison' || note.intent === 'methods').length,
+    methods: annotationNotes.filter(note => (note.anchorKind === 'comparison' && note.anchorKey === 'comparison') || note.intent === 'methods').length,
   }), [annotationNotes])
   const focusedNote = useMemo(
     () => filteredAnnotationNotes.find(note => note.id === selectedNoteId) ?? filteredAnnotationNotes[0] ?? null,
     [filteredAnnotationNotes, selectedNoteId],
   )
   const focusedArea = focusedNote ? noteFocusArea(focusedNote) : null
+  const buildChartNotePins = (
+    notes: readonly PublishedViewerAnnotationNote[],
+    chartKey: 'concentration' | 'distance' | 'proposal' | 'mev',
+  ) => notes.flatMap(note => {
+    const metricKey = resolvedMetricAnchorKey(note)
+    let pinValue: number | null = null
+
+    if (chartKey === 'concentration') {
+      if (metricKey === 'hhi') pinValue = currentHhi
+      else if (metricKey === 'liveness') pinValue = currentLiveness
+      else pinValue = currentGini ?? currentLiveness ?? currentHhi
+    } else if (chartKey === 'distance') {
+      pinValue = currentTotalDistance
+    } else if (chartKey === 'proposal') {
+      if (metricKey === 'mev') pinValue = currentMev
+      else if (metricKey === 'total_distance') pinValue = currentTotalDistance
+      else pinValue = currentProposalTime ?? currentMev ?? currentTotalDistance
+    } else if (chartKey === 'mev') {
+      pinValue = currentMev
+    }
+
+    if (pinValue == null) return []
+
+    return [{
+      id: note.id,
+      label: note.anchorLabel ?? noteIntentLabel(note.intent),
+      x: slot,
+      y: pinValue,
+      intent: note.intent,
+      active: focusedNote?.id === note.id,
+      onSelect: () => setSelectedNoteId(note.id),
+    }]
+  })
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -1138,7 +1229,7 @@ export function PublishedDatasetViewer({
               <button
                 key={card.key}
                 type="button"
-                onClick={() => dispatchPublishedReplayAnchorSelection(card.anchor)}
+                onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, card.anchor))}
                 className={cn(
                   'relative w-full text-left transition-all duration-300',
                   card.focus ? 'rounded-[1.15rem] ring-2 ring-accent/30 shadow-[0_16px_34px_rgba(37,99,235,0.08)]' : '',
@@ -1306,6 +1397,7 @@ export function PublishedDatasetViewer({
           selectedNoteId={focusedNote?.id ?? null}
           onSelectNote={setSelectedNoteId}
           focusAreaActive={focusedArea === 'geography'}
+          anchorScope={anchorScope}
         />
         <div className="space-y-6">
           <ChartBlock block={sourceChartBlock} />
@@ -1340,14 +1432,21 @@ export function PublishedDatasetViewer({
             key: 'concentration',
             block: concentrationSeriesBlock,
             notes: filteredAnnotationNotes.filter(note =>
-              note.anchorKind === 'region'
+              isRegionAnchoredNote(note)
               || noteMatchesMetric(note, ['gini', 'hhi', 'liveness']),
             ),
+            notePins: buildChartNotePins(filteredAnnotationNotes.filter(note =>
+              isRegionAnchoredNote(note) || noteMatchesMetric(note, ['gini', 'hhi', 'liveness'])
+            ), 'concentration'),
           },
           {
             key: 'distance',
             block: distanceSeriesBlock,
             notes: filteredAnnotationNotes.filter(note => noteMatchesMetric(note, ['total_distance'])),
+            notePins: buildChartNotePins(
+              filteredAnnotationNotes.filter(note => noteMatchesMetric(note, ['total_distance'])),
+              'distance',
+            ),
           },
           {
             key: 'proposal',
@@ -1355,11 +1454,21 @@ export function PublishedDatasetViewer({
             notes: filteredAnnotationNotes.filter(note =>
               noteMatchesMetric(note, ['proposal_time']) || note.anchorKind === 'comparison',
             ),
+            notePins: buildChartNotePins(
+              filteredAnnotationNotes.filter(note =>
+                noteMatchesMetric(note, ['proposal_time']) || note.anchorKind === 'comparison'
+              ),
+              'proposal',
+            ),
           },
           {
             key: 'mev',
             block: mevSeriesBlock,
             notes: filteredAnnotationNotes.filter(note => noteMatchesMetric(note, ['mev'])),
+            notePins: buildChartNotePins(
+              filteredAnnotationNotes.filter(note => noteMatchesMetric(note, ['mev'])),
+              'mev',
+            ),
           },
         ].map(entry => (
           <div key={entry.key} className="relative">
@@ -1390,7 +1499,7 @@ export function PublishedDatasetViewer({
                 ? 'rounded-[1.2rem] ring-2 ring-accent/35 shadow-[0_18px_36px_rgba(37,99,235,0.1)]'
                 : '',
             )}>
-              <TimeSeriesBlock block={entry.block} />
+              <TimeSeriesBlock block={entry.block} notePins={entry.notePins} />
             </div>
           </div>
         ))}
