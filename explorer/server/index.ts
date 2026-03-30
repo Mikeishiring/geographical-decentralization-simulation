@@ -8,6 +8,7 @@
 
 import express from 'express'
 import cors from 'cors'
+import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
 import fs from 'node:fs/promises'
@@ -75,6 +76,8 @@ const CURATED_CARDS = [OVERVIEW_CARD, ...TOPIC_CARDS]
 const ALL_EXPLORATION_TOPICS = TOPIC_CARDS
 const MAX_GENERATED_BLOCKS = 6
 const MAX_GENERATED_FOLLOW_UPS = 3
+const DEFAULT_GENERATED_FALLBACK_TEXT =
+  'The explorer is falling back to a conservative paper-backed note because the model did not return a safe structured visualization.'
 const DEFAULT_GENERATED_SOURCE_BLOCK: Block = {
   type: 'source',
   refs: [
@@ -285,8 +288,94 @@ interface PublishedReplayCopilotRequest {
   compareSourceRole?: string | null
   focusSlot?: number | null
   paperLens?: 'evidence' | 'theory' | 'methods' | null
+  paperSectionId?: string | null
+  paperSectionLabel?: string | null
+  paperSectionContext?: string | null
   audienceMode?: 'reader' | 'reviewer' | 'researcher' | null
   currentViewSummary?: string | null
+  viewerSnapshot?: PublishedReplayViewerSnapshotContext | null
+  comparisonViewerSnapshot?: PublishedReplayViewerSnapshotContext | null
+}
+
+interface PublishedReplayViewerSnapshotContext {
+  slotIndex: number
+  slotNumber: number
+  totalSlots: number
+  stepSize: number
+  playing: boolean
+  activeRegions: number
+  totalValidators: number
+  dominantRegionId?: string | null
+  dominantRegionCity?: string | null
+  dominantRegionShare?: number | null
+  currentGini?: number | null
+  currentHhi?: number | null
+  currentLiveness?: number | null
+  currentMev?: number | null
+  currentProposalTime?: number | null
+  currentAttestation?: number | null
+  currentTotalDistance?: number | null
+  currentFailedBlockProposals?: number | null
+  currentClusters?: number | null
+}
+
+type PublishedReplayNoteIntent = 'observation' | 'question' | 'theory' | 'methods'
+type PublishedReplayNoteStatus = 'open' | 'resolved'
+
+interface PublishedReplayNoteReply {
+  id: string
+  text: string
+  createdAt: string
+}
+
+interface PublishedReplayNote {
+  id: string
+  datasetPath: string
+  datasetLabel?: string | null
+  comparePath?: string | null
+  compareLabel?: string | null
+  slotIndex: number
+  slotNumber: number
+  comparisonSlotIndex?: number | null
+  comparisonSlotNumber?: number | null
+  paperLens: 'evidence' | 'theory' | 'methods'
+  audienceMode: 'reader' | 'reviewer' | 'researcher'
+  intent: PublishedReplayNoteIntent
+  status: PublishedReplayNoteStatus
+  anchorKind?: 'general' | 'region' | 'metric' | 'comparison' | null
+  anchorKey?: string | null
+  anchorLabel?: string | null
+  note: string
+  replies: PublishedReplayNoteReply[]
+  contextLabel?: string | null
+  createdAt: string
+}
+
+interface CreatePublishedReplayNoteRequest {
+  datasetPath?: string | null
+  datasetLabel?: string | null
+  comparePath?: string | null
+  compareLabel?: string | null
+  slotIndex?: number | null
+  slotNumber?: number | null
+  comparisonSlotIndex?: number | null
+  comparisonSlotNumber?: number | null
+  paperLens?: 'evidence' | 'theory' | 'methods' | null
+  audienceMode?: 'reader' | 'reviewer' | 'researcher' | null
+  intent?: PublishedReplayNoteIntent | null
+  anchorKind?: 'general' | 'region' | 'metric' | 'comparison' | null
+  anchorKey?: string | null
+  anchorLabel?: string | null
+  note?: string | null
+  contextLabel?: string | null
+}
+
+interface AddPublishedReplayNoteReplyRequest {
+  reply?: string | null
+}
+
+interface UpdatePublishedReplayNoteStatusRequest {
+  status?: PublishedReplayNoteStatus | null
 }
 
 interface PublishedReplayCopilotResponse {
@@ -308,6 +397,24 @@ interface PublishedReplayCopilotResponse {
     comparePath?: string
   }
 }
+
+const PUBLISHED_REPLAY_NOTE_INTENTS = new Set<PublishedReplayNoteIntent>([
+  'observation',
+  'question',
+  'theory',
+  'methods',
+])
+const PUBLISHED_REPLAY_NOTE_STATUSES = new Set<PublishedReplayNoteStatus>([
+  'open',
+  'resolved',
+])
+const PUBLISHED_REPLAY_NOTE_ANCHOR_KINDS = new Set([
+  'general',
+  'region',
+  'metric',
+  'comparison',
+])
+const publishedReplayNotesStore = new Map<string, PublishedReplayNote[]>()
 
 interface PublishedReplayMetrics {
   readonly clusters?: readonly number[]
@@ -813,8 +920,80 @@ function normalizeGeneratedFollowUps(
   return normalized
 }
 
+function coerceGeneratedText(value: unknown): string | undefined {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  return undefined
+}
+
+function coerceGeneratedStringRow(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map(entry => coerceGeneratedText(entry)?.trim() ?? '')
+    .filter(Boolean)
+}
+
+function coerceGeneratedBlockShape(rawBlock: unknown): unknown {
+  if (!rawBlock || typeof rawBlock !== 'object' || Array.isArray(rawBlock)) return rawBlock
+
+  const block = rawBlock as Record<string, unknown>
+  switch (block.type) {
+    case 'stat':
+      return {
+        type: 'stat',
+        value: coerceGeneratedText(block.value),
+        label: coerceGeneratedText(block.label ?? block.title),
+        sublabel: coerceGeneratedText(block.sublabel ?? block.subtitle),
+        delta: coerceGeneratedText(block.delta),
+        sentiment: block.sentiment,
+      }
+    case 'insight':
+      return {
+        type: 'insight',
+        title: coerceGeneratedText(block.title),
+        text: coerceGeneratedText(block.text ?? block.content),
+        emphasis: block.emphasis,
+      }
+    case 'caveat': {
+      const title = coerceGeneratedText(block.title)?.trim()
+      const text = coerceGeneratedText(block.text ?? block.content ?? block.detail)?.trim()
+      return {
+        type: 'caveat',
+        text: title && text ? `${title}: ${text}` : title ?? text,
+      }
+    }
+    case 'comparison': {
+      const rows = Array.isArray(block.data)
+        ? block.data.map(row => coerceGeneratedStringRow(row)).filter(row => row.length > 0)
+        : []
+
+      if (rows.length >= 2) {
+        const [headers, ...bodyRows] = rows
+        if (headers.length >= 2 && bodyRows.length > 0) {
+          return {
+            type: 'table',
+            title: coerceGeneratedText(block.title) ?? 'Comparison',
+            headers,
+            rows: bodyRows,
+          }
+        }
+      }
+
+      return {
+        type: 'comparison',
+        title: coerceGeneratedText(block.title),
+        left: block.left,
+        right: block.right,
+        verdict: coerceGeneratedText(block.verdict),
+      }
+    }
+    default:
+      return rawBlock
+  }
+}
+
 function normalizeGeneratedBlocks(rawBlocks: unknown[] | undefined): Block[] {
-  const normalized = parseBlocks(rawBlocks ?? [])
+  const normalized = parseBlocks((rawBlocks ?? []).map(coerceGeneratedBlockShape))
     .map(normalizeGeneratedBlock)
     .filter((block): block is Block => block !== null)
 
@@ -835,7 +1014,7 @@ function normalizeGeneratedBlocks(rawBlocks: unknown[] | undefined): Block[] {
         type: 'insight',
         emphasis: 'normal',
         title: 'Paper-backed note',
-        text: 'The explorer is falling back to a conservative paper-backed note because the model did not return a safe structured visualization.',
+        text: DEFAULT_GENERATED_FALLBACK_TEXT,
       },
       DEFAULT_GENERATED_CAVEAT_BLOCK,
       DEFAULT_GENERATED_SOURCE_BLOCK,
@@ -1407,11 +1586,105 @@ function summarizePublishedSlotSnapshot(
   return lines
 }
 
+function formatReplayContextMetric(
+  value: number | null | undefined,
+  suffix = '',
+  fractionDigits = 3,
+): string {
+  if (value == null || !Number.isFinite(value)) return 'N/A'
+  return `${formatMetricNumber(value, fractionDigits)}${suffix}`
+}
+
+function summarizeViewerSnapshotContext(
+  label: string,
+  snapshot: PublishedReplayViewerSnapshotContext | null | undefined,
+): string[] {
+  if (!snapshot) return []
+
+  const dominantRegion = snapshot.dominantRegionCity ?? snapshot.dominantRegionId ?? 'N/A'
+  const lines = [
+    `## ${label}`,
+    `- slot: ${snapshot.slotNumber} / ${snapshot.totalSlots}`,
+    `- slotIndex: ${snapshot.slotIndex}`,
+    `- stepSize: ${snapshot.stepSize}`,
+    `- playing: ${snapshot.playing ? 'yes' : 'no'}`,
+    `- activeRegions: ${snapshot.activeRegions}`,
+    `- validatorsVisible: ${snapshot.totalValidators}`,
+    `- dominantRegion: ${dominantRegion}`,
+    `- dominantRegionShare: ${formatReplayContextMetric(snapshot.dominantRegionShare, '%', 1)}`,
+    `- gini: ${formatReplayContextMetric(snapshot.currentGini, '', 3)}`,
+    `- hhi: ${formatReplayContextMetric(snapshot.currentHhi, '', 3)}`,
+    `- liveness: ${formatReplayContextMetric(snapshot.currentLiveness, '%', 1)}`,
+    `- mev: ${formatReplayContextMetric(snapshot.currentMev, ' ETH', 4)}`,
+    `- proposalTime: ${formatReplayContextMetric(snapshot.currentProposalTime, ' ms', 1)}`,
+    `- attestations: ${formatReplayContextMetric(snapshot.currentAttestation, '%', 1)}`,
+    `- totalDistance: ${formatReplayContextMetric(snapshot.currentTotalDistance, '', 1)}`,
+    `- failedBlockProposals: ${formatReplayContextMetric(snapshot.currentFailedBlockProposals, '', 1)}`,
+    `- clusters: ${formatReplayContextMetric(snapshot.currentClusters, '', 1)}`,
+  ]
+
+  return lines
+}
+
+function normalizePublishedPaperLens(
+  value: unknown,
+): 'evidence' | 'theory' | 'methods' {
+  return value === 'theory' || value === 'methods' ? value : 'evidence'
+}
+
+function normalizePublishedAudienceMode(
+  value: unknown,
+): 'reader' | 'reviewer' | 'researcher' {
+  return value === 'reviewer' || value === 'researcher' ? value : 'reader'
+}
+
+function toNonNegativeInteger(value: unknown): number | null {
+  const numeric = typeof value === 'number' ? value : Number(value)
+  return Number.isInteger(numeric) && numeric >= 0 ? numeric : null
+}
+
+function buildPublishedReplayNoteThreadKey(args: {
+  datasetPath: string
+  comparePath?: string | null
+  slotIndex: number
+  comparisonSlotIndex?: number | null
+  paperLens: 'evidence' | 'theory' | 'methods'
+  audienceMode: 'reader' | 'reviewer' | 'researcher'
+}): string {
+  return JSON.stringify([
+    args.datasetPath,
+    args.comparePath ?? '',
+    args.slotIndex,
+    args.comparisonSlotIndex ?? '',
+    args.paperLens,
+    args.audienceMode,
+  ])
+}
+
+function findPublishedReplayNoteById(
+  noteId: string,
+): { threadKey: string; notes: PublishedReplayNote[]; note: PublishedReplayNote; index: number } | null {
+  for (const [threadKey, notes] of publishedReplayNotesStore.entries()) {
+    const index = notes.findIndex(note => note.id === noteId)
+    if (index >= 0) {
+      return {
+        threadKey,
+        notes,
+        note: notes[index]!,
+        index,
+      }
+    }
+  }
+  return null
+}
+
 async function buildPublishedReplayContext(
   request: PublishedReplayCopilotRequest,
 ): Promise<{
   readonly datasetPath: string
   readonly comparePath?: string
+  readonly focusSnapshot: ReturnType<typeof buildPublishedSlotSummary>
+  readonly compareFocusSnapshot?: ReturnType<typeof buildPublishedSlotSummary>
   readonly context: string
 }> {
   const datasetPath = normalizePublishedDatasetPath(request.datasetPath)
@@ -1429,6 +1702,9 @@ async function buildPublishedReplayContext(
 
   const comparePath = normalizePublishedDatasetPath(request.comparePath)
   const comparePayload = comparePath ? await loadPublishedReplayPayload(comparePath) : null
+  const compareFocusSnapshot = comparePayload
+    ? buildPublishedSlotSummary(comparePayload, clampPublishedSlot(request.focusSlot, comparePayload))
+    : null
   const compareFinalSnapshot = comparePayload
     ? buildPublishedSlotSummary(comparePayload, Math.max(0, totalPublishedSlots(comparePayload) - 1))
     : null
@@ -1485,6 +1761,17 @@ async function buildPublishedReplayContext(
     parts.push(`- currentViewSummary: ${request.currentViewSummary.trim()}`)
   }
 
+  if (request.paperSectionContext?.trim()) {
+    parts.push(
+      '## Canonical Paper Anchor',
+      `- sectionId: ${request.paperSectionId?.trim() || 'unspecified'}`,
+      `- sectionLabel: ${request.paperSectionLabel?.trim() || request.paperSectionId?.trim() || 'Selected paper section'}`,
+      request.paperSectionContext.trim(),
+    )
+  }
+
+  parts.push(...summarizeViewerSnapshotContext('Live Viewer Snapshot', request.viewerSnapshot))
+
   const sourceFootprint = summarizePublishedSourceFootprint(payload)
   if (sourceFootprint) {
     parts.push(`- sourceFootprint: ${sourceFootprint}`)
@@ -1508,6 +1795,7 @@ async function buildPublishedReplayContext(
       `- sourceRole: ${sourceRoleLabel(request.compareSourceRole)}`,
       `- description: ${comparePayload.description ?? 'No description supplied.'}`,
       ...summarizePublishedSlotSnapshot('Comparison Final Slot', compareFinalSnapshot!),
+      ...summarizeViewerSnapshotContext('Live Comparison Viewer Snapshot', request.comparisonViewerSnapshot),
     )
 
     if (compareMetricLines.length > 0) {
@@ -1518,8 +1806,171 @@ async function buildPublishedReplayContext(
   return {
     datasetPath,
     comparePath: comparePath ?? undefined,
+    focusSnapshot,
+    compareFocusSnapshot: compareFocusSnapshot ?? undefined,
     context: parts.join('\n'),
   }
+}
+
+function buildPublishedReplayEvidenceBlocks(
+  request: PublishedReplayCopilotRequest,
+  focusSnapshot: ReturnType<typeof buildPublishedSlotSummary>,
+  compareFocusSnapshot?: ReturnType<typeof buildPublishedSlotSummary>,
+): Block[] {
+  const dominantRegionLabel = focusSnapshot.dominantRegion
+    ? `${focusSnapshot.dominantRegion.city ?? focusSnapshot.dominantRegion.regionId} leads with ${focusSnapshot.dominantRegion.count} of ${focusSnapshot.totalValidators} validators`
+    : 'No dominant region is available for the active slot.'
+  const blocks: Block[] = [
+    {
+      type: 'stat',
+      value: focusSnapshot.metrics.gini != null ? formatMetricNumber(focusSnapshot.metrics.gini, 3) : 'N/A',
+      label: 'Current geographic concentration',
+      sublabel: `Gini at slot ${focusSnapshot.slotNumber}/${focusSnapshot.totalSlots}`,
+    },
+    {
+      type: 'stat',
+      value: focusSnapshot.dominantRegion ? `${formatMetricNumber(focusSnapshot.dominantRegion.share, 1)}%` : 'N/A',
+      label: 'Dominant region share',
+      sublabel: dominantRegionLabel,
+    },
+  ]
+
+  if (!compareFocusSnapshot) {
+    return blocks
+  }
+
+  blocks.push({
+    type: 'table',
+    title: 'Active replay vs comparison at the current slot',
+    headers: [
+      'Metric',
+      request.datasetLabel?.trim() || 'Active replay',
+      request.compareLabel?.trim() || 'Comparison replay',
+    ],
+    rows: [
+      ['Active regions', String(focusSnapshot.activeRegions), String(compareFocusSnapshot.activeRegions)],
+      [
+        'Dominant region share',
+        focusSnapshot.dominantRegion ? `${formatMetricNumber(focusSnapshot.dominantRegion.share, 1)}%` : 'N/A',
+        compareFocusSnapshot.dominantRegion ? `${formatMetricNumber(compareFocusSnapshot.dominantRegion.share, 1)}%` : 'N/A',
+      ],
+      [
+        'Gini',
+        formatPublishedMetricValue('gini', focusSnapshot.metrics.gini),
+        formatPublishedMetricValue('gini', compareFocusSnapshot.metrics.gini),
+      ],
+      [
+        'Liveness',
+        formatPublishedMetricValue('liveness', focusSnapshot.metrics.liveness),
+        formatPublishedMetricValue('liveness', compareFocusSnapshot.metrics.liveness),
+      ],
+    ],
+  })
+
+  return blocks
+}
+
+function buildPublishedReplaySummary(
+  request: PublishedReplayCopilotRequest,
+  focusSnapshot: ReturnType<typeof buildPublishedSlotSummary>,
+  compareFocusSnapshot?: ReturnType<typeof buildPublishedSlotSummary>,
+): string {
+  const dominantRegion = focusSnapshot.dominantRegion?.city ?? focusSnapshot.dominantRegion?.regionId ?? 'the leading region'
+  const currentSlotLead = `At slot ${focusSnapshot.slotNumber}, ${request.datasetLabel?.trim() || 'the active replay'} shows ${focusSnapshot.activeRegions} active regions, ${focusSnapshot.dominantRegion ? `${formatMetricNumber(focusSnapshot.dominantRegion.share, 1)}% dominance in ${dominantRegion}` : 'no stable dominant region'}, and Gini ${formatPublishedMetricValue('gini', focusSnapshot.metrics.gini)}.`
+
+  if (!compareFocusSnapshot) {
+    return currentSlotLead
+  }
+
+  const relation = (() => {
+    const activeGini = focusSnapshot.metrics.gini
+    const compareGini = compareFocusSnapshot.metrics.gini
+    if (activeGini == null || compareGini == null) return 'The comparison replay provides a second posture for reading the same slot.'
+    if (activeGini < compareGini) {
+      return `${request.compareLabel?.trim() || 'the comparison replay'} is more concentrated at the same slot (Gini ${formatPublishedMetricValue('gini', compareGini)}).`
+    }
+    if (activeGini > compareGini) {
+      return `${request.datasetLabel?.trim() || 'The active replay'} is more concentrated than ${request.compareLabel?.trim() || 'the comparison replay'} at the same slot.`
+    }
+    return 'Both replays show the same concentration at the current slot.'
+  })()
+
+  return `${currentSlotLead} ${relation}`
+}
+
+function buildPublishedReplayGuideInsight(
+  request: PublishedReplayCopilotRequest,
+  focusSnapshot: ReturnType<typeof buildPublishedSlotSummary>,
+  compareFocusSnapshot?: ReturnType<typeof buildPublishedSlotSummary>,
+): Block {
+  const activeLabel = request.datasetLabel?.trim() || 'the active replay'
+  if (!compareFocusSnapshot) {
+    return {
+      type: 'insight',
+      emphasis: 'normal',
+      title: 'Guide interpretation',
+      text: `The safer read is that geographic concentration is underway at this slot, but the current leader should not be mistaken for the final equilibrium. Treat the slot-level Gini, dominant-share, and active-region count as the primary evidence for ${activeLabel}.`,
+    }
+  }
+
+  const activeGini = focusSnapshot.metrics.gini
+  const compareGini = compareFocusSnapshot.metrics.gini
+  const compareLabel = request.compareLabel?.trim() || 'the comparison replay'
+  const relation = activeGini != null && compareGini != null
+    ? activeGini < compareGini
+      ? `${activeLabel} is less concentrated than ${compareLabel} at the same slot`
+      : activeGini > compareGini
+        ? `${activeLabel} is more concentrated than ${compareLabel} at the same slot`
+        : `${activeLabel} and ${compareLabel} are equally concentrated at the same slot`
+    : `${activeLabel} and ${compareLabel} should be read side by side at the same slot`
+
+  return {
+    type: 'insight',
+    emphasis: 'normal',
+    title: 'Guide interpretation',
+    text: `The safer read is that ${relation}. Use the table and current-slot stats as the factual layer, then treat any broader mechanism claim as interpretation rather than a new result.`,
+  }
+}
+
+function buildPublishedReplayFollowUps(
+  focusSnapshot: ReturnType<typeof buildPublishedSlotSummary>,
+  compareFocusSnapshot?: ReturnType<typeof buildPublishedSlotSummary>,
+): string[] {
+  const dominantRegion = focusSnapshot.dominantRegion?.city ?? focusSnapshot.dominantRegion?.regionId ?? 'the leading region'
+
+  if (!compareFocusSnapshot) {
+    return [
+      `How does this slot ${focusSnapshot.slotNumber} posture compare to the final equilibrium?`,
+      `Why is ${dominantRegion} leading at this point in the replay?`,
+      'Which metric changes most after this slot: Gini, dominant share, or active regions?',
+    ]
+  }
+
+  return [
+    `How does slot ${focusSnapshot.slotNumber} compare with the final equilibrium in both replays?`,
+    `Why is ${dominantRegion} leading here while the comparison replay concentrates differently?`,
+    'Which metric separates SSP and MSP fastest after this slot: Gini, dominant share, or liveness?',
+  ]
+}
+
+function enrichPublishedReplayBlocks(
+  blocks: readonly Block[],
+  evidenceBlocks: readonly Block[],
+  guideInsight: Block,
+): Block[] {
+  const withoutFallbackNote = blocks.filter(block =>
+    !(block.type === 'insight' && block.title === 'Paper-backed note' && block.text === DEFAULT_GENERATED_FALLBACK_TEXT),
+  )
+  const supportingBlocks = withoutFallbackNote.filter(block =>
+    block.type === 'caveat' || block.type === 'source',
+  )
+  const merged = [...evidenceBlocks, guideInsight, ...supportingBlocks]
+
+  const deduped = merged.filter((block, index, all) =>
+    all.findIndex(candidate => blockSignature(candidate) === blockSignature(block)) === index,
+  )
+
+  return orderBlocksEvidenceFirst(deduped).slice(0, MAX_GENERATED_BLOCKS)
 }
 
 function metricNumericValue(
@@ -2358,12 +2809,34 @@ app.post('/api/published-replay-copilot', publishedReplayCopilotRateLimit, async
     }
 
     const normalizedBlocks = normalizeGeneratedBlocks(input.blocks)
-    const normalizedSummary = normalizeGeneratedSummary(input.summary, trimmedQuestion, normalizedBlocks)
-    const normalizedFollowUps = normalizeGeneratedFollowUps(trimmedQuestion, input.follow_ups)
+    const evidenceBlocks = buildPublishedReplayEvidenceBlocks(
+      request,
+      replayContext.focusSnapshot,
+      replayContext.compareFocusSnapshot,
+    )
+    const guideInsight = buildPublishedReplayGuideInsight(
+      request,
+      replayContext.focusSnapshot,
+      replayContext.compareFocusSnapshot,
+    )
+    const publishedBlocks = enrichPublishedReplayBlocks(
+      normalizedBlocks,
+      evidenceBlocks,
+      guideInsight,
+    )
+    const normalizedSummary = buildPublishedReplaySummary(
+      request,
+      replayContext.focusSnapshot,
+      replayContext.compareFocusSnapshot,
+    )
+    const normalizedFollowUps = buildPublishedReplayFollowUps(
+      replayContext.focusSnapshot,
+      replayContext.compareFocusSnapshot,
+    )
 
     const result: PublishedReplayCopilotResponse = {
       summary: normalizedSummary,
-      blocks: normalizedBlocks,
+      blocks: publishedBlocks,
       followUps: normalizedFollowUps,
       truthBoundary: {
         label: 'Assistant framing over a frozen published replay',
@@ -2400,6 +2873,187 @@ app.post('/api/published-replay-copilot', publishedReplayCopilotRateLimit, async
 
     res.status(status).json({ error: message })
   }
+})
+
+app.get('/api/published-replay-notes', (req, res) => {
+  const datasetPath = normalizePublishedDatasetPath(typeof req.query.datasetPath === 'string' ? req.query.datasetPath : null)
+  const slotIndex = toNonNegativeInteger(req.query.slotIndex)
+
+  if (!datasetPath) {
+    res.status(400).json({ error: 'A valid published dataset path is required.' })
+    return
+  }
+  if (slotIndex == null) {
+    res.status(400).json({ error: 'A valid slot index is required.' })
+    return
+  }
+
+  const comparePath = normalizePublishedDatasetPath(typeof req.query.comparePath === 'string' ? req.query.comparePath : null)
+  const comparisonSlotIndex = toNonNegativeInteger(req.query.comparisonSlotIndex)
+  const paperLens = normalizePublishedPaperLens(req.query.paperLens)
+  const audienceMode = normalizePublishedAudienceMode(req.query.audienceMode)
+  const threadKey = buildPublishedReplayNoteThreadKey({
+    datasetPath,
+    comparePath,
+    slotIndex,
+    comparisonSlotIndex,
+    paperLens,
+    audienceMode,
+  })
+
+  res.json({
+    notes: publishedReplayNotesStore.get(threadKey) ?? [],
+  })
+})
+
+app.post('/api/published-replay-notes', (req, res) => {
+  const request = req.body as CreatePublishedReplayNoteRequest
+  const datasetPath = normalizePublishedDatasetPath(request.datasetPath)
+  const slotIndex = toNonNegativeInteger(request.slotIndex)
+  const slotNumber = toNonNegativeInteger(request.slotNumber)
+  const note = request.note?.trim()
+
+  if (!datasetPath) {
+    res.status(400).json({ error: 'A valid published dataset path is required.' })
+    return
+  }
+  if (slotIndex == null || slotNumber == null || slotNumber < 1) {
+    res.status(400).json({ error: 'A valid replay slot is required before saving a paper note.' })
+    return
+  }
+  if (!note) {
+    res.status(400).json({ error: 'Note text is required.' })
+    return
+  }
+  if (note.length > 2000) {
+    res.status(400).json({ error: 'Keep paper notes under 2000 characters.' })
+    return
+  }
+
+  const paperLens = normalizePublishedPaperLens(request.paperLens)
+  const audienceMode = normalizePublishedAudienceMode(request.audienceMode)
+  const comparePath = normalizePublishedDatasetPath(request.comparePath)
+  const comparisonSlotIndex = toNonNegativeInteger(request.comparisonSlotIndex)
+  const comparisonSlotNumber = toNonNegativeInteger(request.comparisonSlotNumber)
+  const intent = request.intent && PUBLISHED_REPLAY_NOTE_INTENTS.has(request.intent)
+    ? request.intent
+    : 'observation'
+  const anchorKind = request.anchorKind && PUBLISHED_REPLAY_NOTE_ANCHOR_KINDS.has(request.anchorKind)
+    ? request.anchorKind
+    : 'general'
+  const threadKey = buildPublishedReplayNoteThreadKey({
+    datasetPath,
+    comparePath,
+    slotIndex,
+    comparisonSlotIndex,
+    paperLens,
+    audienceMode,
+  })
+
+  const nextNote: PublishedReplayNote = {
+    id: randomUUID(),
+    datasetPath: path.relative(DASHBOARD_DIR, datasetPath).replace(/\\/g, '/'),
+    datasetLabel: request.datasetLabel?.trim() || null,
+    comparePath: comparePath ? path.relative(DASHBOARD_DIR, comparePath).replace(/\\/g, '/') : null,
+    compareLabel: request.compareLabel?.trim() || null,
+    slotIndex,
+    slotNumber,
+    comparisonSlotIndex,
+    comparisonSlotNumber,
+    paperLens,
+    audienceMode,
+    intent,
+    status: 'open',
+    anchorKind,
+    anchorKey: request.anchorKey?.trim() || null,
+    anchorLabel: request.anchorLabel?.trim() || null,
+    note,
+    replies: [],
+    contextLabel: request.contextLabel?.trim() || null,
+    createdAt: new Date().toISOString(),
+  }
+
+  const existing = publishedReplayNotesStore.get(threadKey) ?? []
+  publishedReplayNotesStore.set(threadKey, [nextNote, ...existing].slice(0, 100))
+
+  res.status(201).json({ note: nextNote })
+})
+
+app.post('/api/published-replay-notes/:noteId/replies', (req, res) => {
+  const noteId = typeof req.params.noteId === 'string' ? req.params.noteId : ''
+  const request = req.body as AddPublishedReplayNoteReplyRequest
+  const reply = request.reply?.trim()
+
+  if (!noteId) {
+    res.status(400).json({ error: 'A note id is required.' })
+    return
+  }
+  if (!reply) {
+    res.status(400).json({ error: 'Reply text is required.' })
+    return
+  }
+  if (reply.length > 1200) {
+    res.status(400).json({ error: 'Keep note replies under 1200 characters.' })
+    return
+  }
+
+  const located = findPublishedReplayNoteById(noteId)
+  if (!located) {
+    res.status(404).json({ error: 'Replay note not found.' })
+    return
+  }
+
+  const updatedNote: PublishedReplayNote = {
+    ...located.note,
+    replies: [
+      ...located.note.replies,
+      {
+        id: randomUUID(),
+        text: reply,
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  }
+
+  const nextNotes = [...located.notes]
+  nextNotes[located.index] = updatedNote
+  publishedReplayNotesStore.set(located.threadKey, nextNotes)
+
+  res.status(201).json({ note: updatedNote })
+})
+
+app.post('/api/published-replay-notes/:noteId/status', (req, res) => {
+  const noteId = typeof req.params.noteId === 'string' ? req.params.noteId : ''
+  const request = req.body as UpdatePublishedReplayNoteStatusRequest
+  const status = request.status && PUBLISHED_REPLAY_NOTE_STATUSES.has(request.status)
+    ? request.status
+    : null
+
+  if (!noteId) {
+    res.status(400).json({ error: 'A note id is required.' })
+    return
+  }
+  if (!status) {
+    res.status(400).json({ error: 'A valid note status is required.' })
+    return
+  }
+
+  const located = findPublishedReplayNoteById(noteId)
+  if (!located) {
+    res.status(404).json({ error: 'Replay note not found.' })
+    return
+  }
+
+  const updatedNote: PublishedReplayNote = {
+    ...located.note,
+    status,
+  }
+
+  const nextNotes = [...located.notes]
+  nextNotes[located.index] = updatedNote
+  publishedReplayNotesStore.set(located.threadKey, nextNotes)
+
+  res.json({ note: updatedNote })
 })
 
 app.post('/api/simulation-copilot', simulationCopilotRateLimit, async (req, res) => {

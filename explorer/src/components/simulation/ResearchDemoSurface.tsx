@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowUpRight } from 'lucide-react'
+import { ContributionComposer } from '../community/ContributionComposer'
+import { BlockCanvas } from '../explore/BlockCanvas'
+import type { TabId } from '../layout/TabNav'
+import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
+import { createExploration, publishExploration } from '../../lib/api'
 import { cn } from '../../lib/cn'
+import { listPublishedReplayNotes } from '../../lib/published-replay-notes-api'
+import type { PublishedReplayCopilotResponse } from '../../lib/published-replay-api'
+import type { Block } from '../../types/blocks'
 import { formatNumber } from './simulation-constants'
-import { PublishedDatasetViewer } from './PublishedDatasetViewer'
+import { PublishedReplayCompanionPanel } from './PublishedReplayCompanionPanel'
+import { PublishedReplayNotesPanel } from './PublishedReplayNotesPanel'
+import { PublishedDatasetViewer, type PublishedViewerSnapshot } from './PublishedDatasetViewer'
 
 interface ResearchMetadata {
   readonly v?: number
@@ -42,6 +53,8 @@ declare global {
 interface ResearchDemoSurfaceProps {
   readonly catalogScriptUrl: string
   readonly viewerBaseUrl: string
+  readonly onOpenCommunityExploration?: (explorationId: string) => void
+  readonly onTabChange?: (tab: TabId) => void
 }
 
 type WorkspaceTheme = 'auto' | 'light' | 'dark'
@@ -69,6 +82,21 @@ interface InitialWorkspaceState {
   readonly paperLens?: PaperLens
   readonly comparePath?: string
   readonly audienceMode?: AudienceMode
+  readonly replayQuestion?: string
+  readonly paperSectionId?: string
+  readonly focusSlot?: number
+  readonly compareFocusSlot?: number
+}
+
+interface CanvasAnnotation {
+  readonly title: string
+  readonly body: string
+}
+
+interface ResultSnapshotCard {
+  readonly label: string
+  readonly value: string
+  readonly detail: string
 }
 
 function readResearchCatalog(): ResearchCatalog | null {
@@ -87,6 +115,25 @@ function formatEth(value: number | undefined): string {
 function formatMilliseconds(value: number | undefined): string {
   if (typeof value !== 'number') return 'N/A'
   return `${formatNumber(value, 0)} ms`
+}
+
+function formatPercentValue(value: number | null | undefined, digits = 1): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
+  return `${formatNumber(value, digits)}%`
+}
+
+function formatOptionalMilliseconds(value: number | null | undefined, digits = 1): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
+  return `${formatNumber(value, digits)} ms`
+}
+
+function formatOptionalEth(value: number | null | undefined, digits = 4): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
+  return `${formatNumber(value, digits)} ETH`
+}
+
+function isCanvasAnnotation(note: CanvasAnnotation | null): note is CanvasAnnotation {
+  return note != null
 }
 
 function parseTheme(value: string | null): WorkspaceTheme | undefined {
@@ -111,6 +158,12 @@ function parseBooleanFlag(value: string | null): boolean | undefined {
   return undefined
 }
 
+function parseSlotIndex(value: string | null): number | undefined {
+  if (value == null || value.trim() === '') return undefined
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined
+}
+
 function readInitialWorkspaceState(): InitialWorkspaceState {
   if (typeof window === 'undefined') return {}
 
@@ -126,6 +179,10 @@ function readInitialWorkspaceState(): InitialWorkspaceState {
     paperLens: parsePaperLens(params.get('lens')),
     comparePath: params.get('compare') ?? undefined,
     audienceMode: parseAudienceMode(params.get('audience')),
+    replayQuestion: params.get('replayQuestion') ?? undefined,
+    paperSectionId: params.get('paperSection') ?? undefined,
+    focusSlot: parseSlotIndex(params.get('slot')),
+    compareFocusSlot: parseSlotIndex(params.get('compareSlot')),
   }
 }
 
@@ -135,11 +192,116 @@ function themeLabel(theme: WorkspaceTheme): string {
   return 'Light'
 }
 
+function describeViewerSnapshot(
+  snapshot: PublishedViewerSnapshot | null,
+  label: string,
+): string | null {
+  if (!snapshot) return null
+
+  const dominantRegion = snapshot.dominantRegionCity ?? snapshot.dominantRegionId ?? 'no dominant region'
+  const gini = snapshot.currentGini != null ? formatNumber(snapshot.currentGini, 3) : 'N/A'
+  const liveness = snapshot.currentLiveness != null ? `${formatNumber(snapshot.currentLiveness, 1)}%` : 'N/A'
+  const mev = snapshot.currentMev != null ? `${formatNumber(snapshot.currentMev, 4)} ETH` : 'N/A'
+  const proposalTime = snapshot.currentProposalTime != null ? `${formatNumber(snapshot.currentProposalTime, 1)} ms` : 'N/A'
+
+  return `${label} is at slot ${snapshot.slotNumber.toLocaleString()} of ${snapshot.totalSlots.toLocaleString()}, with ${snapshot.activeRegions.toLocaleString()} active regions. Dominant region: ${dominantRegion}. Gini ${gini}, liveness ${liveness}, MEV ${mev}, proposal time ${proposalTime}.`
+}
+
+function datasetPaperSectionId(dataset: ResearchDatasetEntry | null): string | null {
+  if (!dataset) return null
+
+  const evaluation = dataset.evaluation.toLowerCase()
+  const pathLabel = dataset.path.toLowerCase()
+
+  if (evaluation.startsWith('baseline')) return 'baseline-results'
+  if (evaluation.includes('source-placement')) return 'se1-source-placement'
+  if (evaluation.includes('validator-distribution')) return 'se2-distribution'
+  if (evaluation.includes('joint')) return 'se3-joint'
+  if (evaluation.includes('attestation') || evaluation.includes('threshold') || pathLabel.includes('gamma')) return 'se4a-attestation'
+  if (evaluation.includes('slot') || evaluation.includes('shorter') || pathLabel.includes('slot_time') || pathLabel.includes('slot-time')) return 'se4b-slots'
+  return null
+}
+
+function inferPaperSectionId(dataset: ResearchDatasetEntry | null, lens: PaperLens): string {
+  const datasetSectionId = datasetPaperSectionId(dataset)
+
+  if (lens === 'methods') return 'simulation-design'
+  if (lens === 'theory') {
+    if (datasetSectionId && datasetSectionId !== 'baseline-results') return datasetSectionId
+    return 'system-model'
+  }
+  return datasetSectionId ?? 'baseline-results'
+}
+
+function recommendedPaperSectionIds(
+  dataset: ResearchDatasetEntry | null,
+  lens: PaperLens,
+): string[] {
+  const ids = new Set<string>()
+  const datasetSectionId = datasetPaperSectionId(dataset)
+
+  ids.add(inferPaperSectionId(dataset, lens))
+  if (datasetSectionId) ids.add(datasetSectionId)
+
+  if (lens === 'theory') {
+    ids.add('system-model')
+    ids.add('discussion')
+  } else if (lens === 'methods') {
+    ids.add('simulation-design')
+    ids.add('limitations')
+  } else {
+    ids.add('discussion')
+    ids.add('limitations')
+  }
+
+  return [...ids].filter(id => PAPER_SECTIONS.some(section => section.id === id)).slice(0, 4)
+}
+
+function summarizePaperBlock(block: Block): string {
+  switch (block.type) {
+    case 'insight':
+      return `${block.title ? `${block.title}: ` : ''}${block.text}`
+    case 'stat':
+      return `${block.label}: ${block.value}${block.sublabel ? ` (${block.sublabel})` : ''}`
+    case 'comparison':
+      return `${block.title}: ${block.verdict ?? 'paired comparison available in the paper.'}`
+    case 'table':
+      return `${block.title}: ${block.rows.length} structured rows in the canonical section.`
+    case 'caveat':
+      return `Caveat: ${block.text}`
+    case 'source':
+      return `Sources: ${block.refs.map(ref => ref.label).join(', ')}`
+    case 'chart':
+      return `${block.title}: ${block.data.length} plotted points in the paper guide.`
+    case 'map':
+      return `${block.title}: ${block.regions.length} mapped regions in the paper guide.`
+    case 'timeseries':
+      return `${block.title}: ${block.series.length} time-series traces in the paper guide.`
+    default:
+      return 'Canonical paper evidence.'
+  }
+}
+
+function buildPaperSectionContext(section: PaperSection | null): string {
+  if (!section) return ''
+
+  return [
+    `- sectionNumber: ${section.number}`,
+    `- sectionTitle: ${section.title}`,
+    `- sectionDescription: ${section.description}`,
+    '- canonicalSectionReadout:',
+    ...section.blocks.slice(0, 4).map(block => `  - ${summarizePaperBlock(block)}`),
+  ].join('\n')
+}
+
 export function ResearchDemoSurface({
   catalogScriptUrl,
   viewerBaseUrl,
+  onOpenCommunityExploration,
+  onTabChange,
 }: ResearchDemoSurfaceProps) {
   const initialWorkspaceState = useMemo(() => readInitialWorkspaceState(), [])
+  const queryClient = useQueryClient()
   const [catalog, setCatalog] = useState<ResearchCatalog | null>(() => readResearchCatalog())
   const [catalogError, setCatalogError] = useState<string | null>(null)
   const [selectedEvaluation, setSelectedEvaluation] = useState(initialWorkspaceState.selectedEvaluation ?? '')
@@ -153,8 +315,21 @@ export function ResearchDemoSurface({
   const [assistantDraft, setAssistantDraft] = useState('')
   const [comparePath, setComparePath] = useState(initialWorkspaceState.comparePath ?? '')
   const [audienceMode, setAudienceMode] = useState<AudienceMode>(initialWorkspaceState.audienceMode ?? 'reader')
+  const [paperSectionId, setPaperSectionId] = useState(initialWorkspaceState.paperSectionId ?? '')
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
   const viewerRef = useRef<HTMLElement | null>(null)
+  const sharedReplayQuestionRef = useRef(initialWorkspaceState.replayQuestion?.trim() ?? '')
+  const sharedPaperSectionRef = useRef(initialWorkspaceState.paperSectionId ?? '')
+  const [pendingAutoReplayQuestion, setPendingAutoReplayQuestion] = useState(initialWorkspaceState.replayQuestion?.trim() ?? '')
+  const [viewerSnapshot, setViewerSnapshot] = useState<PublishedViewerSnapshot | null>(null)
+  const [comparisonViewerSnapshot, setComparisonViewerSnapshot] = useState<PublishedViewerSnapshot | null>(null)
+  const [lastReplayAnswer, setLastReplayAnswer] = useState<{
+    question: string
+    response: PublishedReplayCopilotResponse
+    answeredContext: string
+  } | null>(null)
+  const [publishedReplayContextKey, setPublishedReplayContextKey] = useState<string | null>(null)
+  const [publishedReplayExplorationId, setPublishedReplayExplorationId] = useState<string | null>(null)
 
   useEffect(() => {
     const existing = readResearchCatalog()
@@ -298,6 +473,37 @@ export function ResearchDemoSurface({
     ) ?? null,
     [catalog, selectedEvaluation, selectedParadigm, selectedResult],
   )
+  const suggestedPaperSections = useMemo(
+    () => recommendedPaperSectionIds(selectedDataset, paperLens)
+      .map(sectionId => PAPER_SECTIONS.find(section => section.id === sectionId) ?? null)
+      .filter((section): section is PaperSection => Boolean(section)),
+    [paperLens, selectedDataset],
+  )
+  const selectedPaperSection = useMemo(
+    () => PAPER_SECTIONS.find(section => section.id === paperSectionId)
+      ?? suggestedPaperSections[0]
+      ?? PAPER_SECTIONS[0]
+      ?? null,
+    [paperSectionId, suggestedPaperSections],
+  )
+  const paperSectionContext = useMemo(
+    () => buildPaperSectionContext(selectedPaperSection),
+    [selectedPaperSection],
+  )
+  const selectedPaperSectionBlocks = useMemo(
+    () => selectedPaperSection?.blocks.slice(0, 2) ?? [],
+    [selectedPaperSection],
+  )
+  const paperSectionUrl = useMemo(() => {
+    if (typeof window === 'undefined' || !selectedPaperSection) return ''
+
+    const url = new URL(window.location.href)
+    url.searchParams.set('tab', 'paper')
+    url.searchParams.delete('q')
+    url.searchParams.delete('eid')
+    url.hash = selectedPaperSection.id
+    return url.toString()
+  }, [selectedPaperSection])
 
   const introParagraphs = useMemo(
     () => (catalog?.introBlurb ?? '')
@@ -350,10 +556,26 @@ export function ResearchDemoSurface({
         paperLens,
         audienceMode,
         comparePath: comparePath || null,
+        paperSectionId: selectedPaperSection?.id ?? null,
+        replayQuestion: assistantDraft || null,
+        focusSlot: viewerSnapshot?.slotIndex ?? null,
+        compareFocusSlot: comparisonViewerSnapshot?.slotIndex ?? null,
       },
       metadata: selectedDataset.metadata ?? {},
     }, null, 2)
-  }, [audienceMode, autoplay, comparePath, paperLens, selectedDataset, step, theme])
+  }, [
+    assistantDraft,
+    audienceMode,
+    autoplay,
+    comparePath,
+    comparisonViewerSnapshot?.slotIndex,
+    paperLens,
+    selectedDataset,
+    selectedPaperSection?.id,
+    step,
+    theme,
+    viewerSnapshot?.slotIndex,
+  ])
 
   const paperLenses = useMemo(() => ([
     {
@@ -419,11 +641,32 @@ export function ResearchDemoSurface({
         prompt: `Interpret the tradeoffs in this result using v=${selectedMetadata?.v?.toLocaleString() ?? 'N/A'}, cost=${formatEth(selectedMetadata?.cost)}, delta=${formatMilliseconds(selectedMetadata?.delta)}, cutoff=${formatMilliseconds(selectedMetadata?.cutoff)}, and gamma=${typeof selectedMetadata?.gamma === 'number' ? formatNumber(selectedMetadata.gamma, 4) : 'N/A'}.`,
       },
       {
-        label: 'Draft theory notes',
-        prompt: `If the paper adds a new theory section for ${selectedDataset.result}, which mechanisms and assumptions should it use to explain the trajectory in this replay?`,
+        label: selectedPaperSection ? `Probe ${selectedPaperSection.number}` : 'Draft theory notes',
+        prompt: selectedPaperSection
+          ? `Use ${selectedPaperSection.number} ${selectedPaperSection.title} to explain the current replay posture, including what the replay supports, where it complicates the paper framing, and which assumptions matter most.`
+          : `If the paper adds a new theory section for ${selectedDataset.result}, which mechanisms and assumptions should it use to explain the trajectory in this replay?`,
       },
     ]
-  }, [selectedDataset, selectedMetadata])
+  }, [selectedDataset, selectedMetadata, selectedPaperSection])
+
+  const paperSectionPromptStarters = useMemo(() => {
+    if (!selectedDataset || !selectedPaperSection) return []
+
+    const prompts = [
+      `What in the active replay most directly supports or challenges ${selectedPaperSection.number} ${selectedPaperSection.title}?`,
+      viewerSnapshot
+        ? `Use slot ${viewerSnapshot.slotNumber.toLocaleString()} to explain how ${selectedPaperSection.number} ${selectedPaperSection.title} should be read.`
+        : `Turn ${selectedPaperSection.number} ${selectedPaperSection.title} into concrete expectations for this published replay.`,
+      comparisonDataset
+        ? `Using ${selectedPaperSection.number} ${selectedPaperSection.title}, what changes materially between the active replay and ${comparisonDataset.paradigm}?`
+        : null,
+      paperLens === 'methods'
+        ? `Which assumptions in ${selectedPaperSection.number} ${selectedPaperSection.title} matter most for interpreting this published replay?`
+        : null,
+    ].filter((value): value is string => Boolean(value))
+
+    return Array.from(new Set(prompts)).slice(0, 4)
+  }, [comparisonDataset, paperLens, selectedDataset, selectedPaperSection, viewerSnapshot])
 
   const spotlightDatasets = useMemo(() => {
     const ordered = selectedDataset
@@ -517,10 +760,14 @@ export function ResearchDemoSurface({
       )
     }
 
+    const replayComparison = viewerSnapshot && comparisonViewerSnapshot
+      ? ` The active replay is currently at slot ${viewerSnapshot.slotNumber.toLocaleString()} with ${viewerSnapshot.activeRegions.toLocaleString()} active regions, while the comparison replay is at slot ${comparisonViewerSnapshot.slotNumber.toLocaleString()} with ${comparisonViewerSnapshot.activeRegions.toLocaleString()} active regions.`
+      : ''
+
     return statements.length > 0
-      ? `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} serves as a foil. ${statements.join(' ')}`
-      : `Compare ${selectedDataset.result} against ${comparisonDataset.result} with the map, timeline, and current paper lens.`
-  }, [comparisonDataset, selectedDataset, selectedMetadata])
+      ? `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} serves as a foil. ${statements.join(' ')}${replayComparison}`
+      : `Compare ${selectedDataset.result} against ${comparisonDataset.result} with the map, timeline, and current paper lens.${replayComparison}`
+  }, [comparisonDataset, comparisonViewerSnapshot, selectedDataset, selectedMetadata, viewerSnapshot])
 
   const viewPresets = useMemo(() => ([
     {
@@ -614,6 +861,40 @@ export function ResearchDemoSurface({
   }
 
   const splitCompareActive = matchedViewPreset?.id === 'compare' && !!comparisonDataset
+  const companionAutoRunQuestion = pendingAutoReplayQuestion
+    && pendingAutoReplayQuestion === assistantDraft.trim()
+    && viewerSnapshot
+    && (!splitCompareActive || !comparisonDataset || comparisonViewerSnapshot)
+      ? pendingAutoReplayQuestion
+      : null
+
+  useEffect(() => {
+    if (!splitCompareActive || !comparisonDataset) {
+      setComparisonViewerSnapshot(null)
+    }
+  }, [comparisonDataset, splitCompareActive])
+
+  const currentSlotNotesQuery = useQuery({
+    enabled: Boolean(selectedDataset && viewerSnapshot),
+    queryKey: [
+      'published-replay-inline-notes',
+      selectedDataset?.path ?? '',
+      splitCompareActive ? comparisonDataset?.path ?? '' : '',
+      viewerSnapshot?.slotIndex ?? -1,
+      splitCompareActive ? comparisonViewerSnapshot?.slotIndex ?? -1 : -1,
+      paperLens,
+      audienceMode,
+    ],
+    queryFn: () => listPublishedReplayNotes({
+      datasetPath: selectedDataset!.path,
+      comparePath: splitCompareActive ? comparisonDataset?.path ?? null : null,
+      slotIndex: viewerSnapshot!.slotIndex,
+      comparisonSlotIndex: splitCompareActive ? comparisonViewerSnapshot?.slotIndex ?? null : null,
+      paperLens,
+      audienceMode,
+    }),
+  })
+  const currentSlotNotes = currentSlotNotesQuery.data ?? []
 
   const buildWorkspaceUrl = (overrides?: Partial<{
     selectedEvaluation: string
@@ -626,6 +907,10 @@ export function ResearchDemoSurface({
     paperLens: PaperLens
     comparePath: string
     audienceMode: AudienceMode
+    replayQuestion: string
+    paperSectionId: string
+    focusSlot: number | null
+    compareFocusSlot: number | null
   }>) => {
     if (typeof window === 'undefined') return ''
 
@@ -643,9 +928,18 @@ export function ResearchDemoSurface({
       paperLens,
       comparePath: comparisonDataset?.path ?? comparePath,
       audienceMode,
+      replayQuestion: assistantDraft.trim(),
+      paperSectionId: selectedPaperSection?.id ?? paperSectionId,
+      focusSlot: viewerSnapshot?.slotIndex ?? initialWorkspaceState.focusSlot ?? null,
+      compareFocusSlot: splitCompareActive
+        ? comparisonViewerSnapshot?.slotIndex ?? initialWorkspaceState.compareFocusSlot ?? null
+        : null,
       ...overrides,
     }
 
+    params.set('tab', 'results')
+    params.delete('q')
+    params.delete('eid')
     if (nextState.selectedEvaluation) params.set('evaluation', nextState.selectedEvaluation)
     if (nextState.selectedParadigm) params.set('paradigm', nextState.selectedParadigm)
     if (nextState.selectedResult) params.set('result', nextState.selectedResult)
@@ -662,6 +956,31 @@ export function ResearchDemoSurface({
       params.delete('compare')
     }
 
+    if (nextState.replayQuestion) {
+      params.set('replayQuestion', nextState.replayQuestion)
+    } else {
+      params.delete('replayQuestion')
+    }
+
+    if (nextState.paperSectionId) {
+      params.set('paperSection', nextState.paperSectionId)
+    } else {
+      params.delete('paperSection')
+    }
+
+    if (typeof nextState.focusSlot === 'number' && nextState.focusSlot > 0) {
+      params.set('slot', String(nextState.focusSlot))
+    } else {
+      params.delete('slot')
+    }
+
+    if (typeof nextState.compareFocusSlot === 'number' && nextState.compareFocusSlot > 0) {
+      params.set('compareSlot', String(nextState.compareFocusSlot))
+    } else {
+      params.delete('compareSlot')
+    }
+
+    url.hash = ''
     return url.toString()
   }
 
@@ -696,6 +1015,126 @@ export function ResearchDemoSurface({
       setShareStatus('failed')
     }
   }
+
+  const replayPublicationQuery = selectedDataset
+    ? lastReplayAnswer?.question.trim()
+      || assistantDraft.trim()
+      || `What stands out in the ${selectedDataset.paradigm} published replay?`
+    : ''
+  const replayPublicationSummary = selectedDataset
+    ? lastReplayAnswer?.response.summary
+      || `${selectedDataset.evaluation} / ${selectedDataset.paradigm} published replay anchored to ${selectedPaperSection?.number ?? 'the selected paper section'} ${selectedPaperSection?.title ?? ''}${viewerSnapshot ? ` at slot ${viewerSnapshot.slotNumber.toLocaleString()}` : ''}.`
+    : ''
+  const replayContributionBlocks: readonly Block[] = (() => {
+    if (!selectedDataset) return []
+
+    const baseBlocks = (lastReplayAnswer?.response.blocks ?? []).slice(0, 3)
+    const comparisonLabel = comparisonDataset ? `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm}` : null
+    const replayAnchorBlock: Block = {
+      type: 'stat',
+      value: viewerSnapshot ? `Slot ${viewerSnapshot.slotNumber.toLocaleString()}` : 'Replay-wide',
+      label: 'Replay anchor',
+      sublabel: comparisonLabel
+        ? `Compared with ${comparisonLabel}${comparisonViewerSnapshot ? ` at slot ${comparisonViewerSnapshot.slotNumber.toLocaleString()}` : ''}`
+        : `${paperLens} lens · ${audienceMode} mode`,
+    }
+    const paperAnchorBlock: Block | null = selectedPaperSection
+      ? {
+          type: 'stat',
+          value: selectedPaperSection.number,
+          label: 'Canonical paper section',
+          sublabel: selectedPaperSection.title,
+        }
+      : null
+    const sourceBlock: Block = {
+      type: 'source',
+      refs: [
+        {
+          label: 'Published replay view',
+          section: viewerSnapshot ? `slot ${viewerSnapshot.slotNumber.toLocaleString()}` : 'active replay posture',
+          url: shareUrl || undefined,
+        },
+        ...(selectedPaperSection
+          ? [{
+              label: 'Canonical paper section',
+              section: `${selectedPaperSection.number} ${selectedPaperSection.title}`,
+              url: paperSectionUrl || undefined,
+            }]
+          : []),
+      ],
+    }
+
+    if (baseBlocks.length > 0) {
+      return [
+        ...baseBlocks,
+        replayAnchorBlock,
+        ...(paperAnchorBlock ? [paperAnchorBlock] : []),
+        sourceBlock,
+      ].slice(0, 6)
+    }
+
+    return [
+      {
+        type: 'insight',
+        title: 'Published replay reading',
+        text: replayPublicationSummary || 'Published replay reading anchored to the active evidence surface.',
+      },
+      replayAnchorBlock,
+      ...(paperAnchorBlock ? [paperAnchorBlock] : []),
+      sourceBlock,
+    ]
+  })()
+  const replayPublishTitle = selectedDataset
+    ? `${selectedDataset.evaluation} ${selectedDataset.paradigm} replay${viewerSnapshot ? ` slot ${viewerSnapshot.slotNumber.toLocaleString()}` : ''}`
+    : 'Published replay note'
+  const replayPublishTakeaway = replayPublicationSummary
+    ? `${replayPublicationSummary}${lastReplayAnswer ? ` ${lastReplayAnswer.answeredContext}` : ''}`
+    : 'Edit this takeaway to reflect what the published replay shows in your own words.'
+  const replayPublishContextKey = selectedDataset
+    ? [
+        'replay',
+        selectedDataset.path,
+        selectedPaperSection?.id ?? 'none',
+        viewerSnapshot?.slotIndex ?? 'all',
+        comparisonDataset?.path ?? 'none',
+        comparisonViewerSnapshot?.slotIndex ?? 'all',
+      ].join(':')
+    : null
+
+  const publishReplayMutation = useMutation({
+    mutationFn: async (input: {
+      contextKey: string
+      title: string
+      takeaway: string
+      author: string
+    }) => {
+      if (!selectedDataset) {
+        throw new Error('Select a published replay before publishing a community note.')
+      }
+
+      const created = await createExploration({
+        query: replayPublicationQuery,
+        summary: replayPublicationSummary,
+        blocks: replayContributionBlocks,
+        followUps: lastReplayAnswer?.response.followUps ?? [],
+        model: lastReplayAnswer?.response.model ?? 'published-replay',
+        cached: lastReplayAnswer?.response.cached ?? false,
+        surface: 'reading',
+      })
+
+      return await publishExploration(created.id, {
+        title: input.title,
+        takeaway: input.takeaway,
+        author: input.author || undefined,
+      })
+    },
+    onSuccess: (published, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ['explorations'] })
+      setPublishedReplayContextKey(variables.contextKey)
+      setPublishedReplayExplorationId(published.id)
+    },
+  })
+  const resetReplayPublishMutation = publishReplayMutation.reset
 
   const savedWorkspaceViews = [
     {
@@ -843,8 +1282,32 @@ export function ResearchDemoSurface({
       : 'single-scenario focus'
 
     const chapterLabel = activeChapterRoute ? ` ${activeChapterRoute.label}.` : ''
-    return `${audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode with ${matchedViewPreset?.label ?? 'Custom'} stack: ${themeLabel(theme)} theme, step ${step}, ${playbackLabel}, ${paperLens} lens, ${compareLabel}.${chapterLabel}`
-  }, [activeChapterRoute, audienceMode, audienceProfiles, autoplay, comparisonDataset, matchedViewPreset, paperLens, step, theme])
+    const paperAnchorLabel = selectedPaperSection ? ` Paper anchor: ${selectedPaperSection.number} ${selectedPaperSection.title}.` : ''
+    const primaryReplaySummary = describeViewerSnapshot(viewerSnapshot, 'Primary replay')
+    const compareReplaySummary = splitCompareActive
+      ? describeViewerSnapshot(comparisonViewerSnapshot, 'Comparison replay')
+      : null
+
+    return [
+      `${audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode with ${matchedViewPreset?.label ?? 'Custom'} stack: ${themeLabel(theme)} theme, step ${step}, ${playbackLabel}, ${paperLens} lens, ${compareLabel}.${chapterLabel}${paperAnchorLabel}`,
+      primaryReplaySummary,
+      compareReplaySummary,
+    ].filter(Boolean).join(' ')
+  }, [
+    activeChapterRoute,
+    audienceMode,
+    audienceProfiles,
+    autoplay,
+    comparisonDataset,
+    comparisonViewerSnapshot,
+    matchedViewPreset,
+    paperLens,
+    selectedPaperSection,
+    splitCompareActive,
+    step,
+    theme,
+    viewerSnapshot,
+  ])
 
   const activeAudienceBrief = useMemo(() => {
     if (audienceMode === 'reviewer') {
@@ -899,6 +1362,12 @@ export function ResearchDemoSurface({
             : 'Start with the map and concentration metrics, then trace how latency and liveness respond as slot progression unfolds.',
       },
       {
+        title: 'Canonical paper anchor',
+        body: selectedPaperSection
+          ? `${selectedPaperSection.number} ${selectedPaperSection.title}: ${selectedPaperSection.description}`
+          : 'Select a canonical paper section to tie theory and note-taking back to the paper.',
+      },
+      {
         title: 'Question draft',
         body: assistantDraft
           ? `Current draft: ${assistantDraft}`
@@ -907,10 +1376,89 @@ export function ResearchDemoSurface({
     ]
 
     return notes
-  }, [assistantDraft, paperLens, selectedDataset, selectedMetadata])
+  }, [assistantDraft, paperLens, selectedDataset, selectedMetadata, selectedPaperSection])
 
-  const primaryCanvasAnnotations = useMemo(() => {
+  const immediateResultSummary = (() => {
+    if (lastReplayAnswer?.response.summary.trim()) {
+      return lastReplayAnswer.response.summary
+    }
+
+    if (splitCompareActive && viewerSnapshot && comparisonViewerSnapshot) {
+      return `At this posture the primary replay shows ${viewerSnapshot.activeRegions.toLocaleString()} active regions versus ${comparisonViewerSnapshot.activeRegions.toLocaleString()} in the comparison replay, with Gini ${viewerSnapshot.currentGini != null ? formatNumber(viewerSnapshot.currentGini, 3) : 'N/A'} versus ${comparisonViewerSnapshot.currentGini != null ? formatNumber(comparisonViewerSnapshot.currentGini, 3) : 'N/A'}.`
+    }
+
+    if (viewerSnapshot) {
+      const dominantRegion = viewerSnapshot.dominantRegionCity ?? viewerSnapshot.dominantRegionId ?? 'N/A'
+      return `The published replay is already live in-page. At slot ${viewerSnapshot.slotNumber.toLocaleString()}, ${dominantRegion} is currently leading with ${formatPercentValue(viewerSnapshot.dominantRegionShare)} share.`
+    }
+
+    return selectedMetadata?.description
+      ?? 'The published workspace opens on the checked-in replay so readers start from evidence instead of a launcher.'
+  })()
+
+  const resultSnapshotCards = useMemo<ResultSnapshotCard[]>(() => {
+    const dominantRegion = viewerSnapshot?.dominantRegionCity ?? viewerSnapshot?.dominantRegionId ?? 'Awaiting replay'
+    const comparisonDetail = splitCompareActive && comparisonDataset
+      ? comparisonViewerSnapshot
+        ? `${comparisonDataset.evaluation} · Gini ${comparisonViewerSnapshot.currentGini != null ? formatNumber(comparisonViewerSnapshot.currentGini, 3) : 'N/A'}`
+        : `${comparisonDataset.evaluation} is ready as the foil scenario.`
+      : viewerSnapshot
+        ? `Proposal ${formatOptionalMilliseconds(viewerSnapshot.currentProposalTime)} · MEV ${formatOptionalEth(viewerSnapshot.currentMev)}`
+        : 'Liveness, latency, and MEV populate once the replay loads.'
+
+    return [
+      {
+        label: 'Replay focus',
+        value: viewerSnapshot ? `Slot ${viewerSnapshot.slotNumber.toLocaleString()}` : 'Loading',
+        detail: viewerSnapshot
+          ? `${viewerSnapshot.activeRegions.toLocaleString()} active regions are currently visible.`
+          : 'The checked-in dataset is loading into the in-page viewer.',
+      },
+      {
+        label: 'Leading region',
+        value: dominantRegion,
+        detail: viewerSnapshot?.dominantRegionShare != null
+          ? `${formatPercentValue(viewerSnapshot.dominantRegionShare)} share at the current slot.`
+          : 'Dominant region share appears once the replay posture is available.',
+      },
+      {
+        label: 'Concentration',
+        value: viewerSnapshot?.currentGini != null ? formatNumber(viewerSnapshot.currentGini, 3) : 'N/A',
+        detail: viewerSnapshot?.currentHhi != null
+          ? `HHI ${formatNumber(viewerSnapshot.currentHhi, 3)}`
+          : 'Gini and HHI update as the replay advances.',
+      },
+      {
+        label: splitCompareActive && comparisonDataset ? 'Comparison anchor' : 'Network outcome',
+        value: splitCompareActive && comparisonDataset
+          ? comparisonViewerSnapshot
+            ? `Slot ${comparisonViewerSnapshot.slotNumber.toLocaleString()}`
+            : comparisonDataset.paradigm
+          : formatPercentValue(viewerSnapshot?.currentLiveness),
+        detail: comparisonDetail,
+      },
+    ]
+  }, [comparisonDataset, comparisonViewerSnapshot, splitCompareActive, viewerSnapshot])
+
+  const primaryCanvasAnnotations = useMemo<CanvasAnnotation[]>(() => {
     if (!selectedDataset) return []
+
+    const liveSlotNote = viewerSnapshot
+      ? {
+          title: `Slot ${viewerSnapshot.slotNumber.toLocaleString()} of ${viewerSnapshot.totalSlots.toLocaleString()}`,
+          body: `Dominant region ${viewerSnapshot.dominantRegionCity ?? viewerSnapshot.dominantRegionId ?? 'N/A'} with ${viewerSnapshot.dominantRegionShare != null ? `${formatNumber(viewerSnapshot.dominantRegionShare, 1)}%` : 'N/A'} share. Active regions ${viewerSnapshot.activeRegions.toLocaleString()}, gini ${viewerSnapshot.currentGini != null ? formatNumber(viewerSnapshot.currentGini, 3) : 'N/A'}, liveness ${viewerSnapshot.currentLiveness != null ? `${formatNumber(viewerSnapshot.currentLiveness, 1)}%` : 'N/A'}, proposal time ${viewerSnapshot.currentProposalTime != null ? `${formatNumber(viewerSnapshot.currentProposalTime, 1)} ms` : 'N/A'}, MEV ${viewerSnapshot.currentMev != null ? `${formatNumber(viewerSnapshot.currentMev, 4)} ETH` : 'N/A'}.`,
+        }
+      : {
+          title: 'Live replay',
+          body: 'Once the replay loads, these overlays will speak to the exact slot on screen instead of staying generic.',
+        }
+
+    const compareDeltaNote = splitCompareActive && viewerSnapshot && comparisonViewerSnapshot
+      ? {
+          title: 'Current divergence',
+          body: `At this posture the primary replay shows ${viewerSnapshot.activeRegions.toLocaleString()} active regions versus ${comparisonViewerSnapshot.activeRegions.toLocaleString()} in the comparison replay. Gini ${viewerSnapshot.currentGini != null ? formatNumber(viewerSnapshot.currentGini, 3) : 'N/A'} versus ${comparisonViewerSnapshot.currentGini != null ? formatNumber(comparisonViewerSnapshot.currentGini, 3) : 'N/A'}, liveness ${viewerSnapshot.currentLiveness != null ? `${formatNumber(viewerSnapshot.currentLiveness, 1)}%` : 'N/A'} versus ${comparisonViewerSnapshot.currentLiveness != null ? `${formatNumber(comparisonViewerSnapshot.currentLiveness, 1)}%` : 'N/A'}, proposal time ${viewerSnapshot.currentProposalTime != null ? `${formatNumber(viewerSnapshot.currentProposalTime, 1)} ms` : 'N/A'} versus ${comparisonViewerSnapshot.currentProposalTime != null ? `${formatNumber(comparisonViewerSnapshot.currentProposalTime, 1)} ms` : 'N/A'}.`,
+        }
+      : null
 
     return [
       {
@@ -921,6 +1469,8 @@ export function ResearchDemoSurface({
             ? 'Read this as a checked-in published payload. The selector rail changes the evidence contract, not a full-scale rerun.'
             : 'Begin with the geography and concentration plots, then trace latency and liveness as the slot progression advances.',
       },
+      liveSlotNote,
+      compareDeltaNote,
       {
         title: 'View posture',
         body: currentViewSummary,
@@ -929,27 +1479,55 @@ export function ResearchDemoSurface({
         title: activeAudienceBrief.title,
         body: activeAudienceBrief.summary,
       },
-    ]
-  }, [activeAudienceBrief, currentViewSummary, paperLens, selectedDataset, selectedMetadata])
+    ].filter(isCanvasAnnotation)
+  }, [activeAudienceBrief, comparisonViewerSnapshot, currentViewSummary, paperLens, selectedDataset, selectedMetadata, splitCompareActive, viewerSnapshot])
 
-  const comparisonCanvasAnnotations = useMemo(() => {
+  const comparisonCanvasAnnotations = useMemo<CanvasAnnotation[]>(() => {
     if (!comparisonDataset) return []
+
+    const comparisonReplayNote = comparisonViewerSnapshot
+      ? {
+          title: `Comparison slot ${comparisonViewerSnapshot.slotNumber.toLocaleString()} of ${comparisonViewerSnapshot.totalSlots.toLocaleString()}`,
+          body: `Dominant region ${comparisonViewerSnapshot.dominantRegionCity ?? comparisonViewerSnapshot.dominantRegionId ?? 'N/A'} with ${comparisonViewerSnapshot.dominantRegionShare != null ? `${formatNumber(comparisonViewerSnapshot.dominantRegionShare, 1)}%` : 'N/A'} share. Gini ${comparisonViewerSnapshot.currentGini != null ? formatNumber(comparisonViewerSnapshot.currentGini, 3) : 'N/A'}, liveness ${comparisonViewerSnapshot.currentLiveness != null ? `${formatNumber(comparisonViewerSnapshot.currentLiveness, 1)}%` : 'N/A'}, proposal time ${comparisonViewerSnapshot.currentProposalTime != null ? `${formatNumber(comparisonViewerSnapshot.currentProposalTime, 1)} ms` : 'N/A'}.`,
+        }
+      : null
 
     return [
       {
         title: 'Foil scenario',
-        body: `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} gives the comparison anchor. Use it to ask what changes materially versus what remains stable.`,
+        body: comparisonViewerSnapshot
+          ? `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} is currently at slot ${comparisonViewerSnapshot.slotNumber.toLocaleString()} of ${comparisonViewerSnapshot.totalSlots.toLocaleString()}, with ${comparisonViewerSnapshot.activeRegions.toLocaleString()} active regions and dominant region ${comparisonViewerSnapshot.dominantRegionCity ?? comparisonViewerSnapshot.dominantRegionId ?? 'N/A'}.`
+          : `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} gives the comparison anchor. Use it to ask what changes materially versus what remains stable.`,
       },
+      comparisonReplayNote,
       {
         title: 'Compare prompt',
         body: comparisonNarrative,
       },
-    ]
-  }, [comparisonDataset, comparisonNarrative])
+    ].filter(isCanvasAnnotation)
+  }, [comparisonDataset, comparisonNarrative, comparisonViewerSnapshot])
 
   useEffect(() => {
+    const sharedQuestion = sharedReplayQuestionRef.current
+    if (sharedQuestion) {
+      setAssistantDraft(sharedQuestion)
+      sharedReplayQuestionRef.current = ''
+      return
+    }
+
     setAssistantDraft(assistantPrompts[0]?.prompt ?? '')
   }, [assistantPrompts, selectedDataset?.path])
+
+  useEffect(() => {
+    const sharedSectionId = sharedPaperSectionRef.current
+    if (sharedSectionId && PAPER_SECTIONS.some(section => section.id === sharedSectionId)) {
+      setPaperSectionId(sharedSectionId)
+      sharedPaperSectionRef.current = ''
+      return
+    }
+
+    setPaperSectionId(inferPaperSectionId(selectedDataset, paperLens))
+  }, [paperLens, selectedDataset])
 
   useEffect(() => {
     if (!comparisonCandidates.length) {
@@ -961,6 +1539,17 @@ export function ResearchDemoSurface({
       setComparePath(comparisonCandidates[0]!.path)
     }
   }, [comparePath, comparisonCandidates])
+
+  useEffect(() => {
+    resetReplayPublishMutation()
+  }, [
+    comparisonDataset?.path,
+    comparisonViewerSnapshot?.slotIndex,
+    resetReplayPublishMutation,
+    selectedDataset?.path,
+    selectedPaperSection?.id,
+    viewerSnapshot?.slotIndex,
+  ])
 
   useEffect(() => {
     if (!shareStatus || shareStatus === 'idle' || typeof window === 'undefined') return
@@ -975,6 +1564,9 @@ export function ResearchDemoSurface({
     const url = new URL(window.location.href)
     const params = url.searchParams
 
+    params.set('tab', 'results')
+    params.delete('q')
+    params.delete('eid')
     if (selectedEvaluation) params.set('evaluation', selectedEvaluation)
     if (selectedParadigm) params.set('paradigm', selectedParadigm)
     if (selectedResult) params.set('result', selectedResult)
@@ -993,19 +1585,48 @@ export function ResearchDemoSurface({
       params.delete('compare')
     }
 
+    if (assistantDraft.trim()) {
+      params.set('replayQuestion', assistantDraft.trim())
+    } else {
+      params.delete('replayQuestion')
+    }
+
+    if (selectedPaperSection?.id) {
+      params.set('paperSection', selectedPaperSection.id)
+    } else {
+      params.delete('paperSection')
+    }
+
+    if (typeof viewerSnapshot?.slotIndex === 'number' && viewerSnapshot.slotIndex > 0) {
+      params.set('slot', String(viewerSnapshot.slotIndex))
+    } else {
+      params.delete('slot')
+    }
+
+    if (splitCompareActive && typeof comparisonViewerSnapshot?.slotIndex === 'number' && comparisonViewerSnapshot.slotIndex > 0) {
+      params.set('compareSlot', String(comparisonViewerSnapshot.slotIndex))
+    } else {
+      params.delete('compareSlot')
+    }
+
     window.history.replaceState({}, '', `${url.pathname}?${params.toString()}${url.hash}`)
   }, [
+    assistantDraft,
     audienceMode,
     autoplay,
     comparePath,
     comparisonDataset?.path,
+    comparisonViewerSnapshot?.slotIndex,
     paperLens,
+    selectedPaperSection?.id,
     selectedDataset?.path,
     selectedEvaluation,
     selectedParadigm,
     selectedResult,
+    splitCompareActive,
     step,
     theme,
+    viewerSnapshot?.slotIndex,
   ])
 
   const persistViewerSettings = () => {
@@ -1109,92 +1730,97 @@ export function ResearchDemoSurface({
         </div>
       </div>
 
-      <div className="lab-stage p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="text-xs text-muted mb-1">Scenario spotlights</div>
-            <div className="text-sm text-text-primary">
-              Curated entry points make the paper feel editorial. The form controls remain, but the first interaction can be a guided scenario choice.
-            </div>
-          </div>
-          <div className="text-xs text-muted">
-            Click a card to switch the published canvas.
-          </div>
-        </div>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {spotlightDatasets.map(entry => {
-            const isActive = selectedDataset?.path === entry.path
-            return (
-              <button
-                key={`${entry.evaluation}-${entry.paradigm}-${entry.result}`}
-                onClick={() => {
-                  setSelectedEvaluation(entry.evaluation)
-                  setSelectedParadigm(entry.paradigm)
-                  setSelectedResult(entry.result)
-                }}
-                className={cn(
-                  'rounded-2xl border px-4 py-4 text-left transition-colors',
-                  isActive
-                    ? 'border-accent bg-white'
-                    : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
-                )}
-              >
-                <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.16em] text-text-faint">
-                  <span>{entry.evaluation}</span>
-                  <span>{entry.paradigm}</span>
-                </div>
-                <div className="mt-2 text-sm font-medium text-text-primary">{entry.result}</div>
-                <div className="mt-2 line-clamp-3 text-xs leading-5 text-muted">
-                  {entry.metadata?.description ?? 'Published scenario ready for replay inside the paper workspace.'}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
-                  <span className="lab-chip">{entry.metadata?.v?.toLocaleString() ?? 'N/A'} validators</span>
-                  <span className="lab-chip">{formatEth(entry.metadata?.cost)}</span>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
       {activeViewer && (
-        <section ref={viewerRef} className="space-y-3">
-          <div className="lab-stage overflow-hidden p-0">
-            <div className="border-b border-border-subtle bg-[#FAFAF8] px-5 py-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <div className="text-xs text-muted mb-1">Live published canvas</div>
-                <div className="text-sm text-text-primary">
-                  The precomputed result is rendered immediately. Change the dataset or playback controls and the canvas rebinds without sending the reader back through a launcher flow.
+        <section
+          ref={viewerRef}
+          className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1.04fr)_360px]"
+        >
+          <div className="space-y-4">
+            <div className="lab-stage overflow-hidden p-0">
+              <div className="border-b border-border-subtle bg-[#FAFAF8] px-5 py-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <div className="text-xs text-muted mb-1">Live published canvas</div>
+                    <div className="text-sm text-text-primary">
+                      The precomputed result is rendered immediately. Change the dataset or playback controls and the canvas rebinds without sending the reader back through a launcher flow.
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                    <span className="lab-chip">{activeViewer.dataset.evaluation}</span>
+                    <span className="lab-chip">{activeViewer.dataset.paradigm}</span>
+                    <span className="lab-chip">{activeViewer.dataset.result}</span>
+                    <span className="lab-chip">{audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode</span>
+                    {activeChapterRoute ? (
+                      <span className="lab-chip">{activeChapterRoute.label}</span>
+                    ) : null}
+                    <span className="lab-chip">{matchedViewPreset?.label ?? 'Custom'} preset</span>
+                    <span className="lab-chip">{themeLabel(theme)} theme</span>
+                    <span className="lab-chip">step {step}</span>
+                  </div>
                 </div>
               </div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                      <span className="lab-chip">{activeViewer.dataset.evaluation}</span>
-                      <span className="lab-chip">{activeViewer.dataset.paradigm}</span>
-                      <span className="lab-chip">{activeViewer.dataset.result}</span>
-                      <span className="lab-chip">{audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode</span>
-                      {activeChapterRoute ? (
-                        <span className="lab-chip">{activeChapterRoute.label}</span>
-                      ) : null}
-                      <span className="lab-chip">{matchedViewPreset?.label ?? 'Custom'} preset</span>
-                      <span className="lab-chip">{themeLabel(theme)} theme</span>
-                      <span className="lab-chip">step {step}</span>
+
+              {splitCompareActive && comparisonDataset ? (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-accent bg-white px-4 py-4">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Primary published replay</div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">
+                        {activeViewer.dataset.evaluation} · {activeViewer.dataset.paradigm}
+                      </div>
+                      <div className="mt-1 text-xs text-muted">{activeViewer.dataset.result}</div>
+                    </div>
+                    <div className="relative">
+                      <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2 2xl:flex-row">
+                        {primaryCanvasAnnotations.map(note => (
+                          <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/80 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                            <div className="text-[10px] uppercase tracking-[0.16em] text-slate-300">{note.title}</div>
+                            <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <PublishedDatasetViewer
+                        key={`primary:${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}:${initialWorkspaceState.focusSlot ?? 0}`}
+                        viewerBaseUrl={viewerBaseUrl}
+                        dataset={activeViewer.dataset}
+                        initialSettings={activeViewer.settings}
+                        initialSlotIndex={initialWorkspaceState.focusSlot}
+                        onStateChange={setViewerSnapshot}
+                        annotationNotes={currentSlotNotes}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Comparison published replay</div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">
+                        {comparisonDataset.evaluation} · {comparisonDataset.paradigm}
+                      </div>
+                      <div className="mt-1 text-xs text-muted">{comparisonDataset.result}</div>
+                    </div>
+                    <div className="relative">
+                      <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2">
+                        {comparisonCanvasAnnotations.map(note => (
+                          <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/78 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                            <div className="text-[10px] uppercase tracking-[0.16em] text-slate-300">{note.title}</div>
+                            <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
+                          </div>
+                        ))}
+                      </div>
+                  <PublishedDatasetViewer
+                    key={`compare:${comparisonDataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}:${initialWorkspaceState.compareFocusSlot ?? 0}`}
+                    viewerBaseUrl={viewerBaseUrl}
+                    dataset={comparisonDataset}
+                    initialSettings={activeViewer.settings}
+                    initialSlotIndex={initialWorkspaceState.compareFocusSlot}
+                    onStateChange={setComparisonViewerSnapshot}
+                    annotationNotes={[]}
+                  />
                     </div>
                   </div>
                 </div>
-          </div>
-
-          {splitCompareActive && comparisonDataset ? (
-            <div className="grid gap-4 xl:grid-cols-2">
-              <div className="space-y-3">
-                <div className="rounded-xl border border-accent bg-white px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Primary published replay</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">
-                    {activeViewer.dataset.evaluation} · {activeViewer.dataset.paradigm}
-                  </div>
-                  <div className="mt-1 text-xs text-muted">{activeViewer.dataset.result}</div>
-                </div>
+              ) : (
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2 2xl:flex-row">
                     {primaryCanvasAnnotations.map(note => (
@@ -1205,58 +1831,222 @@ export function ResearchDemoSurface({
                     ))}
                   </div>
                   <PublishedDatasetViewer
-                    key={`primary:${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
+                    key={`${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}:${initialWorkspaceState.focusSlot ?? 0}`}
                     viewerBaseUrl={viewerBaseUrl}
                     dataset={activeViewer.dataset}
                     initialSettings={activeViewer.settings}
+                    initialSlotIndex={initialWorkspaceState.focusSlot}
+                    onStateChange={setViewerSnapshot}
+                    annotationNotes={currentSlotNotes}
                   />
+                </div>
+              )}
+            </div>
+
+            <div className="lab-stage p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="text-xs text-muted mb-1">
+                    {lastReplayAnswer ? 'Latest replay answer' : 'Immediate result readout'}
+                  </div>
+                  <div className="text-sm leading-6 text-text-primary">
+                    {immediateResultSummary}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs text-muted">
+                  {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number} {selectedPaperSection.title}</span> : null}
+                  {viewerSnapshot ? <span className="lab-chip">slot {viewerSnapshot.slotNumber}</span> : null}
+                  {splitCompareActive && comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
+                  <span className="lab-chip">{paperLens} lens</span>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Comparison published replay</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">
-                    {comparisonDataset.evaluation} · {comparisonDataset.paradigm}
-                  </div>
-                  <div className="mt-1 text-xs text-muted">{comparisonDataset.result}</div>
-                </div>
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2">
-                    {comparisonCanvasAnnotations.map(note => (
-                      <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/78 px-4 py-3 text-white shadow-xl backdrop-blur-md">
-                        <div className="text-[10px] uppercase tracking-[0.16em] text-slate-300">{note.title}</div>
-                        <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <PublishedDatasetViewer
-                    key={`compare:${comparisonDataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
-                    viewerBaseUrl={viewerBaseUrl}
-                    dataset={comparisonDataset}
-                    initialSettings={activeViewer.settings}
-                  />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2 2xl:flex-row">
-                {primaryCanvasAnnotations.map(note => (
-                  <div key={note.title} className="max-w-md rounded-2xl border border-white/15 bg-[#0F172A]/80 px-4 py-3 text-white shadow-xl backdrop-blur-md">
-                    <div className="text-[10px] uppercase tracking-[0.16em] text-slate-300">{note.title}</div>
-                    <div className="mt-2 text-xs leading-5 text-white/90">{note.body}</div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {resultSnapshotCards.map(card => (
+                  <div key={card.label} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{card.label}</div>
+                    <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
+                    <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
                   </div>
                 ))}
               </div>
-              <PublishedDatasetViewer
-                key={`${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}`}
-                viewerBaseUrl={viewerBaseUrl}
-                dataset={activeViewer.dataset}
-                initialSettings={activeViewer.settings}
-              />
+
+              <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.08fr)_minmax(240px,0.92fr)]">
+                <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Current posture</div>
+                  <div className="mt-2 text-sm leading-6 text-text-primary">{currentViewSummary}</div>
+                </div>
+                <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Canonical paper anchor</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">
+                    {selectedPaperSection ? `${selectedPaperSection.number} ${selectedPaperSection.title}` : 'No section selected'}
+                  </div>
+                  <div className="mt-2 text-xs leading-5 text-muted">
+                    {selectedPaperSection?.description ?? 'Select a paper section to keep the replay interpretation tied to the canonical text.'}
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
+
+          <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+            <div className="lab-stage p-5">
+              <div className="text-xs text-muted mb-1">Scenario spotlights</div>
+              <div className="text-sm text-text-primary">
+                Switch the live canvas from the right rail instead of starting from a launcher.
+              </div>
+              <div className="mt-4 grid gap-2">
+                {spotlightDatasets.map(entry => {
+                  const isActive = selectedDataset?.path === entry.path
+                  return (
+                    <button
+                      key={`${entry.evaluation}-${entry.paradigm}-${entry.result}`}
+                      onClick={() => {
+                        setSelectedEvaluation(entry.evaluation)
+                        setSelectedParadigm(entry.paradigm)
+                        setSelectedResult(entry.result)
+                      }}
+                      className={cn(
+                        'rounded-xl border px-4 py-3 text-left transition-colors',
+                        isActive
+                          ? 'border-accent bg-white'
+                          : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
+                      )}
+                    >
+                      <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.16em] text-text-faint">
+                        <span>{entry.evaluation}</span>
+                        <span>{entry.paradigm}</span>
+                      </div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">{entry.result}</div>
+                      <div className="mt-2 text-xs leading-5 text-muted">
+                        {entry.metadata?.description ?? 'Published scenario ready for replay inside the paper workspace.'}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="lab-stage p-5">
+              <div className="text-xs text-muted mb-1">Quick posture</div>
+              <div className="text-sm text-text-primary">
+                Adjust the reading mode while keeping the result on screen.
+              </div>
+
+              <div className="mt-4">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Audience</div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
+                  {audienceProfiles.map(profile => (
+                    <button
+                      key={profile.id}
+                      onClick={() => applyAudienceMode(profile.id)}
+                      className={cn(
+                        'rounded-xl border px-3 py-3 text-left transition-colors',
+                        audienceMode === profile.id
+                          ? 'border-accent bg-white'
+                          : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
+                      )}
+                    >
+                      <div className="text-xs font-medium text-text-primary">{profile.label}</div>
+                      <div className="mt-1 text-[11px] leading-5 text-muted">{profile.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Presets</div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                  {viewPresets.map(preset => (
+                    <button
+                      key={preset.id}
+                      onClick={() => applyViewPreset(preset.id)}
+                      className={cn(
+                        'rounded-xl border px-3 py-3 text-left transition-colors',
+                        matchedViewPreset?.id === preset.id
+                          ? 'border-accent bg-white'
+                          : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
+                      )}
+                    >
+                      <div className="text-xs font-medium text-text-primary">{preset.label}</div>
+                      <div className="mt-1 text-[11px] leading-5 text-muted">{preset.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Lens</div>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {paperLenses.map(lens => (
+                    <button
+                      key={lens.id}
+                      onClick={() => setPaperLens(lens.id)}
+                      className={cn(
+                        'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                        paperLens === lens.id
+                          ? 'border-accent bg-white text-accent'
+                          : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
+                      )}
+                    >
+                      {lens.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="lab-stage p-5">
+              <div className="text-xs text-muted mb-1">Selection anchor</div>
+              <div className="text-sm text-text-primary">
+                {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'Awaiting dataset'}
+              </div>
+              <div className="mt-1 text-xs leading-5 text-muted">
+                {selectedDataset?.metadata?.description ?? 'Choose a published scenario to keep the replay anchored to a checked-in result.'}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
+                <span className="lab-chip">{themeLabel(theme)} theme</span>
+                <span className="lab-chip">step {step}</span>
+                <span className="lab-chip">{autoplay ? 'Autoplay on' : 'Manual scrub'}</span>
+                {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number}</span> : null}
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <button
+                  onClick={handleFillDemoValues}
+                  className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                >
+                  Load reference view
+                </button>
+                <button
+                  onClick={() => void handleCopyShareUrl()}
+                  className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                >
+                  Copy share link
+                </button>
+                <button
+                  onClick={() => applyViewPreset('compare')}
+                  className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                >
+                  Activate split compare
+                </button>
+                <a
+                  href={paperSectionUrl || undefined}
+                  className={cn(
+                    'rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-center text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                    !paperSectionUrl && 'pointer-events-none opacity-60',
+                  )}
+                >
+                  Open paper section
+                </a>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4 text-xs leading-5 text-muted">
+                New experiments still live on the exact-run surface. This rail stays tied to the published, precomputed evidence.
+              </div>
+            </div>
+          </aside>
         </section>
       )}
 
@@ -1470,6 +2260,9 @@ export function ResearchDemoSurface({
                 <span className="lab-chip">step {step}</span>
                 <span className="lab-chip">{autoplay ? 'Autoplay on' : 'Manual scrub'}</span>
                 <span className="lab-chip">{paperLens} lens</span>
+                {selectedPaperSection ? (
+                  <span className="lab-chip">{selectedPaperSection.number}</span>
+                ) : null}
                 {comparisonDataset ? (
                   <span className="lab-chip">vs {comparisonDataset.evaluation}</span>
                 ) : null}
@@ -1488,14 +2281,14 @@ export function ResearchDemoSurface({
             <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
               <div className="text-xs text-text-faint">Share this reading view</div>
               <div className="mt-2 text-xs leading-5 text-muted">
-                The link preserves the scenario, audience mode, reading lens, playback posture, and comparison target.
+                The link preserves the scenario, audience mode, reading lens, replay question, paper anchor, and current slot posture.
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   onClick={() => void handleCopyShareUrl()}
                   className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                 >
-                  Copy share link
+                  {assistantDraft.trim() ? 'Copy replay query link' : 'Copy share link'}
                 </button>
                 <a
                   href={shareUrl || undefined}
@@ -1710,6 +2503,163 @@ export function ResearchDemoSurface({
                   />
                 </div>
 
+                <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Active context</div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
+                    <span className="lab-chip">{selectedDataset?.evaluation ?? 'No scenario'}</span>
+                    <span className="lab-chip">{selectedDataset?.paradigm ?? 'No mode'}</span>
+                    <span className="lab-chip">{selectedDataset?.result ?? 'No result'}</span>
+                    <span className="lab-chip">{selectedDataset?.sourceRole ?? 'No source role'}</span>
+                    <span className="lab-chip">{matchedViewPreset?.label ?? 'Custom'} preset</span>
+                    {activeChapterRoute ? (
+                      <span className="lab-chip">{activeChapterRoute.label}</span>
+                    ) : null}
+                    <span className="lab-chip">{themeLabel(theme)} theme</span>
+                    <span className="lab-chip">step {step}</span>
+                    <span className="lab-chip">{paperLens} lens</span>
+                    {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number} {selectedPaperSection.title}</span> : null}
+                    {viewerSnapshot ? <span className="lab-chip">slot {viewerSnapshot.slotNumber}</span> : null}
+                  </div>
+                  <div className="mt-3 text-xs leading-5 text-muted">
+                    Use this draft to guide a reading, compare scenarios, or frame a public note against this selected replay.
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Canonical paper anchor</div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">
+                        {selectedPaperSection ? `${selectedPaperSection.number} ${selectedPaperSection.title}` : 'No paper section selected'}
+                      </div>
+                      <div className="mt-2 text-xs leading-5 text-muted">
+                        {selectedPaperSection?.description ?? 'Choose a paper section to keep theory and methods questions tied to the canonical paper guide.'}
+                      </div>
+                    </div>
+
+                    <a
+                      href={paperSectionUrl || undefined}
+                      className={cn(
+                        'rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                        !paperSectionUrl && 'pointer-events-none opacity-60',
+                      )}
+                    >
+                      Open paper section
+                    </a>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {suggestedPaperSections.map(section => (
+                      <button
+                        key={section.id}
+                        onClick={() => setPaperSectionId(section.id)}
+                        className={cn(
+                          'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                          selectedPaperSection?.id === section.id
+                            ? 'border-accent bg-white text-accent'
+                            : 'border-border-subtle bg-[#FAFAF8] text-text-primary hover:border-border-hover',
+                        )}
+                      >
+                        {section.number} {section.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {selectedPaperSection ? (
+                  <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Section evidence preview</div>
+                        <div className="mt-2 text-sm font-medium text-text-primary">
+                          {selectedPaperSection.number} {selectedPaperSection.title}
+                        </div>
+                        <div className="mt-2 text-xs leading-5 text-muted">
+                          Keep theory and methods questions grounded in the same canonical paper section the replay companion receives.
+                        </div>
+                      </div>
+                      <div className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                        {paperSectionContext ? 'Paper context attached' : 'Paper context unavailable'}
+                      </div>
+                    </div>
+
+                    {paperSectionPromptStarters.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {paperSectionPromptStarters.map(prompt => (
+                          <button
+                            key={prompt}
+                            onClick={() => setAssistantDraft(prompt)}
+                            className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          >
+                            {prompt}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4">
+                      <BlockCanvas blocks={selectedPaperSectionBlocks} showExport={false} />
+                    </div>
+                  </div>
+                ) : null}
+
+                <PublishedReplayCompanionPanel
+                  question={assistantDraft}
+                  onQuestionChange={setAssistantDraft}
+                  dataset={selectedDataset}
+                  comparisonDataset={comparisonDataset}
+                  paperSection={selectedPaperSection
+                    ? {
+                        id: selectedPaperSection.id,
+                        number: selectedPaperSection.number,
+                        title: selectedPaperSection.title,
+                        description: selectedPaperSection.description,
+                        context: paperSectionContext,
+                      }
+                    : null}
+                  paperLens={paperLens}
+                  audienceMode={audienceMode}
+                  currentViewSummary={currentViewSummary}
+                  viewerSnapshot={viewerSnapshot}
+                  comparisonViewerSnapshot={comparisonViewerSnapshot}
+                  autoRunQuestion={companionAutoRunQuestion}
+                  onAutoRunHandled={() => setPendingAutoReplayQuestion('')}
+                  onResponseChange={setLastReplayAnswer}
+                />
+
+                <PublishedReplayNotesPanel
+                  dataset={selectedDataset}
+                  comparisonDataset={comparisonDataset}
+                  viewerSnapshot={viewerSnapshot}
+                  comparisonViewerSnapshot={comparisonViewerSnapshot}
+                  paperLens={paperLens}
+                  audienceMode={audienceMode}
+                />
+
+                {replayPublishContextKey ? (
+                  <ContributionComposer
+                    key={replayPublishContextKey}
+                    sourceLabel="Publish this replay-backed reading to the community surface"
+                    defaultTitle={replayPublishTitle}
+                    defaultTakeaway={replayPublishTakeaway}
+                    helperText="The published note carries the current replay question, the selected paper section, and the active slot posture in its evidence bundle. Edit the title or takeaway so the public note reflects your own reading of the replay."
+                    publishLabel="Publish replay note"
+                    successLabel="Published replay note"
+                    viewPublishedLabel="Open Community"
+                    published={publishedReplayContextKey === replayPublishContextKey}
+                    isPublishing={publishReplayMutation.isPending}
+                    error={(publishReplayMutation.error as Error | null)?.message ?? null}
+                    onViewPublished={publishedReplayExplorationId && onOpenCommunityExploration
+                      ? () => onOpenCommunityExploration(publishedReplayExplorationId)
+                      : onTabChange
+                        ? () => onTabChange('community')
+                        : undefined}
+                    onPublish={payload => publishReplayMutation.mutate({
+                      contextKey: replayPublishContextKey,
+                      ...payload,
+                    })}
+                  />
+                ) : null}
               </div>
 
               <div className="lab-stage p-5">
