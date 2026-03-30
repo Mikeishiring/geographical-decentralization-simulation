@@ -1347,9 +1347,9 @@ export function SimulationLabPage({
     && !manifest
     && (status === 'submitting' || status === 'queued' || status === 'running' || status === 'completed')
   const showSurfaceOptions = surfaceMode === 'lab' || Boolean(currentJobId)
-  const pageTitle = surfaceMode === 'research' ? 'Published Replay' : 'Simulation'
+  const pageTitle = surfaceMode === 'research' ? 'Published Paper Replay' : 'Simulation'
   const pageSubtitle = surfaceMode === 'research'
-    ? 'The paper-backed replay is already live. Adjust scenario, playback, and analytics directly in-page.'
+    ? 'The precomputed paper replay is already live. Read, compare, and adjust the published evidence directly in-page.'
     : 'Configure and inspect a bounded exact run.'
   const surfaceOptions = [
     {
@@ -1426,8 +1426,16 @@ export function SimulationLabPage({
             </div>
           </>
         ) : (
-          <div className="rounded-2xl border border-rule bg-surface-active px-4 py-4 text-xs leading-5 text-muted">
-            This page lands directly on the published paper workspace with the replay already visible. Exact-run controls stay out of the way unless you open a specific lab session.
+          <div className="rounded-2xl border border-accent/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.92))] px-4 py-4">
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Published-first workspace</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">
+              The checked-in replay is already on screen, so this page opens on evidence instead of setup.
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
+              <span className="lab-chip">Live replay</span>
+              <span className="lab-chip">Paper-linked</span>
+              <span className="lab-chip">No run required</span>
+            </div>
           </div>
         )}
       </div>
