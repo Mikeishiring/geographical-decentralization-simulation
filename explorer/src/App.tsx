@@ -5,7 +5,7 @@ import { Footer } from './components/layout/Footer'
 import { FindingsPage } from './pages/FindingsPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { cn } from './lib/cn'
-import { readRouteStateFromLocation, type ExplorerRouteState } from './lib/route-state'
+import { RESULTS_ROUTE_PARAM_KEYS, readRouteStateFromLocation, type ExplorerRouteState } from './lib/route-state'
 import { PAPER_SECTIONS } from './data/paper-sections'
 
 const DEFAULT_TAB: TabId = 'explore'
@@ -40,7 +40,13 @@ const AgentLabPage = lazy(async () => {
   return { default: module.default }
 })
 
-function writeRouteState(next: ExplorerRouteState, replace = false) {
+function writeRouteState(
+  next: ExplorerRouteState,
+  replace = false,
+  options?: {
+    readonly resetResultsRoute?: boolean
+  },
+) {
   const url = new URL(window.location.href)
   const shouldKeepExplicitTab = next.tab !== DEFAULT_TAB || Boolean(next.query) || Boolean(next.explorationId)
 
@@ -60,6 +66,12 @@ function writeRouteState(next: ExplorerRouteState, replace = false) {
     url.searchParams.set('eid', next.explorationId)
   } else {
     url.searchParams.delete('eid')
+  }
+
+  if (next.tab !== RESULTS_TAB || options?.resetResultsRoute) {
+    for (const key of RESULTS_ROUTE_PARAM_KEYS) {
+      url.searchParams.delete(key)
+    }
   }
 
   if (replace) {
@@ -118,13 +130,19 @@ function App() {
     agent: initialRoute.tab === AGENT_TAB,
   })
 
-  const applyRouteState = useCallback((next: ExplorerRouteState, replace = false) => {
+  const applyRouteState = useCallback((
+    next: ExplorerRouteState,
+    replace = false,
+    options?: {
+      readonly resetResultsRoute?: boolean
+    },
+  ) => {
     startTransition(() => {
       setActiveTab(next.tab)
       setSharedQuery(next.query)
       setSharedExplorationId(next.explorationId)
       setVisitedTabs(previous => (previous[next.tab] ? previous : { ...previous, [next.tab]: true }))
-      writeRouteState(next, replace)
+      writeRouteState(next, replace, options)
     })
   }, [])
 
@@ -161,7 +179,11 @@ function App() {
 
   const handleTabChange = useCallback((tab: TabId) => {
     preloadTab(tab)
-    applyRouteState({ tab, query: sharedQuery, explorationId: null }, false)
+    applyRouteState(
+      { tab, query: sharedQuery, explorationId: null },
+      false,
+      tab === RESULTS_TAB ? { resetResultsRoute: true } : undefined,
+    )
   }, [applyRouteState, sharedQuery])
 
   const handleTabIntent = useCallback((tab: TabId) => {

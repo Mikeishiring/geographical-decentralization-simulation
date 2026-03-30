@@ -11,6 +11,13 @@ const DEFAULT_TAB: TabId = 'explore'
 const RESULTS_TAB: TabId = 'results'
 
 export const RESULTS_ROUTE_PARAM_KEYS = [
+  'simulationSurface',
+  'simulationJob',
+  'exactAnalytics',
+  'exactMetric',
+  'exactCompareMode',
+  'exactSlot',
+  'exactCompare',
   'evaluation',
   'paradigm',
   'result',
