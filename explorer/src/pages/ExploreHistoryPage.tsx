@@ -5,7 +5,6 @@ import { Search, ArrowUpDown, ThumbsUp, ThumbsDown, Tag, ChevronDown, ChevronUp 
 import { listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { ModeBanner } from '../components/layout/ModeBanner'
-import { Wayfinder } from '../components/layout/Wayfinder'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SOFT } from '../lib/theme'
 import type { TabId } from '../components/layout/TabNav'
@@ -119,12 +118,6 @@ export function ExploreHistoryPage({
         </motion.div>
       )}
 
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Ask a new question', hint: 'Curated lenses & AI exploration', onClick: () => onTabChange('explore') },
-          { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
-        ]} />
-      )}
     </div>
   )
 }

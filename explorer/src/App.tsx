@@ -3,11 +3,12 @@ import { Header } from './components/layout/Header'
 import { TabNav, type TabId } from './components/layout/TabNav'
 import { Footer } from './components/layout/Footer'
 import { FindingsPage } from './pages/FindingsPage'
+import { ExploreHistoryPage } from './pages/ExploreHistoryPage'
 import { PaperReaderPage } from './pages/PaperReaderPage'
 import { SimulationLabPage } from './pages/SimulationLabPage'
 import { cn } from './lib/cn'
 
-const VALID_TABS: readonly TabId[] = ['explore', 'paper', 'results']
+const VALID_TABS: readonly TabId[] = ['explore', 'history', 'paper', 'results']
 
 interface ExplorerRouteState {
   readonly tab: TabId
@@ -19,7 +20,7 @@ function getInitialTab(): TabId {
   const params = new URLSearchParams(window.location.search)
   const raw = params.get('tab')
   // Support legacy tab IDs from old URLs
-  const migrated = raw === 'findings' || raw === 'history' ? 'explore'
+  const migrated = raw === 'findings' ? 'explore'
     : raw === 'deep-dive' ? 'paper'
     : raw === 'simulation' ? 'results'
     : raw
@@ -136,6 +137,14 @@ function App() {
             isActive={activeTab === 'explore'}
             onQueryChange={handleFindingsQueryChange}
             onExplorationIdChange={handleExplorationIdChange}
+            onTabChange={handleTabChange}
+          />
+        </div>
+
+        <div hidden={activeTab !== 'history'} aria-hidden={activeTab !== 'history'}>
+          <ExploreHistoryPage
+            onGoToFindings={() => handleTabChange('explore')}
+            onOpenQuery={handleFindingsQueryChange}
             onTabChange={handleTabChange}
           />
         </div>
