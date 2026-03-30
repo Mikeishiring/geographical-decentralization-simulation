@@ -3,8 +3,12 @@ import { BlockCanvas } from '../explore/BlockCanvas'
 import { cn } from '../../lib/cn'
 import type { Block } from '../../types/blocks'
 import type {
+  AnalyticsCompareMode,
+  AnalyticsCompareModeOption,
   AnalyticsDeckView,
   AnalyticsMetricCard,
+  AnalyticsQueryMetric,
+  AnalyticsQueryOption,
   AnalyticsViewOption,
 } from './simulation-analytics'
 
@@ -16,6 +20,12 @@ interface SimulationAnalyticsDeskProps {
   readonly analyticsView: AnalyticsDeckView
   readonly onAnalyticsViewChange: (view: AnalyticsDeckView) => void
   readonly analyticsViewOptions: readonly AnalyticsViewOption[]
+  readonly analyticsMetric: AnalyticsQueryMetric
+  readonly onAnalyticsMetricChange: (metric: AnalyticsQueryMetric) => void
+  readonly analyticsMetricOptions: readonly AnalyticsQueryOption[]
+  readonly compareMode: AnalyticsCompareMode
+  readonly onCompareModeChange: (mode: AnalyticsCompareMode) => void
+  readonly compareModeOptions: readonly AnalyticsCompareModeOption[]
   readonly statusMessage: string | null
   readonly metricCards: readonly AnalyticsMetricCard[]
   readonly blocks: readonly Block[]
@@ -31,6 +41,12 @@ export function SimulationAnalyticsDesk({
   analyticsView,
   onAnalyticsViewChange,
   analyticsViewOptions,
+  analyticsMetric,
+  onAnalyticsMetricChange,
+  analyticsMetricOptions,
+  compareMode,
+  onCompareModeChange,
+  compareModeOptions,
   statusMessage,
   metricCards,
   blocks,
@@ -38,6 +54,8 @@ export function SimulationAnalyticsDesk({
   children,
 }: SimulationAnalyticsDeskProps) {
   const activeView = analyticsViewOptions.find(view => view.id === analyticsView) ?? analyticsViewOptions[0]
+  const activeMetric = analyticsMetricOptions.find(option => option.id === analyticsMetric) ?? analyticsMetricOptions[0]
+  const activeCompareMode = compareModeOptions.find(option => option.id === compareMode) ?? compareModeOptions[0]
 
   return (
     <div className="lab-stage p-5">
@@ -73,14 +91,65 @@ export function SimulationAnalyticsDesk({
         ))}
       </div>
 
+      {analyticsMetricOptions.length > 0 ? (
+        <div className="mt-4">
+          <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Metric query</div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {analyticsMetricOptions.map(option => (
+              <button
+                key={option.id}
+                onClick={() => onAnalyticsMetricChange(option.id)}
+                className={cn(
+                  'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                  analyticsMetric === option.id
+                    ? 'border-accent bg-white text-accent'
+                    : 'border-rule bg-surface-active text-text-primary hover:border-border-hover',
+                )}
+                title={option.description}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {compareModeOptions.length > 0 ? (
+        <div className="mt-4">
+          <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Compare mode</div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {compareModeOptions.map(option => (
+              <button
+                key={option.id}
+                onClick={() => onCompareModeChange(option.id)}
+                className={cn(
+                  'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                  compareMode === option.id
+                    ? 'border-accent bg-white text-accent'
+                    : 'border-rule bg-surface-active text-text-primary hover:border-border-hover',
+                )}
+                title={option.description}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
         <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Query framing</div>
         <div className="mt-2 text-sm font-medium text-text-primary">
-          {activeView?.label ?? 'Analytics'} query
+          {(activeMetric?.label ?? activeView?.label ?? 'Analytics')} query
         </div>
         <div className="mt-2 text-xs leading-5 text-muted">
-          {activeView?.description ?? 'Exact metric query over the current analytics payload.'}
+          {activeMetric?.description ?? activeView?.description ?? 'Exact metric query over the current analytics payload.'}
         </div>
+        {activeCompareMode ? (
+          <div className="mt-2 text-xs leading-5 text-muted">
+            Compare mode: {activeCompareMode.label}. {activeCompareMode.description}
+          </div>
+        ) : null}
         <div className="mt-3 text-[0.6875rem] leading-5 text-text-faint">{queryHint}</div>
       </div>
 

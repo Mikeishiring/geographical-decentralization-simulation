@@ -47,6 +47,12 @@ interface PublishedViewerAnnotationNote {
   readonly anchorLabel?: string | null
   readonly note: string
   readonly slotNumber: number
+  readonly replies?: ReadonlyArray<{
+    readonly id: string
+    readonly text: string
+    readonly createdAt: string
+  }>
+  readonly createdAt?: string
 }
 
 type PublishedViewerNoteFilter = 'all' | PublishedViewerAnnotationNote['intent']
@@ -421,6 +427,16 @@ function noteLaneLabel(
   return null
 }
 
+function noteMetaLabel(note: PublishedViewerAnnotationNote): string | null {
+  const parts = [
+    noteLaneLabel(note.communityLane),
+    noteContributionLabel(note.contributionType),
+    noteStatusLabel(note.status),
+  ].filter((value): value is string => Boolean(value))
+
+  return parts.length > 0 ? parts.join(' · ') : null
+}
+
 function noteMatchesMetric(
   note: PublishedViewerAnnotationNote,
   keys: readonly string[],
@@ -442,6 +458,62 @@ function noteMatchesRegion(
     return comparisonKey === regionId || comparisonKey === regionLabel
   }
   return false
+}
+
+function curatedNotePriority(note: PublishedViewerAnnotationNote): number {
+  let score = 0
+  if (note.communityLane === 'author') score += 40
+  if (note.status === 'author_addressed') score += 32
+  if (note.status === 'open_question') score += 28
+  if (note.status === 'challenged') score += 24
+  if (note.contributionType === 'question') score += 14
+  if (note.contributionType === 'counterpoint') score += 12
+  if (note.annotationScope === 'time_range' || note.annotationScope === 'region_over_time') score += 8
+  score += Math.min(note.replies?.length ?? 0, 4)
+  return score
+}
+
+function sortNotesForDisplay(
+  notes: readonly PublishedViewerAnnotationNote[],
+): PublishedViewerAnnotationNote[] {
+  return [...notes].sort((left, right) => {
+    const priorityGap = curatedNotePriority(right) - curatedNotePriority(left)
+    if (priorityGap !== 0) return priorityGap
+    const leftReplies = left.replies?.length ?? 0
+    const rightReplies = right.replies?.length ?? 0
+    if (leftReplies !== rightReplies) return rightReplies - leftReplies
+    const rightCreatedAt = typeof right.createdAt === 'string' ? new Date(right.createdAt).getTime() : 0
+    const leftCreatedAt = typeof left.createdAt === 'string' ? new Date(left.createdAt).getTime() : 0
+    return rightCreatedAt - leftCreatedAt
+  })
+}
+
+function summarizeNoteCluster(
+  notes: readonly PublishedViewerAnnotationNote[],
+): string | null {
+  if (notes.length === 0) return null
+
+  const openQuestions = notes.filter(note => note.status === 'open_question' || note.contributionType === 'question').length
+  if (openQuestions > 0) {
+    return `${openQuestions} open question${openQuestions === 1 ? '' : 's'}`
+  }
+
+  const challenged = notes.filter(note => note.status === 'challenged' || note.contributionType === 'counterpoint').length
+  if (challenged > 0) {
+    return `${challenged} challenged read${challenged === 1 ? '' : 's'}`
+  }
+
+  const authorNotes = notes.filter(note => note.communityLane === 'author' || note.status === 'author_addressed').length
+  if (authorNotes > 0) {
+    return `${authorNotes} author response${authorNotes === 1 ? '' : 's'}`
+  }
+
+  const evidenceNotes = notes.filter(note => note.contributionType === 'evidence').length
+  if (evidenceNotes > 0) {
+    return `${evidenceNotes} evidence thread${evidenceNotes === 1 ? '' : 's'}`
+  }
+
+  return `${notes.length} discussion note${notes.length === 1 ? '' : 's'}`
 }
 
 function buildPublishedReplayAnchorSelection(
@@ -497,7 +569,10 @@ function PublishedGeoCard({
   const totalValidators = sortedRegions.reduce((sum, region) => sum + region.count, 0)
   const maxValue = Math.max(...sortedRegions.map(region => region.count), 1)
   const dominantRegion = topRegions[0] ?? null
-  const regionAnchoredNotes = annotationNotes?.filter(note => isRegionAnchoredNote(note)) ?? []
+  const regionAnchoredNotes = useMemo(
+    () => annotationNotes?.filter(note => isRegionAnchoredNote(note)) ?? [],
+    [annotationNotes],
+  )
 
   const svgWidth = 820
   const svgHeight = 430
@@ -671,7 +746,9 @@ function PublishedGeoCard({
                 const regionLabel = region.region ? region.region.city : region.regionId
                 const fill = regionValueColor(region.count, maxValue)
                 const share = totalValidators > 0 ? (region.count / totalValidators) * 100 : 0
-                const regionNoteCount = regionAnchoredNotes.filter(note => noteMatchesRegion(note, region.regionId, regionLabel)).length
+                const regionNotes = regionAnchoredNotes.filter(note => noteMatchesRegion(note, region.regionId, regionLabel))
+                const regionNoteCount = regionNotes.length
+                const regionNoteSummary = summarizeNoteCluster(regionNotes)
                 return (
                   <button
                     key={region.regionId}
@@ -688,12 +765,17 @@ function PublishedGeoCard({
                         <div className="flex items-center gap-2">
                           <div className="truncate text-xs font-medium text-text-primary">{regionLabel}</div>
                           {regionNoteCount > 0 ? (
-                            <span className="rounded-full border border-[#7C3AED]/18 bg-[#F5F3FF] px-2 py-0.5 text-[0.625rem] font-medium text-[#6D28D9]">
+                            <span className="rounded-full border border-[#DBE4F0] bg-[#F8FAFC] px-2 py-0.5 text-[0.625rem] font-medium text-text-primary">
                               {regionNoteCount} note{regionNoteCount === 1 ? '' : 's'}
                             </span>
                           ) : null}
                         </div>
                         <div className="truncate text-[0.6875rem] text-muted">{region.regionId}</div>
+                        {regionNoteSummary ? (
+                          <div className="mt-1 truncate text-[0.625rem] font-medium text-text-primary">
+                            {regionNoteSummary}
+                          </div>
+                        ) : null}
                       </div>
                       <div className="shrink-0 text-right">
                         <div className="text-xs font-medium tabular-nums text-text-primary">{countLabel(region.count)}</div>
@@ -858,6 +940,10 @@ export function PublishedDatasetViewer({
       ? annotationNotes
       : annotationNotes.filter(note => note.intent === activeNoteFilter)
   ), [activeNoteFilter, annotationNotes])
+  const regionAnchoredNotes = useMemo(
+    () => annotationNotes.filter(note => isRegionAnchoredNote(note)),
+    [annotationNotes],
+  )
 
   useEffect(() => {
     if (activeNoteFilter !== 'all' && !annotationNotes.some(note => note.intent === activeNoteFilter)) {
@@ -925,6 +1011,18 @@ export function PublishedDatasetViewer({
     proposalTime: annotationNotes.filter(note => noteMatchesMetric(note, ['proposal_time'])).length,
     methods: annotationNotes.filter(note => (note.anchorKind === 'comparison' && note.anchorKey === 'comparison') || note.intent === 'methods').length,
   }), [annotationNotes])
+  const topRegionNotes = useMemo(() => {
+    if (!topRegion) return regionAnchoredNotes
+    const regionLabel = topRegion.region?.city ?? topRegion.regionId
+    return regionAnchoredNotes.filter(note => noteMatchesRegion(note, topRegion.regionId, regionLabel))
+  }, [regionAnchoredNotes, topRegion])
+  const noteSurfaceSummaries = useMemo(() => ({
+    slot: summarizeNoteCluster(annotationNotes),
+    geography: summarizeNoteCluster(topRegionNotes),
+    gini: summarizeNoteCluster(annotationNotes.filter(note => noteMatchesMetric(note, ['gini']))),
+    mev: summarizeNoteCluster(annotationNotes.filter(note => noteMatchesMetric(note, ['mev']))),
+    proposal: summarizeNoteCluster(annotationNotes.filter(note => noteMatchesMetric(note, ['proposal_time']))),
+  }), [annotationNotes, topRegionNotes])
   const focusedNote = useMemo(
     () => filteredAnnotationNotes.find(note => note.id === selectedNoteId) ?? filteredAnnotationNotes[0] ?? null,
     [filteredAnnotationNotes, selectedNoteId],
@@ -937,19 +1035,27 @@ export function PublishedDatasetViewer({
     timeRanges: annotationNotes.filter(note => note.annotationScope === 'time_range' || note.annotationScope === 'region_over_time').length,
   }), [annotationNotes])
   const marginaliaNotes = useMemo(() => {
-    const notes = [...filteredAnnotationNotes]
-    notes.sort((left, right) => {
-      const leftAuthor = left.communityLane === 'author' ? 1 : 0
-      const rightAuthor = right.communityLane === 'author' ? 1 : 0
-      if (leftAuthor !== rightAuthor) return rightAuthor - leftAuthor
-      const leftQuestion = left.status === 'open_question' || left.contributionType === 'question' ? 1 : 0
-      const rightQuestion = right.status === 'open_question' || right.contributionType === 'question' ? 1 : 0
-      if (leftQuestion !== rightQuestion) return rightQuestion - leftQuestion
-      const leftChallenge = left.status === 'challenged' || left.contributionType === 'counterpoint' ? 1 : 0
-      const rightChallenge = right.status === 'challenged' || right.contributionType === 'counterpoint' ? 1 : 0
-      return rightChallenge - leftChallenge
-    })
-    return notes.slice(0, 3)
+    return sortNotesForDisplay(filteredAnnotationNotes).slice(0, 4)
+  }, [filteredAnnotationNotes])
+  const leadingDebate = useMemo(() => {
+    const anchors = new Map<string, PublishedViewerAnnotationNote[]>()
+    for (const note of filteredAnnotationNotes) {
+      const key = note.anchorLabel ?? noteIntentLabel(note.intent)
+      const existing = anchors.get(key) ?? []
+      existing.push(note)
+      anchors.set(key, existing)
+    }
+    const leading = [...anchors.entries()].sort((left, right) => {
+      const countGap = right[1].length - left[1].length
+      if (countGap !== 0) return countGap
+      return curatedNotePriority(right[1][0]!) - curatedNotePriority(left[1][0]!)
+    })[0]
+    if (!leading) return null
+    return {
+      label: leading[0],
+      count: leading[1].length,
+      summary: summarizeNoteCluster(leading[1]),
+    }
   }, [filteredAnnotationNotes])
   const buildChartNotePins = (
     notes: readonly PublishedViewerAnnotationNote[],
@@ -1232,11 +1338,27 @@ export function PublishedDatasetViewer({
             </div>
           </div>
 
+          <div className="mb-4 rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-3 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Annotate this figure</div>
+                <div className="mt-1 text-sm text-text-primary">
+                  Click any stat card, region, chart point, or note pin to target the figure directly. Slot lock keeps the posture frozen while you write.
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs text-muted">
+                <span className="lab-chip">{annotationNotes.length} note{annotationNotes.length === 1 ? '' : 's'} attached</span>
+                <span className="lab-chip">Target captured automatically</span>
+              </div>
+            </div>
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {[
               {
                 key: 'slot',
                 noteCount: annotationNotes.length,
+                noteSummary: noteSurfaceSummaries.slot,
                 focus: false,
                 anchor: { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
                 block: { type: 'stat' as const, value: `${countLabel(slot + 1)} / ${countLabel(totalSlots)}`, label: 'Current slot', sublabel: `Playback step ${stepSize}`, delta: slotLocked ? 'Locked for notes' : playing ? 'Autoplay active' : 'Paused', sentiment: 'neutral' as const },
@@ -1244,6 +1366,7 @@ export function PublishedDatasetViewer({
               {
                 key: 'regions',
                 noteCount: metricNoteCounts.geography,
+                noteSummary: noteSurfaceSummaries.geography,
                 focus: focusedArea === 'geography',
                 anchor: topRegion?.region
                   ? { kind: 'region' as const, key: topRegion.regionId, label: `Region · ${topRegion.region.city}` }
@@ -1253,6 +1376,7 @@ export function PublishedDatasetViewer({
               {
                 key: 'dominant',
                 noteCount: metricNoteCounts.geography,
+                noteSummary: noteSurfaceSummaries.geography,
                 focus: focusedArea === 'geography',
                 anchor: topRegion?.region
                   ? { kind: 'region' as const, key: topRegion.regionId, label: `Region · ${topRegion.region.city}` }
@@ -1262,6 +1386,7 @@ export function PublishedDatasetViewer({
               {
                 key: 'gini',
                 noteCount: metricNoteCounts.gini,
+                noteSummary: noteSurfaceSummaries.gini,
                 focus: focusedArea === 'concentration',
                 anchor: { kind: 'metric' as const, key: 'gini', label: 'Metric · Gini' },
                 block: { type: 'stat' as const, value: currentGini != null ? compactNumber(currentGini, 3) : 'N/A', label: 'Gini', sublabel: 'Geographic concentration', delta: deltaLabel(currentGini, initialGini), sentiment: (currentGini ?? 0) <= (initialGini ?? 0) ? 'positive' as const : 'negative' as const },
@@ -1269,6 +1394,7 @@ export function PublishedDatasetViewer({
               {
                 key: 'mev',
                 noteCount: metricNoteCounts.mev,
+                noteSummary: noteSurfaceSummaries.mev,
                 focus: focusedArea === 'performance',
                 anchor: { kind: 'metric' as const, key: 'mev', label: 'Metric · MEV' },
                 block: { type: 'stat' as const, value: currentMev != null ? `${compactNumber(currentMev, 4)} ETH` : 'N/A', label: 'Average MEV', sublabel: 'Current slot reward surface', delta: deltaLabel(currentMev, initialMev), sentiment: (currentMev ?? 0) >= (initialMev ?? 0) ? 'positive' as const : 'neutral' as const },
@@ -1276,6 +1402,7 @@ export function PublishedDatasetViewer({
               {
                 key: 'proposal',
                 noteCount: metricNoteCounts.proposalTime,
+                noteSummary: noteSurfaceSummaries.proposal,
                 focus: focusedArea === 'performance',
                 anchor: { kind: 'metric' as const, key: 'proposal_time', label: 'Metric · Proposal time' },
                 block: { type: 'stat' as const, value: currentProposalTime != null ? `${compactNumber(currentProposalTime, 1)} ms` : 'N/A', label: 'Proposal time', sublabel: currentAttestation != null ? `Attestation ${percentage(currentAttestation, 1)}` : 'Consensus timing', delta: deltaLabel(currentProposalTime, initialProposalTime), sentiment: (currentProposalTime ?? Number.POSITIVE_INFINITY) <= (initialProposalTime ?? Number.POSITIVE_INFINITY) ? 'positive' as const : 'negative' as const },
@@ -1291,8 +1418,13 @@ export function PublishedDatasetViewer({
                 )}
               >
                 {card.noteCount > 0 ? (
-                  <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-[#7C3AED]/18 bg-[#F5F3FF]/96 px-2 py-0.5 text-[0.625rem] font-medium text-[#6D28D9] shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
+                  <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-[#DBE4F0] bg-white/96 px-2 py-0.5 text-[0.625rem] font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
                     {card.noteCount} note{card.noteCount === 1 ? '' : 's'}
+                  </div>
+                ) : null}
+                {card.noteSummary ? (
+                  <div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)] rounded-full border border-[#0F172A]/10 bg-white/94 px-2.5 py-1 text-[0.625rem] font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
+                    {card.noteSummary}
                   </div>
                 ) : null}
                 <StatBlock block={card.block} />
@@ -1320,13 +1452,22 @@ export function PublishedDatasetViewer({
                   </div>
                 ))}
               </div>
+              {leadingDebate ? (
+                <div className="mt-3 rounded-xl border border-rule bg-white px-3 py-3 text-xs leading-5 text-muted">
+                  <span className="font-medium text-text-primary">{leadingDebate.label}</span> is pulling the most attention in this figure. {leadingDebate.summary ?? `${leadingDebate.count} notes live here.`}
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,250,248,0.96))] px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure marginalia</div>
-                  <div className="mt-1 text-xs leading-5 text-muted">Most important live notes for this posture.</div>
+                  <div className="mt-1 text-xs leading-5 text-muted">
+                    {leadingDebate
+                      ? `${leadingDebate.label} is drawing the most attention. ${leadingDebate.summary ?? ''}`
+                      : 'Most important live notes for this posture.'}
+                  </div>
                 </div>
                 {focusedNote ? (
                   <div className="rounded-full border border-accent/18 bg-[rgba(37,99,235,0.08)] px-2.5 py-1 text-[0.625rem] font-medium text-accent">
@@ -1344,25 +1485,31 @@ export function PublishedDatasetViewer({
                       focusedNote?.id === note.id
                         ? 'border-accent/24 bg-[rgba(37,99,235,0.06)] shadow-[0_12px_24px_rgba(37,99,235,0.08)]'
                         : 'border-rule bg-white hover:border-border-hover',
+                      note.communityLane === 'author'
+                        ? 'border-l-[3px] border-l-[#1D4ED8]'
+                        : note.communityLane === 'reviewer'
+                          ? 'border-l-[3px] border-l-[#9F1239]'
+                          : 'border-l-[3px] border-l-[#0F766E]',
                     )}
                   >
-                    <div className="flex flex-wrap items-center gap-2">
-                      {noteLaneLabel(note.communityLane) ? (
-                        <span className="rounded-full border border-[#0F172A]/10 bg-[#F8FAFC] px-2 py-0.5 text-[0.625rem] font-medium text-text-primary">
-                          {noteLaneLabel(note.communityLane)}
-                        </span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-[#DBE4F0] bg-[#F8FAFC] px-2.5 py-0.5 text-[0.625rem] font-medium uppercase tracking-[0.08em] text-text-primary">
+                            {note.anchorLabel ?? 'Whole slot'}
+                          </span>
+                          {noteMetaLabel(note) ? (
+                            <span className="text-[0.625rem] uppercase tracking-[0.08em] text-text-faint">
+                              {noteMetaLabel(note)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      {(note.replies?.length ?? 0) > 0 ? (
+                        <div className="shrink-0 text-[0.625rem] uppercase tracking-[0.08em] text-text-faint">
+                          {note.replies?.length ?? 0} repl{(note.replies?.length ?? 0) === 1 ? 'y' : 'ies'}
+                        </div>
                       ) : null}
-                      {noteContributionLabel(note.contributionType) ? (
-                        <span className="rounded-full border border-[#7C3AED]/18 bg-[#F5F3FF] px-2 py-0.5 text-[0.625rem] font-medium text-[#6D28D9]">
-                          {noteContributionLabel(note.contributionType)}
-                        </span>
-                      ) : null}
-                      {noteStatusLabel(note.status) ? (
-                        <span className="rounded-full border border-[#C2410C]/18 bg-[#FFF7ED] px-2 py-0.5 text-[0.625rem] font-medium text-[#9A3412]">
-                          {noteStatusLabel(note.status)}
-                        </span>
-                      ) : null}
-                      {note.anchorLabel ? <span className="lab-chip">{note.anchorLabel}</span> : null}
                     </div>
                     <div className="mt-2 text-sm leading-6 text-text-primary">{note.note}</div>
                     {(note.annotationScope === 'time_range' || note.annotationScope === 'region_over_time') && note.rangeStartSlotNumber != null && note.rangeEndSlotNumber != null ? (
@@ -1601,14 +1748,23 @@ export function PublishedDatasetViewer({
               'mev',
             ),
           },
-        ].map(entry => (
+        ].map(entry => {
+          const curatedEntryNotes = sortNotesForDisplay(entry.notes)
+          const entrySummary = summarizeNoteCluster(entry.notes)
+
+          return (
           <div key={entry.key} className="relative">
             {entry.notes.length > 0 ? (
               <div className="absolute right-4 top-4 z-10 flex flex-wrap justify-end gap-2">
                 <div className="rounded-full border border-[#0F172A]/12 bg-white/92 px-3 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint shadow-[0_10px_20px_rgba(15,23,42,0.06)]">
                   Slot notes
                 </div>
-                {entry.notes.slice(0, 2).map(note => (
+                {entrySummary ? (
+                  <div className="rounded-full border border-[#DBE4F0] bg-white/96 px-3 py-1 text-[0.625rem] font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
+                    {entrySummary}
+                  </div>
+                ) : null}
+                {curatedEntryNotes.slice(0, 2).map(note => (
                   <button
                     key={`${entry.key}-${note.id}`}
                     onClick={() => setSelectedNoteId(note.id)}
@@ -1619,11 +1775,9 @@ export function PublishedDatasetViewer({
                     )}
                   >
                     <div>{note.anchorLabel ?? noteIntentLabel(note.intent)}</div>
-                    {(noteContributionLabel(note.contributionType) || noteStatusLabel(note.status)) ? (
-                      <div className="mt-1 flex items-center gap-1 text-[0.55rem] uppercase tracking-[0.08em] text-current/80">
-                        {noteContributionLabel(note.contributionType) ? <span>{noteContributionLabel(note.contributionType)}</span> : null}
-                        {noteContributionLabel(note.contributionType) && noteStatusLabel(note.status) ? <span>·</span> : null}
-                        {noteStatusLabel(note.status) ? <span>{noteStatusLabel(note.status)}</span> : null}
+                    {noteMetaLabel(note) ? (
+                      <div className="mt-1 text-[0.55rem] uppercase tracking-[0.08em] text-current/80">
+                        {noteMetaLabel(note)}
                       </div>
                     ) : null}
                   </button>
@@ -1640,7 +1794,7 @@ export function PublishedDatasetViewer({
               <TimeSeriesBlock block={entry.block} notePins={entry.notePins} />
             </div>
           </div>
-        ))}
+        )})}
       </div>
     </div>
   )
