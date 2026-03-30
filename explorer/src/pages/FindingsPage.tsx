@@ -409,7 +409,7 @@ export function FindingsPage({
   const queryBarHelperText = apiHealthQuery.isError
     ? 'The API server is unreachable. Start the explorer API to restore live and cached query routing.'
     : apiHealthQuery.data?.anthropicEnabled
-      ? 'Fresh guided readings are available. Ask about a metric, scenario, mechanism, implication, or comparison for the strongest answers.'
+      ? 'Fresh guided readings are available. Ask about a metric, scenario, mechanism, implication, or comparison, then publish separately only if you have your own takeaway.'
       : apiHealthQuery.data
         ? 'Fresh guided readings are offline. Curated and prior readings still work, but fresh interpretation needs ANTHROPIC_API_KEY in explorer/.env.'
         : 'Checking reading-guide availability. Best prompts mention a paradigm, metric, experiment, implication, or comparison.'
@@ -427,7 +427,7 @@ export function FindingsPage({
   const promptOptions = aiResponse
     ? aiResponse.followUps
     : activeTopic?.prompts ?? OVERVIEW_CARD.prompts
-  const promptSectionTitle = aiResponse ? 'Keep exploring' : 'Try one of these questions'
+  const promptSectionTitle = aiResponse ? 'Continue questioning this reading' : 'Try one of these guide questions'
   const canonicalClaimCards = TOPIC_CARDS.filter(card =>
     CANONICAL_ENTRY_IDS.includes(card.id as (typeof CANONICAL_ENTRY_IDS)[number]),
   )

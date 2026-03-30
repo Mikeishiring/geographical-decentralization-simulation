@@ -59,6 +59,9 @@ export function SimCopilotPanel({
               ? 'Guide framing is available for bounded exact-mode questions. Use it when you want help comparing scenarios, explaining a run, or reordering supported visuals.'
               : 'Guide framing is offline. Add ANTHROPIC_API_KEY to explorer/.env to enable bounded simulation guidance.'}
         </div>
+        <div className="mt-3 text-[11px] leading-5 text-text-faint">
+          Guide output stays inside this private run surface until you publish a separate community note in your own words.
+        </div>
       </div>
 
       {!showAssistant && (
@@ -72,16 +75,16 @@ export function SimCopilotPanel({
               Open the assistant only when you want bounded help with phrasing a run, comparing scenarios, or turning the current exact result into a more deliberate story.
             </div>
           </div>
-          <button
-            onClick={() => setAssistantOpen(true)}
-            disabled={!copilotAvailable && !isHealthLoading}
-            className={cn(
-              'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
-              'bg-accent text-white hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60',
-            )}
-          >
-            <Sparkles className="h-4 w-4" />
-            Open guide
+            <button
+              onClick={() => setAssistantOpen(true)}
+              disabled={!copilotAvailable && !isHealthLoading}
+              className={cn(
+                'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
+                'bg-accent text-white hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60',
+              )}
+            >
+              <Sparkles className="h-4 w-4" />
+            Open optional guide
           </button>
         </div>
       )}
@@ -135,7 +138,7 @@ export function SimCopilotPanel({
                   ? 'Checking...'
                   : isMutating
                     ? 'Thinking...'
-                    : 'Ask guide'}
+                    : 'Draft guidance'}
               </button>
 
               {copilotResponse?.proposedConfig && (
