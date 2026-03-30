@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { SPRING } from '../lib/theme'
@@ -88,13 +88,13 @@ export function DeepDivePage() {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={expandAll}
-              className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-muted transition-colors hover:border-border-hover hover:text-text-primary"
+              className="rounded-md border border-rule px-3 py-1.5 text-xs text-muted transition-colors hover:border-border-hover hover:text-text-primary"
             >
               Expand all
             </button>
             <button
               onClick={collapseAll}
-              className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-muted transition-colors hover:border-border-hover hover:text-text-primary"
+              className="rounded-md border border-rule px-3 py-1.5 text-xs text-muted transition-colors hover:border-border-hover hover:text-text-primary"
             >
               Collapse all
             </button>
@@ -139,21 +139,16 @@ export function DeepDivePage() {
         </a>
       </div>
 
-      {/* Accordion sections */}
-      <div className="space-y-2">
+      {/* Accordion sections — FAQ-style single container */}
+      <div className="rounded-xl border border-rule bg-white divide-y divide-rule">
         {PAPER_SECTIONS.map(section => {
           const isExpanded = expandedIds.has(section.id)
           const summaryTags = summarizeSection(section)
           return (
-            <motion.div
-              key={section.id}
-              layout
-              whileHover={{ y: -1 }}
-              className="overflow-hidden rounded-lg border border-border-subtle bg-white"
-            >
+            <div key={section.id}>
               <button
                 onClick={() => toggle(section.id)}
-                className="w-full px-4 py-4 text-left transition-colors hover:bg-surface-active"
+                className="w-full px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
               >
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 w-8 shrink-0 text-xs font-mono text-accent">
@@ -162,7 +157,7 @@ export function DeepDivePage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="truncate text-sm font-medium text-text-primary">
+                        <h3 className="truncate text-[0.8125rem] font-medium text-text-primary">
                           {section.title}
                         </h3>
                         <p className="mt-1 text-xs text-muted">
@@ -184,14 +179,9 @@ export function DeepDivePage() {
                     </div>
 
                     {summaryTags.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
+                      <div className="mt-2 flex flex-wrap gap-1.5">
                         {summaryTags.map(tag => (
-                          <span
-                            key={`${section.id}-${tag}`}
-                            className="text-xs text-muted"
-                          >
-                            {tag}
-                          </span>
+                          <span key={`${section.id}-${tag}`} className="lab-chip">{tag}</span>
                         ))}
                       </div>
                     )}
@@ -199,25 +189,19 @@ export function DeepDivePage() {
                 </div>
               </button>
 
-              <AnimatePresence>
-                {isExpanded && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={SPRING}
-                    className="overflow-hidden"
-                  >
-                    <div className="border-t border-border-subtle px-4 pb-4 pt-3">
-                      <div className="mb-4 rounded-md border border-border-subtle bg-surface-active px-3 py-3 text-xs text-muted">
+              <div className="accordion-body" data-open={isExpanded || undefined}>
+                <div className="overflow-hidden">
+                  {isExpanded && (
+                    <div className="border-t border-rule px-5 pb-4 pt-3">
+                      <div className="mb-4 rounded-md border border-rule bg-surface-active px-3 py-3 text-xs text-muted">
                         <span className="font-medium text-text-primary">Start here if:</span> {sectionEntryLine(section)}
                       </div>
                       <BlockCanvas blocks={section.blocks} />
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+                  )}
+                </div>
+              </div>
+            </div>
           )
         })}
       </div>

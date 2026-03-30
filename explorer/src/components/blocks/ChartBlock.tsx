@@ -23,8 +23,8 @@ export function ChartBlock({ block }: ChartBlockProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
-      <div className="border-b border-border-subtle px-5 py-3">
+    <div className="overflow-hidden rounded-xl border border-rule bg-white">
+      <div className="border-b border-rule px-5 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
@@ -56,8 +56,8 @@ export function ChartBlock({ block }: ChartBlockProps) {
 
 function EmptyBlock({ title }: { readonly title: string }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
-      <div className="border-b border-border-subtle px-5 py-3">
+    <div className="overflow-hidden rounded-xl border border-rule bg-white">
+      <div className="border-b border-rule px-5 py-3">
         <h3 className="text-sm font-medium text-text-primary">{title}</h3>
       </div>
       <div className="px-5 py-8 text-center text-xs text-muted">No data available</div>
@@ -99,7 +99,7 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
 
   return (
     <div>
-      <div className="rounded-lg border border-border-subtle bg-surface-active p-3">
+      <div className="rounded-lg border border-rule bg-surface-active p-3">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id={gradientId} x1="0%" x2="0%" y1="0%" y2="100%">

@@ -98,7 +98,7 @@ export function ContributionComposer({
             {onViewPublished && (
               <button
                 onClick={onViewPublished}
-                className="inline-flex items-center rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs text-text-primary transition-colors hover:border-border-hover"
+                className="inline-flex items-center rounded-full border border-rule bg-white px-3 py-1.5 text-xs text-text-primary transition-colors hover:border-border-hover"
               >
                 {viewPublishedLabel}
               </button>
@@ -110,7 +110,7 @@ export function ContributionComposer({
             className={cn(
               'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs font-medium transition-colors',
               open
-                ? 'border border-border-subtle bg-white text-text-primary hover:border-border-hover'
+                ? 'border border-rule bg-white text-text-primary hover:border-border-hover'
                 : 'bg-accent text-white hover:bg-accent/80',
             )}
           >
@@ -129,7 +129,7 @@ export function ContributionComposer({
                 type="text"
                 value={title}
                 onChange={event => setTitle(event.target.value)}
-                className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
+                className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
               />
             </div>
 
@@ -139,7 +139,7 @@ export function ContributionComposer({
                 value={takeaway}
                 onChange={event => setTakeaway(event.target.value)}
                 rows={3}
-                className="min-h-[88px] w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
+                className="min-h-[88px] w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
               />
               <div className="mt-1 text-[11px] text-text-faint">
                 Write this in your own words. Summarize what the source shows, not what an assistant guessed.
@@ -155,7 +155,7 @@ export function ContributionComposer({
                 value={author}
                 onChange={event => setAuthor(event.target.value)}
                 placeholder="Anonymous is fine"
-                className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
+                className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
               />
             </div>
 
@@ -172,7 +172,7 @@ export function ContributionComposer({
             </button>
 
             {!hasIntentionalEdit && (
-              <div className="rounded-lg border border-border-subtle bg-surface-active px-3 py-2 text-[11px] leading-5 text-text-faint">
+              <div className="rounded-lg border border-rule bg-surface-active px-3 py-2 text-[11px] leading-5 text-text-faint">
                 Edit the title or takeaway before publishing. Default draft text is a starting point, not the public artifact.
               </div>
             )}

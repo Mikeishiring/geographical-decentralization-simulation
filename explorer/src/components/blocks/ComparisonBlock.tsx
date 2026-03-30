@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
-import { HOVER_LIFT } from '../../lib/theme'
 import type { ComparisonBlock as ComparisonBlockType } from '../../types/blocks'
 
 interface ComparisonBlockProps {
@@ -13,7 +11,7 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
 
   if (block.left.items.length === 0 && block.right.items.length === 0) {
     return (
-      <div className="bg-white border border-border-subtle rounded-xl p-5">
+      <div className="bg-white border border-rule rounded-xl p-5">
         <h3 className="text-base font-semibold text-text-primary mb-4 font-serif">{block.title}</h3>
         <div className="text-center text-xs text-muted py-4">No comparison data available</div>
       </div>
@@ -21,21 +19,18 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
   }
 
   return (
-    <motion.div
-      {...HOVER_LIFT}
-      className="bg-white border border-border-subtle rounded-xl p-5 topo-bg"
-    >
+    <div className="bg-white border border-rule rounded-xl p-5 topo-bg">
       <h3 className="text-base font-semibold text-text-primary mb-4 font-serif">
         {block.title}
       </h3>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 sm:divide-x sm:divide-border-subtle">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 sm:divide-x sm:divide-rule">
         {/* Left column */}
         <div
           onMouseEnter={() => setHoveredSide('left')}
           onMouseLeave={() => setHoveredSide(null)}
           className={cn(
-            'pb-4 sm:pb-0 sm:pr-5 border-b sm:border-b-0 border-border-subtle rounded-md transition-colors',
+            'pb-4 sm:pb-0 sm:pr-5 border-b sm:border-b-0 border-rule rounded-md transition-colors',
             hoveredSide === 'left' && 'bg-accent/[0.03]',
             hoveredSide === 'right' && 'opacity-60',
           )}
@@ -90,6 +85,6 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
           {block.verdict}
         </p>
       )}
-    </motion.div>
+    </div>
   )
 }
