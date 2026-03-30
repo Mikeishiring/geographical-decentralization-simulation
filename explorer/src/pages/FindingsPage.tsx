@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, ArrowLeft, ArrowUpRight, Link2, FileText } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Link2, FileText } from 'lucide-react'
 import { cn } from '../lib/cn'
 import { DEFAULT_BLOCKS, OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../data/default-blocks'
 import { ContributionComposer } from '../components/community/ContributionComposer'
@@ -11,8 +11,6 @@ import { QueryHistory, type HistoryEntry } from '../components/explore/QueryHist
 import { ShimmerLoading } from '../components/explore/ShimmerBlock'
 import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, publishExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
-import { NodeConstellation } from '../components/decorative/NodeConstellation'
-import { ModeBanner } from '../components/layout/ModeBanner'
 import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
@@ -391,27 +389,13 @@ export function FindingsPage({
 
   return (
     <div>
-      <div className="mb-5">
-        <ModeBanner
-          eyebrow="Mode"
-          title="Curated questions, implications, and guided readings"
-          detail="The responses synthesize and interpret, but the paper and published results remain the canonical sources."
-          tone="interpretation"
-        />
-      </div>
-
-      {/* Page header — framed for cold visitors */}
-      <div className="mb-6 relative">
-        <NodeConstellation className="absolute right-0 top-0 w-32 h-32 opacity-40 pointer-events-none hidden sm:block" />
-
-        <p className="text-[11px] text-text-faint mb-2 leading-relaxed max-w-xl">
-          Yang, Oz, Wu, Zhang (2025) · arXiv:2509.21475
-        </p>
+      {/* Page header */}
+      <div className="mb-6">
         <h1 className="text-xl sm:text-2xl font-bold text-text-primary font-serif leading-tight max-w-lg">
           What did this paper find?
         </h1>
         <p className="mt-2 text-sm text-muted max-w-2xl leading-relaxed">
-          Ethereum validator geography is shaped by latency and protocol timing rules. Both block-building paradigms push toward concentration, but through different mechanisms — and the same protocol change can help one while hurting the other.
+          Ethereum validator geography is shaped by latency and protocol timing rules. Both block-building paradigms push toward concentration, but through different mechanisms.
         </p>
       </div>
 
@@ -590,39 +574,7 @@ export function FindingsPage({
               </div>
             </div>
 
-            <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="max-w-2xl">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Research integrity</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">{displayProvenance.label}</div>
-                  <div className="mt-1 text-sm text-muted">{displayProvenance.detail || interpretationBoundary}</div>
-                  <div className="mt-2 text-xs text-muted">
-                    Truth boundary: {interpretationBoundary}
-                  </div>
-                </div>
-
-                <div className="grid gap-2 sm:grid-cols-2 lg:w-[340px]">
-                  <a
-                    href="https://arxiv.org/abs/2509.21475"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
-                  >
-                    <span>Read canonical paper</span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
-                  </a>
-                  {onTabChange && (
-                    <button
-                      onClick={() => onTabChange('results')}
-                      className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
-                    >
-                      <span>Open simulation tab</span>
-                      <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+            <p className="text-xs text-muted">{interpretationBoundary}</p>
           </div>
         </>
       )}

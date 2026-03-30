@@ -792,12 +792,8 @@ export function SimulationLabPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4 mb-5">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-2 h-2 rounded-full bg-accent shrink-0" />
-          <h1 className="text-base font-semibold text-text-primary truncate">Simulation</h1>
-          <span className="text-xs text-muted hidden sm:inline">Published scenarios, exact experiments, and artifact-backed interpretation</span>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <h1 className="text-base font-semibold text-text-primary shrink-0">Simulation</h1>
 
         <div className="inline-flex rounded-full border border-border-subtle bg-white p-0.5 shrink-0">
           <button
