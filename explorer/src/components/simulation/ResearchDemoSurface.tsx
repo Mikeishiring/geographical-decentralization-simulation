@@ -54,6 +54,7 @@ interface ResearchDemoSurfaceProps {
   readonly catalogScriptUrl: string
   readonly viewerBaseUrl: string
   readonly onOpenCommunityExploration?: (explorationId: string) => void
+  readonly onOpenExactLab?: () => void
   readonly onTabChange?: (tab: TabId) => void
 }
 
@@ -97,6 +98,11 @@ interface ResultSnapshotCard {
   readonly label: string
   readonly value: string
   readonly detail: string
+}
+
+interface PromptLauncher {
+  readonly label: string
+  readonly prompt: string
 }
 
 function readResearchCatalog(): ResearchCatalog | null {
@@ -298,6 +304,7 @@ export function ResearchDemoSurface({
   catalogScriptUrl,
   viewerBaseUrl,
   onOpenCommunityExploration,
+  onOpenExactLab,
   onTabChange,
 }: ResearchDemoSurfaceProps) {
   const initialWorkspaceState = useMemo(() => readInitialWorkspaceState(), [])
@@ -318,6 +325,7 @@ export function ResearchDemoSurface({
   const [paperSectionId, setPaperSectionId] = useState(initialWorkspaceState.paperSectionId ?? '')
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
   const viewerRef = useRef<HTMLElement | null>(null)
+  const inquiryRef = useRef<HTMLDivElement | null>(null)
   const sharedReplayQuestionRef = useRef(initialWorkspaceState.replayQuestion?.trim() ?? '')
   const sharedPaperSectionRef = useRef(initialWorkspaceState.paperSectionId ?? '')
   const [pendingAutoReplayQuestion, setPendingAutoReplayQuestion] = useState(initialWorkspaceState.replayQuestion?.trim() ?? '')
@@ -676,6 +684,10 @@ export function ResearchDemoSurface({
     () => comparisonCandidates.find(entry => entry.path === comparePath) ?? comparisonCandidates[0] ?? null,
     [comparePath, comparisonCandidates],
   )
+  const comparisonDatasetUrl = comparisonDataset ? `${viewerBaseUrl}/${comparisonDataset.path}` : null
+  const comparisonSourceUrl = comparisonDataset
+    ? `https://github.com/syang-ng/geographical-decentralization-simulation/blob/main/dashboard/${comparisonDataset.path}`
+    : null
 
   const paperSectionPromptStarters = useMemo(() => {
     if (!selectedDataset || !selectedPaperSection) return []
@@ -695,6 +707,30 @@ export function ResearchDemoSurface({
 
     return Array.from(new Set(prompts)).slice(0, 4)
   }, [comparisonDataset, paperLens, selectedDataset, selectedPaperSection, viewerSnapshot])
+
+  const promptLaunchers = useMemo<PromptLauncher[]>(() => {
+    const nextLaunchers: PromptLauncher[] = assistantPrompts.map(prompt => ({
+      label: prompt.label,
+      prompt: prompt.prompt,
+    }))
+
+    if (selectedPaperSection && paperSectionPromptStarters[0]) {
+      nextLaunchers.unshift({
+        label: `Probe ${selectedPaperSection.number}`,
+        prompt: paperSectionPromptStarters[0],
+      })
+    }
+
+    const seen = new Set<string>()
+    return nextLaunchers.filter(entry => {
+      const normalizedPrompt = entry.prompt.trim()
+      if (!normalizedPrompt || seen.has(normalizedPrompt)) {
+        return false
+      }
+      seen.add(normalizedPrompt)
+      return true
+    }).slice(0, 4)
+  }, [assistantPrompts, paperSectionPromptStarters, selectedPaperSection])
 
   const comparisonMetrics = useMemo(() => ([
     {
@@ -1451,6 +1487,59 @@ export function ResearchDemoSurface({
     ]
   }, [comparisonDataset, comparisonViewerSnapshot, splitCompareActive, viewerSnapshot])
 
+  const heroSnapshotCards = useMemo<ResultSnapshotCard[]>(() => {
+    const dominantRegion = viewerSnapshot?.dominantRegionCity ?? viewerSnapshot?.dominantRegionId ?? 'Awaiting replay'
+    const inquiryDetail = lastReplayAnswer?.answeredContext
+      ?? promptLaunchers[0]?.prompt
+      ?? activeAudienceBrief.summary
+
+    return [
+      {
+        label: 'Published contract',
+        value: selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'Awaiting scenario',
+        detail: selectedDataset
+          ? `${selectedDataset.result} is loaded as checked-in evidence rather than a fresh run.`
+          : 'Choose a frozen published scenario to bring the replay in immediately.',
+      },
+      {
+        label: 'Live posture',
+        value: viewerSnapshot ? `Slot ${viewerSnapshot.slotNumber.toLocaleString()}` : 'Replay booting',
+        detail: viewerSnapshot
+          ? `${viewerSnapshot.activeRegions.toLocaleString()} active regions with ${dominantRegion} currently leading.`
+          : 'The viewer binds to the selected published payload as soon as the page opens.',
+      },
+      {
+        label: splitCompareActive && comparisonDataset ? 'Foil scenario' : 'Paper anchor',
+        value: splitCompareActive && comparisonDataset
+          ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}`
+          : selectedPaperSection ? selectedPaperSection.number : 'No section',
+        detail: splitCompareActive && comparisonDataset
+          ? comparisonViewerSnapshot
+            ? `${comparisonDataset.result} currently mirrors slot ${comparisonViewerSnapshot.slotNumber.toLocaleString()} in the comparison canvas.`
+            : `${comparisonDataset.result} is ready as the side-by-side foil scenario.`
+          : selectedPaperSection
+            ? `${selectedPaperSection.title} keeps the replay tied to canonical paper language.`
+            : 'Select a paper section to hold the replay and the prose together.',
+      },
+      {
+        label: 'Inquiry state',
+        value: lastReplayAnswer ? 'Replay answer ready' : assistantDraft.trim() ? 'Question drafted' : 'Prompt starters loaded',
+        detail: inquiryDetail,
+      },
+    ]
+  }, [
+    activeAudienceBrief.summary,
+    assistantDraft,
+    comparisonDataset,
+    comparisonViewerSnapshot,
+    lastReplayAnswer,
+    promptLaunchers,
+    selectedDataset,
+    selectedPaperSection,
+    splitCompareActive,
+    viewerSnapshot,
+  ])
+
   const primaryCanvasAnnotations = useMemo<CanvasAnnotation[]>(() => {
     if (!selectedDataset) return []
 
@@ -1672,6 +1761,17 @@ export function ResearchDemoSurface({
     viewerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  const handleFocusInquiry = () => {
+    inquiryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const handlePrimeReplayQuestion = (nextQuestion: string, autoRun = false) => {
+    const normalizedQuestion = nextQuestion.trim()
+    setAssistantDraft(nextQuestion)
+    setPendingAutoReplayQuestion(autoRun && normalizedQuestion ? normalizedQuestion : '')
+    handleFocusInquiry()
+  }
+
   const handleFillDemoValues = () => {
     const demoEntry = (catalog?.datasets ?? []).find(entry =>
       entry.evaluation === 'Test' && entry.paradigm === 'External' && entry.result === 'data',
@@ -1736,6 +1836,97 @@ export function ResearchDemoSurface({
               <span className="lab-chip">Instant preview</span>
               <span className="lab-chip">Configurable simulator depth</span>
               <span className="lab-chip">Theory-ready paper companion</span>
+            </div>
+
+            <div className="mt-8">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Use this workspace</div>
+              <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <button
+                  onClick={() => {
+                    applyAudienceMode('reader')
+                    setPaperLens('evidence')
+                  }}
+                  className="rounded-2xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                >
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">1. Read the scenario</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">Set an evidence-first posture</div>
+                  <div className="mt-2 text-xs leading-5 text-muted">
+                    Keep the published replay on screen and start with geography, concentration, and liveness before asking for interpretation.
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    applyAudienceMode('reviewer')
+                    if (comparisonDataset) {
+                      handlePrimeReplayQuestion(
+                        viewerSnapshot
+                          ? `Compare the active replay at slot ${viewerSnapshot.slotNumber.toLocaleString()} against ${comparisonDataset.paradigm} and tell me what changes materially.`
+                          : `What is materially different between the active replay and ${comparisonDataset.paradigm}?`,
+                        true,
+                      )
+                    }
+                  }}
+                  className="rounded-2xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                >
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">2. Test a comparison</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">Open the foil and ask one grounded question</div>
+                  <div className="mt-2 text-xs leading-5 text-muted">
+                    This turns on the comparison posture and, when a foil is available, immediately asks the replay guide to explain the material delta.
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    applyViewPreset('analysis')
+                    setPaperLens('theory')
+                    handlePrimeReplayQuestion(
+                      selectedPaperSection
+                        ? `Use ${selectedPaperSection.number} ${selectedPaperSection.title} to explain the main mechanism visible in this replay.`
+                        : 'What mechanism seems to drive the concentration pattern in this replay?',
+                      true,
+                    )
+                  }}
+                  className="rounded-2xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                >
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">3. Trace the mechanism</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">Bind the replay to the paper framing</div>
+                  <div className="mt-2 text-xs leading-5 text-muted">
+                    Shift into the theory lens and ask a section-grounded question so the answer stays attached to the canonical argument.
+                  </div>
+                </button>
+
+                <button
+                  onClick={onOpenExactLab}
+                  disabled={!onOpenExactLab}
+                  className={cn(
+                    'rounded-2xl border px-4 py-4 text-left transition-all',
+                    onOpenExactLab
+                      ? 'border-border-subtle bg-white hover:-translate-y-0.5 hover:border-border-hover'
+                      : 'cursor-not-allowed border-border-subtle bg-surface-active text-muted',
+                  )}
+                >
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">4. Reproduce it exactly</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">Jump to the exact-run lab</div>
+                  <div className="mt-2 text-xs leading-5 text-muted">
+                    Use the published replay to orient yourself first, then move into the exact engine only when you need a fresh bounded run.
+                  </div>
+                </button>
+              </div>
+
+              <div className="mt-3 text-xs leading-5 text-muted">
+                These controls adjust the current workspace. They do not generate a new page or silently rerun the full simulation.
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {heroSnapshotCards.map(card => (
+                  <div key={card.label} className="rounded-2xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{card.label}</div>
+                    <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
+                    <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -1857,47 +2048,80 @@ export function ResearchDemoSurface({
               )}
             </div>
 
-            <div className="lab-stage p-5">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <div className="text-xs text-muted mb-1">
-                    {lastReplayAnswer ? 'Latest replay answer' : 'Immediate result readout'}
+            <div className="lab-stage overflow-hidden p-0">
+              <div className="grid gap-0 xl:grid-cols-[minmax(0,1.08fr)_360px]">
+                <div className="border-b border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.78))] px-5 py-5 xl:border-b-0 xl:border-r">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">
+                    {lastReplayAnswer ? 'Replay-backed conclusion' : 'Published findings board'}
                   </div>
-                  <div className="text-sm leading-6 text-text-primary">
+                  <div className="mt-3 max-w-3xl text-lg font-semibold leading-8 text-text-primary">
                     {immediateResultSummary}
                   </div>
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
+                    {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number} {selectedPaperSection.title}</span> : null}
+                    {viewerSnapshot ? <span className="lab-chip">slot {viewerSnapshot.slotNumber}</span> : null}
+                    {splitCompareActive && comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
+                    <span className="lab-chip">{paperLens} lens</span>
+                  </div>
+                  {promptLaunchers.length > 0 ? (
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {promptLaunchers.slice(0, 3).map(item => (
+                        <button
+                          key={`findings-${item.label}`}
+                          onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
+                          className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
-                <div className="flex flex-wrap gap-2 text-xs text-muted">
-                  {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number} {selectedPaperSection.title}</span> : null}
-                  {viewerSnapshot ? <span className="lab-chip">slot {viewerSnapshot.slotNumber}</span> : null}
-                  {splitCompareActive && comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
-                  <span className="lab-chip">{paperLens} lens</span>
+
+                <div className="space-y-3 bg-white px-5 py-5">
+                  <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Current posture</div>
+                    <div className="mt-2 text-sm leading-6 text-text-primary">{currentViewSummary}</div>
+                  </div>
+                  <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">
+                      {splitCompareActive && comparisonDataset ? 'Comparison read' : 'Canonical paper anchor'}
+                    </div>
+                    <div className="mt-2 text-sm font-medium text-text-primary">
+                      {splitCompareActive && comparisonDataset
+                        ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}`
+                        : selectedPaperSection ? `${selectedPaperSection.number} ${selectedPaperSection.title}` : 'No section selected'}
+                    </div>
+                    <div className="mt-2 text-xs leading-5 text-muted">
+                      {splitCompareActive && comparisonDataset
+                        ? comparisonNarrative
+                        : selectedPaperSection?.description ?? 'Select a paper section to keep the replay interpretation tied to the canonical text.'}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Why it matters now</div>
+                    <div className="mt-2 text-xs leading-5 text-muted">{activeAudienceBrief.summary}</div>
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {resultSnapshotCards.map(card => (
-                  <div key={card.label} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{card.label}</div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
-                    <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.08fr)_minmax(240px,0.92fr)]">
-                <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Current posture</div>
-                  <div className="mt-2 text-sm leading-6 text-text-primary">{currentViewSummary}</div>
-                </div>
-                <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Canonical paper anchor</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">
-                    {selectedPaperSection ? `${selectedPaperSection.number} ${selectedPaperSection.title}` : 'No section selected'}
-                  </div>
-                  <div className="mt-2 text-xs leading-5 text-muted">
-                    {selectedPaperSection?.description ?? 'Select a paper section to keep the replay interpretation tied to the canonical text.'}
-                  </div>
+              <div className="border-t border-border-subtle px-5 py-5">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {resultSnapshotCards.map((card, index) => (
+                    <div
+                      key={card.label}
+                      className={cn(
+                        'rounded-[1.15rem] border px-4 py-4 shadow-[0_12px_26px_rgba(15,23,42,0.04)]',
+                        index === 0
+                          ? 'border-accent/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.88))]'
+                          : 'border-border-subtle bg-white',
+                      )}
+                    >
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{card.label}</div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
+                      <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -2489,163 +2713,246 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="space-y-6">
-              <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">Question drafting</div>
-                <div className="text-sm text-text-primary">
-                  Draft a question tied to the selected published replay so your next reading or note starts from the evidence already on screen.
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {assistantPrompts.map(item => (
-                    <button
-                      key={item.label}
-                      onClick={() => setAssistantDraft(item.prompt)}
-                      className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Draft question</div>
-                  <textarea
-                    value={assistantDraft}
-                    onChange={event => setAssistantDraft(event.target.value)}
-                    className="mt-2 min-h-[144px] w-full resize-none bg-transparent text-sm leading-6 text-text-primary outline-none"
-                    placeholder="Ask the paper about this published run..."
-                  />
-                </div>
-
-                <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Active context</div>
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
+              <div ref={inquiryRef} className="lab-stage overflow-hidden p-0">
+                <div className="border-b border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-5 py-5">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Replay inquiry studio</div>
+                  <div className="mt-2 text-sm leading-6 text-text-primary">
+                    Use the replay already on screen as the source of truth, keep the question anchored to the paper, and ask the companion without dropping back into a separate workflow.
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
                     <span className="lab-chip">{selectedDataset?.evaluation ?? 'No scenario'}</span>
                     <span className="lab-chip">{selectedDataset?.paradigm ?? 'No mode'}</span>
                     <span className="lab-chip">{selectedDataset?.result ?? 'No result'}</span>
-                    <span className="lab-chip">{selectedDataset?.sourceRole ?? 'No source role'}</span>
                     <span className="lab-chip">{matchedViewPreset?.label ?? 'Custom'} preset</span>
-                    {activeChapterRoute ? (
-                      <span className="lab-chip">{activeChapterRoute.label}</span>
-                    ) : null}
-                    <span className="lab-chip">{themeLabel(theme)} theme</span>
-                    <span className="lab-chip">step {step}</span>
                     <span className="lab-chip">{paperLens} lens</span>
                     {selectedPaperSection ? <span className="lab-chip">{selectedPaperSection.number} {selectedPaperSection.title}</span> : null}
                     {viewerSnapshot ? <span className="lab-chip">slot {viewerSnapshot.slotNumber}</span> : null}
                   </div>
-                  <div className="mt-3 text-xs leading-5 text-muted">
-                    Use this draft to guide a reading, compare scenarios, or frame a public note against this selected replay.
-                  </div>
                 </div>
 
-                <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Canonical paper anchor</div>
-                      <div className="mt-2 text-sm font-medium text-text-primary">
-                        {selectedPaperSection ? `${selectedPaperSection.number} ${selectedPaperSection.title}` : 'No paper section selected'}
-                      </div>
-                      <div className="mt-2 text-xs leading-5 text-muted">
-                        {selectedPaperSection?.description ?? 'Choose a paper section to keep theory and methods questions tied to the canonical paper guide.'}
-                      </div>
+                <div className="grid gap-6 p-5 2xl:grid-cols-[minmax(0,1.05fr)_320px]">
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      {promptLaunchers.map(item => (
+                        <button
+                          key={`${item.label}:${item.prompt}`}
+                          onClick={() => handlePrimeReplayQuestion(item.prompt)}
+                          className={cn(
+                            'rounded-full border px-3 py-1.5 text-xs font-medium transition-all hover:-translate-y-0.5',
+                            assistantDraft.trim() === item.prompt.trim()
+                              ? 'border-accent bg-white text-accent'
+                              : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
+                          )}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
                     </div>
 
-                    <a
-                      href={paperSectionUrl || undefined}
-                      className={cn(
-                        'rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
-                        !paperSectionUrl && 'pointer-events-none opacity-60',
-                      )}
-                    >
-                      Open paper section
-                    </a>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {suggestedPaperSections.map(section => (
-                      <button
-                        key={section.id}
-                        onClick={() => setPaperSectionId(section.id)}
-                        className={cn(
-                          'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                          selectedPaperSection?.id === section.id
-                            ? 'border-accent bg-white text-accent'
-                            : 'border-border-subtle bg-[#FAFAF8] text-text-primary hover:border-border-hover',
-                        )}
-                      >
-                        {section.number} {section.title}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {selectedPaperSection ? (
-                  <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Section evidence preview</div>
-                        <div className="mt-2 text-sm font-medium text-text-primary">
-                          {selectedPaperSection.number} {selectedPaperSection.title}
+                    <div className="rounded-[1.25rem] border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.78))] px-4 py-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)]">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Draft question</div>
+                          <div className="mt-2 text-sm leading-6 text-text-primary">
+                            Write against what the replay is doing right now, then ask for explanation, challenge, or synthesis.
+                          </div>
                         </div>
-                        <div className="mt-2 text-xs leading-5 text-muted">
-                          Keep theory and methods questions grounded in the same canonical paper section the replay companion receives.
+                        <div className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                          {assistantDraft.trim() ? 'Draft ready' : 'Pick a prompt starter'}
                         </div>
                       </div>
-                      <div className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
-                        {paperSectionContext ? 'Paper context attached' : 'Paper context unavailable'}
-                      </div>
-                    </div>
 
-                    {paperSectionPromptStarters.length > 0 ? (
+                      <textarea
+                        value={assistantDraft}
+                        onChange={event => {
+                          setAssistantDraft(event.target.value)
+                          setPendingAutoReplayQuestion('')
+                        }}
+                        className="mt-4 min-h-[168px] w-full resize-none rounded-[1rem] border border-white/60 bg-white/78 px-4 py-4 text-sm leading-6 text-text-primary outline-none transition-colors focus:border-accent/25"
+                        placeholder="Ask the paper about this published run..."
+                      />
+
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {paperSectionPromptStarters.map(prompt => (
-                          <button
-                            key={prompt}
-                            onClick={() => setAssistantDraft(prompt)}
-                            className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                          >
-                            {prompt}
-                          </button>
-                        ))}
+                        <button
+                          onClick={() => {
+                            const nextQuestion = assistantDraft.trim()
+                            if (!nextQuestion) return
+                            setPendingAutoReplayQuestion(nextQuestion)
+                          }}
+                          disabled={!assistantDraft.trim()}
+                          className={cn(
+                            'rounded-full px-4 py-2 text-xs font-medium transition-all',
+                            assistantDraft.trim()
+                              ? 'bg-[#0F172A] text-white hover:-translate-y-0.5'
+                              : 'cursor-not-allowed border border-border-subtle bg-surface-active text-muted',
+                          )}
+                        >
+                          Ask replay companion
+                        </button>
+                        <button
+                          onClick={handleFocusViewer}
+                          className="rounded-full border border-border-subtle bg-white px-4 py-2 text-xs font-medium text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                        >
+                          Back to live replay
+                        </button>
+                        <button
+                          onClick={() => {
+                            setAssistantDraft('')
+                            setPendingAutoReplayQuestion('')
+                          }}
+                          className="rounded-full border border-border-subtle bg-white px-4 py-2 text-xs font-medium text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                        >
+                          Clear draft
+                        </button>
+                      </div>
+                    </div>
+
+                    {selectedPaperSection ? (
+                      <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Section evidence preview</div>
+                            <div className="mt-2 text-sm font-medium text-text-primary">
+                              {selectedPaperSection.number} {selectedPaperSection.title}
+                            </div>
+                            <div className="mt-2 text-xs leading-5 text-muted">
+                              Keep theory and methods questions grounded in the same canonical paper section the replay companion receives.
+                            </div>
+                          </div>
+                          <div className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                            {paperSectionContext ? 'Paper context attached' : 'Paper context unavailable'}
+                          </div>
+                        </div>
+
+                        {paperSectionPromptStarters.length > 0 ? (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {paperSectionPromptStarters.map(prompt => (
+                              <button
+                                key={prompt}
+                                onClick={() => handlePrimeReplayQuestion(prompt)}
+                                className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                              >
+                                {prompt}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        <div className="mt-4">
+                          <BlockCanvas blocks={selectedPaperSectionBlocks} showExport={false} />
+                        </div>
                       </div>
                     ) : null}
 
-                    <div className="mt-4">
-                      <BlockCanvas blocks={selectedPaperSectionBlocks} showExport={false} />
+                    <PublishedReplayCompanionPanel
+                      question={assistantDraft}
+                      onQuestionChange={setAssistantDraft}
+                      dataset={selectedDataset}
+                      comparisonDataset={comparisonDataset}
+                      paperSection={selectedPaperSection
+                        ? {
+                            id: selectedPaperSection.id,
+                            number: selectedPaperSection.number,
+                            title: selectedPaperSection.title,
+                            description: selectedPaperSection.description,
+                            context: paperSectionContext,
+                          }
+                        : null}
+                      paperLens={paperLens}
+                      audienceMode={audienceMode}
+                      currentViewSummary={currentViewSummary}
+                      viewerSnapshot={viewerSnapshot}
+                      comparisonViewerSnapshot={comparisonViewerSnapshot}
+                      replayQueryUrl={shareUrl}
+                      datasetArtifactUrl={datasetUrl}
+                      datasetSourceUrl={sourceUrl}
+                      comparisonArtifactUrl={comparisonDatasetUrl}
+                      comparisonSourceUrl={comparisonSourceUrl}
+                      paperSectionUrl={paperSectionUrl}
+                      autoRunQuestion={companionAutoRunQuestion}
+                      onAutoRunHandled={() => setPendingAutoReplayQuestion('')}
+                      onResponseChange={setLastReplayAnswer}
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Active context</div>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
+                        <span className="lab-chip">{selectedDataset?.evaluation ?? 'No scenario'}</span>
+                        <span className="lab-chip">{selectedDataset?.paradigm ?? 'No mode'}</span>
+                        <span className="lab-chip">{selectedDataset?.result ?? 'No result'}</span>
+                        <span className="lab-chip">{selectedDataset?.sourceRole ?? 'No source role'}</span>
+                        {activeChapterRoute ? <span className="lab-chip">{activeChapterRoute.label}</span> : null}
+                        <span className="lab-chip">{themeLabel(theme)} theme</span>
+                        <span className="lab-chip">step {step}</span>
+                        {splitCompareActive && comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
+                      </div>
+                      <div className="mt-3 text-xs leading-5 text-muted">
+                        Use this context to frame a reading, compare scenarios, or publish a public note against the exact replay state you are inspecting.
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{activeAudienceBrief.title}</div>
+                      <div className="mt-2 text-sm leading-6 text-text-primary">{activeAudienceBrief.summary}</div>
+                      <div className="mt-4 space-y-2">
+                        {activeAudienceBrief.items.map(item => (
+                          <div key={item} className="rounded-lg border border-border-subtle bg-white px-3 py-3 text-xs leading-5 text-muted">
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Canonical paper anchor</div>
+                          <div className="mt-2 text-sm font-medium text-text-primary">
+                            {selectedPaperSection ? `${selectedPaperSection.number} ${selectedPaperSection.title}` : 'No paper section selected'}
+                          </div>
+                          <div className="mt-2 text-xs leading-5 text-muted">
+                            {selectedPaperSection?.description ?? 'Choose a paper section to keep theory and methods questions tied to the canonical paper guide.'}
+                          </div>
+                        </div>
+
+                        <a
+                          href={paperSectionUrl || undefined}
+                          className={cn(
+                            'rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                            !paperSectionUrl && 'pointer-events-none opacity-60',
+                          )}
+                        >
+                          Open paper section
+                        </a>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {suggestedPaperSections.map(section => (
+                          <button
+                            key={section.id}
+                            onClick={() => setPaperSectionId(section.id)}
+                            className={cn(
+                              'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                              selectedPaperSection?.id === section.id
+                                ? 'border-accent bg-white text-accent'
+                                : 'border-border-subtle bg-[#FAFAF8] text-text-primary hover:border-border-hover',
+                            )}
+                          >
+                            {section.number} {section.title}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                ) : null}
-
-                <PublishedReplayCompanionPanel
-                  question={assistantDraft}
-                  onQuestionChange={setAssistantDraft}
-                  dataset={selectedDataset}
-                  comparisonDataset={comparisonDataset}
-                  paperSection={selectedPaperSection
-                    ? {
-                        id: selectedPaperSection.id,
-                        number: selectedPaperSection.number,
-                        title: selectedPaperSection.title,
-                        description: selectedPaperSection.description,
-                        context: paperSectionContext,
-                      }
-                    : null}
-                  paperLens={paperLens}
-                  audienceMode={audienceMode}
-                  currentViewSummary={currentViewSummary}
-                  viewerSnapshot={viewerSnapshot}
-                  comparisonViewerSnapshot={comparisonViewerSnapshot}
-                  autoRunQuestion={companionAutoRunQuestion}
-                  onAutoRunHandled={() => setPendingAutoReplayQuestion('')}
-                  onResponseChange={setLastReplayAnswer}
-                />
+                </div>
 
                 <PublishedReplayNotesPanel
                   dataset={selectedDataset}
-                  comparisonDataset={comparisonDataset}
+                  comparisonDataset={splitCompareActive ? comparisonDataset : null}
                   viewerSnapshot={viewerSnapshot}
-                  comparisonViewerSnapshot={comparisonViewerSnapshot}
+                  comparisonViewerSnapshot={splitCompareActive ? comparisonViewerSnapshot : null}
                   paperLens={paperLens}
                   audienceMode={audienceMode}
                 />

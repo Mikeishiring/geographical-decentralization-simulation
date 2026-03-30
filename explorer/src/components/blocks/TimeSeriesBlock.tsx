@@ -287,11 +287,11 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
               )
             })}
 
-            {xTicks.map(tick => {
+            {xTicks.map((tick, index) => {
               const { sx } = toSvg(tick, minY)
               return (
                 <text
-                  key={tick}
+                  key={`${tick}-${index}`}
                   x={sx}
                   y={svgH - 5}
                   textAnchor="middle"
