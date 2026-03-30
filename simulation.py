@@ -10,7 +10,6 @@ import shutil
 import time
 import traceback
 import yaml  # Import yaml library
-from collections import defaultdict, Counter
 
 from constants import LinearMEVUtility
 from consensus import ConsensusSettings
@@ -399,10 +398,13 @@ def simulation(
     time_window,  # Time window for migration checks
     fast_mode=False,  # Fast mode for latency computation
     cost=0.0001,  # Cost for migration, default to 0.0001
+    latency_std_dev_ratio=0.5,
     seed=DEFAULT_SIMULATION_SEED,
     collect_full_history=False,
     export_raw_artifacts=True,
     verbose=False,
+    num_proposers_per_slot=1,  # Number of proposers per slot
+    proposer_mode="MSP"  # Proposer mode, default to "MSP"
 ):
     # --- Simulation Execution ---
     random.seed(seed)  # For reproducibility
@@ -443,6 +445,9 @@ def simulation(
         "collect_full_history": collect_full_history,
         "collect_raw_artifacts": export_raw_artifacts,
         "verbose": verbose,
+        "num_proposers_per_slot": num_proposers_per_slot,
+        "latency_std_dev_ratio": latency_std_dev_ratio,
+        "proposer_mode": proposer_mode,
     }
 
     # --- Create and Run the Model ---
@@ -457,14 +462,13 @@ def simulation(
         else:
             model_standard = MultiSourceParadigm(**model_params_standard_nomig)
 
-        for _ in range(TOTAL_TIME_STEPS):
+        while model_standard.steps < TOTAL_TIME_STEPS:
             model_standard.step()
             if not model_standard.running:
                 print(
                     f"Stopping simulation as no validators moved within the time window ({time_window})."
                 )
                 break
-        
         if model_standard.running:
             print(
                 f"Stopping simulation after reaching the maximum time steps: {TOTAL_TIME_STEPS}."
@@ -476,7 +480,7 @@ def simulation(
         print("\n--- Final Results Summary ---")
         print(f"Total Slots: {model_standard.current_slot_idx + 1}")
         print(f"Total MEV Earned: {model_standard.total_mev_earned:.4f} ETH")
-        completed_slots = max(model_standard.current_slot_idx, 1)
+        completed_slots = max(model_standard.current_slot_idx + 1, 1)
         print(
             f"Avg MEV Earned per Slot: {model_standard.total_mev_earned / completed_slots:.4f} ETH"
         )
@@ -491,7 +495,6 @@ def simulation(
                 json.dump(names, f)
 
         export_payloads = build_export_payloads(model_standard)
-
         gcp_region_profits = pd.DataFrame(model_standard.region_profits)
         gcp_region_profits.to_csv(f"{output_folder}/region_profits.csv", index=False)
 
@@ -500,7 +503,6 @@ def simulation(
 
         with open(f"{output_folder}/supermajority_success.json", "w") as f:
             json.dump(export_payloads["supermajority_success"], f)
-
         with open(f"{output_folder}/failed_block_proposals.json", "w") as f:
             json.dump(export_payloads["failed_block_proposals"], f)
 
@@ -542,17 +544,22 @@ def simulation(
             with open(f"{output_folder}/proposal_time_by_slot.json", "w") as f:
                 json.dump(export_payloads["proposal_time_by_slot"], f)
 
-        if export_raw_artifacts:
-            with open(f"{output_folder}/mev_by_slot.json", "w") as f:
-                json.dump(export_payloads["mev_by_slot"], f)
-            with open(f"{output_folder}/estimated_mev_by_slot.json", "w") as f:
-                json.dump(export_payloads["estimated_mev_by_slot"], f)
-            with open(f"{output_folder}/attest_by_slot.json", "w") as f:
-                json.dump(export_payloads["attest_by_slot"], f)
-            with open(f"{output_folder}/proposal_time_by_slot.json", "w") as f:
-                json.dump(export_payloads["proposal_time_by_slot"], f)
-            with open(f"{output_folder}/region_counter_per_slot.json", "w") as f:
-                json.dump(export_payloads["region_counter_per_slot"], f)
+        summary = {
+            "simulation_name": simulation_name,
+            "seed": seed,
+            "model": model,
+            "latency_std_dev_ratio": latency_std_dev_ratio,
+            "proposer_mode": proposer_mode,
+            "num_proposers_per_slot": num_proposers_per_slot,
+            "total_slots": model_standard.current_slot_idx + 1,
+            "total_mev_earned": model_standard.total_mev_earned,
+            "avg_mev_per_slot": (
+                model_standard.total_mev_earned / max(model_standard.current_slot_idx + 1, 1)
+            ),
+            "failed_block_proposals_total": model_standard.failed_block_proposals,
+        }
+        with open(f"{output_folder}/summary.json", "w") as f:
+            json.dump(summary, f)
 
         print("Saved data in JSON files in the output directory.")
         print("Information Sources:")
@@ -682,6 +689,28 @@ if __name__ == "__main__":
         action=argparse.BooleanOptionalAction,
         help="Enable verbose slot and migration logging (default: False)",
     )
+    parser.add_argument(
+        "--num_proposers_per_slot",
+        type=int,
+        default=None,
+        help="Number of proposers per slot (default: 1)",
+    )
+
+    parser.add_argument(
+        "--proposer-mode",
+        "--proposer_mode",
+        type=str,
+        default=None,
+        choices=["MSP", "MCP"],
+        help="Proposer mode: MSP (sum signals) or MCP (choose best signal). "
+             "(default: MSP)",
+    )
+    parser.add_argument(
+        "--latency-std-dev-ratio",
+        type=float,
+        default=None,
+        help="Latency sampling standard deviation as a fraction of mean latency (default: YAML value or 0.5)",
+    )
 
     args = parser.parse_args()
 
@@ -717,11 +746,36 @@ if __name__ == "__main__":
         # cost for migration
         cost = args.cost if args.cost is not None else config.get("migration_cost", 0.0001)
         seed = args.seed if args.seed is not None else config.get("seed", DEFAULT_SIMULATION_SEED)
+        latency_std_dev_ratio = (
+            args.latency_std_dev_ratio
+            if args.latency_std_dev_ratio is not None
+            else config.get("latency_std_dev_ratio", 0.5)
+        )
+        if latency_std_dev_ratio < 0:
+            raise ValueError("latency_std_dev_ratio must be non-negative")
+
+        # proposers per slot
+        num_proposers_per_slot = args.num_proposers_per_slot if args.num_proposers_per_slot is not None else config.get("num_proposers_per_slot", 1)
+        if model == "SSP" and num_proposers_per_slot != 1:
+            print("Warning: SSP model only supports 1 proposer per slot. Overriding to 1.")
+            num_proposers_per_slot = 1
+
+        proposer_mode = (
+            args.proposer_mode
+            if args.proposer_mode is not None
+            else config.get("proposer_mode", "MSP")
+        )
+
+        if num_proposers_per_slot > 1 and proposer_mode == "MSP":
+            proposer_mode = "MCP"
 
         if args.output_dir == "default":
             output_folder = os.path.join(
                 output_folder,
-                f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{args.gamma}_delta_{args.delta}_cutoff_{args.cutoff}_seed_{seed}",
+                f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{args.gamma}_delta_{args.delta}_cutoff_{args.cutoff}_seed_{seed}"
+                f"{f'_latstd_{latency_std_dev_ratio}' if latency_std_dev_ratio != 0.5 else ''}"
+                f"{f'_proposers_{num_proposers_per_slot}' if num_proposers_per_slot != 1 else ''}"
+                f"{f'_mode_{proposer_mode.lower()}' if proposer_mode != 'MSP' else ''}",
             )
         else:
             output_folder = args.output_dir
@@ -789,6 +843,9 @@ if __name__ == "__main__":
             "fast_mode": fast_mode,
             "cost": cost,
             "seed": seed,
+            "latency_std_dev_ratio": latency_std_dev_ratio,
+            "num_proposers_per_slot": num_proposers_per_slot,
+            "proposer_mode": proposer_mode,
             "consensus_settings": vars(consensus_settings),
             "timing_strategies": timing_strategies,
             "location_strategies": location_strategies,
@@ -847,9 +904,12 @@ if __name__ == "__main__":
             time_window=time_window,
             fast_mode=fast_mode,
             cost=cost,
+            latency_std_dev_ratio=latency_std_dev_ratio,
             seed=seed,
             collect_full_history=args.full_history,
             verbose=args.verbose,
+            num_proposers_per_slot=num_proposers_per_slot,
+            proposer_mode=proposer_mode
         )
 
         if args.cache_results:

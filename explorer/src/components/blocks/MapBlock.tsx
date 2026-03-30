@@ -1,7 +1,7 @@
-import { useId, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useId, useMemo, useRef, useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
-import { SPRING, SPRING_SOFT } from '../../lib/theme'
+import { SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { WORLD_PATHS } from '../../data/world-paths'
 import type { MapBlock as MapBlockType } from '../../types/blocks'
@@ -10,6 +10,7 @@ interface MapBlockProps {
   block: MapBlockType
 }
 
+/* ── Projection ── */
 function latLonToMercator(lat: number, lon: number, width: number, height: number) {
   const x = ((lon + 180) / 360) * width
   const latRad = (lat * Math.PI) / 180
@@ -18,9 +19,10 @@ function latLonToMercator(lat: number, lon: number, width: number, height: numbe
   return { x, y }
 }
 
+/* ── Dot sizing — sqrt scale for perceptually fair area encoding ── */
 function getDotRadius(value: number, maxValue: number): number {
-  const normalized = Math.max(value / Math.max(maxValue, 1), 0.05)
-  return 3 + normalized * 8
+  const normalized = Math.max(value / Math.max(maxValue, 1), 0.04)
+  return 3.5 + Math.sqrt(normalized) * 9
 }
 
 function getDotColor(value: number, maxValue: number, colorScale?: string): string {
@@ -32,23 +34,65 @@ function getDotColor(value: number, maxValue: number, colorScale?: string): stri
   }
   const t = Math.min(value / Math.max(maxValue, 1), 1)
   if (t < 0.1) return '#64748B'
-  if (t < 0.3) return '#2563EB'
+  if (t < 0.3) return '#3B82F6'
   if (t < 0.6) return '#C2553A'
   return '#F59E0B'
 }
 
 function getEdgeOpacity(va: number, vb: number, maxValue: number): number {
   const combined = (va + vb) / (2 * Math.max(maxValue, 1))
-  return 0.06 + combined * 0.18
+  return 0.05 + combined * 0.15
 }
+
+/* ── Curved edge path (quadratic bezier with upward arc) ── */
+function curvedEdgePath(x1: number, y1: number, x2: number, y2: number): string {
+  const mx = (x1 + x2) / 2
+  const my = (y1 + y2) / 2
+  const dist = Math.hypot(x2 - x1, y2 - y1)
+  const curvature = Math.min(dist * 0.15, 30)
+  const angle = Math.atan2(y2 - y1, x2 - x1) - Math.PI / 2
+  const cx = mx + Math.cos(angle) * curvature
+  const cy = my + Math.sin(angle) * curvature
+  return `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`
+}
+
+interface TooltipData {
+  x: number
+  y: number
+  label: string
+  value: number
+  color: string
+  rank: number
+}
+
+const SVG_W = 800
+const SVG_H = 450
 
 export function MapBlock({ block }: MapBlockProps) {
   const bgId = useId()
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; label: string; value: number } | null>(null)
   const regions = block.regions
+  const glowId = `${bgId}-glow`
+  const mapRef = useRef<HTMLDivElement>(null)
+  const [tooltip, setTooltip] = useState<TooltipData | null>(null)
+  const [hoveredRegion, setHoveredRegion] = useState<string | null>(null)
+
+  const handleRegionHover = useCallback((data: TooltipData | null) => {
+    setTooltip(data)
+    setHoveredRegion(data?.label ?? null)
+  }, [])
+
+  if (regions.length === 0) {
+    return (
+      <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
+        <div className="border-b border-border-subtle px-5 py-3">
+          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
+        </div>
+        <div className="px-5 py-10 text-center text-xs text-muted">No region data available</div>
+      </div>
+    )
+  }
+
   const maxValue = Math.max(...regions.map(r => r.value), 1)
-  const svgW = 800
-  const svgH = 420
 
   const sorted = useMemo(
     () => [...regions].toSorted((a, b) => b.value - a.value),
@@ -59,9 +103,9 @@ export function MapBlock({ block }: MapBlockProps) {
   const edges = useMemo(() => {
     const pts = regions.map(r => ({
       ...r,
-      ...latLonToMercator(r.lat, r.lon, svgW, svgH),
+      ...latLonToMercator(r.lat, r.lon, SVG_W, SVG_H),
     }))
-    const result: { x1: number; y1: number; x2: number; y2: number; va: number; vb: number }[] = []
+    const result: { path: string; va: number; vb: number }[] = []
     const N = Math.min(3, pts.length - 1)
     for (const p of pts) {
       const distances = pts
@@ -71,29 +115,37 @@ export function MapBlock({ block }: MapBlockProps) {
         .slice(0, N)
       for (const { q } of distances) {
         if (p.name < q.name) {
-          result.push({ x1: p.x, y1: p.y, x2: q.x, y2: q.y, va: p.value, vb: q.value })
+          result.push({
+            path: curvedEdgePath(p.x, p.y, q.x, q.y),
+            va: p.value,
+            vb: q.value,
+          })
         }
       }
     }
     return result
   }, [regions])
 
-  if (regions.length === 0) {
-    return (
-      <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
-        <div className="border-b border-border-subtle px-5 py-3">
-          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
-        </div>
-        <div className="px-5 py-8 text-center text-xs text-muted">No region data available</div>
-      </div>
-    )
-  }
-
-  // Determine if data is meaningful (not all the same value)
   const hasVariation = new Set(regions.map(r => r.value)).size > 1
 
+  /* Tooltip edge-clamping: keep it inside the map container */
+  const tooltipStyle = useMemo(() => {
+    if (!tooltip) return {}
+    const xPct = (tooltip.x / SVG_W) * 100
+    const yPct = (tooltip.y / SVG_H) * 100
+    const flipBelow = yPct < 18
+    return {
+      left: `clamp(5%, ${xPct}%, 95%)`,
+      top: flipBelow ? `${yPct + 4}%` : `${yPct}%`,
+      transform: flipBelow
+        ? 'translate(-50%, 12px)'
+        : 'translate(-50%, calc(-100% - 12px))',
+    }
+  }, [tooltip])
+
   return (
-    <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
+    <div className="overflow-hidden rounded-xl border border-border-subtle bg-white geo-accent-bar">
+      {/* ── Header ── */}
       <div className="border-b border-border-subtle px-5 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -102,188 +154,301 @@ export function MapBlock({ block }: MapBlockProps) {
           </div>
           <div className="flex items-center gap-3 text-xs text-muted">
             <span>{regions.length} regions</span>
-            <span className="font-mono text-[10px]">{edges.length} links</span>
+            <span className="font-mono text-[10px] opacity-60">{edges.length} links</span>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-4 p-4 lg:grid-cols-[1.5fr_minmax(0,0.55fr)]">
-        {/* ── Map ── */}
-        <div className="relative overflow-hidden rounded-lg bg-[#0D1117]" style={{ minHeight: 300 }}>
+      {/* ── Map (full-width) + sidebar below on mobile, beside on lg ── */}
+      <div className="grid gap-0 lg:grid-cols-[1fr_220px]">
+        {/* ── Map canvas ── */}
+        <div
+          ref={mapRef}
+          className="relative overflow-hidden bg-[#0B0F14]"
+          style={{ aspectRatio: `${SVG_W} / ${SVG_H}` }}
+        >
           <svg
-            viewBox={`0 0 ${svgW} ${svgH}`}
-            className="relative w-full"
-            preserveAspectRatio="xMidYMid meet"
+            viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+            className="absolute inset-0 h-full w-full"
+            preserveAspectRatio="xMidYMid slice"
             role="img"
             aria-label={block.title}
           >
             <defs>
-              <radialGradient id={bgId} cx="45%" cy="40%" r="65%">
-                <stop offset="0%" stopColor="#131A24" />
-                <stop offset="100%" stopColor="#0D1117" />
+              <radialGradient id={bgId} cx="42%" cy="38%" r="68%">
+                <stop offset="0%" stopColor="#111927" />
+                <stop offset="100%" stopColor="#0B0F14" />
               </radialGradient>
+              <radialGradient id={glowId} cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.12} />
+                <stop offset="100%" stopColor="#3B82F6" stopOpacity={0} />
+              </radialGradient>
+              <filter id={`${bgId}-blur`}>
+                <feGaussianBlur in="SourceGraphic" stdDeviation="18" />
+              </filter>
             </defs>
 
-            <rect x={0} y={0} width={svgW} height={svgH} fill={`url(#${bgId})`} />
+            <rect x={0} y={0} width={SVG_W} height={SVG_H} fill={`url(#${bgId})`} />
 
-            {/* Subtle graticule */}
-            {[0.25, 0.5, 0.75].map(f => (
-              <line key={`h-${f}`} x1={0} y1={svgH * f} x2={svgW} y2={svgH * f}
-                stroke="#1E293B" strokeWidth={0.5} />
-            ))}
-            {[0.25, 0.5, 0.75].map(f => (
-              <line key={`v-${f}`} x1={svgW * f} y1={0} x2={svgW * f} y2={svgH}
-                stroke="#1E293B" strokeWidth={0.5} />
-            ))}
+            {/* Subtle graticule grid */}
+            {[-60, -30, 0, 30, 60].map(lat => {
+              const { y } = latLonToMercator(lat, 0, SVG_W, SVG_H)
+              return (
+                <g key={`lat-${lat}`}>
+                  <line x1={0} y1={y} x2={SVG_W} y2={y} stroke="#1A2336" strokeWidth={0.4} />
+                  <text x={8} y={y - 3} fill="#263354" fontSize="6" fontFamily="var(--font-mono)">
+                    {Math.abs(lat)}°{lat >= 0 ? 'N' : 'S'}
+                  </text>
+                </g>
+              )
+            })}
+            {[-120, -60, 0, 60, 120].map(lon => {
+              const { x } = latLonToMercator(0, lon, SVG_W, SVG_H)
+              return <line key={`lon-${lon}`} x1={x} y1={0} x2={x} y2={SVG_H} stroke="#1A2336" strokeWidth={0.4} />
+            })}
 
-            {/* Country outlines from real GeoJSON — faint geographic context */}
+            {/* Country outlines — real GeoJSON silhouettes */}
             {WORLD_PATHS.map((d, i) => (
               <path
                 key={i}
                 d={d}
-                fill="#1A2332"
-                stroke="#243044"
-                strokeWidth={0.3}
+                fill="#141E2E"
+                stroke="#1F3049"
+                strokeWidth={0.35}
                 strokeLinejoin="round"
               />
             ))}
 
-            {/* Network edges */}
+            {/* Ambient glow behind top clusters */}
+            {topRegions.slice(0, 3).map(region => {
+              const { x, y } = latLonToMercator(region.lat, region.lon, SVG_W, SVG_H)
+              return (
+                <circle
+                  key={`glow-${region.name}`}
+                  cx={x} cy={y} r={40}
+                  fill={`url(#${glowId})`}
+                  filter={`url(#${bgId}-blur)`}
+                  opacity={0.7}
+                />
+              )
+            })}
+
+            {/* Network edges — curved paths */}
             {edges.map((e, i) => (
-              <motion.line
+              <motion.path
                 key={`edge-${i}`}
-                x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
-                stroke="#2563EB"
-                strokeWidth={0.5}
-                opacity={getEdgeOpacity(e.va, e.vb, maxValue)}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: getEdgeOpacity(e.va, e.vb, maxValue) }}
-                transition={{ duration: 0.8, delay: 0.3 + i * 0.008 }}
+                d={e.path}
+                fill="none"
+                stroke="#3B82F6"
+                strokeWidth={0.6}
+                strokeLinecap="round"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{
+                  pathLength: 1,
+                  opacity: getEdgeOpacity(e.va, e.vb, maxValue),
+                }}
+                transition={{ ...SPRING_SOFT, delay: 0.4 + i * 0.006 }}
               />
             ))}
 
-            {/* Region nodes — sorted back-to-front so large dots render on top */}
+            {/* Region nodes — back-to-front by value */}
             {[...regions]
               .toSorted((a, b) => a.value - b.value)
               .map((region, index) => {
-                const { x, y } = latLonToMercator(region.lat, region.lon, svgW, svgH)
+                const { x, y } = latLonToMercator(region.lat, region.lon, SVG_W, SVG_H)
                 const radius = getDotRadius(region.value, maxValue)
                 const color = getDotColor(region.value, maxValue, block.colorScale)
                 const isTop = topRegions.some(t => t.name === region.name)
+                const rank = sorted.findIndex(r => r.name === region.name)
+                const isHovered = hoveredRegion === (region.label ?? region.name)
 
                 return (
                   <g key={region.name}>
+                    {/* Breathing halo for top regions */}
                     {isTop && (
                       <motion.circle
-                        cx={x} cy={y} r={radius * 2.8}
-                        fill={color} fillOpacity={0.04}
-                        animate={{ r: [radius * 2.6, radius * 3, radius * 2.6], fillOpacity: [0.04, 0.08, 0.04] }}
-                        transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: index * 0.2 }}
+                        cx={x} cy={y} r={radius * 2.5}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth={0.6}
+                        initial={{ opacity: 0 }}
+                        animate={{
+                          opacity: [0.06, 0.14, 0.06],
+                          r: [radius * 2.2, radius * 2.8, radius * 2.2],
+                        }}
+                        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: index * 0.3 }}
                       />
                     )}
+
+                    {/* Soft glow ring */}
                     <motion.circle
-                      cx={x} cy={y} r={radius * 1.8}
-                      fill={color} fillOpacity={0.08}
+                      cx={x} cy={y}
+                      r={radius * 1.7}
+                      fill={color}
+                      fillOpacity={isHovered ? 0.16 : 0.07}
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      transition={{ ...SPRING_SOFT, delay: 0.2 + index * 0.015 }}
+                      transition={{ ...SPRING_SOFT, delay: 0.15 + index * 0.012 }}
                     />
+
+                    {/* Core dot */}
                     <motion.circle
-                      cx={x} cy={y} r={radius}
+                      cx={x} cy={y}
+                      r={radius}
                       fill={color}
-                      stroke={isTop ? '#fff' : '#334155'}
-                      strokeWidth={isTop ? 1.2 : 0.5}
+                      stroke={isTop ? 'rgba(255,255,255,0.7)' : 'rgba(148,163,184,0.25)'}
+                      strokeWidth={isTop ? 1 : 0.5}
                       initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ ...SPRING, delay: 0.2 + index * 0.015 }}
+                      animate={{
+                        scale: isHovered ? 1.3 : 1,
+                        opacity: 1,
+                      }}
+                      transition={{ ...SPRING_SNAPPY, delay: 0.15 + index * 0.012 }}
                       style={{ cursor: 'pointer' }}
                       aria-label={`${region.label ?? region.name}: ${region.value}`}
-                      onMouseEnter={() => setTooltip({ x, y, label: region.label ?? region.name, value: region.value })}
-                      onMouseLeave={() => setTooltip(null)}
-                      whileHover={{ scale: 1.25 }}
+                      onMouseEnter={() =>
+                        handleRegionHover({ x, y, label: region.label ?? region.name, value: region.value, color, rank })
+                      }
+                      onMouseLeave={() => handleRegionHover(null)}
                     />
-                    {isTop && (
-                      <text
-                        x={x} y={y - radius - 5}
+
+                    {/* Label for top 4 regions */}
+                    {isTop && rank < 4 && (
+                      <motion.text
+                        x={x}
+                        y={y - radius - 6}
                         textAnchor="middle"
-                        fill="#94A3B8"
-                        fontSize="8"
+                        fill="#8899B0"
+                        fontSize="7.5"
                         fontFamily="var(--font-mono)"
+                        fontWeight={500}
+                        initial={{ opacity: 0, y: y - radius }}
+                        animate={{ opacity: 0.9, y: y - radius - 6 }}
+                        transition={{ ...SPRING_SOFT, delay: 0.6 + index * 0.04 }}
                       >
                         {region.label ?? region.name}
-                      </text>
+                      </motion.text>
                     )}
                   </g>
                 )
               })}
-
-            <text x={6} y={12} fill="#334155" fontSize="7" fontFamily="var(--font-mono)">90°N</text>
-            <text x={6} y={svgH - 4} fill="#334155" fontSize="7" fontFamily="var(--font-mono)">90°S</text>
-            <text x={svgW - 30} y={svgH - 4} fill="#334155" fontSize="7" fontFamily="var(--font-mono)">180°E</text>
           </svg>
 
-          {tooltip && (
-            <motion.div
-              role="tooltip"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.12 }}
-              className="absolute z-10 rounded-md border border-[#334155] bg-[#1A2332] px-2.5 py-1.5 text-xs shadow-lg"
-              style={{
-                left: `${(tooltip.x / svgW) * 100}%`,
-                top: `${(tooltip.y / svgH) * 100}%`,
-                transform: 'translate(-50%, -120%)',
-              }}
-            >
-              <div className="text-white font-medium">{tooltip.label}</div>
-              <div className="text-[#94A3B8] tabular-nums">
-                {tooltip.value.toLocaleString()}{block.unit ? ` ${block.unit}` : ''}
-              </div>
-            </motion.div>
-          )}
+          {/* ── Tooltip overlay ── */}
+          <AnimatePresence>
+            {tooltip && (
+              <motion.div
+                key="map-tooltip"
+                role="tooltip"
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ ...SPRING_SNAPPY }}
+                className="pointer-events-none absolute z-20"
+                style={tooltipStyle}
+              >
+                <div className="relative rounded-lg border border-white/10 bg-[#111827]/90 px-3 py-2 shadow-2xl backdrop-blur-md">
+                  {/* Arrow */}
+                  <div
+                    className="absolute left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-b border-r border-white/10 bg-[#111827]/90"
+                    style={{
+                      bottom: (tooltip.y / SVG_H) * 100 < 18 ? 'auto' : '-5px',
+                      top: (tooltip.y / SVG_H) * 100 < 18 ? '-5px' : 'auto',
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: tooltip.color }} />
+                    <span className="text-[11px] font-medium text-white/95">{tooltip.label}</span>
+                  </div>
+                  <div className="mt-0.5 flex items-baseline gap-1.5 pl-4">
+                    <span className="text-sm font-semibold tabular-nums text-white">
+                      {tooltip.value.toLocaleString()}
+                    </span>
+                    {block.unit && (
+                      <span className="text-[10px] text-white/50">{block.unit}</span>
+                    )}
+                  </div>
+                  {tooltip.rank < block.regions.length && (
+                    <div className="mt-0.5 pl-4 text-[9px] font-mono text-white/35">
+                      #{tooltip.rank + 1} of {block.regions.length}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* ── Side panel ── */}
-        <div className="space-y-3">
-          <div className="rounded-lg border border-border-subtle bg-white p-3">
+        <div className="border-t border-border-subtle p-3 lg:border-l lg:border-t-0 space-y-3">
+          {/* Top regions list */}
+          <div>
             <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-2">
               Top regions
             </div>
-            <div className="space-y-1">
-              {topRegions.map(region => {
+            <div className="space-y-0.5">
+              {topRegions.map((region, i) => {
                 const color = getDotColor(region.value, maxValue, block.colorScale)
                 const pct = ((region.value / maxValue) * 100).toFixed(0)
+                const label = region.label ?? region.name
+                const isHovered = hoveredRegion === label
                 return (
-                  <div key={region.name} className="group">
-                    <div className="flex items-center justify-between gap-2 px-1 py-1">
+                  <motion.div
+                    key={region.name}
+                    className={cn(
+                      'group rounded-md px-1.5 py-1 transition-colors',
+                      isHovered && 'bg-surface-active',
+                    )}
+                    onMouseEnter={() => {
+                      const { x, y } = latLonToMercator(region.lat, region.lon, SVG_W, SVG_H)
+                      handleRegionHover({ x, y, label, value: region.value, color, rank: i })
+                    }}
+                    onMouseLeave={() => handleRegionHover(null)}
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ ...SPRING_SOFT, delay: 0.2 + i * 0.04 }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                        <span className="text-xs text-text-primary truncate">
-                          {region.label ?? region.name}
-                        </span>
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0 ring-2 ring-transparent transition-shadow"
+                          style={{
+                            backgroundColor: color,
+                            boxShadow: isHovered ? `0 0 0 3px ${color}22` : 'none',
+                          }}
+                        />
+                        <span className="text-xs text-text-primary truncate">{label}</span>
                       </div>
                       <span className="text-xs font-semibold tabular-nums text-text-primary shrink-0">
                         {region.value.toLocaleString()}
                       </span>
                     </div>
-                    <div className="h-0.5 rounded-full bg-surface-active mx-1 mb-0.5">
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                    <div className="h-[3px] rounded-full bg-surface-active mx-0.5 mt-1">
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{ backgroundColor: color }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ ...SPRING_SOFT, delay: 0.35 + i * 0.05 }}
+                      />
                     </div>
-                  </div>
+                  </motion.div>
                 )
               })}
             </div>
           </div>
 
-          {/* Legend — conditional on colorScale */}
+          {/* Legend */}
           {hasVariation && <MapLegend colorScale={block.colorScale} />}
 
+          {/* External link */}
           <a
             href="https://geo-decentralization.github.io/"
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-white px-3 py-2 text-xs text-accent transition-colors hover:border-accent/30',
+              'inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-white px-3 py-2 text-xs text-accent',
+              'transition-all hover:border-accent/30 hover:shadow-sm',
             )}
           >
             <ExternalLink className="h-3 w-3" />
@@ -295,12 +460,13 @@ export function MapBlock({ block }: MapBlockProps) {
   )
 }
 
+/* ── Legend sub-component ── */
 function MapLegend({ colorScale }: { readonly colorScale?: string }) {
   if (colorScale === 'binary') {
     return (
-      <div className="rounded-lg border border-border-subtle bg-white p-3 text-xs text-muted">
-        <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-2">Presence</div>
-        <div className="space-y-1.5">
+      <div className="rounded-lg border border-border-subtle bg-surface-active/40 p-2.5 text-xs text-muted">
+        <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-1.5">Presence</div>
+        <div className="space-y-1">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-[#16A34A]" /> Present
           </span>
@@ -314,9 +480,9 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
 
   if (colorScale === 'change') {
     return (
-      <div className="rounded-lg border border-border-subtle bg-white p-3 text-xs text-muted">
-        <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-2">Change</div>
-        <div className="space-y-1.5">
+      <div className="rounded-lg border border-border-subtle bg-surface-active/40 p-2.5 text-xs text-muted">
+        <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-1.5">Change</div>
+        <div className="space-y-1">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-[#16A34A]" /> Increase
           </span>
@@ -331,26 +497,29 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
     )
   }
 
-  // Default: density gradient legend
   return (
-    <div className="rounded-lg border border-border-subtle bg-white p-3 text-xs text-muted">
-      <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-2">Concentration</div>
-      <div className="space-y-1.5">
+    <div className="rounded-lg border border-border-subtle bg-surface-active/40 p-2.5 text-xs text-muted">
+      <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-1.5">Stake concentration</div>
+      <div className="grid grid-cols-2 gap-x-2 gap-y-1">
         <span className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#64748B]" /> Low (&lt;10% of max)
+          <span className="h-1.5 w-1.5 rounded-full bg-[#64748B]" />
+          <span className="text-[10px]">Low</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[#2563EB]" /> Moderate (10–30%)
+          <span className="h-2 w-2 rounded-full bg-[#3B82F6]" />
+          <span className="text-[10px]">Moderate</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#C2553A]" /> High (30–60%)
+          <span className="h-2 w-2 rounded-full bg-[#C2553A]" />
+          <span className="text-[10px]">High</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-[#F59E0B]" /> Dominant (&gt;60%)
+          <span className="h-2.5 w-2.5 rounded-full bg-[#F59E0B]" />
+          <span className="text-[10px]">Dominant</span>
         </span>
       </div>
-      <p className="text-[10px] text-text-faint mt-2">
-        Node size and color reflect relative share of the maximum value.
+      <p className="text-[9px] text-text-faint mt-1.5 leading-tight">
+        Node size and color reflect relative validator share. Paper metrics: Gini<sub>g</sub>, HHI<sub>g</sub>.
       </p>
     </div>
   )

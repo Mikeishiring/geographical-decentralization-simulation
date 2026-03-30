@@ -363,6 +363,8 @@ let RELAY_NAMES = [];
 
 let plotsReady = false;
 let globeReady = false;
+const SLOT_TRANSITION_MS = 240;
+const SLOT_EASING = "cubic-in-out";
 
 let RAW_GCP_CSV = null;
 let RAW_DATA_JSON = null;
@@ -590,12 +592,64 @@ function drawGlobe(index) {
     return;
   }
 
-  Plotly.restyle('globe', {
-    locations: [locations],
-    z: [values],
-    zmax: [maxCountryCount],
-    text: [hoverText]
-  }, [0]);
+  Plotly.animate('globe', {
+    data: [{
+      locations: locations,
+      z: values,
+      zmax: maxCountryCount,
+      text: hoverText,
+    }]
+  }, {
+    transition: { duration: SLOT_TRANSITION_MS, easing: SLOT_EASING },
+    frame: { duration: SLOT_TRANSITION_MS, redraw: false },
+  });
+}
+
+function visibleRange(index) {
+  return index <= 0 ? [-1, -0.1] : [0, index];
+}
+
+function animateLineToSlot(divId, fullY, index) {
+  const safeY = Array.isArray(fullY) ? fullY : [];
+  const targetLen = Math.max(1, Math.min(index + 1, safeY.length || 1, FULL_X.length));
+  const x = FULL_X.slice(0, targetLen);
+  const y = safeY.slice(0, targetLen);
+  const cursorX = x.length ? [x[x.length - 1]] : [0];
+  const cursorY = y.length ? [y[y.length - 1]] : [0];
+
+  Plotly.animate(divId, {
+    data: [
+      { x, y },
+      { x: cursorX, y: cursorY },
+    ],
+  }, {
+    transition: { duration: SLOT_TRANSITION_MS, easing: SLOT_EASING },
+    frame: { duration: SLOT_TRANSITION_MS, redraw: false },
+  });
+
+  Plotly.relayout(divId, { 'xaxis.range': visibleRange(index) });
+}
+
+function syncMetricLines(index) {
+  const metrics = DATA.metrics;
+  const syncs = [
+    ['Gini', metrics.gini],
+    ['HHI', metrics.hhi],
+    ['liveness', metrics.liveness],
+    ['CV', metrics.profit_variance],
+    ['clusters', metrics.clusters],
+    ['totaldist', metrics.total_distance],
+    ['avgnnd', metrics.avg_nnd],
+    ['nni', metrics.nni],
+    ['mev', metrics.mev],
+    ['attest', metrics.attestations],
+    ['failed', metrics.failed_block_proposals],
+    ['proposal', metrics.proposal_times],
+  ];
+
+  for (const [id, series] of syncs) {
+    animateLineToSlot(id, series, index);
+  }
 }
 
 function drawLine(divId, x, y, title, yTitle = '') {
@@ -612,12 +666,32 @@ function drawLine(divId, x, y, title, yTitle = '') {
       range: [0, 0]
     }
   };
+  const safeX = Array.isArray(x) ? x : [];
+  const safeY = Array.isArray(y) ? y : [];
+  const firstX = safeX.length ? [safeX[0]] : [0];
+  const firstY = safeY.length ? [safeY[0]] : [0];
+  const lineColor = layout.colorway ? layout.colorway[0] : '#d89046';
+
   Plotly.newPlot(divId, [{
     type: 'scatter',
     mode: 'lines',
-    x,
-    y,
+    x: safeX,
+    y: safeY,
     line: { width: 2 }
+  }, {
+    type: 'scatter',
+    mode: 'markers',
+    x: firstX,
+    y: firstY,
+    marker: {
+      size: 8,
+      symbol: 'diamond',
+      color: lineColor,
+      line: { color: '#ffffff', width: 1.5 },
+    },
+    hoverinfo: 'skip',
+    showlegend: false,
+    name: 'Current',
   }], layout, { displaylogo: false, responsive: true, displayModeBar: false });
 }
 
@@ -678,7 +752,7 @@ function infoHTML(index) {
 }
 
 function updateLineWindows(index) {
-  const range = index <= 0 ? [-1, -0.1] : [0, index];
+  const range = visibleRange(index);
   const plotRange = { 'xaxis.range': range };
   Plotly.relayout('Gini', plotRange);
   Plotly.relayout('HHI', plotRange);
@@ -718,10 +792,10 @@ function drawAll() {
     drawRelayDist();
 
     plotsReady = true;
-    updateLineWindows(slot);
+    syncMetricLines(slot);
   } else {
-    updateLineWindows(slot);
     drawGlobe(slot);
+    syncMetricLines(slot);
   }
 }
 
