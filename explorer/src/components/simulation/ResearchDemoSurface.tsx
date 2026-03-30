@@ -455,7 +455,7 @@ export function ResearchDemoSurface({
       : `Compare ${selectedDataset.result} against ${comparisonDataset.result} with the map, timeline, and current paper lens.`
   }, [comparisonDataset, selectedDataset, selectedMetadata])
 
-  const viewPresets = [
+  const viewPresets = useMemo(() => ([
     {
       id: 'presentation' as const,
       label: 'Presentation',
@@ -492,7 +492,7 @@ export function ResearchDemoSurface({
       autoplay: false,
       lens: 'evidence' as const,
     },
-  ] as const
+  ] as const), [])
 
   const matchedViewPreset = useMemo(
     () => viewPresets.find(preset =>
@@ -501,10 +501,10 @@ export function ResearchDemoSurface({
       && preset.autoplay === autoplay
       && preset.lens === paperLens,
     ) ?? null,
-    [autoplay, paperLens, step, theme],
+    [autoplay, paperLens, step, theme, viewPresets],
   )
 
-  const audienceProfiles = [
+  const audienceProfiles = useMemo(() => ([
     {
       id: 'reader' as const,
       label: 'Reader',
@@ -523,7 +523,7 @@ export function ResearchDemoSurface({
       description: 'Manual analytical inspection.',
       preset: 'analysis' as const,
     },
-  ] as const
+  ] as const), [])
 
   const currentViewSummary = useMemo(() => {
     const playbackLabel = autoplay ? 'autoplay on' : 'manual scrub'
