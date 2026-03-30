@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ContributionComposer } from '../components/community/ContributionComposer'
 import { ExactLabIntro } from '../components/simulation/ExactLabIntro'
 import { ExactSimulationAnalyticsPanel } from '../components/simulation/ExactSimulationAnalyticsPanel'
+import { PrecomputedSimulationSurface } from '../components/simulation/PrecomputedSimulationSurface'
 import { SimConfigPanel } from '../components/simulation/SimConfigPanel'
 import { SimCopilotPanel } from '../components/simulation/SimCopilotPanel'
 import { SimJobStatus } from '../components/simulation/SimJobStatus'
@@ -136,6 +137,14 @@ export function SimulationLabPage({
         />
       ) : (
         <>
+          {!routeState.currentJobId ? (
+            <PrecomputedSimulationSurface
+              config={config}
+              catalogScriptUrl={routeState.researchCatalogScriptUrl}
+              viewerBaseUrl={routeState.researchViewerBaseUrl}
+            />
+          ) : null}
+
           <ExactLabIntro
             config={config}
             comparabilityTitle={paperComparability.title}
@@ -192,6 +201,8 @@ export function SimulationLabPage({
                 overviewBundleOptions={artifactView.overviewBundleOptions}
                 selectedBundle={artifactView.selectedBundle}
                 onSelectBundle={artifactView.setSelectedBundle}
+                exactChartSeries={artifactView.exactChartSeries}
+                isExactChartDeckLoading={artifactView.isExactChartDeckLoading}
                 selectedOverviewBundleMetrics={artifactView.selectedOverviewBundleMetrics}
                 overviewBlocks={artifactView.overviewBlocks}
                 isOverviewLoading={artifactView.isOverviewLoading}

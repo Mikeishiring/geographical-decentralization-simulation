@@ -6,6 +6,8 @@ import { OVERVIEW_BUNDLES } from './simulation-constants'
 export const EXACT_ANALYTICS_ARTIFACT_NAME = 'published_analytics_payload.json'
 
 export function selectDefaultArtifact(artifacts: readonly SimulationArtifact[]): string | null {
+  const preferredMap = artifacts.find(artifact => artifact.renderable && artifact.kind === 'map')
+  if (preferredMap) return preferredMap.name
   const preferred = artifacts.find(artifact => artifact.renderable && !artifact.lazy)
   if (preferred) return preferred.name
   return artifacts.find(artifact => artifact.renderable)?.name ?? null
