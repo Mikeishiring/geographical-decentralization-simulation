@@ -894,7 +894,10 @@ export function ResearchDemoSurface({
       audienceMode,
     }),
   })
-  const currentSlotNotes = currentSlotNotesQuery.data ?? []
+  const currentSlotNotes = useMemo(
+    () => currentSlotNotesQuery.data ?? [],
+    [currentSlotNotesQuery.data],
+  )
   const primarySlotNotes = useMemo(
     () => currentSlotNotes.filter(note => note.anchorKind !== 'comparison'),
     [currentSlotNotes],
