@@ -139,8 +139,8 @@ export function MapBlock({ block }: MapBlockProps) {
 
   if (regions.length === 0) {
     return (
-      <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
-        <div className="border-b border-border-subtle px-5 py-3">
+      <div className="overflow-hidden rounded-xl border border-rule bg-white">
+        <div className="border-b border-rule px-5 py-3">
           <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
         </div>
         <div className="px-5 py-10 text-center text-xs text-muted">No region data available</div>
@@ -149,9 +149,9 @@ export function MapBlock({ block }: MapBlockProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border-subtle bg-white geo-accent-bar">
+    <div className="overflow-hidden rounded-xl border border-rule bg-white geo-accent-bar">
       {/* ── Header ── */}
-      <div className="border-b border-border-subtle px-5 py-3">
+      <div className="border-b border-rule px-5 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-accent dot-pulse" />
@@ -386,7 +386,7 @@ export function MapBlock({ block }: MapBlockProps) {
         </div>
 
         {/* ── Side panel ── */}
-        <div className="border-t border-border-subtle p-3 lg:border-l lg:border-t-0 space-y-3">
+        <div className="border-t border-rule p-3 lg:border-l lg:border-t-0 space-y-3">
           {/* Top regions list */}
           <div>
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
@@ -454,7 +454,7 @@ export function MapBlock({ block }: MapBlockProps) {
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-white px-3 py-2 text-xs text-accent',
+              'inline-flex items-center gap-1.5 rounded-lg border border-rule bg-white px-3 py-2 text-xs text-accent',
               'transition-all hover:border-accent/30 hover:shadow-sm',
             )}
           >
@@ -471,7 +471,7 @@ export function MapBlock({ block }: MapBlockProps) {
 function MapLegend({ colorScale }: { readonly colorScale?: string }) {
   if (colorScale === 'binary') {
     return (
-      <div className="rounded-lg border border-border-subtle bg-surface-active/40 p-2.5 text-xs text-muted">
+      <div className="rounded-lg border border-rule bg-surface-active/40 p-2.5 text-xs text-muted">
         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Presence</div>
         <div className="space-y-1">
           <span className="flex items-center gap-1.5">
@@ -487,7 +487,7 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
 
   if (colorScale === 'change') {
     return (
-      <div className="rounded-lg border border-border-subtle bg-surface-active/40 p-2.5 text-xs text-muted">
+      <div className="rounded-lg border border-rule bg-surface-active/40 p-2.5 text-xs text-muted">
         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Change</div>
         <div className="space-y-1">
           <span className="flex items-center gap-1.5">
@@ -505,7 +505,7 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
   }
 
   return (
-    <div className="rounded-lg border border-border-subtle bg-surface-active/40 p-2.5 text-xs text-muted">
+    <div className="rounded-lg border border-rule bg-surface-active/40 p-2.5 text-xs text-muted">
       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Stake concentration</div>
       <div className="grid grid-cols-2 gap-x-2 gap-y-1">
         <span className="flex items-center gap-1.5">

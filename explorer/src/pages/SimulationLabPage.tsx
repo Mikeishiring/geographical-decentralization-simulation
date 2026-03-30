@@ -840,7 +840,7 @@ export function SimulationLabPage({
                   'rounded-2xl border px-4 py-4 text-left transition-all',
                   isActive
                     ? 'border-accent bg-white shadow-[0_18px_34px_rgba(15,23,42,0.06)]'
-                    : 'border-border-subtle bg-[#FAFAF8] hover:-translate-y-0.5 hover:border-border-hover hover:bg-white',
+                    : 'border-rule bg-[#FAFAF8] hover:-translate-y-0.5 hover:border-border-hover hover:bg-white',
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -974,7 +974,7 @@ export function SimulationLabPage({
                   <div className="text-sm font-medium text-text-primary">{preset.label}</div>
                   <div className="mt-2 text-xs leading-5 text-muted">{preset.description}</div>
                 </div>
-                <span className="rounded-full border border-border-subtle bg-white/80 px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                <span className="rounded-full border border-rule bg-white/80 px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                   Load
                 </span>
               </div>

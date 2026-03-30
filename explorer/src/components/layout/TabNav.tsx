@@ -28,7 +28,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
   }, [activeTab])
 
   return (
-    <div className="sticky top-0 z-20 border-b border-border-subtle bg-white/92 backdrop-blur-lg">
+    <div className="sticky top-0 z-20 border-b border-rule bg-white/92 backdrop-blur-lg">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto hide-scrollbar">
         <nav className="flex gap-0.5 min-w-max" role="tablist" aria-label="Explorer sections">
           {tabs.map(tab => {

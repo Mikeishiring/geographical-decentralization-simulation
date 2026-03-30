@@ -126,7 +126,7 @@ function preloadTab(tab: TabId) {
 
 function PageFallback({ label }: { readonly label: string }) {
   return (
-    <div className="rounded-2xl border border-border-subtle bg-white/92 px-5 py-8 shadow-sm">
+    <div className="rounded-2xl border border-rule bg-white/92 px-5 py-8 shadow-sm">
       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Loading</div>
       <div className="mt-2 text-lg font-medium text-text-primary">{label}</div>
       <div className="mt-4 space-y-3">

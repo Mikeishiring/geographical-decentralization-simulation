@@ -4,7 +4,7 @@ import { STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 
 export function Header() {
   return (
-    <header className="border-b border-border-subtle overflow-hidden relative">
+    <header className="border-b border-rule overflow-hidden relative">
       {/* Subtle geo accent line */}
       <div
         className="absolute top-0 left-0 right-0 h-px"
@@ -43,7 +43,7 @@ export function Header() {
               href="https://arxiv.org/abs/2509.21475"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-white/80 px-2.5 py-1 text-[0.6875rem] text-muted transition-all hover:border-accent/25 hover:text-accent"
+              className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white/80 px-2.5 py-1 text-[0.6875rem] text-muted transition-all hover:border-accent/25 hover:text-accent"
             >
               <BookOpen className="h-3 w-3" />
               <span className="hidden sm:inline">arXiv</span>
@@ -52,7 +52,7 @@ export function Header() {
               href="https://github.com/syang-ng/geographical-decentralization-simulation"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-white/80 px-2.5 py-1 text-[0.6875rem] text-muted transition-all hover:border-accent/25 hover:text-accent"
+              className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white/80 px-2.5 py-1 text-[0.6875rem] text-muted transition-all hover:border-accent/25 hover:text-accent"
             >
               <GitBranch className="h-3 w-3" />
               <span className="hidden sm:inline">GitHub</span>
