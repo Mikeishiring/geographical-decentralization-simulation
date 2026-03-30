@@ -389,7 +389,7 @@ export function MapBlock({ block }: MapBlockProps) {
         <div className="border-t border-border-subtle p-3 lg:border-l lg:border-t-0 space-y-3">
           {/* Top regions list */}
           <div>
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-2">
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
               Top regions
             </div>
             <div className="space-y-0.5">
@@ -472,7 +472,7 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
   if (colorScale === 'binary') {
     return (
       <div className="rounded-lg border border-border-subtle bg-surface-active/40 p-2.5 text-xs text-muted">
-        <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-1.5">Presence</div>
+        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Presence</div>
         <div className="space-y-1">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-[#16A34A]" /> Present
@@ -488,7 +488,7 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
   if (colorScale === 'change') {
     return (
       <div className="rounded-lg border border-border-subtle bg-surface-active/40 p-2.5 text-xs text-muted">
-        <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-1.5">Change</div>
+        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Change</div>
         <div className="space-y-1">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-[#16A34A]" /> Increase
@@ -506,7 +506,7 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
 
   return (
     <div className="rounded-lg border border-border-subtle bg-surface-active/40 p-2.5 text-xs text-muted">
-      <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-1.5">Stake concentration</div>
+      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Stake concentration</div>
       <div className="grid grid-cols-2 gap-x-2 gap-y-1">
         <span className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-[#64748B]" />

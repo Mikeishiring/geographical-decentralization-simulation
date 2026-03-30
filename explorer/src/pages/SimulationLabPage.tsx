@@ -265,7 +265,7 @@ function PendingRunSurface({
 
         <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[420px]">
           <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Queue</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Queue</div>
             <div className="mt-2 text-xl font-semibold text-white">
               {jobData?.queuePosition != null ? jobData.queuePosition.toLocaleString() : 'Live'}
             </div>
@@ -276,7 +276,7 @@ function PendingRunSurface({
             </div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Cache path</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Cache path</div>
             <div className="mt-2 text-xl font-semibold text-white">
               {jobData?.cacheHit == null ? 'Pending' : jobData.cacheHit ? 'Reused' : 'Fresh'}
             </div>
@@ -289,7 +289,7 @@ function PendingRunSurface({
             </div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Updated</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Updated</div>
             <div className="mt-2 text-base font-semibold text-white">
               {updatedLabel ?? createdLabel ?? 'Waiting'}
             </div>
@@ -348,7 +348,7 @@ function PendingRunSurface({
                 state === 'idle' && 'border-white/10 bg-white/5',
               )}
             >
-              <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{step.label}</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">{step.label}</div>
               <div className="mt-2 text-sm font-medium text-white">{step.title}</div>
               <div className="mt-1 text-xs leading-5 text-slate-300">{step.detail}</div>
             </div>
@@ -358,7 +358,7 @@ function PendingRunSurface({
 
       <div className="mt-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Incoming visuals</div>
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Incoming visuals</div>
           <div className="mt-3 grid gap-3 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="lab-skeleton lab-skeleton-block h-[240px]" />
             <div className="space-y-3">
@@ -372,25 +372,25 @@ function PendingRunSurface({
         </div>
 
         <div className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Run snapshot</div>
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Run snapshot</div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Source placement</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Source placement</div>
               <div className="mt-2 text-sm font-medium text-white">{config.sourcePlacement}</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Distribution</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Distribution</div>
               <div className="mt-2 text-sm font-medium text-white">{config.distribution}</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Timing</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Timing</div>
               <div className="mt-2 text-sm font-medium text-white">
                 {config.slotTime}s slots
               </div>
               <div className="mt-1 text-xs text-slate-300">gamma {config.attestationThreshold.toFixed(2)}</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Migration cost</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Migration cost</div>
               <div className="mt-2 text-sm font-medium text-white">{formatEthValue(config.migrationCost)}</div>
             </div>
           </div>
@@ -974,7 +974,7 @@ export function SimulationLabPage({
                   <div className="text-sm font-medium text-text-primary">{preset.label}</div>
                   <div className="mt-2 text-xs leading-5 text-muted">{preset.description}</div>
                 </div>
-                <span className="rounded-full border border-border-subtle bg-white/80 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-text-faint">
+                <span className="rounded-full border border-border-subtle bg-white/80 px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                   Load
                 </span>
               </div>

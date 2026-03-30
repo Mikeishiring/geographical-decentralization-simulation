@@ -264,7 +264,7 @@ export function ExploreHistoryPage({
 
       {hiddenDraftExploration && (
         <div className="rounded-xl border border-warning/30 bg-warning/6 px-4 py-4">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Not on the public surface</div>
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Not on the public surface</div>
           <div className="mt-1 text-sm font-medium text-text-primary">
             This link points to saved context, not a published community note.
           </div>
