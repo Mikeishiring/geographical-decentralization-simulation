@@ -507,7 +507,7 @@ function ExplorationCard({
       className={cn(
         'overflow-hidden rounded-lg border border-rule bg-white',
         'transition-colors hover:border-border-hover',
-        isDeepLinked && 'border-accent/20 shadow-[0_0_0_1px_rgba(37,99,235,0.06)]',
+        isDeepLinked && 'border-accent/20 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent)_6%,transparent)]',
       )}
     >
       <div className="flex gap-3 p-4">
