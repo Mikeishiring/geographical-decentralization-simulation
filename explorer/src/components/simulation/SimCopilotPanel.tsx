@@ -52,7 +52,7 @@ export function SimCopilotPanel({
           </div>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-border-subtle/90 bg-white/80 px-4 py-3 text-xs leading-5 text-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+        <div className="mt-4 rounded-2xl border border-rule bg-white/80 px-4 py-3 text-xs leading-5 text-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
           {isHealthLoading
             ? 'Checking guide availability...'
             : copilotAvailable
@@ -67,7 +67,7 @@ export function SimCopilotPanel({
       {!showAssistant && (
         <div className="mx-3 mb-3 flex flex-col gap-4 rounded-[1.35rem] border border-border-subtle bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(247,244,238,0.92))] px-5 py-5 shadow-[0_16px_40px_rgba(15,23,42,0.05)] lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Default mode</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Default mode</div>
             <div className="mt-2 text-sm font-medium text-text-primary">
               Read the exact metadata, artifact labels, and charts first.
             </div>
@@ -202,12 +202,12 @@ export function SimCopilotPanel({
               </div>
 
                 <div className="rounded-[1.25rem] border border-border-subtle bg-white/90 px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                     Guide framing
                   </div>
                   <div className="mt-2 text-sm leading-6 text-text-primary">{copilotResponse.summary}</div>
                 {copilotResponse.guidance && (
-                  <div className="mt-3 rounded-xl border border-border-subtle/90 bg-surface-active px-4 py-3">
+                  <div className="mt-3 rounded-xl border border-rule bg-surface-active px-4 py-3">
                     <div className="text-[11px] uppercase tracking-[0.14em] text-text-faint">Guide interpretation</div>
                     <div className="mt-1 text-xs leading-5 text-muted">{copilotResponse.guidance}</div>
                   </div>
@@ -227,19 +227,19 @@ export function SimCopilotPanel({
               {copilotResponse.proposedConfig && (
                 <div className="grid grid-cols-2 gap-3 text-xs text-muted sm:grid-cols-4">
                   <div className="lab-option-card px-4 py-3">
-                    <span className="block text-[10px] uppercase tracking-[0.14em] text-text-faint">Paradigm</span>
+                    <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paradigm</span>
                     <div className="mt-2 text-sm font-medium text-text-primary">{copilotResponse.proposedConfig.paradigm}</div>
                   </div>
                   <div className="lab-option-card px-4 py-3">
-                    <span className="block text-[10px] uppercase tracking-[0.14em] text-text-faint">Distribution</span>
+                    <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Distribution</span>
                     <div className="mt-2 text-sm font-medium text-text-primary">{copilotResponse.proposedConfig.distribution}</div>
                   </div>
                   <div className="lab-option-card px-4 py-3">
-                    <span className="block text-[10px] uppercase tracking-[0.14em] text-text-faint">Validators</span>
+                    <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Validators</span>
                     <div className="mt-2 text-sm font-medium text-text-primary">{copilotResponse.proposedConfig.validators.toLocaleString()}</div>
                   </div>
                   <div className="lab-option-card px-4 py-3">
-                    <span className="block text-[10px] uppercase tracking-[0.14em] text-text-faint">Slots</span>
+                    <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Slots</span>
                     <div className="mt-2 text-sm font-medium text-text-primary">{copilotResponse.proposedConfig.slots.toLocaleString()}</div>
                   </div>
                 </div>
