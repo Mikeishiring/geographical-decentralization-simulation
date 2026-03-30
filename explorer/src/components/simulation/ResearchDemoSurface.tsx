@@ -44,13 +44,31 @@ interface ResearchDemoSurfaceProps {
   readonly viewerBaseUrl: string
 }
 
+type WorkspaceTheme = 'auto' | 'light' | 'dark'
+type WorkspaceStep = 1 | 10 | 50
+type PaperLens = 'evidence' | 'theory' | 'methods'
+type AudienceMode = 'reader' | 'reviewer' | 'researcher'
+
 interface ViewerLaunch {
   readonly dataset: ResearchDatasetEntry
   readonly settings: {
-    readonly theme: 'auto' | 'light' | 'dark'
-    readonly step: 1 | 10 | 50
+    readonly theme: WorkspaceTheme
+    readonly step: WorkspaceStep
     readonly autoplay: boolean
   }
+}
+
+interface InitialWorkspaceState {
+  readonly selectedEvaluation?: string
+  readonly selectedParadigm?: string
+  readonly selectedResult?: string
+  readonly datasetPath?: string
+  readonly theme?: WorkspaceTheme
+  readonly step?: WorkspaceStep
+  readonly autoplay?: boolean
+  readonly paperLens?: PaperLens
+  readonly comparePath?: string
+  readonly audienceMode?: AudienceMode
 }
 
 function readResearchCatalog(): ResearchCatalog | null {
@@ -71,7 +89,47 @@ function formatMilliseconds(value: number | undefined): string {
   return `${formatNumber(value, 0)} ms`
 }
 
-function themeLabel(theme: 'auto' | 'light' | 'dark'): string {
+function parseTheme(value: string | null): WorkspaceTheme | undefined {
+  return value === 'auto' || value === 'light' || value === 'dark' ? value : undefined
+}
+
+function parseStep(value: string | null): WorkspaceStep | undefined {
+  return value === '1' ? 1 : value === '10' ? 10 : value === '50' ? 50 : undefined
+}
+
+function parsePaperLens(value: string | null): PaperLens | undefined {
+  return value === 'evidence' || value === 'theory' || value === 'methods' ? value : undefined
+}
+
+function parseAudienceMode(value: string | null): AudienceMode | undefined {
+  return value === 'reader' || value === 'reviewer' || value === 'researcher' ? value : undefined
+}
+
+function parseBooleanFlag(value: string | null): boolean | undefined {
+  if (value === 'true') return true
+  if (value === 'false') return false
+  return undefined
+}
+
+function readInitialWorkspaceState(): InitialWorkspaceState {
+  if (typeof window === 'undefined') return {}
+
+  const params = new URLSearchParams(window.location.search)
+  return {
+    selectedEvaluation: params.get('evaluation') ?? undefined,
+    selectedParadigm: params.get('paradigm') ?? undefined,
+    selectedResult: params.get('result') ?? undefined,
+    datasetPath: params.get('dataset') ?? undefined,
+    theme: parseTheme(params.get('theme')),
+    step: parseStep(params.get('step')),
+    autoplay: parseBooleanFlag(params.get('autoplay')),
+    paperLens: parsePaperLens(params.get('lens')),
+    comparePath: params.get('compare') ?? undefined,
+    audienceMode: parseAudienceMode(params.get('audience')),
+  }
+}
+
+function themeLabel(theme: WorkspaceTheme): string {
   if (theme === 'auto') return 'Auto'
   if (theme === 'dark') return 'Dark'
   return 'Light'
@@ -81,19 +139,21 @@ export function ResearchDemoSurface({
   catalogScriptUrl,
   viewerBaseUrl,
 }: ResearchDemoSurfaceProps) {
+  const initialWorkspaceState = useMemo(() => readInitialWorkspaceState(), [])
   const [catalog, setCatalog] = useState<ResearchCatalog | null>(() => readResearchCatalog())
   const [catalogError, setCatalogError] = useState<string | null>(null)
-  const [selectedEvaluation, setSelectedEvaluation] = useState('')
-  const [selectedParadigm, setSelectedParadigm] = useState('')
-  const [selectedResult, setSelectedResult] = useState('')
-  const [theme, setTheme] = useState<'auto' | 'light' | 'dark'>('auto')
-  const [step, setStep] = useState<1 | 10 | 50>(1)
-  const [autoplay, setAutoplay] = useState(true)
+  const [selectedEvaluation, setSelectedEvaluation] = useState(initialWorkspaceState.selectedEvaluation ?? '')
+  const [selectedParadigm, setSelectedParadigm] = useState(initialWorkspaceState.selectedParadigm ?? '')
+  const [selectedResult, setSelectedResult] = useState(initialWorkspaceState.selectedResult ?? '')
+  const [theme, setTheme] = useState<WorkspaceTheme>(initialWorkspaceState.theme ?? 'auto')
+  const [step, setStep] = useState<WorkspaceStep>(initialWorkspaceState.step ?? 1)
+  const [autoplay, setAutoplay] = useState(initialWorkspaceState.autoplay ?? true)
   const [showConfig, setShowConfig] = useState(false)
-  const [paperLens, setPaperLens] = useState<'evidence' | 'theory' | 'methods'>('evidence')
+  const [paperLens, setPaperLens] = useState<PaperLens>(initialWorkspaceState.paperLens ?? 'evidence')
   const [assistantDraft, setAssistantDraft] = useState('')
-  const [comparePath, setComparePath] = useState('')
-  const [audienceMode, setAudienceMode] = useState<'reader' | 'reviewer' | 'researcher'>('reader')
+  const [comparePath, setComparePath] = useState(initialWorkspaceState.comparePath ?? '')
+  const [audienceMode, setAudienceMode] = useState<AudienceMode>(initialWorkspaceState.audienceMode ?? 'reader')
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
   const viewerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -141,13 +201,17 @@ export function ResearchDemoSurface({
   useEffect(() => {
     if (!catalog) return
 
-    const fallback = catalog.defaultSelection ?? catalog.datasets[0] ?? null
+    const fallback = (
+      initialWorkspaceState.datasetPath
+        ? catalog.datasets.find(entry => entry.path === initialWorkspaceState.datasetPath) ?? null
+        : null
+    ) ?? catalog.defaultSelection ?? catalog.datasets[0] ?? null
     if (!fallback) return
 
     setSelectedEvaluation(previous => previous || fallback.evaluation)
     setSelectedParadigm(previous => previous || fallback.paradigm)
     setSelectedResult(previous => previous || fallback.result)
-  }, [catalog])
+  }, [catalog, initialWorkspaceState])
 
   const evaluationOptions = useMemo(
     () => uniqueOrdered((catalog?.datasets ?? []).map(entry => entry.evaluation)),
@@ -557,6 +621,59 @@ export function ResearchDemoSurface({
 
   const splitCompareActive = matchedViewPreset?.id === 'compare' && !!comparisonDataset
 
+  const shareUrl = useMemo(() => {
+    if (typeof window === 'undefined') return ''
+
+    const url = new URL(window.location.href)
+    const params = url.searchParams
+
+    if (selectedEvaluation) params.set('evaluation', selectedEvaluation)
+    if (selectedParadigm) params.set('paradigm', selectedParadigm)
+    if (selectedResult) params.set('result', selectedResult)
+    if (selectedDataset?.path) params.set('dataset', selectedDataset.path)
+    params.set('theme', theme)
+    params.set('step', String(step))
+    params.set('autoplay', String(autoplay))
+    params.set('lens', paperLens)
+    params.set('audience', audienceMode)
+
+    if (comparisonDataset?.path) {
+      params.set('compare', comparisonDataset.path)
+    } else if (comparePath) {
+      params.set('compare', comparePath)
+    } else {
+      params.delete('compare')
+    }
+
+    return url.toString()
+  }, [
+    audienceMode,
+    autoplay,
+    comparePath,
+    comparisonDataset?.path,
+    paperLens,
+    selectedDataset?.path,
+    selectedEvaluation,
+    selectedParadigm,
+    selectedResult,
+    step,
+    theme,
+  ])
+
+  const handleCopyShareUrl = async () => {
+    if (!shareUrl || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+      setShareStatus('failed')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setShareStatus('copied')
+    } catch {
+      setShareStatus('failed')
+    }
+  }
+
   const paperNotes = useMemo(() => {
     const notes = [
       {
@@ -630,6 +747,52 @@ export function ResearchDemoSurface({
       setComparePath(comparisonCandidates[0]!.path)
     }
   }, [comparePath, comparisonCandidates])
+
+  useEffect(() => {
+    if (!shareStatus || shareStatus === 'idle' || typeof window === 'undefined') return
+
+    const timeout = window.setTimeout(() => setShareStatus('idle'), 1800)
+    return () => window.clearTimeout(timeout)
+  }, [shareStatus])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const url = new URL(window.location.href)
+    const params = url.searchParams
+
+    if (selectedEvaluation) params.set('evaluation', selectedEvaluation)
+    if (selectedParadigm) params.set('paradigm', selectedParadigm)
+    if (selectedResult) params.set('result', selectedResult)
+    if (selectedDataset?.path) params.set('dataset', selectedDataset.path)
+    params.set('theme', theme)
+    params.set('step', String(step))
+    params.set('autoplay', String(autoplay))
+    params.set('lens', paperLens)
+    params.set('audience', audienceMode)
+
+    if (comparisonDataset?.path) {
+      params.set('compare', comparisonDataset.path)
+    } else if (comparePath) {
+      params.set('compare', comparePath)
+    } else {
+      params.delete('compare')
+    }
+
+    window.history.replaceState({}, '', `${url.pathname}?${params.toString()}${url.hash}`)
+  }, [
+    audienceMode,
+    autoplay,
+    comparePath,
+    comparisonDataset?.path,
+    paperLens,
+    selectedDataset?.path,
+    selectedEvaluation,
+    selectedParadigm,
+    selectedResult,
+    step,
+    theme,
+  ])
 
   const persistViewerSettings = () => {
     if (!selectedDataset) return
@@ -1120,6 +1283,40 @@ export function ResearchDemoSurface({
               <div className="mt-2 text-xs text-muted">
                 Primary path: stay in-app. Standalone exists only for parity with the frozen legacy panel set.
               </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+              <div className="text-xs text-text-faint">Shareable view</div>
+              <div className="mt-2 text-xs leading-5 text-muted">
+                The URL now tracks scenario, audience mode, lens, playback posture, and comparison target.
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  onClick={handleCopyShareUrl}
+                  className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                >
+                  Copy share link
+                </button>
+                <a
+                  href={shareUrl || undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cn(
+                    'rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                    !shareUrl && 'pointer-events-none opacity-60',
+                  )}
+                >
+                  Open linked view
+                </a>
+              </div>
+              <div className="mt-3 break-all text-[11px] leading-5 text-muted">
+                {shareUrl || 'Share link will appear once the workspace state is hydrated.'}
+              </div>
+              {shareStatus !== 'idle' ? (
+                <div className="mt-2 text-xs text-text-primary">
+                  {shareStatus === 'copied' ? 'Share link copied.' : 'Clipboard copy failed in this environment.'}
+                </div>
+              ) : null}
             </div>
           </div>
 
