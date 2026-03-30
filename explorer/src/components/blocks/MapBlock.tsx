@@ -126,17 +126,6 @@ export function MapBlock({ block }: MapBlockProps) {
     return result
   }, [regions])
 
-  if (regions.length === 0) {
-    return (
-      <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
-        <div className="border-b border-border-subtle px-5 py-3">
-          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
-        </div>
-        <div className="px-5 py-8 text-center text-xs text-muted">No region data available</div>
-      </div>
-    )
-  }
-
   const hasVariation = new Set(regions.map(r => r.value)).size > 1
 
   /* Tooltip edge-clamping: keep it inside the map container */
