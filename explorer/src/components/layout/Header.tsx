@@ -84,7 +84,7 @@ export function Header() {
               >
                 Yang, Oz, Wu, Zhang (2025)
                 <span className="text-text-faint"> · </span>
-                <span className="text-text-faint">Paper companion and simulation explorer</span>
+                <span className="text-text-faint">Paper guide, simulation surface, and public-note archive</span>
               </motion.p>
             </motion.div>
 

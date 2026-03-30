@@ -10,7 +10,7 @@ import { QueryBar } from '../components/explore/QueryBar'
 import { QueryHistory, type HistoryEntry } from '../components/explore/QueryHistory'
 import { ShimmerLoading } from '../components/explore/ShimmerBlock'
 import { ErrorDisplay } from '../components/explore/ErrorDisplay'
-import { createExploration, explore, getApiHealth, getExploration, publishExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
+import { createExploration, explore, getApiHealth, getExploration, listExplorations, publishExploration, type Exploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
 import { NodeConstellation } from '../components/decorative/NodeConstellation'
 import { ModeBanner } from '../components/layout/ModeBanner'
 import { Wayfinder } from '../components/layout/Wayfinder'
@@ -30,6 +30,8 @@ const dotColor: Record<string, string> = {
   history: 'bg-warning',
   generated: 'bg-accent',
 }
+
+const CANONICAL_ENTRY_IDS = ['ssp-vs-msp', 'attestation-threshold', 'initial-distribution', 'policy-implications'] as const
 
 function fallbackCuratedProvenance(label: string, detail: string): ExploreProvenance {
   return {
@@ -51,6 +53,12 @@ function summarizeTopicCard(card: TopicCard): readonly string[] {
   }
   if (card.blocks.some(block => block.type === 'caveat')) tags.push('caveat')
   return tags.slice(0, 3)
+}
+
+function communityPreviewLabel(exploration: Exploration): string {
+  if (exploration.publication.featured) return 'Editor featured'
+  if (exploration.verified) return 'Researcher verified'
+  return exploration.surface === 'simulation' ? 'Exact-run note' : 'Paper reading'
 }
 
 export function FindingsPage({
@@ -91,6 +99,18 @@ export function FindingsPage({
     enabled: isActive,
     staleTime: 30_000,
     refetchInterval: isActive ? 30_000 : false,
+  })
+
+  const communityPreviewQuery = useQuery({
+    queryKey: ['explorations', 'community-preview'],
+    queryFn: () => listExplorations({
+      sort: 'top',
+      limit: 4,
+      publishedOnly: true,
+    }),
+    enabled: isActive,
+    staleTime: 60_000,
+    refetchInterval: isActive ? 60_000 : false,
   })
 
   const publishMutation = useMutation({
@@ -335,6 +355,14 @@ export function FindingsPage({
     setTimeout(() => setExportState('idle'), 2000)
   }, [aiResponse, activeQuery])
 
+  const openCommunityNote = useCallback((explorationId: string) => {
+    if (onOpenCommunityExploration) {
+      onOpenCommunityExploration(explorationId)
+      return
+    }
+    onTabChange?.('community')
+  }, [onOpenCommunityExploration, onTabChange])
+
   const showAi = aiResponse !== null || loading || error !== null
   const showTopic = activeTopic !== null && !showAi
 
@@ -374,7 +402,12 @@ export function FindingsPage({
     ? aiResponse.followUps
     : activeTopic?.prompts ?? OVERVIEW_CARD.prompts
   const promptSectionTitle = aiResponse ? 'Keep exploring' : 'Try one of these questions'
-  const policyCard = TOPIC_CARDS.find(card => card.id === 'policy-implications') ?? null
+  const canonicalClaimCards = TOPIC_CARDS.filter(card =>
+    CANONICAL_ENTRY_IDS.includes(card.id as (typeof CANONICAL_ENTRY_IDS)[number]),
+  )
+  const communityPreviewNotes = (communityPreviewQuery.data ?? [])
+    .filter(exploration => exploration.publication.published)
+    .slice(0, 3)
   const readingPublishContextKey = aiResponse
     ? `reading:${activeQuery ?? aiResponse.summary}`
     : showTopic && activeTopic
@@ -407,8 +440,8 @@ export function FindingsPage({
       <div className="mb-5">
         <ModeBanner
           eyebrow="Mode"
-          title="Curated questions, implications, and guided readings"
-          detail="The responses synthesize and interpret, but the paper and published results remain the canonical sources."
+          title="Canonical claims, guided readings, and public responses"
+          detail="Start from the paper's strongest claims, then ask a sharper question, inspect the published scenarios, or publish a human-authored note grounded in the evidence."
           tone="interpretation"
         />
       </div>
@@ -421,12 +454,57 @@ export function FindingsPage({
           Yang, Oz, Wu, Zhang (2025) · arXiv:2509.21475
         </p>
         <h1 className="text-xl sm:text-2xl font-bold text-text-primary font-serif leading-tight max-w-lg">
-          What did this paper find?
+          What the paper shows
         </h1>
         <p className="mt-2 text-sm text-muted max-w-2xl leading-relaxed">
-          Ethereum validator geography is shaped by latency and protocol timing rules. Both block-building paradigms push toward concentration, but through different mechanisms — and the same protocol change can help one while hurting the other.
+          Start from the canonical claims, then move into the reading guide, published scenarios, or community notes. The goal is not just to ask a model questions, but to understand what the paper shows and respond to it in your own words.
         </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[
+            'Canonical claims first',
+            'Ask sharper paper questions',
+            'Inspect or reproduce scenarios',
+            'Publish human-authored notes',
+          ].map(item => (
+            <span
+              key={item}
+              className="inline-flex items-center rounded-full border border-border-subtle bg-white px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-text-faint"
+            >
+              {item}
+            </span>
+          ))}
+        </div>
       </div>
+
+      {!showAi && !showTopic && (
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Start here</div>
+              <div className="mt-1 text-sm font-medium text-text-primary">Canonical claims from the paper</div>
+            </div>
+            <span className="text-xs text-muted">Open a claim to read, question, or publish a note later.</span>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {canonicalClaimCards.map(card => (
+              <button
+                key={card.id}
+                onClick={() => handleTopicClick(card)}
+                className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+              >
+                <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Canonical claim</div>
+                <div className="mt-2 text-sm font-medium leading-6 text-text-primary">{card.title}</div>
+                <div className="mt-1 text-xs leading-5 text-muted">{card.description}</div>
+                <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent">
+                  Open this lens
+                  <ArrowRight className="h-3 w-3" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mb-6">
         <QueryBar
@@ -508,24 +586,6 @@ export function FindingsPage({
           })}
         </div>
 
-        {policyCard && !showAi && !showTopic && (
-          <div className="mt-4 rounded-xl border border-warning/30 bg-warning/6 px-4 py-4">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Protocol and policy lens</div>
-            <div className="mt-1 text-sm font-medium text-text-primary">
-              Read the paper as a design-tradeoff argument, not only as a mechanism explainer.
-            </div>
-            <p className="mt-1 max-w-2xl text-xs text-muted">
-              Shorter slots, threshold tuning, and infrastructure geography all shift incentives differently. The paper is stronger on diagnosis than on a single validated fix.
-            </p>
-            <button
-              onClick={() => handleTopicClick(policyCard)}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent transition-colors hover:text-accent/80"
-            >
-              Open implications lens
-              <ArrowRight className="h-3 w-3" />
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Navigation cards — cross-tab wayfinding (default state only) */}
@@ -535,7 +595,7 @@ export function FindingsPage({
             onClick={() => onTabChange('paper')}
             className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
           >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Read the source</div>
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Read the canonical source</div>
             <div className="mt-2 text-sm font-medium text-text-primary">Open the paper guide</div>
             <div className="mt-1 text-xs leading-5 text-muted">
               Editorial reading guide through the full paper, section by section.
@@ -546,8 +606,8 @@ export function FindingsPage({
             onClick={() => onTabChange('results')}
             className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
           >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Verify with data</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Browse published results</div>
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Inspect or reproduce</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">Browse results or run exact scenarios</div>
             <div className="mt-1 text-xs leading-5 text-muted">
               Canonical scenarios plus a fresh simulation runner to test claims against the actual artifacts.
             </div>
@@ -557,12 +617,55 @@ export function FindingsPage({
             onClick={() => onTabChange('community')}
             className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
           >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">See what others found</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Community notes</div>
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Respond publicly</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">Browse community notes</div>
             <div className="mt-1 text-xs leading-5 text-muted">
               Human-framed notes from paper readings and exact simulation runs.
             </div>
           </button>
+        </div>
+      )}
+
+      {!showAi && !showTopic && communityPreviewNotes.length > 0 && (
+        <div className="mb-8">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Public responses</div>
+              <div className="mt-1 text-sm font-medium text-text-primary">How other readers framed the evidence</div>
+            </div>
+            {onTabChange && (
+              <button
+                onClick={() => onTabChange('community')}
+                className="text-xs text-accent transition-colors hover:text-accent/80"
+              >
+                Open Community
+              </button>
+            )}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            {communityPreviewNotes.map(exploration => (
+              <button
+                key={exploration.id}
+                onClick={() => openCommunityNote(exploration.id)}
+                className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+              >
+                <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">
+                  {communityPreviewLabel(exploration)}
+                </div>
+                <div className="mt-2 text-sm font-medium text-text-primary">
+                  {exploration.publication.title}
+                </div>
+                <div className="mt-1 text-xs leading-5 text-muted line-clamp-4">
+                  {exploration.publication.takeaway}
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3 text-[11px] text-text-faint">
+                  <span>{exploration.surface === 'simulation' ? 'Exact-run backed' : 'Paper-reading backed'}</span>
+                  <span>{exploration.publication.author || 'Anonymous'}</span>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
