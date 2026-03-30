@@ -542,6 +542,18 @@ def simulation(
             with open(f"{output_folder}/proposal_time_by_slot.json", "w") as f:
                 json.dump(export_payloads["proposal_time_by_slot"], f)
 
+        if export_raw_artifacts:
+            with open(f"{output_folder}/mev_by_slot.json", "w") as f:
+                json.dump(export_payloads["mev_by_slot"], f)
+            with open(f"{output_folder}/estimated_mev_by_slot.json", "w") as f:
+                json.dump(export_payloads["estimated_mev_by_slot"], f)
+            with open(f"{output_folder}/attest_by_slot.json", "w") as f:
+                json.dump(export_payloads["attest_by_slot"], f)
+            with open(f"{output_folder}/proposal_time_by_slot.json", "w") as f:
+                json.dump(export_payloads["proposal_time_by_slot"], f)
+            with open(f"{output_folder}/region_counter_per_slot.json", "w") as f:
+                json.dump(export_payloads["region_counter_per_slot"], f)
+
         print("Saved data in JSON files in the output directory.")
         print("Information Sources:")
         if model == "SSP":

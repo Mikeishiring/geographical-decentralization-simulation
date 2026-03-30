@@ -55,16 +55,16 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
   }
 
   return (
-    <div className="rounded-xl border border-border-subtle bg-[#F4F4F2] px-5 py-6 shadow-sm sm:px-8 sm:py-8">
+    <div className="rounded-xl border border-border-subtle bg-[#F4F4F2] px-5 py-6 sm:px-8 sm:py-8 shadow-sm">
       <div className={cn(
-        'rounded-lg border border-border-subtle bg-white transition-all shadow-sm',
+        'bg-white border border-border-subtle rounded-lg transition-all shadow-sm',
         isEnabled && 'focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 focus-within:shadow-md',
       )}>
         <div className="flex items-center gap-3 px-4 py-3.5">
           {loading ? (
             <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent" />
           ) : (
-            <Search className="h-4 w-4 shrink-0 text-muted" />
+            <Search className="w-4 h-4 text-muted shrink-0" />
           )}
           <input
             type="text"
@@ -74,12 +74,12 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
             placeholder={placeholder}
             disabled={!isEnabled}
             aria-label="Search the paper"
-            className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-muted disabled:opacity-50"
+            className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-muted outline-none disabled:opacity-50"
           />
           {query.trim() && isEnabled && (
             <button
               onClick={handleSubmit}
-              className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent/90"
+              className="px-3 py-1.5 rounded-md bg-accent text-white text-xs font-medium hover:bg-accent/90 transition-colors"
             >
               Ask
             </button>
@@ -87,6 +87,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
         </div>
       </div>
 
+      {/* Suggested prompts */}
       {!disabled && !loading && (
         <AnimatePresence>
           <motion.div
@@ -127,12 +128,12 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
         </AnimatePresence>
       )}
 
-      <p className="mt-2 text-center text-[11px] text-text-faint">
+      <p className="text-[11px] text-text-faint text-center mt-2">
         {helperText ?? 'Ask about a mechanism, paradox, or comparison. The guide stays tied to the paper.'}
       </p>
 
       {disabled && disabledReason && (
-        <p className="mt-1.5 text-center text-[11px] text-text-faint">
+        <p className="text-[11px] text-text-faint text-center mt-1.5">
           {disabledReason}
         </p>
       )}
