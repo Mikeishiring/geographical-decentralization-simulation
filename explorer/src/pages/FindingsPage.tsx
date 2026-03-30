@@ -13,7 +13,6 @@ import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, publishExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
 import { NodeConstellation } from '../components/decorative/NodeConstellation'
 import { ModeBanner } from '../components/layout/ModeBanner'
-import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
 import type { TabId } from '../components/layout/TabNav'
@@ -46,7 +45,7 @@ export function FindingsPage({
   isActive = true,
   onQueryChange,
   onExplorationIdChange,
-  onTabChange,
+  onTabChange: _onTabChange,
 }: {
   initialQuery?: string | null
   initialExplorationId?: string | null
@@ -423,7 +422,6 @@ export function FindingsPage({
           />
         </div>
       </div>
-
       <QueryHistory
         entries={history}
         onSelect={handleHistorySelect}
@@ -689,13 +687,6 @@ export function FindingsPage({
         )}
       </AnimatePresence>
 
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Read the full paper', hint: 'Editorial reading guide with annotations', onClick: () => onTabChange('paper') },
-          { label: 'Drill into sections', hint: 'Accordion view of every argument & block', onClick: () => onTabChange('deep-dive') },
-          { label: 'Run a simulation', hint: 'Test parameters with the exact model', onClick: () => onTabChange('simulation') },
-        ]} />
-      )}
     </div>
   )
 }

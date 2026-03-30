@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING } from '../../lib/theme'
 
-export type TabId = 'findings' | 'history' | 'paper' | 'deep-dive' | 'simulation'
+export type TabId = 'explore' | 'paper' | 'results'
 
 interface TabNavProps {
   activeTab: TabId
@@ -12,11 +12,9 @@ interface TabNavProps {
 }
 
 const tabs: { id: TabId; label: string; shortLabel: string; hint: string }[] = [
-  { id: 'findings', label: 'Findings', shortLabel: 'Findings', hint: 'Curated entry points & AI exploration' },
-  { id: 'history', label: 'Community', shortLabel: 'Community', hint: 'Published contributions and the reading archive' },
-  { id: 'paper', label: 'Paper', shortLabel: 'Paper', hint: 'Full paper with editorial reading guide' },
-  { id: 'deep-dive', label: 'Deep Dive', shortLabel: 'Deep Dive', hint: 'Section-by-section argument & blocks' },
-  { id: 'simulation', label: 'Simulation', shortLabel: 'Simulation', hint: 'Published results plus exact parameter experiments' },
+  { id: 'explore', label: 'Explore', shortLabel: 'Explore', hint: 'Ask questions & browse curated findings' },
+  { id: 'paper', label: 'Paper', shortLabel: 'Paper', hint: 'Full paper with reading guide & argument map' },
+  { id: 'results', label: 'Results', shortLabel: 'Results', hint: 'Published simulation results & experiments' },
 ]
 
 export function TabNav({ activeTab, onTabChange }: TabNavProps) {

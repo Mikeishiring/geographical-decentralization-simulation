@@ -238,8 +238,8 @@ export function DeepDivePage({ onTabChange }: { onTabChange?: (tab: TabId) => vo
 
       {onTabChange && (
         <Wayfinder links={[
-          { label: 'Test these claims', hint: 'Run parameter experiments yourself', onClick: () => onTabChange('simulation') },
-          { label: 'Ask a question', hint: 'AI-guided exploration of the paper', onClick: () => onTabChange('findings') },
+          { label: 'Test these claims', hint: 'Run parameter experiments yourself', onClick: () => onTabChange('results') },
+          { label: 'Ask a question', hint: 'AI-guided exploration of the paper', onClick: () => onTabChange('explore') },
         ]} />
       )}
     </div>

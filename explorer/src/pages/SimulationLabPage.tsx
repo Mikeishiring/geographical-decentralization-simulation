@@ -18,7 +18,6 @@ import {
 } from '../components/simulation/simulation-constants'
 import { getApiHealth } from '../lib/api'
 import { ModeBanner } from '../components/layout/ModeBanner'
-import { Wayfinder } from '../components/layout/Wayfinder'
 import type { TabId } from '../components/layout/TabNav'
 import {
   cancelSimulationJob,
@@ -63,7 +62,7 @@ function isManifestOverviewBundle(
 
 const APP_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
 
-export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
+export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
   const queryClient = useQueryClient()
   const [surfaceMode, setSurfaceMode] = useState<'research' | 'lab'>('research')
   const [config, setConfig] = useState<SimulationConfig>({ ...DEFAULT_CONFIG })
@@ -499,12 +498,6 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
         </>
       )}
 
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Explore findings', hint: 'Curated lenses & AI interpretation', onClick: () => onTabChange('findings') },
-          { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
-        ]} />
-      )}
     </div>
   )
 }
