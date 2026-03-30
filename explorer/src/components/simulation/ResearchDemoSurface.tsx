@@ -439,24 +439,6 @@ export function ResearchDemoSurface({
     [catalog],
   )
 
-  const paradigmOptions = useMemo(
-    () => uniqueOrdered(
-      (catalog?.datasets ?? [])
-        .filter(entry => entry.evaluation === selectedEvaluation)
-        .map(entry => entry.paradigm),
-    ),
-    [catalog, selectedEvaluation],
-  )
-
-  const resultOptions = useMemo(
-    () => uniqueOrdered(
-      (catalog?.datasets ?? [])
-        .filter(entry => entry.evaluation === selectedEvaluation && entry.paradigm === selectedParadigm)
-        .map(entry => entry.result),
-    ),
-    [catalog, selectedEvaluation, selectedParadigm],
-  )
-
   useEffect(() => {
     if (!catalog || evaluationOptions.length === 0) return
 
@@ -1217,7 +1199,7 @@ export function ResearchDemoSurface({
         ? {
             label: `Bind ${selectedPaperSection.number}`,
             prompt: `Use ${selectedPaperSection.number} ${selectedPaperSection.title} to interpret this ${viewLabel.toLowerCase()} analytics query. Start with the observed metrics, then explain what they mean for the paper's claim.`,
-            detail: 'Canonical paper anchor',
+            detail: 'Paper-backed read',
           }
         : null,
       {
@@ -1576,7 +1558,7 @@ export function ResearchDemoSurface({
       summary: 'Lead with visual evidence and let the interface carry the paper into a more interactive, accessible form.',
       items: [
         'Start in the published replay instead of a launcher or parameter form.',
-        'Use scenario spotlights and saved views as authored entry points into the paper.',
+        'Use scenario spotlights and reading routes as authored entry points into the paper.',
         'Move into theory or comparison only after the core replay story is legible.',
       ],
     }
@@ -1599,10 +1581,10 @@ export function ResearchDemoSurface({
             : 'Start with the map and concentration metrics, then trace how latency and liveness respond as slot progression unfolds.',
       },
       {
-        title: 'Canonical paper anchor',
+        title: 'Paper anchor',
         body: selectedPaperSection
           ? `${selectedPaperSection.number} ${selectedPaperSection.title}: ${selectedPaperSection.description}`
-          : 'Select a canonical paper section to tie theory and note-taking back to the paper.',
+          : 'Select a paper section to tie theory and note-taking back to the paper.',
       },
       {
         title: 'Question draft',
@@ -1630,7 +1612,7 @@ export function ResearchDemoSurface({
     }
 
     return selectedMetadata?.description
-      ?? 'The published workspace opens on the checked-in replay so readers start from evidence instead of a launcher.'
+      ?? 'The published workspace opens on the checked-in replay so readers begin with visible evidence, not setup.'
   })()
 
   const resultSnapshotCards = useMemo<ResultSnapshotCard[]>(() => {
@@ -2255,12 +2237,12 @@ export function ResearchDemoSurface({
 
                 <div className="space-y-3 bg-white px-5 py-5">
                   <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Current posture</div>
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Active reading posture</div>
                     <div className="mt-2 text-sm leading-6 text-text-primary">{currentViewSummary}</div>
                   </div>
                   <div className="rounded-xl border border-rule bg-white px-4 py-4">
                     <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-                      {splitCompareActive && comparisonDataset ? 'Comparison read' : 'Canonical paper anchor'}
+                      {splitCompareActive && comparisonDataset ? 'Comparison read' : 'Paper anchor'}
                     </div>
                     <div className="mt-2 text-sm font-medium text-text-primary">
                       {splitCompareActive && comparisonDataset
@@ -2270,11 +2252,11 @@ export function ResearchDemoSurface({
                     <div className="mt-2 text-xs leading-5 text-muted">
                       {splitCompareActive && comparisonDataset
                         ? comparisonNarrative
-                        : selectedPaperSection?.description ?? 'Select a paper section to keep the replay interpretation tied to the canonical text.'}
+                        : selectedPaperSection?.description ?? 'Select a paper section to keep the replay interpretation tied to the paper text.'}
                     </div>
                   </div>
                   <div className="rounded-xl border border-rule bg-white px-4 py-4">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Why it matters now</div>
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Why this matters</div>
                     <div className="mt-2 text-xs leading-5 text-muted">{activeAudienceBrief.summary}</div>
                   </div>
                 </div>
@@ -2341,7 +2323,7 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="lab-stage p-5">
-              <div className="text-xs text-muted mb-1">Quick posture</div>
+              <div className="text-xs text-muted mb-1">Reading posture</div>
               <div className="text-sm text-text-primary">
                 Adjust the reading mode while keeping the result on screen.
               </div>
@@ -2410,7 +2392,7 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="lab-stage p-5">
-              <div className="text-xs text-muted mb-1">Current paper scenario</div>
+              <div className="text-xs text-muted mb-1">Active published scenario</div>
               <div className="text-sm text-text-primary">
                 {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'Awaiting dataset'}
               </div>
@@ -2466,7 +2448,7 @@ export function ResearchDemoSurface({
       <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
           <div className="lab-stage p-5">
-            <div className="text-xs text-muted mb-1">Playback controls</div>
+            <div className="text-xs text-muted mb-1">Replay controls</div>
             <div className="text-sm text-text-primary mb-4">
               Fine-tune the replay presentation. Audience, presets, and lens are in the compact rail above.
             </div>
@@ -2526,7 +2508,7 @@ export function ResearchDemoSurface({
 
           <div className="lab-stage p-5">
             <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-xs text-text-faint">Saved views</div>
+              <div className="text-xs text-text-faint">Reading routes</div>
               <div className="mt-3 grid gap-3">
                 {savedWorkspaceViews.map(view => (
                   <div key={view.id} className="rounded-xl border border-rule bg-surface-active px-4 py-4">
@@ -2561,11 +2543,10 @@ export function ResearchDemoSurface({
                   </div>
                 ))}
               </div>
-
             </div>
 
             <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-xs text-text-faint">Paper chapters</div>
+              <div className="text-xs text-text-faint">Paper sections</div>
               <div className="mt-2 text-xs leading-5 text-muted">
                 These are authored reading routes. They should feel closer to paper sections than to generic dashboard presets.
               </div>
@@ -2603,7 +2584,7 @@ export function ResearchDemoSurface({
         <div className="space-y-6">
           <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
             <div className="lab-stage p-5">
-              <div className="text-xs text-muted mb-1">Scenario summary</div>
+              <div className="text-xs text-muted mb-1">Published scenario summary</div>
               <div className="text-sm text-text-primary">
                 {selectedDataset?.metadata?.description ?? 'Select a dataset to see the published scenario description.'}
               </div>
@@ -2861,12 +2842,12 @@ export function ResearchDemoSurface({
                     <div className="rounded-xl border border-rule bg-white px-4 py-4">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div>
-                          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical paper anchor</div>
+                          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper anchor</div>
                           <div className="mt-2 text-sm font-medium text-text-primary">
                             {selectedPaperSection ? `${selectedPaperSection.number} ${selectedPaperSection.title}` : 'No paper section selected'}
                           </div>
                           <div className="mt-2 text-xs leading-5 text-muted">
-                            {selectedPaperSection?.description ?? 'Choose a paper section to keep theory and methods questions tied to the canonical paper guide.'}
+                            {selectedPaperSection?.description ?? 'Choose a paper section to keep theory and methods questions tied to the paper guide.'}
                           </div>
                         </div>
 
@@ -2877,7 +2858,7 @@ export function ResearchDemoSurface({
                             !paperSectionUrl && 'pointer-events-none opacity-60',
                           )}
                         >
-                          Open paper section
+                          Jump to paper section
                         </a>
                       </div>
 
@@ -2941,7 +2922,7 @@ export function ResearchDemoSurface({
               </div>
 
               <SimulationAnalyticsDesk
-                description="This is the query layer for the frozen replay metrics: saved analytics views that stay shareable inside the same published workspace."
+                description="Saved analytic reads over the frozen replay metrics, shareable without leaving the published paper workspace."
                 copyLabel="Copy analytics view"
                 onCopyShareUrl={() => void handleCopyShareUrl()}
                 analyticsView={analyticsView}
@@ -2953,9 +2934,9 @@ export function ResearchDemoSurface({
               >
                 {analyticsPromptLaunchers.length > 0 ? (
                   <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-                    <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Ask from this query</div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Ask from this analytic read</div>
                     <div className="mt-2 text-xs leading-5 text-muted">
-                      These prompts open the replay inquiry flow against the current analytics view and slot posture.
+                      These prompts open the inquiry flow against the active analytics read and slot posture.
                     </div>
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                       {analyticsPromptLaunchers.map(item => (
@@ -3090,13 +3071,13 @@ export function ResearchDemoSurface({
               <details className="lab-stage">
                 <summary className="cursor-pointer px-5 py-4 text-xs text-muted select-none transition-colors hover:text-text-primary [&::-webkit-details-marker]:hidden list-none">
                   <span className="flex items-center gap-2">
-                    <span className="text-xs text-muted">Actions &amp; raw artifacts</span>
+                    <span className="text-xs text-muted">Actions &amp; source artifacts</span>
                     <span className="text-[0.625rem] text-text-faint">▸</span>
                   </span>
                 </summary>
                 <div className="border-t border-rule px-5 pb-5 pt-4">
                   <div className="text-sm text-text-primary mb-4">
-                    Stay in the embedded preview by default. Drop into standalone or raw artifacts only when the workflow calls for it.
+                    Stay in the embedded paper view by default. Use standalone or raw artifacts only when the workflow calls for it.
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <button
@@ -3111,7 +3092,7 @@ export function ResearchDemoSurface({
                       disabled={!selectedDataset}
                       className="inline-flex items-center justify-center gap-2 rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      Open standalone viewer →
+                      Open standalone replay viewer →
                     </button>
                     <a
                       href={datasetUrl ?? undefined}
