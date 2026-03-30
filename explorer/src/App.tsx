@@ -183,13 +183,17 @@ function App() {
       <Header />
       <TabNav activeTab={activeTab} onTabChange={handleTabChange} onTabIntent={handleTabIntent} />
 
-      <main
-        id="main-content"
-        className={cn(
-          'mx-auto px-4 py-8 sm:px-6',
-          activeTab === 'paper' ? 'max-w-7xl' : 'max-w-5xl',
-        )}
-      >
+        <main
+          id="main-content"
+          className={cn(
+            'mx-auto px-4 py-8 sm:px-6',
+            activeTab === 'paper'
+              ? 'max-w-[88rem]'
+              : activeTab === 'results'
+                ? 'max-w-[96rem]'
+                : 'max-w-5xl',
+          )}
+        >
         <div hidden={activeTab !== 'explore'} aria-hidden={activeTab !== 'explore'}>
           <FindingsPage
             initialQuery={sharedQuery}
