@@ -435,7 +435,7 @@ export function FindingsPage({
         <p className="mt-3 text-sm text-muted max-w-2xl leading-relaxed">
           {showAi || showTopic
             ? interpretationBoundary
-            : 'This paper simulates how validator geography and block-building paradigms (SSP vs MSP) interact to shape centralization in Ethereum. Start from a claim, ask a question, or move into the paper, results, or community notes.'}
+            : 'This paper simulates how validator geography and block-building paradigms (SSP vs MSP) shape centralization in Ethereum. Start from a canonical claim, ask one bounded question, then carry only stronger interpretations into Results or Community.'}
         </p>
         {!showAi && !showTopic && !loading && apiHealthQuery.data && (
           <div className="mt-2 flex items-center gap-1.5 text-[0.6875rem] text-text-faint">
@@ -473,9 +473,9 @@ export function FindingsPage({
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Start here</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">Paper-backed entry claims</div>
+              <div className="mt-1 text-sm font-medium text-text-primary">Canonical claims to open first</div>
             </div>
-            <span className="text-xs text-muted">Open one claim first, then question it or carry it into the paper, results, or community.</span>
+            <span className="text-xs text-muted">Read one claim, question it, then move into the paper, results, or public notes only when you need to.</span>
           </div>
 
           <div className="rounded-xl border border-rule bg-white divide-y divide-rule">
@@ -568,9 +568,9 @@ export function FindingsPage({
       {!showAi && !showTopic && onTabChange && (
         <div className="mb-8 rounded-xl border border-rule bg-white divide-y divide-rule">
           {([
-            { tab: 'paper' as TabId, eyebrow: 'Read the canonical source', title: 'Open the paper guide', detail: 'Editorial reading guide through the full paper, section by section.' },
-            { tab: 'results' as TabId, eyebrow: 'Inspect or reproduce', title: 'Browse results or run exact scenarios', detail: 'Canonical scenarios plus a fresh simulation runner to test claims against the actual artifacts.' },
-            { tab: 'community' as TabId, eyebrow: 'Respond publicly', title: 'Browse community notes', detail: 'Human-framed notes from paper readings and exact simulation runs.' },
+            { tab: 'paper' as TabId, eyebrow: 'Read the canonical source', title: 'Open the paper guide', detail: 'Go section by section through the paper when you want the exact claim, method, or caveat.' },
+            { tab: 'results' as TabId, eyebrow: 'Inspect evidence', title: 'Open Results', detail: 'Start with the published replay, then open the exact lab only if you need fresh evidence.' },
+            { tab: 'community' as TabId, eyebrow: 'Read public responses', title: 'Browse community notes', detail: 'Human-authored notes layered on top of paper readings and exact simulation runs.' },
           ] as const).map(item => (
             <button
               key={item.tab}
@@ -593,7 +593,7 @@ export function FindingsPage({
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Public responses</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">How other readers framed the evidence</div>
+              <div className="mt-1 text-sm font-medium text-text-primary">How other readers turned evidence into public notes</div>
             </div>
             {onTabChange && (
               <button

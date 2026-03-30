@@ -107,13 +107,13 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
     <div className="rounded-xl border border-rule bg-canvas px-5 py-6 sm:px-8 sm:py-8">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Ask the paper</div>
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Question a claim</div>
           <div className="mt-1 text-sm font-medium text-text-primary">
-            Use one bounded question: claim, mechanism, implication, or comparison
+            Use one bounded paper question: claim, mechanism, implication, or comparison
           </div>
         </div>
         <div className="max-w-lg text-xs leading-5 text-muted">
-          Best prompts mention the paradigm, metric, or foil you care about. The guide reports evidence first, then offers an interpretation.
+          Best prompts mention the paradigm, metric, or foil you care about. The guide reports what the paper shows first, then offers a labeled interpretation.
         </div>
       </div>
 
@@ -203,9 +203,9 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
         ) : (
           <div className="text-center">
             <p className="text-[0.6875rem] text-text-faint leading-relaxed">
-              {helperText ?? 'Ask about a mechanism, paradox, or comparison. The guide stays tied to the paper.'}
+              {helperText ?? 'Ask about a mechanism, paradox, comparison, or implication. The guide stays tied to the paper.'}
               <span className="text-rule"> · </span>
-              This box opens or reopens a private reading, not a public post.
+              This opens or reopens a private reading. Publishing to Community is a separate, intentional step.
             </p>
           </div>
         )}
