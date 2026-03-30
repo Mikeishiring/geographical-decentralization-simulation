@@ -518,7 +518,7 @@ Bounded experiment builder + async simulation + LLM interpretation.
 5. Results → LLM interprets into blocks
 6. User can publish to Community tab
 
-**Bounded parameters (from current implementation + code analysis):**
+**Bounded parameters (from Burak's guidance + code analysis):**
 
 | Parameter | UI Control | Range | Default | Maps to |
 |-----------|-----------|-------|---------|---------|
