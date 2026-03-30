@@ -13,9 +13,9 @@ interface TabNavProps {
 }
 
 const tabs: { id: TabId; label: string; shortLabel: string; hint: string }[] = [
-  { id: 'explore', label: 'Explore', shortLabel: 'Explore', hint: 'Canonical claims, guided questions, and note drafting' },
+  { id: 'explore', label: 'Explore', shortLabel: 'Explore', hint: 'Canonical claims, guided readings, and note drafting' },
   { id: 'paper', label: 'Paper', shortLabel: 'Paper', hint: 'Full paper with reading guide & argument map' },
-  { id: 'results', label: 'Results', shortLabel: 'Results', hint: 'Published scenarios and exact-run reproduction' },
+  { id: 'results', label: 'Results', shortLabel: 'Results', hint: 'Published replay workspace and exact-run reproduction' },
   { id: 'community', label: 'Community', shortLabel: 'Community', hint: 'Published human notes over paper and exact-run evidence' },
 ]
 

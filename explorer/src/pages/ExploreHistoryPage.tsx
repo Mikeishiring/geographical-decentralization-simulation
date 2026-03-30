@@ -169,6 +169,53 @@ export function ExploreHistoryPage({
         tone="editorial"
       />
 
+      {(onGoToFindings || onTabChange) && (
+        <div className="rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,246,242,0.96))] px-4 py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Read, respond, share</div>
+              <div className="mt-1 text-sm font-medium text-text-primary">Community notes work best when they start from a canonical reading or an exact run.</div>
+            </div>
+            <div className="max-w-2xl text-xs leading-5 text-muted">
+              Use Explore for a paper-backed reading, Results for a reproduced scenario, and Paper when you want to trace the original argument before responding publicly.
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {onGoToFindings && (
+              <button
+                onClick={onGoToFindings}
+                className="rounded-lg border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+              >
+                <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Paper-backed reading</div>
+                <div className="mt-2 text-sm font-medium text-text-primary">Start in Explore</div>
+                <div className="mt-1 text-xs leading-5 text-muted">Use guided readings and curated findings before turning them into a public note.</div>
+              </button>
+            )}
+            {onTabChange && (
+              <button
+                onClick={() => onTabChange('results')}
+                className="rounded-lg border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+              >
+                <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Exact evidence</div>
+                <div className="mt-2 text-sm font-medium text-text-primary">Open Results</div>
+                <div className="mt-1 text-xs leading-5 text-muted">Inspect a published replay or run an exact scenario before publishing an interpretation.</div>
+              </button>
+            )}
+            {onTabChange && (
+              <button
+                onClick={() => onTabChange('paper')}
+                className="rounded-lg border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+              >
+                <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Canonical argument</div>
+                <div className="mt-2 text-sm font-medium text-text-primary">Read the paper</div>
+                <div className="mt-1 text-xs leading-5 text-muted">Go section by section through the paper when you want the exact claim, method, or caveat.</div>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-3">
         <SummaryCard
           icon={<Users className="h-4 w-4 text-accent" />}
@@ -260,7 +307,7 @@ export function ExploreHistoryPage({
           <ContributionSection
             eyebrow="Featured"
             title="Featured contributions"
-            detail="Notes that are researcher-verified or editorially surfaced."
+            detail="Start here for the clearest public notes: researcher-verified or editorially surfaced readings over the evidence."
             explorations={featuredContributions}
             expandedId={expandedId}
             onToggleExpand={toggleExpand}
@@ -274,8 +321,8 @@ export function ExploreHistoryPage({
           />
 
           <ContributionSection
-            eyebrow="Community"
-            title="Community contributions"
+            eyebrow="Latest"
+            title="Latest published notes"
             detail="Published readings and simulation notes that people intentionally sent to the shared surface."
             explorations={communityContributions}
             expandedId={expandedId}
@@ -424,7 +471,7 @@ function HistoryHeader({
           />
         </div>
         <p className="mt-2 text-xs text-muted">
-          Search checks published note titles, human takeaways, authors, paradigm tags, scenario tags, and note text.
+          Search published note titles, human takeaways, authors, paradigm tags, scenario tags, and note text.
         </p>
       </div>
 
@@ -434,9 +481,9 @@ function HistoryHeader({
           'flex items-center gap-2 rounded-lg border border-border-subtle bg-white px-4 py-2.5 text-sm',
           'text-text-primary transition-colors hover:bg-surface-hover',
         )}
-      >
+        >
         <ArrowUpDown className="h-4 w-4" />
-        <span>{sort === 'recent' ? 'Recent' : 'Top Voted'}</span>
+        <span>{sort === 'recent' ? 'Newest first' : 'Most supported'}</span>
       </button>
     </div>
   )
