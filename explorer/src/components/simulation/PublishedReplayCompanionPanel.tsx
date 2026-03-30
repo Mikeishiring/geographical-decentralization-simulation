@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Loader2, Sparkles } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
@@ -27,6 +27,12 @@ interface PaperSectionRef {
   readonly context: string
 }
 
+interface ReplayThreadEntry {
+  readonly question: string
+  readonly response: PublishedReplayCopilotResponse
+  readonly answeredContext: string
+}
+
 interface PublishedReplayCompanionPanelProps {
   readonly question: string
   readonly onQuestionChange: (value: string) => void
@@ -38,6 +44,8 @@ interface PublishedReplayCompanionPanelProps {
   readonly currentViewSummary: string
   readonly viewerSnapshot: PublishedViewerSnapshot | null
   readonly comparisonViewerSnapshot: PublishedViewerSnapshot | null
+  readonly autoRunQuestion?: string | null
+  readonly onAutoRunHandled?: () => void
   readonly onResponseChange?: (payload: {
     question: string
     response: PublishedReplayCopilotResponse
@@ -70,6 +78,20 @@ function snapshotContextLabel(snapshot: PublishedViewerSnapshot | null): string 
 
   const dominantRegion = snapshot.dominantRegionCity ?? snapshot.dominantRegionId ?? 'N/A'
   return `slot ${snapshot.slotNumber.toLocaleString()} · ${snapshot.activeRegions.toLocaleString()} active regions · dominant ${dominantRegion}`
+}
+
+function buildAnsweredContext(
+  viewerSnapshot: PublishedViewerSnapshot | null,
+  comparisonViewerSnapshot: PublishedViewerSnapshot | null,
+): string {
+  const contexts = [
+    snapshotContextLabel(viewerSnapshot) ? `primary ${snapshotContextLabel(viewerSnapshot)}` : null,
+    snapshotContextLabel(comparisonViewerSnapshot) ? `comparison ${snapshotContextLabel(comparisonViewerSnapshot)}` : null,
+  ].filter(Boolean)
+
+  return contexts.length > 0
+    ? `Answered against ${contexts.join(' · ')}.`
+    : 'Answered against the active published replay posture.'
 }
 
 function toSnapshotContext(
@@ -111,6 +133,8 @@ export function PublishedReplayCompanionPanel({
   currentViewSummary,
   viewerSnapshot,
   comparisonViewerSnapshot,
+  autoRunQuestion,
+  onAutoRunHandled,
   onResponseChange,
 }: PublishedReplayCompanionPanelProps) {
   const apiHealthQuery = useQuery({
@@ -119,6 +143,8 @@ export function PublishedReplayCompanionPanel({
     staleTime: 30_000,
   })
   const [answeredContext, setAnsweredContext] = useState<string | null>(null)
+  const [replayThread, setReplayThread] = useState<readonly ReplayThreadEntry[]>([])
+  const autoRunSignatureRef = useRef<string | null>(null)
 
   const quickPrompts = useMemo(() => {
     const prompts: string[] = []
@@ -183,17 +209,20 @@ export function PublishedReplayCompanionPanel({
       })
     },
     onSuccess: (nextResponse, nextQuestion) => {
-      const contexts = [
-        snapshotContextLabel(viewerSnapshot) ? `primary ${snapshotContextLabel(viewerSnapshot)}` : null,
-        snapshotContextLabel(comparisonViewerSnapshot) ? `comparison ${snapshotContextLabel(comparisonViewerSnapshot)}` : null,
-      ].filter(Boolean)
-
-      const nextAnsweredContext =
-        contexts.length > 0
-          ? `Answered against ${contexts.join(' · ')}.`
-          : 'Answered against the active published replay posture.'
+      const nextAnsweredContext = buildAnsweredContext(viewerSnapshot, comparisonViewerSnapshot)
 
       setAnsweredContext(nextAnsweredContext)
+      setReplayThread(previous => {
+        const nextEntry: ReplayThreadEntry = {
+          question: nextQuestion,
+          response: nextResponse,
+          answeredContext: nextAnsweredContext,
+        }
+        const filtered = previous.filter(entry =>
+          !(entry.question === nextQuestion && entry.answeredContext === nextAnsweredContext)
+        )
+        return [...filtered, nextEntry].slice(-4)
+      })
       onResponseChange?.({
         question: nextQuestion,
         response: nextResponse,
@@ -205,11 +234,54 @@ export function PublishedReplayCompanionPanel({
 
   useEffect(() => {
     resetReplayMutation()
+    setReplayThread([])
     setAnsweredContext(null)
+    autoRunSignatureRef.current = null
     onResponseChange?.(null)
   }, [audienceMode, comparisonDataset?.path, dataset?.path, onResponseChange, paperLens, paperSection?.id, resetReplayMutation])
 
   const isAnthropicEnabled = apiHealthQuery.data?.anthropicEnabled ?? false
+  const submitQuestion = useCallback((nextQuestion: string) => {
+    const normalizedQuestion = nextQuestion.trim()
+    if (!normalizedQuestion || !dataset || mutation.isPending || !isAnthropicEnabled) return
+    mutation.mutate(normalizedQuestion)
+  }, [dataset, isAnthropicEnabled, mutation])
+
+  useEffect(() => {
+    const normalizedQuestion = autoRunQuestion?.trim() ?? ''
+    if (!normalizedQuestion || !dataset || mutation.isPending || !isAnthropicEnabled) return
+
+    const signature = [
+      dataset.path,
+      comparisonDataset?.path ?? 'none',
+      viewerSnapshot?.slotIndex ?? 'all',
+      comparisonViewerSnapshot?.slotIndex ?? 'all',
+      paperLens,
+      paperSection?.id ?? 'none',
+      audienceMode,
+      normalizedQuestion,
+    ].join(':')
+
+    if (autoRunSignatureRef.current === signature) return
+
+    autoRunSignatureRef.current = signature
+    mutation.mutate(normalizedQuestion)
+    onAutoRunHandled?.()
+  }, [
+    audienceMode,
+    autoRunQuestion,
+    comparisonDataset?.path,
+    comparisonViewerSnapshot?.slotIndex,
+    dataset,
+    isAnthropicEnabled,
+    mutation.isPending,
+    onAutoRunHandled,
+    paperLens,
+    paperSection?.id,
+    submitQuestion,
+    viewerSnapshot?.slotIndex,
+  ])
+
   const disabledReason = !dataset
     ? 'Select a published replay first.'
     : apiHealthQuery.isLoading
@@ -221,6 +293,13 @@ export function PublishedReplayCompanionPanel({
           : ''
   const canAsk = Boolean(dataset) && Boolean(question.trim()) && !mutation.isPending && isAnthropicEnabled
   const response = mutation.data
+  const latestThreadEntry = replayThread.length > 0 ? replayThread[replayThread.length - 1] ?? null : null
+  const previousThreadEntries = replayThread.slice(0, -1).reverse()
+  const activeQuestion = mutation.isPending
+    ? typeof mutation.variables === 'string'
+      ? mutation.variables
+      : question.trim()
+    : latestThreadEntry?.question ?? question.trim()
 
   return (
     <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
@@ -237,7 +316,7 @@ export function PublishedReplayCompanionPanel({
         </div>
 
         <button
-          onClick={() => mutation.mutate(question.trim())}
+          onClick={() => submitQuestion(question)}
           disabled={!canAsk}
           className={cn(
             'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
@@ -285,7 +364,7 @@ export function PublishedReplayCompanionPanel({
                   key={prompt}
                   onClick={() => {
                     onQuestionChange(prompt)
-                    mutation.mutate(prompt)
+                    submitQuestion(prompt)
                   }}
                   disabled={mutation.isPending || !isAnthropicEnabled}
                   className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:bg-surface-active disabled:text-muted"
@@ -301,6 +380,12 @@ export function PublishedReplayCompanionPanel({
       {disabledReason ? (
         <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-3 text-xs leading-5 text-muted">
           {disabledReason}
+        </div>
+      ) : null}
+
+      {autoRunQuestion?.trim() && !latestThreadEntry && !mutation.isPending ? (
+        <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-3 text-xs leading-5 text-muted">
+          Shared replay query detected. The companion will run it as soon as the replay context is ready.
         </div>
       ) : null}
 
@@ -326,6 +411,13 @@ export function PublishedReplayCompanionPanel({
 
       {response ? (
         <div className="mt-4 space-y-4">
+          {activeQuestion ? (
+            <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Latest replay question</div>
+              <div className="mt-2 text-sm leading-6 text-text-primary">{activeQuestion}</div>
+            </div>
+          ) : null}
+
           <div className="rounded-[1.1rem] border border-warning/25 bg-warning/7 px-4 py-4">
             <div className="flex items-center gap-1.5 text-xs font-medium text-text-primary">
               <span className="h-1.5 w-1.5 rounded-full bg-warning" />
@@ -359,12 +451,35 @@ export function PublishedReplayCompanionPanel({
                     key={prompt}
                     onClick={() => {
                       onQuestionChange(prompt)
-                      mutation.mutate(prompt)
+                      submitQuestion(prompt)
                     }}
                     className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                   >
                     {prompt}
                   </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {previousThreadEntries.length > 0 ? (
+            <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Replay thread</div>
+              <div className="mt-3 space-y-3">
+                {previousThreadEntries.map((entry, index) => (
+                  <div key={`${entry.question}-${index}`} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+                    <div className="text-xs font-medium text-text-primary">{entry.question}</div>
+                    <div className="mt-2 text-xs leading-5 text-muted">{entry.response.summary}</div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-text-faint">
+                      <span>{entry.answeredContext}</span>
+                      <button
+                        onClick={() => onQuestionChange(entry.question)}
+                        className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1 text-[11px] font-medium text-text-primary transition-colors hover:border-border-hover"
+                      >
+                        Reuse question
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

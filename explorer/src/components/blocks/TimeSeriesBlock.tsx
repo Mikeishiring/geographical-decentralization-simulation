@@ -5,6 +5,15 @@ import type { TimeSeriesBlock as TimeSeriesBlockType } from '../../types/blocks'
 
 interface TimeSeriesBlockProps {
   block: TimeSeriesBlockType
+  notePins?: ReadonlyArray<{
+    id: string
+    label: string
+    x: number
+    y: number
+    intent: 'observation' | 'question' | 'theory' | 'methods'
+    active?: boolean
+    onSelect?: () => void
+  }>
 }
 
 function formatSeriesNumber(value: number): string {
@@ -14,7 +23,14 @@ function formatSeriesNumber(value: number): string {
   return value.toFixed(2)
 }
 
-export function TimeSeriesBlock({ block }: TimeSeriesBlockProps) {
+function notePinColor(intent: 'observation' | 'question' | 'theory' | 'methods'): string {
+  if (intent === 'question') return '#C2410C'
+  if (intent === 'theory') return '#1D4ED8'
+  if (intent === 'methods') return '#0F766E'
+  return '#7C3AED'
+}
+
+export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) {
   const [hover, setHover] = useState<{ x: number; svgX: number } | null>(null)
   const gradientBaseId = useId().replace(/:/g, '')
 
@@ -411,6 +427,49 @@ export function TimeSeriesBlock({ block }: TimeSeriesBlockProps) {
                     className="fill-[#8B5E4D] text-[8px]"
                   >
                     {annotation.label}
+                  </text>
+                </g>
+              )
+            })}
+
+            {notePins.map(notePin => {
+              const { sx, sy } = toSvg(notePin.x, notePin.y)
+              const color = notePinColor(notePin.intent)
+              return (
+                <g
+                  key={notePin.id}
+                  transform={`translate(${sx}, ${sy})`}
+                  onClick={() => notePin.onSelect?.()}
+                  style={{ cursor: notePin.onSelect ? 'pointer' : 'default' }}
+                >
+                  <circle
+                    cx={0}
+                    cy={0}
+                    r={notePin.active ? 8.5 : 6.5}
+                    fill={color}
+                    opacity={0.16}
+                  />
+                  <circle
+                    cx={0}
+                    cy={0}
+                    r={notePin.active ? 4.2 : 3.4}
+                    fill="white"
+                    stroke={color}
+                    strokeWidth={notePin.active ? 2.2 : 1.8}
+                  />
+                  <path
+                    d={`M 0 -10 L 6 -22 Q 7 -24 5 -24 L -5 -24 Q -7 -24 -6 -22 Z`}
+                    fill="rgba(255,255,255,0.96)"
+                    stroke={color}
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={0}
+                    y={-14}
+                    textAnchor="middle"
+                    className="fill-[#0F172A] text-[7px] font-medium"
+                  >
+                    {notePin.label}
                   </text>
                 </g>
               )
