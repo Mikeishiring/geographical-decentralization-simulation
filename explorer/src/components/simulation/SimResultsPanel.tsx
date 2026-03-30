@@ -204,7 +204,7 @@ function ExactChartDeck({
       }
 
   return (
-    <div className="lab-stage p-5 mb-6">
+    <div className="lab-stage p-4 mb-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="text-xs text-muted mb-1">Interactive chart deck</div>
@@ -278,7 +278,7 @@ function ExactChartDeck({
                   onMouseEnter={() => setHoveredArtifactName(entry.artifactName)}
                   onMouseLeave={() => setHoveredArtifactName(null)}
                   className={cn(
-                    'group relative overflow-hidden rounded-xl border px-4 py-4 text-left transition-all duration-200 hover:border-border-hover',
+                    'group relative overflow-hidden rounded-xl border px-4 py-3 text-left transition-all duration-200 hover:border-border-hover',
                     isFocused
                       ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.08),rgba(255,255,255,0.98))] shadow-[0_16px_36px_rgba(37,99,235,0.12)]'
                       : 'border-rule bg-white/92',
@@ -486,7 +486,7 @@ export function SimResultsPanel({
         loading={isExactChartDeckLoading}
       />
 
-      <div className="lab-stage p-5 mb-6">
+      <div className="lab-stage p-4 mb-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="text-xs text-muted mb-1">
@@ -586,14 +586,14 @@ export function SimResultsPanel({
 
         <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Research integrity</div>
-          <div className="mt-2 text-sm font-medium text-text-primary">{paperComparability.title}</div>
+          <div className="mt-1 text-sm font-medium text-text-primary">{paperComparability.title}</div>
           <div className="mt-1 text-sm text-muted">{paperComparability.detail}</div>
-          <div className="mt-2 text-xs text-muted">
+          <div className="mt-1 text-xs text-muted">
             Truth boundary: this panel only reports values emitted by the exact manifest and derived artifact sidecars. It should not stand in for a published paper result unless the configuration is directly comparable.
           </div>
         </div>
 
-        <div className="grid gap-3 mt-4 text-xs text-muted sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-2 mt-3 text-xs text-muted sm:grid-cols-2 xl:grid-cols-4">
           <div className="lab-metric-card">
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Configuration</div>
             <div className="mt-2 text-sm font-medium text-text-primary">{describeParadigmWithAlias(manifest.config.paradigm)} exact mode</div>
@@ -636,7 +636,7 @@ export function SimResultsPanel({
         </div>
       </div>
 
-      <div className="lab-stage p-5 mb-6">
+      <div className="lab-stage p-4 mb-5">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>
             <div className="text-xs text-muted mb-1">
@@ -712,7 +712,7 @@ export function SimResultsPanel({
         )}
       </div>
 
-      <div className="lab-stage p-5 mb-6">
+      <div className="lab-stage p-4 mb-5">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>
             <div className="text-xs text-muted mb-1">
@@ -762,7 +762,7 @@ export function SimResultsPanel({
         </div>
       </div>
 
-      <div className="lab-stage p-5">
+      <div className="lab-stage p-4">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>
             <div className="text-xs text-muted mb-1">
