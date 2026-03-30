@@ -8,6 +8,9 @@ import {
   listPublishedReplayNotes,
   updatePublishedReplayNoteStatus,
   type PublishedReplayAudienceMode,
+  type PublishedReplayCommunityLane,
+  type PublishedReplayContributionType,
+  type PublishedReplayAnnotationScope,
   type PublishedReplayNoteIntent,
   type PublishedReplayPaperLens,
   type PublishedReplayNoteStatus,
@@ -78,6 +81,58 @@ function defaultIntentForLens(paperLens: PublishedReplayPaperLens): PublishedRep
   if (paperLens === 'methods') return 'methods'
   if (paperLens === 'theory') return 'theory'
   return 'observation'
+}
+
+function defaultStatusForIntent(intent: PublishedReplayNoteIntent): PublishedReplayNoteStatus {
+  if (intent === 'question') return 'open_question'
+  if (intent === 'observation') return 'supported'
+  return 'needs_evidence'
+}
+
+function contributionTypeForIntent(intent: PublishedReplayNoteIntent): PublishedReplayContributionType {
+  if (intent === 'question') return 'question'
+  if (intent === 'theory') return 'claim'
+  if (intent === 'methods') return 'method_concern'
+  return 'evidence'
+}
+
+function communityLaneForAudienceMode(audienceMode: PublishedReplayAudienceMode): PublishedReplayCommunityLane {
+  if (audienceMode === 'reviewer') return 'reviewer'
+  if (audienceMode === 'researcher') return 'author'
+  return 'community'
+}
+
+function annotationScopeForAnchor(anchorKind: NoteAnchorOption['kind']): PublishedReplayAnnotationScope {
+  if (anchorKind === 'comparison') return 'comparison_gap'
+  if (anchorKind === 'region') return 'region_over_time'
+  if (anchorKind === 'metric') return 'trend'
+  return 'exact_slot'
+}
+
+function nextStatusForNote(intent: PublishedReplayNoteIntent, status: PublishedReplayNoteStatus): PublishedReplayNoteStatus {
+  if (intent === 'question') {
+    return status === 'author_addressed' ? 'open_question' : 'author_addressed'
+  }
+  if (status === 'supported') return 'needs_evidence'
+  return 'supported'
+}
+
+function formatStatusLabel(status: PublishedReplayNoteStatus): string {
+  if (status === 'open_question') return 'Open question'
+  if (status === 'needs_evidence') return 'Needs evidence'
+  if (status === 'challenged') return 'Challenged'
+  if (status === 'author_addressed') return 'Author addressed'
+  return 'Supported'
+}
+
+function statusBadgeClass(status: PublishedReplayNoteStatus): string {
+  if (status === 'supported' || status === 'author_addressed') {
+    return 'border-[#0F766E]/18 bg-[#ECFDF5] text-[#0F766E]'
+  }
+  if (status === 'challenged') {
+    return 'border-[#BE123C]/18 bg-[#FFF1F2] text-[#BE123C]'
+  }
+  return 'border-[#C2410C]/18 bg-[#FFF7ED] text-[#9A3412]'
 }
 
 export function PublishedReplayNotesPanel({
@@ -221,6 +276,10 @@ export function PublishedReplayNotesPanel({
         paperLens,
         audienceMode,
         intent,
+        status: defaultStatusForIntent(intent),
+        contributionType: contributionTypeForIntent(intent),
+        communityLane: communityLaneForAudienceMode(audienceMode),
+        annotationScope: annotationScopeForAnchor(selectedAnchor?.kind ?? 'general'),
         anchorKind: selectedAnchor?.kind ?? 'general',
         anchorKey: selectedAnchor?.key ?? 'slot',
         anchorLabel: selectedAnchor?.label ?? 'Whole slot',
@@ -254,7 +313,7 @@ export function PublishedReplayNotesPanel({
   const canSave = queryEnabled && draft.trim().length > 0 && !mutation.isPending
 
   return (
-    <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
+    <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper notes</div>
@@ -273,7 +332,7 @@ export function PublishedReplayNotesPanel({
             'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
             canSave
               ? 'bg-[#0F172A] text-white hover:bg-[#111C31]'
-              : 'cursor-not-allowed border border-border-subtle bg-surface-active text-muted',
+              : 'cursor-not-allowed border border-rule bg-surface-active text-muted',
           )}
         >
           {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -281,7 +340,7 @@ export function PublishedReplayNotesPanel({
         </button>
       </div>
 
-      <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+      <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Pinned context</div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
           <span className="lab-chip">{datasetLabel(dataset)}</span>
@@ -305,7 +364,7 @@ export function PublishedReplayNotesPanel({
               'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
               intent === option.id
                 ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
-                : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
+                : 'border-rule bg-white text-text-primary hover:border-border-hover',
             )}
             title={option.description}
           >
@@ -314,7 +373,7 @@ export function PublishedReplayNotesPanel({
         ))}
       </div>
 
-      <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+      <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Note anchor</div>
         <div className="mt-3 flex flex-wrap gap-2">
           {anchorOptions.map(option => (
@@ -325,7 +384,7 @@ export function PublishedReplayNotesPanel({
                 'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                 selectedAnchorKey === option.key
                   ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
-                  : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
+                  : 'border-rule bg-white text-text-primary hover:border-border-hover',
               )}
             >
               {option.label}
@@ -334,7 +393,7 @@ export function PublishedReplayNotesPanel({
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
+      <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Note draft</div>
         <textarea
           value={draft}
@@ -345,7 +404,7 @@ export function PublishedReplayNotesPanel({
       </div>
 
       {!queryEnabled ? (
-        <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-3 text-xs leading-5 text-muted">
+        <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-3 text-xs leading-5 text-muted">
           Wait for the published replay to load before attaching notes to a slot.
         </div>
       ) : null}
@@ -362,7 +421,7 @@ export function PublishedReplayNotesPanel({
         </div>
       ) : null}
 
-      <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+      <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Thread for this slot</div>
@@ -373,20 +432,18 @@ export function PublishedReplayNotesPanel({
 
         <div className="mt-4 space-y-3">
           {(notesQuery.data ?? []).map(note => (
-            <div key={note.id} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+            <div key={note.id} className="rounded-xl border border-rule bg-white px-4 py-4">
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-text-faint">
                 <span className="lab-chip">{note.intent}</span>
                 <button
-                  onClick={() => statusMutation.mutate({ noteId: note.id, status: note.status === 'open' ? 'resolved' : 'open' })}
+                  onClick={() => statusMutation.mutate({ noteId: note.id, status: nextStatusForNote(note.intent, note.status) })}
                   disabled={statusMutation.isPending}
                   className={cn(
                     'rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition-colors',
-                    note.status === 'resolved'
-                      ? 'border-[#0F766E]/18 bg-[#ECFDF5] text-[#0F766E]'
-                      : 'border-[#C2410C]/18 bg-[#FFF7ED] text-[#9A3412]',
+                    statusBadgeClass(note.status),
                   )}
                 >
-                  {note.status}
+                  {formatStatusLabel(note.status)}
                 </button>
                 <span className="lab-chip">slot {note.slotNumber}</span>
                 {note.anchorLabel ? <span className="lab-chip">{note.anchorLabel}</span> : null}
@@ -398,16 +455,16 @@ export function PublishedReplayNotesPanel({
               ) : null}
               <div className="mt-3 text-sm leading-6 text-text-primary">{note.note}</div>
               {note.replies.length > 0 ? (
-                <div className="mt-4 space-y-2 border-t border-border-subtle pt-3">
+                <div className="mt-4 space-y-2 border-t border-rule pt-3">
                   {note.replies.map(reply => (
-                    <div key={reply.id} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-3 py-3">
+                    <div key={reply.id} className="rounded-xl border border-rule bg-surface-active px-3 py-3">
                       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{formatTimestamp(reply.createdAt)}</div>
                       <div className="mt-2 text-xs leading-5 text-text-primary">{reply.text}</div>
                     </div>
                   ))}
                 </div>
               ) : null}
-              <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-3 py-3">
+              <div className="mt-4 rounded-xl border border-rule bg-surface-active px-3 py-3">
                 <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Reply</div>
                 <textarea
                   value={replyDrafts[note.id] ?? ''}
@@ -419,7 +476,7 @@ export function PublishedReplayNotesPanel({
                   <button
                     onClick={() => replyMutation.mutate({ noteId: note.id, reply: (replyDrafts[note.id] ?? '').trim() })}
                     disabled={!((replyDrafts[note.id] ?? '').trim()) || replyMutation.isPending}
-                    className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:bg-surface-active disabled:text-muted"
+                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:bg-surface-active disabled:text-muted"
                   >
                     {replyMutation.isPending ? 'Saving reply' : 'Add reply'}
                   </button>
@@ -429,7 +486,7 @@ export function PublishedReplayNotesPanel({
           ))}
 
           {notesQuery.data && notesQuery.data.length === 0 && !notesQuery.isLoading ? (
-            <div className="rounded-xl border border-dashed border-border-subtle bg-white px-4 py-5 text-xs leading-5 text-muted">
+            <div className="rounded-xl border border-dashed border-rule bg-white px-4 py-5 text-xs leading-5 text-muted">
               No paper notes are attached to this replay posture yet.
             </div>
           ) : null}

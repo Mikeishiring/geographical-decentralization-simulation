@@ -12,7 +12,7 @@ export function TableBlock({ block }: TableBlockProps) {
 
   if (block.rows.length === 0 || block.headers.length === 0) {
     return (
-      <div className="bg-white border border-border-subtle rounded-xl p-5">
+      <div className="bg-white border border-rule rounded-xl p-5">
         <h3 className="text-sm font-medium text-text-primary mb-4">{block.title}</h3>
         <div className="text-center text-xs text-muted py-4">No data available</div>
       </div>
@@ -20,7 +20,7 @@ export function TableBlock({ block }: TableBlockProps) {
   }
 
   return (
-    <div className="bg-white border border-border-subtle rounded-xl p-5 card-hover">
+    <div className="bg-white border border-rule rounded-xl p-5 card-hover">
       <h3 className="text-sm font-medium text-text-primary mb-4">
         {block.title}
       </h3>

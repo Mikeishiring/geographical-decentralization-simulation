@@ -276,7 +276,7 @@ export function ExploreHistoryPage({
             {hiddenDraftExploration.surface === 'reading' && onOpenQuery && (
               <button
                 onClick={() => onOpenQuery(hiddenDraftExploration.query)}
-                className="rounded-md border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+                className="rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
               >
                 Open in Findings
               </button>
@@ -284,7 +284,7 @@ export function ExploreHistoryPage({
             {hiddenDraftExploration.surface === 'simulation' && onTabChange && (
               <button
                 onClick={() => onTabChange('results')}
-                className="rounded-md border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+                className="rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
               >
                 Open Simulation
               </button>
@@ -397,7 +397,7 @@ function ContributionSection({
       </div>
 
       {explorations.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border-subtle bg-white/85 px-4 py-5 text-sm text-muted">
+        <div className="rounded-xl border border-dashed border-rule bg-white/85 px-4 py-5 text-sm text-muted">
           {emptyMessage}
         </div>
       ) : (
@@ -608,8 +608,8 @@ function ExplorationCard({
             transition={SPRING_SOFT}
             className="overflow-hidden"
           >
-            <div className="border-t border-border-subtle p-4">
-              <div className="mb-4 rounded-lg border border-border-subtle bg-[#FAFAF8] px-3 py-2 text-xs text-muted">
+            <div className="border-t border-rule p-4">
+              <div className="mb-4 rounded-lg border border-rule bg-surface-active px-3 py-2 text-xs text-muted">
                 <span className="font-medium text-text-primary">Truth boundary:</span>{' '}
                 {exploration.publication.published
                   ? 'This is a published human-authored note layered on top of a reading or exact-run artifact.'
@@ -628,7 +628,7 @@ function ExplorationCard({
                 {exploration.surface === 'reading' && onOpenQuery && (
                   <button
                     onClick={() => onOpenQuery(exploration.query)}
-                    className="rounded-md border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+                    className="rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
                   >
                     Reopen in Findings
                   </button>
@@ -637,7 +637,7 @@ function ExplorationCard({
                 {exploration.surface === 'simulation' && onOpenSimulation && (
                   <button
                     onClick={onOpenSimulation}
-                    className="rounded-md border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+                    className="rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
                   >
                     Open Simulation
                   </button>
@@ -646,7 +646,7 @@ function ExplorationCard({
                 {exploration.publication.published && onShare && (
                   <button
                     onClick={() => void onShare(exploration.id)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
                   >
                     <Link2 className="h-3.5 w-3.5" />
                     {shareCopied ? 'Link copied' : 'Copy note link'}
@@ -716,7 +716,7 @@ function FollowUpList({
   readonly onSelect?: (query: string) => void
 }) {
   return (
-    <div className="mt-4 border-t border-border-subtle pt-3">
+    <div className="mt-4 border-t border-rule pt-3">
       <span className="mb-2 block text-xs text-muted">
         Useful next questions
       </span>
@@ -760,14 +760,14 @@ function EmptyState({
             detail: 'Only intentionally published notes appear here. Drafts and saved readings stay off the public surface until someone makes that choice.',
           },
         ].map(item => (
-          <div key={item.title} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+          <div key={item.title} className="rounded-xl border border-rule bg-white px-4 py-4">
             <div className="text-sm font-medium text-text-primary">{item.title}</div>
             <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
           </div>
         ))}
       </div>
 
-      <div className="flex flex-col items-center justify-center rounded-xl border border-border-subtle bg-white py-20 text-center">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-rule bg-white py-20 text-center">
         <Tag className="mb-4 h-8 w-8 text-text-faint" />
         <h2 className="mb-2 text-lg font-medium text-text-primary">No community notes yet</h2>
         <p className="mb-5 max-w-lg text-sm text-muted">
@@ -786,13 +786,13 @@ function EmptyState({
             <>
               <button
                 onClick={() => onTabChange('paper')}
-                className="rounded-md border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                className="rounded-md border border-rule bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
                 Read the paper
               </button>
               <button
                 onClick={() => onTabChange('results')}
-                className="rounded-lg border border-border-subtle bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                className="rounded-lg border border-rule bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
                 Open Simulation
               </button>
@@ -807,10 +807,10 @@ function EmptyState({
 function LoadingSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="h-20 animate-pulse rounded-xl border border-border-subtle bg-white" />
+      <div className="h-20 animate-pulse rounded-xl border border-rule bg-white" />
       <div className="grid gap-4">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-28 animate-pulse rounded-xl border border-border-subtle bg-white" />
+          <div key={index} className="h-28 animate-pulse rounded-xl border border-rule bg-white" />
         ))}
       </div>
     </div>
@@ -819,7 +819,7 @@ function LoadingSkeleton() {
 
 function NoResults({ search }: { readonly search: string }) {
   return (
-    <div className="rounded-xl border border-border-subtle bg-white px-4 py-8 text-center">
+    <div className="rounded-xl border border-rule bg-white px-4 py-8 text-center">
       <div className="text-sm font-medium text-text-primary">No matches for “{search}”</div>
       <p className="mt-2 text-sm text-muted">
         Try a paradigm, scenario family, metric, paper term, or contributor name instead.

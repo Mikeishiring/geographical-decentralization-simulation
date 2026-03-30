@@ -106,7 +106,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
   return (
     <div className="rounded-xl border border-rule bg-canvas px-5 py-6 sm:px-8 sm:py-8">
       <div className={cn(
-        'bg-white border border-border-subtle rounded-xl transition-all',
+        'bg-white border border-rule rounded-xl transition-all',
         isEnabled && 'focus-within:border-accent/30 focus-within:ring-2 focus-within:ring-accent/10',
       )}>
         <div className="flex items-center gap-3 px-4 py-3">

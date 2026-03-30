@@ -49,7 +49,7 @@ export function SimulationAnalyticsDesk({
         {onCopyShareUrl ? (
           <button
             onClick={onCopyShareUrl}
-            className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
           >
             {copyLabel}
           </button>
@@ -65,7 +65,7 @@ export function SimulationAnalyticsDesk({
               'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
               analyticsView === view.id
                 ? 'border-accent bg-white text-accent'
-                : 'border-border-subtle bg-[#FAFAF8] text-text-primary hover:border-border-hover',
+                : 'border-rule bg-surface-active text-text-primary hover:border-border-hover',
             )}
           >
             {view.label}
@@ -73,7 +73,7 @@ export function SimulationAnalyticsDesk({
         ))}
       </div>
 
-      <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+      <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
         <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Query framing</div>
         <div className="mt-2 text-sm font-medium text-text-primary">
           {activeView?.label ?? 'Analytics'} query
@@ -85,7 +85,7 @@ export function SimulationAnalyticsDesk({
       </div>
 
       {statusMessage ? (
-        <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4 text-sm text-muted">
+        <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4 text-sm text-muted">
           {statusMessage}
         </div>
       ) : null}
@@ -95,7 +95,7 @@ export function SimulationAnalyticsDesk({
       {!statusMessage && metricCards.length > 0 ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {metricCards.map(card => (
-            <div key={card.label} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+            <div key={card.label} className="rounded-xl border border-rule bg-white px-4 py-4">
               <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{card.label}</div>
               <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
               <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>

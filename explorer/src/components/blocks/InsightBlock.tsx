@@ -1,6 +1,4 @@
-import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
-import { HOVER_LIFT } from '../../lib/theme'
 import type { InsightBlock as InsightBlockType } from '../../types/blocks'
 
 interface InsightBlockProps {
@@ -23,10 +21,9 @@ export function InsightBlock({ block }: InsightBlockProps) {
   const emphasis = block.emphasis ?? 'normal'
 
   return (
-    <motion.div
-      {...HOVER_LIFT}
+    <div
       className={cn(
-        'bg-white border border-border-subtle rounded-xl p-5 border-l-2 topo-bg',
+        'bg-white border border-rule rounded-xl p-5 border-l-2 topo-bg',
         emphasisStyles[emphasis],
       )}
     >
@@ -39,7 +36,7 @@ export function InsightBlock({ block }: InsightBlockProps) {
       <p className="text-[0.875rem] leading-[1.65] text-text-body font-serif">
         <InlineMarkdown text={block.text} />
       </p>
-    </motion.div>
+    </div>
   )
 }
 
