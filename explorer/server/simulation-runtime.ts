@@ -18,11 +18,19 @@ const WORKER_PATH = path.join(SERVER_DIR, 'simulation_worker.py')
 const SIMULATION_CACHE_ROOT = path.join(REPO_ROOT, '.simulation_cache')
 const DEFAULT_PYTHON_EXECUTABLE = process.platform === 'win32' ? 'python' : 'python3'
 const DETECTED_PARALLELISM = Math.max(1, availableParallelism())
+const MAX_WORKER_POOL_SIZE = 8
+const TARGET_PRODUCTION_WORKER_POOL_SIZE = 8
+const REQUESTED_WORKER_POOL_SIZE = Number(
+  process.env.SIMULATION_WORKERS
+    ?? (process.env.NODE_ENV === 'production'
+      ? TARGET_PRODUCTION_WORKER_POOL_SIZE
+      : DETECTED_PARALLELISM),
+)
 const DEFAULT_WORKER_POOL_SIZE = Math.max(
   1,
   Math.min(
-    Number(process.env.SIMULATION_WORKERS ?? DETECTED_PARALLELISM),
-    8,
+    Number.isFinite(REQUESTED_WORKER_POOL_SIZE) ? Math.trunc(REQUESTED_WORKER_POOL_SIZE) : DETECTED_PARALLELISM,
+    MAX_WORKER_POOL_SIZE,
   ),
 )
 const DEFAULT_QUEUED_JOB_TTL_MS = Math.max(60_000, Number(process.env.SIMULATION_QUEUE_TTL_MS ?? 10 * 60_000))
@@ -597,6 +605,10 @@ export class SimulationRuntime {
     const readyWorkers = this.workers.filter(worker => worker.process !== null).length
     const busyWorkers = this.workers.filter(worker => worker.currentJobId !== null).length
     return {
+      detectedParallelism: DETECTED_PARALLELISM,
+      requestedWorkerPoolSize: Number.isFinite(REQUESTED_WORKER_POOL_SIZE)
+        ? Math.trunc(REQUESTED_WORKER_POOL_SIZE)
+        : null,
       workerPoolSize: this.workerPoolSize,
       maxQueueLength: this.maxQueueLength,
       maxStoredJobs: this.maxStoredJobs,
