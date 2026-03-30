@@ -376,7 +376,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
             {!argumentMapMode && !paperMode && (
               <div className="hidden sm:flex items-center gap-2 text-xs text-muted">
                 <span>{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
-                <div className="h-1 w-20 overflow-hidden rounded-full bg-[#E8E8E6]">
+                <div className="h-1 w-20 overflow-hidden rounded-full bg-surface-active">
                   <motion.div
                     className="h-full rounded-full bg-accent"
                     animate={{ width: `${progressPercent}%` }}
