@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ExternalLink, LoaderCircle, Pause, Play, RotateCcw, X } from 'lucide-react'
+import { ExternalLink, LoaderCircle, Lock, Pause, Play, RotateCcw, X } from 'lucide-react'
 import { ChartBlock } from '../blocks/ChartBlock'
 import { InsightBlock } from '../blocks/InsightBlock'
 import { StatBlock } from '../blocks/StatBlock'
@@ -33,6 +33,25 @@ interface PublishedViewerSettings {
   readonly autoplay: boolean
 }
 
+interface PublishedViewerAnnotationNote {
+  readonly id: string
+  readonly intent: 'observation' | 'question' | 'theory' | 'methods'
+  readonly anchorKind?: 'general' | 'region' | 'metric' | 'comparison' | null
+  readonly anchorKey?: string | null
+  readonly anchorLabel?: string | null
+  readonly note: string
+  readonly slotNumber: number
+}
+
+type PublishedViewerNoteFilter = 'all' | PublishedViewerAnnotationNote['intent']
+type PublishedViewerFocusArea = 'geography' | 'concentration' | 'performance' | 'config'
+
+function readInitialSlotLocked(): boolean {
+  if (typeof window === 'undefined') return false
+  const value = new URLSearchParams(window.location.search).get('slotLocked')
+  return value === '1' || value === 'true'
+}
+
 export interface PublishedViewerSnapshot {
   readonly slotIndex: number
   readonly slotNumber: number
@@ -59,8 +78,10 @@ interface PublishedDatasetViewerProps {
   readonly viewerBaseUrl: string
   readonly dataset: ResearchDatasetEntry
   readonly initialSettings: PublishedViewerSettings
+  readonly initialSlotIndex?: number
   readonly onClose?: () => void
   readonly onStateChange?: (snapshot: PublishedViewerSnapshot | null) => void
+  readonly annotationNotes?: readonly PublishedViewerAnnotationNote[]
 }
 
 interface PublishedMetrics {
@@ -300,25 +321,107 @@ function themeLabel(theme: PublishedViewerSettings['theme']): string {
   return 'Light'
 }
 
+function noteIntentLabel(intent: PublishedViewerAnnotationNote['intent']): string {
+  if (intent === 'question') return 'Question'
+  if (intent === 'theory') return 'Theory'
+  if (intent === 'methods') return 'Methods'
+  return 'Observation'
+}
+
+function noteIntentClass(intent: PublishedViewerAnnotationNote['intent']): string {
+  if (intent === 'question') return 'border-[#C2410C]/20 bg-[#FFF7ED] text-[#9A3412]'
+  if (intent === 'theory') return 'border-[#1D4ED8]/20 bg-[#EFF6FF] text-[#1D4ED8]'
+  if (intent === 'methods') return 'border-[#0F766E]/20 bg-[#ECFDF5] text-[#0F766E]'
+  return 'border-[#7C3AED]/18 bg-[#F5F3FF] text-[#6D28D9]'
+}
+
+function noteFocusArea(note: PublishedViewerAnnotationNote): PublishedViewerFocusArea {
+  if (note.anchorKind === 'region') return 'geography'
+  if (note.anchorKind === 'comparison') return 'performance'
+  if (note.anchorKind === 'metric') {
+    if (note.anchorKey === 'gini' || note.anchorKey === 'hhi' || note.anchorKey === 'liveness') {
+      return 'concentration'
+    }
+    if (note.anchorKey === 'proposal_time' || note.anchorKey === 'mev' || note.anchorKey === 'total_distance') {
+      return 'performance'
+    }
+  }
+
+  if (note.intent === 'theory') return 'concentration'
+  if (note.intent === 'methods') return 'config'
+  if (note.intent === 'question') return 'performance'
+  return 'geography'
+}
+
+function focusAreaLabel(area: PublishedViewerFocusArea): string {
+  if (area === 'concentration') return 'concentration view'
+  if (area === 'performance') return 'performance charts'
+  if (area === 'config') return 'methods and configuration'
+  return 'geography canvas'
+}
+
+function noteMatchesMetric(
+  note: PublishedViewerAnnotationNote,
+  keys: readonly string[],
+): boolean {
+  return note.anchorKind === 'metric' && typeof note.anchorKey === 'string' && keys.includes(note.anchorKey)
+}
+
+function noteMatchesRegion(
+  note: PublishedViewerAnnotationNote,
+  regionId: string,
+  regionLabel: string,
+): boolean {
+  return note.anchorKind === 'region' && (note.anchorKey === regionId || note.anchorKey === regionLabel)
+}
+
+function dispatchPublishedReplayAnchorSelection(detail: {
+  kind: 'general' | 'region' | 'metric' | 'comparison'
+  key: string
+  label: string
+}) {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent('published-replay-anchor-select', { detail }))
+}
+
 function PublishedGeoCard({
   title,
   regions,
+  annotationNotes,
+  selectedNoteId,
+  onSelectNote,
+  focusAreaActive,
 }: {
   title: string
   regions: readonly RegionCount[]
+  annotationNotes?: readonly PublishedViewerAnnotationNote[]
+  selectedNoteId?: string | null
+  onSelectNote?: (id: string) => void
+  focusAreaActive?: boolean
 }) {
   const sortedRegions = [...regions].sort((left, right) => right.count - left.count)
   const topRegions = sortedRegions.slice(0, 6)
   const macroRegionCounts = aggregateMacroRegions(regions)
   const totalValidators = sortedRegions.reduce((sum, region) => sum + region.count, 0)
   const maxValue = Math.max(...sortedRegions.map(region => region.count), 1)
+  const dominantRegion = topRegions[0] ?? null
+  const regionAnchoredNotes = annotationNotes?.filter(note => note.anchorKind === 'region') ?? []
 
   const svgWidth = 820
   const svgHeight = 430
   const continentShapePaths = useMemo(() => continentPaths(svgWidth, svgHeight), [])
+  const gradientKey = title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+  const atmosphereId = `geo-atmosphere-${gradientKey}`
+  const dominantGlowId = `geo-dominant-${gradientKey}`
+  const dominantRegionPoint = dominantRegion?.region
+    ? latLonToMercator(dominantRegion.region.lat, dominantRegion.region.lon, svgWidth, svgHeight)
+    : null
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
+    <div className={cn(
+      'overflow-hidden rounded-[1.35rem] border border-border-subtle bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.08),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-[0_24px_56px_rgba(15,23,42,0.08)] transition-all duration-300',
+      focusAreaActive ? 'ring-2 ring-accent/40 shadow-[0_26px_64px_rgba(37,99,235,0.14)]' : '',
+    )}>
       <div className="border-b border-border-subtle px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -333,7 +436,28 @@ function PublishedGeoCard({
       </div>
 
       <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.65fr)]">
-        <div className="overflow-hidden rounded-2xl border border-[#1F2937] bg-[#0D1117]">
+        <div className="relative overflow-hidden rounded-2xl border border-[#1F2937] bg-[#0D1117]">
+          {annotationNotes && annotationNotes.length > 0 ? (
+            <div className="absolute inset-x-4 top-4 z-10 flex max-w-xl flex-wrap gap-2">
+              <div className="rounded-full border border-white/12 bg-[#0F172A]/78 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-white/85 backdrop-blur-md">
+                {annotationNotes.length} paper note{annotationNotes.length === 1 ? '' : 's'} pinned to this slot
+              </div>
+              {annotationNotes.slice(0, 2).map(note => (
+                <button
+                  key={note.id}
+                  onClick={() => onSelectNote?.(note.id)}
+                  className={cn(
+                    'pointer-events-auto max-w-[18rem] rounded-full border px-3 py-1.5 text-left text-[11px] text-white/88 backdrop-blur-md transition-all',
+                    selectedNoteId === note.id
+                      ? 'border-white/45 bg-white/20 shadow-[0_16px_30px_rgba(15,23,42,0.22)]'
+                      : 'border-white/12 bg-white/10 hover:border-white/30 hover:bg-white/14',
+                  )}
+                >
+                  <span className="font-medium">{noteIntentLabel(note.intent)}{note.anchorLabel ? ` · ${note.anchorLabel}` : ''}:</span> {note.note}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <svg
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
             className="w-full"
@@ -341,7 +465,32 @@ function PublishedGeoCard({
             role="img"
             aria-label={title}
           >
-            <rect x={0} y={0} width={svgWidth} height={svgHeight} fill="#0D1117" />
+            <defs>
+              <linearGradient id={atmosphereId} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#08111F" />
+                <stop offset="55%" stopColor="#0B1323" />
+                <stop offset="100%" stopColor="#101A2E" />
+              </linearGradient>
+              <radialGradient id={dominantGlowId} cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="rgba(96,165,250,0.72)" />
+                <stop offset="55%" stopColor="rgba(59,130,246,0.22)" />
+                <stop offset="100%" stopColor="rgba(15,23,42,0)" />
+              </radialGradient>
+            </defs>
+
+            <rect x={0} y={0} width={svgWidth} height={svgHeight} fill={`url(#${atmosphereId})`} />
+
+            {dominantRegionPoint ? (
+              <circle
+                cx={dominantRegionPoint.x}
+                cy={dominantRegionPoint.y}
+                r={72}
+                fill={`url(#${dominantGlowId})`}
+                opacity={0.7}
+              >
+                <animate attributeName="opacity" values="0.48;0.82;0.48" dur="3.2s" repeatCount="indefinite" />
+              </circle>
+            ) : null}
 
             {[0.2, 0.4, 0.6, 0.8].map(fraction => (
               <line
@@ -388,13 +537,22 @@ function PublishedGeoCard({
                 const share = totalValidators > 0 ? (region.count / totalValidators) * 100 : 0
 
                 return (
-                  <g key={region.regionId}>
+                  <g
+                    key={region.regionId}
+                    onClick={() => dispatchPublishedReplayAnchorSelection({
+                      kind: 'region',
+                      key: region.regionId,
+                      label: `Region · ${geoRegion.city}`,
+                    })}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <circle
                       cx={x}
                       cy={y}
                       r={radius * 1.8}
                       fill={fill}
                       opacity={0.1}
+                      style={{ transition: 'r 360ms ease, opacity 360ms ease, fill 360ms ease' }}
                     />
                     <circle
                       cx={x}
@@ -403,6 +561,7 @@ function PublishedGeoCard({
                       fill={fill}
                       stroke="rgba(255,255,255,0.85)"
                       strokeWidth={1}
+                      style={{ transition: 'r 360ms ease, opacity 360ms ease, fill 360ms ease, cx 360ms ease, cy 360ms ease' }}
                     >
                       <title>{`${geoRegion.city} (${region.regionId}) · ${countLabel(region.count)} validators · ${percentage(share, 1)}`}</title>
                     </circle>
@@ -420,11 +579,28 @@ function PublishedGeoCard({
                 const regionLabel = region.region ? region.region.city : region.regionId
                 const fill = regionValueColor(region.count, maxValue)
                 const share = totalValidators > 0 ? (region.count / totalValidators) * 100 : 0
+                const regionNoteCount = regionAnchoredNotes.filter(note => noteMatchesRegion(note, region.regionId, regionLabel)).length
                 return (
-                  <div key={region.regionId}>
+                  <button
+                    key={region.regionId}
+                    type="button"
+                    onClick={() => dispatchPublishedReplayAnchorSelection({
+                      kind: 'region',
+                      key: region.regionId,
+                      label: `Region · ${regionLabel}`,
+                    })}
+                    className="block w-full text-left"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="truncate text-xs font-medium text-text-primary">{regionLabel}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="truncate text-xs font-medium text-text-primary">{regionLabel}</div>
+                          {regionNoteCount > 0 ? (
+                            <span className="rounded-full border border-[#7C3AED]/18 bg-[#F5F3FF] px-2 py-0.5 text-[10px] font-medium text-[#6D28D9]">
+                              {regionNoteCount} note{regionNoteCount === 1 ? '' : 's'}
+                            </span>
+                          ) : null}
+                        </div>
                         <div className="truncate text-[11px] text-muted">{region.regionId}</div>
                       </div>
                       <div className="shrink-0 text-right">
@@ -435,10 +611,10 @@ function PublishedGeoCard({
                     <div className="mt-1.5 h-1.5 rounded-full bg-surface-active">
                       <div
                         className="h-full rounded-full"
-                        style={{ width: `${share}%`, backgroundColor: fill }}
+                        style={{ width: `${share}%`, backgroundColor: fill, transition: 'width 420ms ease' }}
                       />
                     </div>
-                  </div>
+                  </button>
                 )
               })}
             </div>
@@ -458,7 +634,7 @@ function PublishedGeoCard({
                     <div className="mt-1 h-1 rounded-full bg-surface-active">
                       <div
                         className="h-full rounded-full bg-accent"
-                        style={{ width: `${share}%` }}
+                        style={{ width: `${share}%`, transition: 'width 420ms ease' }}
                       />
                     </div>
                   </div>
@@ -476,8 +652,10 @@ export function PublishedDatasetViewer({
   viewerBaseUrl,
   dataset,
   initialSettings,
+  initialSlotIndex = 0,
   onClose,
   onStateChange,
+  annotationNotes = [] as readonly PublishedViewerAnnotationNote[],
 }: PublishedDatasetViewerProps) {
   const [viewerState, setViewerState] = useState<ViewerState>({
     status: 'loading',
@@ -487,6 +665,19 @@ export function PublishedDatasetViewer({
   const [slot, setSlot] = useState(0)
   const [playing, setPlaying] = useState(initialSettings.autoplay)
   const [stepSize, setStepSize] = useState<1 | 10 | 50>(initialSettings.step)
+  const [slotLocked, setSlotLocked] = useState(() => readInitialSlotLocked())
+  const [activeNoteFilter, setActiveNoteFilter] = useState<PublishedViewerNoteFilter>(() => {
+    if (typeof window === 'undefined') return 'all'
+    const value = new URLSearchParams(window.location.search).get('noteFilter')
+    return value === 'observation' || value === 'question' || value === 'theory' || value === 'methods'
+      ? value
+      : 'all'
+  })
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    return new URLSearchParams(window.location.search).get('note')
+  })
+  const [noteShareStatus, setNoteShareStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -498,9 +689,10 @@ export function PublishedDatasetViewer({
       error: null,
     })
     onStateChange?.(null)
-    setSlot(0)
+    setSlot(Math.max(0, Math.floor(initialSlotIndex)))
     setPlaying(initialSettings.autoplay)
     setStepSize(initialSettings.step)
+    setSlotLocked(readInitialSlotLocked())
 
     const load = async () => {
       try {
@@ -540,7 +732,7 @@ export function PublishedDatasetViewer({
       controller.abort()
       onStateChange?.(null)
     }
-  }, [dataset, initialSettings.autoplay, initialSettings.step, onStateChange, viewerBaseUrl])
+  }, [dataset, initialSettings.autoplay, initialSettings.step, initialSlotIndex, onStateChange, viewerBaseUrl])
 
   const data = viewerState.data
   const totalSlots = Math.max(
@@ -553,16 +745,43 @@ export function PublishedDatasetViewer({
   const lastSlot = Math.max(0, totalSlots - 1)
 
   useEffect(() => {
-    if (!playing) return
+    if (!playing || slotLocked) return
     const intervalId = window.setInterval(() => {
       setSlot(previous => Math.min(previous + stepSize, lastSlot))
     }, 240)
     return () => window.clearInterval(intervalId)
-  }, [lastSlot, playing, stepSize])
+  }, [lastSlot, playing, slotLocked, stepSize])
+
+  useEffect(() => {
+    setSlot(previous => Math.min(previous, lastSlot))
+  }, [lastSlot])
 
   useEffect(() => {
     if (slot >= lastSlot) setPlaying(false)
   }, [lastSlot, slot])
+
+  const filteredAnnotationNotes = useMemo(() => (
+    activeNoteFilter === 'all'
+      ? annotationNotes
+      : annotationNotes.filter(note => note.intent === activeNoteFilter)
+  ), [activeNoteFilter, annotationNotes])
+
+  useEffect(() => {
+    if (activeNoteFilter !== 'all' && !annotationNotes.some(note => note.intent === activeNoteFilter)) {
+      setActiveNoteFilter('all')
+    }
+  }, [activeNoteFilter, annotationNotes])
+
+  useEffect(() => {
+    if (filteredAnnotationNotes.length === 0) {
+      if (selectedNoteId !== null) setSelectedNoteId(null)
+      return
+    }
+
+    if (!selectedNoteId || !filteredAnnotationNotes.some(note => note.id === selectedNoteId)) {
+      setSelectedNoteId(filteredAnnotationNotes[0]!.id)
+    }
+  }, [filteredAnnotationNotes, selectedNoteId])
 
   const currentRegions = useMemo(() => getSlotRegions(data, slot), [data, slot])
   const initialRegions = useMemo(() => getSlotRegions(data, 0), [data])
@@ -598,6 +817,54 @@ export function PublishedDatasetViewer({
   const initialMev = readMetricValue(metrics.mev, 0)
   const initialProposalTime = readMetricValue(metrics.proposal_times, 0)
   const initialTotalDistance = readMetricValue(metrics.total_distance, 0)
+  const noteIntentCounts = useMemo(() => ({
+    observation: annotationNotes.filter(note => note.intent === 'observation').length,
+    question: annotationNotes.filter(note => note.intent === 'question').length,
+    theory: annotationNotes.filter(note => note.intent === 'theory').length,
+    methods: annotationNotes.filter(note => note.intent === 'methods').length,
+  }), [annotationNotes])
+  const metricNoteCounts = useMemo(() => ({
+    geography: annotationNotes.filter(note => note.anchorKind === 'region').length,
+    gini: annotationNotes.filter(note => noteMatchesMetric(note, ['gini'])).length,
+    concentration: annotationNotes.filter(note => noteMatchesMetric(note, ['gini', 'hhi', 'liveness'])).length,
+    performance: annotationNotes.filter(note => noteMatchesMetric(note, ['proposal_time', 'mev', 'total_distance'])).length,
+    mev: annotationNotes.filter(note => noteMatchesMetric(note, ['mev'])).length,
+    proposalTime: annotationNotes.filter(note => noteMatchesMetric(note, ['proposal_time'])).length,
+    methods: annotationNotes.filter(note => note.anchorKind === 'comparison' || note.intent === 'methods').length,
+  }), [annotationNotes])
+  const focusedNote = useMemo(
+    () => filteredAnnotationNotes.find(note => note.id === selectedNoteId) ?? filteredAnnotationNotes[0] ?? null,
+    [filteredAnnotationNotes, selectedNoteId],
+  )
+  const focusedArea = focusedNote ? noteFocusArea(focusedNote) : null
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    const params = url.searchParams
+    if (activeNoteFilter === 'all' || annotationNotes.length === 0) {
+      params.delete('noteFilter')
+    } else {
+      params.set('noteFilter', activeNoteFilter)
+    }
+    if (focusedNote?.id && annotationNotes.length > 0) {
+      params.set('note', focusedNote.id)
+    } else {
+      params.delete('note')
+    }
+    if (slotLocked) {
+      params.set('slotLocked', '1')
+    } else {
+      params.delete('slotLocked')
+    }
+    window.history.replaceState({}, '', `${url.pathname}?${params.toString()}${url.hash}`)
+  }, [activeNoteFilter, annotationNotes.length, focusedNote?.id, slotLocked])
+
+  useEffect(() => {
+    if (noteShareStatus !== 'idle') {
+      setNoteShareStatus('idle')
+    }
+  }, [activeNoteFilter, focusedNote?.id, noteShareStatus])
 
   useEffect(() => {
     if (!onStateChange || viewerState.status !== 'ready') return
@@ -647,6 +914,7 @@ export function PublishedDatasetViewer({
   ])
 
   const metadata = dataset.metadata ?? {}
+  const timelineProgress = lastSlot > 0 ? (slot / lastSlot) * 100 : 0
   const viewerUrl = buildViewerUrl(viewerBaseUrl, dataset.path, {
     theme: initialSettings.theme,
     step: stepSize,
@@ -797,7 +1065,7 @@ export function PublishedDatasetViewer({
           <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="lab-lens-card px-4 py-4">
               <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Playback</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">{playing ? 'Autoplay active' : 'Manual review'}</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{slotLocked ? 'Slot locked' : playing ? 'Autoplay active' : 'Manual review'}</div>
               <div className="mt-1 text-xs text-muted">Step {stepSize} · slot {countLabel(slot + 1)} of {countLabel(totalSlots)}</div>
             </div>
             <div className="lab-lens-card px-4 py-4">
@@ -818,12 +1086,71 @@ export function PublishedDatasetViewer({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <StatBlock block={{ type: 'stat', value: `${countLabel(slot + 1)} / ${countLabel(totalSlots)}`, label: 'Current slot', sublabel: `Playback step ${stepSize}`, delta: playing ? 'Autoplay active' : 'Paused', sentiment: 'neutral' }} />
-            <StatBlock block={{ type: 'stat', value: countLabel(currentRegions.length), label: 'Active regions', sublabel: `${countLabel(totalValidators)} validators visible in this slot`, delta: `${currentRegions.length - initialRegions.length >= 0 ? '+' : ''}${countLabel(currentRegions.length - initialRegions.length)} vs slot 1`, sentiment: currentRegions.length <= initialRegions.length ? 'positive' : 'neutral' }} />
-            <StatBlock block={{ type: 'stat', value: regionShareLabel(topRegion, totalValidators), label: 'Dominant region share', sublabel: topRegion?.region ? topRegion.region.city : 'No active region', delta: deltaLabel(dominantShare, initialDominantShare), sentiment: dominantShare >= initialDominantShare ? 'negative' : 'positive' }} />
-            <StatBlock block={{ type: 'stat', value: currentGini != null ? compactNumber(currentGini, 3) : 'N/A', label: 'Gini', sublabel: 'Geographic concentration', delta: deltaLabel(currentGini, initialGini), sentiment: (currentGini ?? 0) <= (initialGini ?? 0) ? 'positive' : 'negative' }} />
-            <StatBlock block={{ type: 'stat', value: currentMev != null ? `${compactNumber(currentMev, 4)} ETH` : 'N/A', label: 'Average MEV', sublabel: 'Current slot reward surface', delta: deltaLabel(currentMev, initialMev), sentiment: (currentMev ?? 0) >= (initialMev ?? 0) ? 'positive' : 'neutral' }} />
-            <StatBlock block={{ type: 'stat', value: currentProposalTime != null ? `${compactNumber(currentProposalTime, 1)} ms` : 'N/A', label: 'Proposal time', sublabel: currentAttestation != null ? `Attestation ${percentage(currentAttestation, 1)}` : 'Consensus timing', delta: deltaLabel(currentProposalTime, initialProposalTime), sentiment: (currentProposalTime ?? Number.POSITIVE_INFINITY) <= (initialProposalTime ?? Number.POSITIVE_INFINITY) ? 'positive' : 'negative' }} />
+            {[
+              {
+                key: 'slot',
+                noteCount: annotationNotes.length,
+                focus: false,
+                anchor: { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
+                block: { type: 'stat' as const, value: `${countLabel(slot + 1)} / ${countLabel(totalSlots)}`, label: 'Current slot', sublabel: `Playback step ${stepSize}`, delta: slotLocked ? 'Locked for notes' : playing ? 'Autoplay active' : 'Paused', sentiment: 'neutral' as const },
+              },
+              {
+                key: 'regions',
+                noteCount: metricNoteCounts.geography,
+                focus: focusedArea === 'geography',
+                anchor: topRegion?.region
+                  ? { kind: 'region' as const, key: topRegion.regionId, label: `Region · ${topRegion.region.city}` }
+                  : { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
+                block: { type: 'stat' as const, value: countLabel(currentRegions.length), label: 'Active regions', sublabel: `${countLabel(totalValidators)} validators visible in this slot`, delta: `${currentRegions.length - initialRegions.length >= 0 ? '+' : ''}${countLabel(currentRegions.length - initialRegions.length)} vs slot 1`, sentiment: currentRegions.length <= initialRegions.length ? 'positive' as const : 'neutral' as const },
+              },
+              {
+                key: 'dominant',
+                noteCount: metricNoteCounts.geography,
+                focus: focusedArea === 'geography',
+                anchor: topRegion?.region
+                  ? { kind: 'region' as const, key: topRegion.regionId, label: `Region · ${topRegion.region.city}` }
+                  : { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
+                block: { type: 'stat' as const, value: regionShareLabel(topRegion, totalValidators), label: 'Dominant region share', sublabel: topRegion?.region ? topRegion.region.city : 'No active region', delta: deltaLabel(dominantShare, initialDominantShare), sentiment: dominantShare >= initialDominantShare ? 'negative' as const : 'positive' as const },
+              },
+              {
+                key: 'gini',
+                noteCount: metricNoteCounts.gini,
+                focus: focusedArea === 'concentration',
+                anchor: { kind: 'metric' as const, key: 'gini', label: 'Metric · Gini' },
+                block: { type: 'stat' as const, value: currentGini != null ? compactNumber(currentGini, 3) : 'N/A', label: 'Gini', sublabel: 'Geographic concentration', delta: deltaLabel(currentGini, initialGini), sentiment: (currentGini ?? 0) <= (initialGini ?? 0) ? 'positive' as const : 'negative' as const },
+              },
+              {
+                key: 'mev',
+                noteCount: metricNoteCounts.mev,
+                focus: focusedArea === 'performance',
+                anchor: { kind: 'metric' as const, key: 'mev', label: 'Metric · MEV' },
+                block: { type: 'stat' as const, value: currentMev != null ? `${compactNumber(currentMev, 4)} ETH` : 'N/A', label: 'Average MEV', sublabel: 'Current slot reward surface', delta: deltaLabel(currentMev, initialMev), sentiment: (currentMev ?? 0) >= (initialMev ?? 0) ? 'positive' as const : 'neutral' as const },
+              },
+              {
+                key: 'proposal',
+                noteCount: metricNoteCounts.proposalTime,
+                focus: focusedArea === 'performance',
+                anchor: { kind: 'metric' as const, key: 'proposal_time', label: 'Metric · Proposal time' },
+                block: { type: 'stat' as const, value: currentProposalTime != null ? `${compactNumber(currentProposalTime, 1)} ms` : 'N/A', label: 'Proposal time', sublabel: currentAttestation != null ? `Attestation ${percentage(currentAttestation, 1)}` : 'Consensus timing', delta: deltaLabel(currentProposalTime, initialProposalTime), sentiment: (currentProposalTime ?? Number.POSITIVE_INFINITY) <= (initialProposalTime ?? Number.POSITIVE_INFINITY) ? 'positive' as const : 'negative' as const },
+              },
+            ].map(card => (
+              <button
+                key={card.key}
+                type="button"
+                onClick={() => dispatchPublishedReplayAnchorSelection(card.anchor)}
+                className={cn(
+                  'relative w-full text-left transition-all duration-300',
+                  card.focus ? 'rounded-[1.15rem] ring-2 ring-accent/30 shadow-[0_16px_34px_rgba(37,99,235,0.08)]' : '',
+                )}
+              >
+                {card.noteCount > 0 ? (
+                  <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-[#7C3AED]/18 bg-[#F5F3FF]/96 px-2 py-0.5 text-[10px] font-medium text-[#6D28D9] shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
+                    {card.noteCount} note{card.noteCount === 1 ? '' : 's'}
+                  </div>
+                ) : null}
+                <StatBlock block={card.block} />
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -839,11 +1166,26 @@ export function PublishedDatasetViewer({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => setPlaying(previous => !previous)} className={cn('inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all hover:-translate-y-0.5', playing ? 'bg-accent text-white shadow-[0_16px_30px_rgba(37,99,235,0.18)]' : 'border border-border-subtle bg-white text-text-primary hover:border-border-hover')}>
+            <button disabled={slotLocked} onClick={() => setPlaying(previous => !previous)} className={cn('inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:border disabled:border-border-subtle disabled:bg-surface-active disabled:text-muted disabled:hover:translate-y-0', playing ? 'bg-accent text-white shadow-[0_16px_30px_rgba(37,99,235,0.18)]' : 'border border-border-subtle bg-white text-text-primary hover:border-border-hover')}>
               {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
               {playing ? 'Pause' : 'Play'}
             </button>
-            <button onClick={() => { setPlaying(false); setSlot(0) }} className="inline-flex items-center gap-1.5 rounded-xl border border-border-subtle bg-white px-3.5 py-2.5 text-xs text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover">
+            <button
+              onClick={() => {
+                setPlaying(false)
+                setSlotLocked(previous => !previous)
+              }}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all hover:-translate-y-0.5',
+                slotLocked
+                  ? 'bg-[#0F172A] text-white shadow-[0_16px_30px_rgba(15,23,42,0.16)]'
+                  : 'border border-border-subtle bg-white text-text-primary hover:border-border-hover',
+              )}
+            >
+              <Lock className="h-3.5 w-3.5" />
+              {slotLocked ? 'Unlock slot' : 'Lock slot'}
+            </button>
+            <button onClick={() => { setPlaying(false); setSlotLocked(false); setSlot(0) }} className="inline-flex items-center gap-1.5 rounded-xl border border-border-subtle bg-white px-3.5 py-2.5 text-xs text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover">
               <RotateCcw className="h-3.5 w-3.5" />
               Reset
             </button>
@@ -855,28 +1197,130 @@ export function PublishedDatasetViewer({
           </div>
         </div>
 
+        {annotationNotes.length > 0 ? (
+          <div className="mt-4 rounded-[1.15rem] border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,244,240,0.88))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Slot note filters</div>
+                <div className="mt-2 text-sm text-text-primary">
+                  Filter authored notes by intent and click one to focus the relevant canvas area.
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 lg:items-end">
+                {focusedNote ? (
+                  <div className="max-w-md rounded-2xl border border-border-subtle bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.05)]">
+                    <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-text-faint">
+                      <span>{noteIntentLabel(focusedNote.intent)}</span>
+                      <span>Focuses {focusAreaLabel(focusedArea ?? 'geography')}</span>
+                      {focusedNote.anchorLabel ? <span>{focusedNote.anchorLabel}</span> : null}
+                    </div>
+                    <div className="mt-2 text-xs leading-5 text-text-primary">{focusedNote.note}</div>
+                  </div>
+                ) : null}
+
+                <button
+                  onClick={async () => {
+                    if (typeof window === 'undefined') return
+                    try {
+                      await navigator.clipboard.writeText(window.location.href)
+                      setNoteShareStatus('copied')
+                    } catch {
+                      setNoteShareStatus('failed')
+                    }
+                  }}
+                  className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                >
+                  {noteShareStatus === 'copied' ? 'Copied focused note URL' : noteShareStatus === 'failed' ? 'Copy failed' : 'Copy focused note URL'}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {[
+                { id: 'all' as const, label: 'All', count: annotationNotes.length },
+                { id: 'observation' as const, label: 'Observation', count: noteIntentCounts.observation },
+                { id: 'question' as const, label: 'Question', count: noteIntentCounts.question },
+                { id: 'theory' as const, label: 'Theory', count: noteIntentCounts.theory },
+                { id: 'methods' as const, label: 'Methods', count: noteIntentCounts.methods },
+              ].map(filter => (
+                <button
+                  key={filter.id}
+                  onClick={() => setActiveNoteFilter(filter.id)}
+                  className={cn(
+                    'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                    activeNoteFilter === filter.id
+                      ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                      : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
+                  )}
+                >
+                  {filter.label} · {filter.count}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-5 rounded-[1.15rem] border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,244,240,0.9))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-            <span className="lab-chip">{playing ? 'Autoplay active' : 'Paused for inspection'}</span>
+            <span className="lab-chip">{slotLocked ? 'Slot locked for annotation' : playing ? 'Autoplay active' : 'Paused for inspection'}</span>
             <span className="lab-chip">Step {stepSize}</span>
             <span className="lab-chip">Slot {countLabel(slot + 1)} of {countLabel(totalSlots)}</span>
+            {annotationNotes.length > 0 ? <span className="lab-chip">{annotationNotes.length} note{annotationNotes.length === 1 ? '' : 's'} on this slot</span> : null}
           </div>
-          <input type="range" min={0} max={lastSlot} step={1} value={slot} onChange={event => { setPlaying(false); setSlot(Number(event.target.value)) }} className="w-full accent-accent" aria-label="Simulation slot" />
+          <input
+            type="range"
+            min={0}
+            max={lastSlot}
+            step={1}
+            value={slot}
+            disabled={slotLocked}
+            onChange={event => {
+              setPlaying(false)
+              setSlot(Number(event.target.value))
+            }}
+            className="h-2 w-full appearance-none rounded-full disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+              background: `linear-gradient(90deg, rgba(37,99,235,0.95) 0%, rgba(37,99,235,0.95) ${timelineProgress}%, rgba(226,232,240,0.95) ${timelineProgress}%, rgba(226,232,240,0.95) 100%)`,
+            }}
+            aria-label="Simulation slot"
+          />
           <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted">
             <span>slot 1</span>
             <span>slot {countLabel(slot + 1)} of {countLabel(totalSlots)}</span>
             <span>slot {countLabel(totalSlots)}</span>
           </div>
+          <div className="mt-3 text-[11px] leading-5 text-text-faint">
+            {slotLocked
+              ? 'This slot is frozen so companion answers and paper notes stay tied to the exact replay posture.'
+              : 'Lock a slot when you want to annotate or compare a precise replay state.'}
+          </div>
         </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-        <PublishedGeoCard title={`${dataset.evaluation} · ${dataset.paradigm} · ${dataset.result}`} regions={currentRegions} />
+        <PublishedGeoCard
+          title={`${dataset.evaluation} · ${dataset.paradigm} · ${dataset.result}`}
+          regions={currentRegions}
+          annotationNotes={filteredAnnotationNotes}
+          selectedNoteId={focusedNote?.id ?? null}
+          onSelectNote={setSelectedNoteId}
+          focusAreaActive={focusedArea === 'geography'}
+        />
         <div className="space-y-6">
           <ChartBlock block={sourceChartBlock} />
           <InsightBlock block={insightBlock} />
-          <div className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-xs text-muted">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Frozen configuration</div>
+          <div className={cn(
+            'rounded-xl border border-border-subtle bg-white px-4 py-4 text-xs text-muted transition-all duration-300',
+            focusedArea === 'config' ? 'ring-2 ring-accent/35 shadow-[0_18px_36px_rgba(37,99,235,0.1)]' : '',
+          )}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Frozen configuration</div>
+              {metricNoteCounts.methods > 0 ? (
+                <span className="rounded-full border border-[#0F766E]/18 bg-[#ECFDF5] px-2 py-0.5 text-[10px] font-medium text-[#0F766E]">
+                  {metricNoteCounts.methods} note{metricNoteCounts.methods === 1 ? '' : 's'}
+                </span>
+              ) : null}
+            </div>
             <div className="mt-3 grid gap-2">
               <div className="flex items-center justify-between gap-3"><span>Validators</span><span className="font-medium tabular-nums text-text-primary">{countLabel(data?.v ?? metadata.v ?? totalValidators)}</span></div>
               <div className="flex items-center justify-between gap-3"><span>Migration cost</span><span className="font-medium tabular-nums text-text-primary">{compactNumber(data?.cost ?? metadata.cost ?? 0, 4)} ETH</span></div>
@@ -890,10 +1334,65 @@ export function PublishedDatasetViewer({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <TimeSeriesBlock block={concentrationSeriesBlock} />
-        <TimeSeriesBlock block={distanceSeriesBlock} />
-        <TimeSeriesBlock block={proposalSeriesBlock} />
-        <TimeSeriesBlock block={mevSeriesBlock} />
+        {[
+          {
+            key: 'concentration',
+            block: concentrationSeriesBlock,
+            notes: filteredAnnotationNotes.filter(note =>
+              note.anchorKind === 'region'
+              || noteMatchesMetric(note, ['gini', 'hhi', 'liveness']),
+            ),
+          },
+          {
+            key: 'distance',
+            block: distanceSeriesBlock,
+            notes: filteredAnnotationNotes.filter(note => noteMatchesMetric(note, ['total_distance'])),
+          },
+          {
+            key: 'proposal',
+            block: proposalSeriesBlock,
+            notes: filteredAnnotationNotes.filter(note =>
+              noteMatchesMetric(note, ['proposal_time']) || note.anchorKind === 'comparison',
+            ),
+          },
+          {
+            key: 'mev',
+            block: mevSeriesBlock,
+            notes: filteredAnnotationNotes.filter(note => noteMatchesMetric(note, ['mev'])),
+          },
+        ].map(entry => (
+          <div key={entry.key} className="relative">
+            {entry.notes.length > 0 ? (
+              <div className="absolute right-4 top-4 z-10 flex flex-wrap justify-end gap-2">
+                <div className="rounded-full border border-[#0F172A]/12 bg-white/92 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-text-faint shadow-[0_10px_20px_rgba(15,23,42,0.06)]">
+                  Slot notes
+                </div>
+                {entry.notes.slice(0, 2).map(note => (
+                  <button
+                    key={`${entry.key}-${note.id}`}
+                    onClick={() => setSelectedNoteId(note.id)}
+                    className={cn(
+                      'pointer-events-auto rounded-full border px-3 py-1 text-[10px] font-medium shadow-[0_10px_20px_rgba(15,23,42,0.05)] transition-all',
+                      focusedNote?.id === note.id ? 'scale-[1.02] ring-2 ring-accent/25' : '',
+                      noteIntentClass(note.intent),
+                    )}
+                  >
+                    {note.anchorLabel ?? noteIntentLabel(note.intent)}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <div className={cn(
+              'transition-all duration-300',
+              (focusedArea === 'concentration' && entry.key === 'concentration')
+                || (focusedArea === 'performance' && entry.key !== 'concentration')
+                ? 'rounded-[1.2rem] ring-2 ring-accent/35 shadow-[0_18px_36px_rgba(37,99,235,0.1)]'
+                : '',
+            )}>
+              <TimeSeriesBlock block={entry.block} />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
