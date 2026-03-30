@@ -282,8 +282,10 @@
       grid-template-columns: minmax(0, 1.34fr) minmax(320px, 0.66fr);
       grid-template-areas:
         "toolbar toolbar"
+        "analytics analytics"
         "desc desc"
         "globe info"
+        "plotbar plotbar"
         "plots plots";
       gap: 18px;
     }
@@ -488,6 +490,88 @@
       margin: 0;
       border-radius: 22px;
     }
+    #analytics-strip {
+      grid-area: analytics;
+      padding: 18px 20px;
+      border-radius: 22px;
+    }
+    .analytics-shell {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 14px;
+    }
+    .analytics-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .analytics-head h2 {
+      margin: 6px 0 8px 0;
+      font-size: 24px;
+      line-height: 1.04;
+      letter-spacing: -0.03em;
+      font-family: "Fraunces", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    }
+    .analytics-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      max-width: 620px;
+    }
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .analytics-stat {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.12);
+      min-height: 128px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    html.dark .analytics-stat {
+      background: rgba(255,255,255,0.04);
+    }
+    .analytics-stat span {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .analytics-value {
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+    .analytics-delta {
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+    .analytics-note {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+    .analytics-stat[data-tone="good"] .analytics-value {
+      color: var(--brand-2);
+    }
+    .analytics-stat[data-tone="risk"] .analytics-value {
+      color: var(--accent-red);
+    }
+    .analytics-stat[data-tone="neutral"] .analytics-value {
+      color: var(--fg);
+    }
     #info {
       grid-area: info;
       display: flex;
@@ -530,6 +614,65 @@
       margin-top: 0;
       grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
     }
+    #plot-toolbar {
+      grid-area: plotbar;
+      padding: 18px 20px;
+      border-radius: 22px;
+    }
+    .plot-toolbar-shell {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .plot-toolbar-copy {
+      display: grid;
+      gap: 6px;
+    }
+    .plot-toolbar-copy strong {
+      font-size: 17px;
+      letter-spacing: -0.02em;
+    }
+    .plot-toolbar-copy span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .plot-filter-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .plot-filter-btn {
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.12);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform .14s ease, background .18s ease, border-color .18s ease, color .18s ease;
+    }
+    html.dark .plot-filter-btn {
+      background: rgba(255,255,255,0.04);
+    }
+    .plot-filter-btn:hover {
+      transform: translateY(-1px);
+      color: var(--fg);
+    }
+    .plot-filter-btn.is-active {
+      color: var(--fg);
+      border-color: rgba(95,208,195,0.22);
+      background: linear-gradient(135deg, rgba(95,208,195,0.14), rgba(211,139,69,0.12));
+      box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+    }
     .plot-panel {
       position: relative;
       min-height: 432px;
@@ -562,6 +705,9 @@
     .plot-panel.is-featured,
     .plot-panel.plot-panel--wide {
       grid-column: 1 / -1;
+    }
+    .plot-panel.is-hidden {
+      display: none;
     }
     .plot-head {
       position: relative;
@@ -764,14 +910,18 @@
         grid-template-columns: 1fr;
         grid-template-areas:
           "toolbar"
+          "analytics"
           "desc"
           "globe"
           "info"
+          "plotbar"
           "plots";
       }
       .toolbar,
+      #analytics-strip,
       #desc,
       #info,
+      #plot-toolbar,
       #globe,
       .plot-panel {
         padding: 18px;
@@ -779,6 +929,7 @@
       .hero-shell,
       .toolbar-controls,
       .hero-badges,
+      .analytics-grid,
       .story-shell,
       .config-grid,
       .insight-grid {
@@ -896,9 +1047,11 @@
       </div>
     </div>
   </div>
+  <div id="analytics-strip" class="card"></div>
   <div id="desc" class="card lead" style="display:none"></div>
   <div id="info" class="card lead"></div>
   <div id="globe" class="card"></div>
+  <div id="plot-toolbar" class="card"></div>
   <div id="plots-grid" class="grid">
     <div id="Gini" class="card plot"></div>
     <div id="HHI" class="card plot"></div>
@@ -1236,6 +1389,7 @@ let slot = 0;
 let stepSize = SETTINGS.step || 1;
 let speedMultiplier = sanitizeSpeed(SETTINGS.speed);
 let motionPreference = ['auto', 'full', 'reduce'].includes(SETTINGS.motion) ? SETTINGS.motion : 'auto';
+let activePlotFilter = 'All';
 let drawFrame = 0;
 let lastAdvanceAt = null;
 let interactionState = 'loading';
@@ -1306,6 +1460,7 @@ function updateStatusUI() {
   const status = document.getElementById('timeline-status');
   const playBtn = document.getElementById('play');
   const pauseBtn = document.getElementById('pause');
+  const themeBtn = document.getElementById('theme');
   const motion = getMotionSettings();
   const slotNumber = Math.min(Math.max(slot + 1, 1), Math.max(nSlots, 1));
 
@@ -1328,6 +1483,9 @@ function updateStatusUI() {
 
   playBtn.disabled = playing;
   pauseBtn.disabled = !playing;
+  playBtn.textContent = playing ? 'Playing' : 'Play';
+  pauseBtn.textContent = playing ? 'Pause' : 'Paused';
+  if (themeBtn) themeBtn.textContent = dark ? 'Light theme' : 'Dark theme';
 }
 
 function updateSliderProgress(index) {
@@ -1356,6 +1514,138 @@ function formatSignedDelta(value, decimals = 2, suffix = '') {
   return `${prefix}${decimals === 0 ? rounded : rounded.toFixed(decimals)}${suffix} vs previous slot`;
 }
 
+function toneFromDelta(delta, preferLower = false) {
+  if (Math.abs(safeNumber(delta, 0)) < 1e-9) return 'neutral';
+  if (preferLower) return delta < 0 ? 'good' : 'risk';
+  return delta > 0 ? 'good' : 'risk';
+}
+
+function visiblePlotCount() {
+  return Array.from(document.querySelectorAll('[data-plot-card]')).filter(card => !card.classList.contains('is-hidden')).length;
+}
+
+function renderPlotToolbar() {
+  const toolbar = document.getElementById('plot-toolbar');
+  if (!toolbar) return;
+  const filters = ['All', ...Array.from(new Set(Object.values(CHART_DEFS).map(config => config.label)))];
+  const visibleCount = activePlotFilter === 'All'
+    ? PLOT_IDS.length
+    : Object.values(CHART_DEFS).filter(config => config.label === activePlotFilter).length;
+
+  toolbar.innerHTML = `
+    <div class="plot-toolbar-shell">
+      <div class="plot-toolbar-copy">
+        <strong>Analytical lens</strong>
+        <span>Focus the dashboard by category to get the cleaner Stripe-style analytics pass. ${visibleCount} panel${visibleCount === 1 ? '' : 's'} visible.</span>
+      </div>
+      <div class="plot-filter-row">
+        ${filters.map(filter => `
+          <button class="plot-filter-btn${filter === activePlotFilter ? ' is-active' : ''}" type="button" data-plot-filter="${filter}">
+            ${filter}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  toolbar.querySelectorAll('[data-plot-filter]').forEach(button => {
+    button.addEventListener('click', () => {
+      activePlotFilter = button.dataset.plotFilter || 'All';
+      renderPlotToolbar();
+      applyPlotFilter();
+      if (DATA) renderAnalyticsStrip(slot);
+    });
+  });
+}
+
+function applyPlotFilter() {
+  const cards = document.querySelectorAll('[data-plot-card]');
+  cards.forEach(card => {
+    const matches = activePlotFilter === 'All' || card.dataset.plotGroup === activePlotFilter;
+    card.classList.toggle('is-hidden', !matches);
+    if (!matches) {
+      card.classList.remove('is-featured');
+      card.setAttribute('aria-pressed', 'false');
+    }
+  });
+  requestAnimationFrame(() => {
+    cards.forEach(card => {
+      if (card.classList.contains('is-hidden')) return;
+      const plotId = card.dataset.plotCard;
+      const plotEl = plotId ? document.getElementById(plotId) : null;
+      if (plotEl && window.Plotly) {
+        Plotly.Plots.resize(plotEl);
+      }
+    });
+  });
+}
+
+function renderAnalyticsStrip(index) {
+  const metrics = DATA.metrics || {};
+  const topCountry = topCountrySummary(index);
+  const cards = [
+    {
+      label: 'Concentration',
+      value: formatNumber(valueAt(metrics.hhi, index), 3),
+      delta: formatSignedDelta(valueAt(metrics.hhi, index) - valueAt(metrics.hhi, Math.max(index - 1, 0)), 3),
+      note: 'Lower keeps geography less concentrated.',
+      tone: toneFromDelta(valueAt(metrics.hhi, index) - valueAt(metrics.hhi, Math.max(index - 1, 0)), true),
+    },
+    {
+      label: 'Coverage',
+      value: formatNumber(valueAt(metrics.liveness, index), 3),
+      delta: formatSignedDelta(valueAt(metrics.liveness, index) - valueAt(metrics.liveness, Math.max(index - 1, 0)), 3),
+      note: topCountry.name === 'No mapped country data' ? 'Mapped geography is incomplete in this slot.' : `${topCountry.name} currently leads the mapped footprint.`,
+      tone: toneFromDelta(valueAt(metrics.liveness, index) - valueAt(metrics.liveness, Math.max(index - 1, 0))),
+    },
+    {
+      label: 'Attestation',
+      value: `${formatNumber(valueAt(metrics.attestations, index), 2)}%`,
+      delta: formatSignedDelta(valueAt(metrics.attestations, index) - valueAt(metrics.attestations, Math.max(index - 1, 0)), 2, '%'),
+      note: 'Higher supports healthier coordination.',
+      tone: toneFromDelta(valueAt(metrics.attestations, index) - valueAt(metrics.attestations, Math.max(index - 1, 0))),
+    },
+    {
+      label: 'Proposal latency',
+      value: `${formatNumber(valueAt(metrics.proposal_times, index), 2)} ms`,
+      delta: formatSignedDelta(valueAt(metrics.proposal_times, index) - valueAt(metrics.proposal_times, Math.max(index - 1, 0)), 2, ' ms'),
+      note: 'Lower is better for pipeline responsiveness.',
+      tone: toneFromDelta(valueAt(metrics.proposal_times, index) - valueAt(metrics.proposal_times, Math.max(index - 1, 0)), true),
+    },
+    {
+      label: 'Block value',
+      value: `${formatNumber(valueAt(metrics.mev, index), 4)} ETH`,
+      delta: formatSignedDelta(valueAt(metrics.mev, index) - valueAt(metrics.mev, Math.max(index - 1, 0)), 4, ' ETH'),
+      note: `Closest source distance: ${formatNumber(relaySummary(index), 3)}`,
+      tone: toneFromDelta(valueAt(metrics.mev, index) - valueAt(metrics.mev, Math.max(index - 1, 0))),
+    },
+  ];
+
+  const strip = document.getElementById('analytics-strip');
+  if (!strip) return;
+  strip.innerHTML = `
+    <div class="analytics-shell">
+      <div class="analytics-head">
+        <div>
+          <h2>Operational pulse</h2>
+          <p>A Stripe-like KPI ribbon for reading concentration, coverage, performance, and value at a glance while the timeline advances.</p>
+        </div>
+        <div class="status-pill secondary">${visiblePlotCount()} chart panels active</div>
+      </div>
+      <div class="analytics-grid">
+        ${cards.map(card => `
+          <div class="analytics-stat" data-tone="${card.tone}">
+            <span>${card.label}</span>
+            <div class="analytics-value">${card.value}</div>
+            <div class="analytics-delta">${index === 0 ? 'Opening slot' : card.delta}</div>
+            <div class="analytics-note">${card.note}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function upgradePlotCards() {
   for (const plotId of PLOT_IDS) {
     const plotEl = document.getElementById(plotId);
@@ -1366,6 +1656,7 @@ function upgradePlotCards() {
     const wrapper = document.createElement('article');
     wrapper.className = `plot-panel card${plotId === 'relaydist' ? ' plot-panel--wide' : ''}`;
     wrapper.dataset.plotCard = plotId;
+    wrapper.dataset.plotGroup = config.label;
     wrapper.tabIndex = 0;
     wrapper.setAttribute('role', 'button');
     wrapper.setAttribute('aria-pressed', 'false');
@@ -1374,6 +1665,7 @@ function upgradePlotCards() {
 
     plotEl.classList.remove('card');
     plotEl.classList.remove('plot');
+    plotEl.classList.add('plot');
 
     plotEl.parentNode.insertBefore(wrapper, plotEl);
     wrapper.innerHTML = `
@@ -1392,6 +1684,16 @@ function upgradePlotCards() {
     wrapper.appendChild(plotEl);
     wrapper.insertAdjacentHTML('beforeend', `<div class="plot-note">${config.note}</div>`);
     plotEl.dataset.upgraded = 'true';
+  }
+}
+
+function refreshPlotCardAccents() {
+  for (const plotId of PLOT_IDS) {
+    const card = document.querySelector(`[data-plot-card="${plotId}"]`);
+    if (!card) continue;
+    const style = chartStyle(plotId);
+    card.style.setProperty('--accent-a', style.accentA);
+    card.style.setProperty('--accent-b', style.accentB);
   }
 }
 
@@ -1766,51 +2068,70 @@ function drawGlobe(index) {
       text: hoverText,
       locationmode: 'ISO-3',
       colorscale: dark
-        ? [[0, '#17302b'], [0.35, '#2f7d74'], [0.7, '#86cbb9'], [1, '#f2b35d']]
-        : [[0, '#f2ece2'], [0.3, '#d9b488'], [0.65, '#b97744'], [1, '#8f5326']],
+        ? [[0, '#10211d'], [0.35, '#1d645b'], [0.7, '#63d0c2'], [1, '#f2b56d']]
+        : [[0, '#f5ede2'], [0.34, '#dab385'], [0.7, '#ba7440'], [1, '#2f8a7e']],
       zmin: 0,
       zmax: maxCountryCount,
       showscale: true,
       colorbar: {
-        title: { text: 'Number of validators', side: 'right' },
-        x: 1.12,
-        len: 0.7,
-        titlefont: { color: dark ? '#f0f0f0' : '#0b1220' },
-        tickfont: { color: dark ? '#f0f0f0' : '#0b1220' }
+        title: { text: 'Validators', side: 'right' },
+        x: 1.07,
+        len: 0.72,
+        thickness: 12,
+        titlefont: { color: dark ? '#f6f2eb' : '#231e18' },
+        tickfont: { color: dark ? '#d6ccbe' : '#6b5d4f' }
       },
-      marker: { line: { color: dark ? '#2f3d38' : '#c8c2b8', width: 0.5 } },
+      marker: { line: { color: dark ? '#29403a' : '#cbbda7', width: 0.7 } },
       hovertemplate: '%{text}<extra>Country</extra>',
       name: 'Validators'
     };
 
     const relays = {
       type: 'scattergeo',
-      mode: 'markers',
+      mode: 'markers+text',
       lat: RELAY_LAT,
       lon: RELAY_LON,
-      marker: { size: 10, color: 'red', symbol: 'diamond', line: { color: 'black', width: 1 } },
+      marker: {
+        size: 12,
+        color: dark ? '#f2b56d' : '#ba7440',
+        symbol: 'diamond',
+        line: { color: dark ? '#08100e' : '#fff7ee', width: 1.4 }
+      },
       text: RELAY_NAMES,
+      textposition: 'top center',
+      textfont: {
+        color: dark ? '#d9d0c2' : '#5b4d42',
+        size: 11,
+      },
       hovertemplate: '%{text}<extra>Info Source</extra>',
       name: 'Info Sources'
     };
 
     const layout = {
-      ...plotlyTheme(dark, 'Geo Tracker', ''),
-      margin: { l: 15, r: 40, b: 20, t: 40 },
+      ...plotlyTheme(dark, '', ''),
+      margin: { l: 8, r: 10, b: 8, t: 8 },
       geo: {
-        projection: { type: 'natural earth' },
+        projection: { type: 'natural earth', scale: 1.06 },
+        center: { lat: 12, lon: 0 },
         showland: true,
-        landcolor: dark ? '#15201d' : '#e7e1d6',
+        landcolor: dark ? '#0f1a17' : '#eee2d0',
         showocean: true,
-        oceancolor: dark ? '#0f1714' : '#f3f1ea',
+        oceancolor: dark ? '#08100e' : '#fbf6ee',
         showcountries: true,
-        countrycolor: dark ? '#2e3a36' : '#c8c2b8',
+        countrycolor: dark ? '#24312d' : '#d2c4af',
         showcoastlines: true,
-        coastlinecolor: dark ? '#2e3a36' : '#c8c2b8',
+        coastlinecolor: dark ? '#24312d' : '#d2c4af',
         bgcolor: 'rgba(0,0,0,0)'
       },
       showlegend: true,
-      legend: { x: 0.02, y: 0.98, bgcolor: dark ? 'rgba(45,45,45,0.7)' : 'rgba(255,255,255,0.7)' }
+      legend: {
+        x: 0.02,
+        y: 0.98,
+        bgcolor: dark ? 'rgba(11,19,16,0.7)' : 'rgba(255,251,244,0.78)',
+        bordercolor: dark ? 'rgba(255,255,255,0.08)' : 'rgba(44,31,16,0.08)',
+        borderwidth: 1,
+        font: { color: dark ? '#f6f2eb' : '#231e18' }
+      }
     };
 
     Plotly.newPlot('globe', [countries, relays], layout, { displaylogo: false, responsive: true, displayModeBar: false });
@@ -1898,18 +2219,22 @@ function syncMetricLines(index) {
 }
 
 function drawLine(divId, x, y, title, yTitle = '') {
-  const el = document.getElementById(divId);
-  const height = (el.clientHeight || 360) * 0.94;
-  const theme = plotlyTheme(dark, title, yTitle);
+  const config = CHART_DEFS[divId];
+  const theme = plotlyTheme(dark, '', config ? config.yTitle : yTitle);
+  const style = chartStyle(divId);
   const layout = {
     ...theme,
-    height,
-    margin: { l: 60, r: 20, t: 40, b: 40 },
+    height: 300,
+    margin: { l: 56, r: 18, t: 12, b: 42 },
     hovermode: 'x unified',
     xaxis: {
       ...theme.xaxis,
       autorange: false,
       range: [0, 0]
+    },
+    yaxis: {
+      ...theme.yaxis,
+      rangemode: 'tozero'
     },
     shapes: [cursorShape(0)],
   };
@@ -1917,15 +2242,23 @@ function drawLine(divId, x, y, title, yTitle = '') {
   const safeY = Array.isArray(y) ? y : [];
   const firstX = safeX.length ? [safeX[0]] : [0];
   const firstY = safeY.length ? [safeY[0]] : [0];
-  const lineColor = layout.colorway ? layout.colorway[0] : '#d89046';
-  const cursorBorder = dark ? '#0f1f1b' : '#ffffff';
+  const lineColor = style.line;
+  const cursorBorder = dark ? '#08100e' : '#fff7ee';
 
   Plotly.newPlot(divId, [{
     type: 'scatter',
     mode: 'lines',
     x: safeX,
     y: safeY,
-    line: { width: 2 }
+    line: {
+      width: 3,
+      color: lineColor,
+      shape: 'spline',
+      smoothing: 1.05,
+    },
+    fill: 'tozeroy',
+    fillcolor: style.fill,
+    hovertemplate: config ? `%{y:.${config.decimals}f}${config.suffix}<extra>${config.title}</extra>` : '%{y}<extra></extra>',
   }, {
     type: 'scatter',
     mode: 'markers',
@@ -1941,13 +2274,14 @@ function drawLine(divId, x, y, title, yTitle = '') {
     showlegend: false,
     name: 'Current',
   }], layout, { displaylogo: false, responsive: true, displayModeBar: false });
+  attachPlotInteractions(divId);
 }
 
 function drawRelayDist() {
-  const el = document.getElementById('relaydist');
-  const height = (el.clientHeight || 360) * 0.94;
   const series = DATA.metrics.info_avg_distance || [];
   const names = RELAY_NAMES || [];
+  const config = CHART_DEFS.relaydist;
+  const palette = dark ? RELAY_PALETTE_DARK : RELAY_PALETTE_LIGHT;
 
   const traces = [];
   const count = Math.max(names.length, ...(series || []).map(row => (row || []).length), 0);
@@ -1963,26 +2297,41 @@ function drawRelayDist() {
       x: FULL_X,
       y,
       name: names[sourceIndex] || `Source ${sourceIndex}`,
-      line: { width: 2 },
-      hovertemplate: '%{y}<extra>%{fullData.name}</extra>'
+      line: {
+        width: 2.2,
+        color: palette[sourceIndex % palette.length],
+        shape: 'spline',
+        smoothing: 1.05,
+      },
+      hovertemplate: `%{y:.${config.decimals}f}<extra>%{fullData.name}</extra>`
     });
   }
 
-  const theme = plotlyTheme(dark, 'Avg Distance to Info Sources', 'Avg. Distance to Info Sources');
+  const theme = plotlyTheme(dark, '', config.yTitle);
   const layout = {
     ...theme,
-    height,
-    margin: { l: 60, r: 20, t: 40, b: 40 },
+    height: 350,
+    margin: { l: 56, r: 18, t: 12, b: 42 },
     hovermode: 'x unified',
     xaxis: {
-      ...plotlyTheme(dark, '', '').xaxis,
+      ...theme.xaxis,
       autorange: false,
       range: [0, 0]
+    },
+    yaxis: {
+      ...theme.yaxis,
+      rangemode: 'tozero'
+    },
+    legend: {
+      orientation: 'h',
+      y: 1.12,
+      x: 0,
+      font: { color: dark ? '#d6ccbe' : '#6b5d4f', size: 11 },
     },
     shapes: [cursorShape(0)],
   };
   Plotly.newPlot('relaydist', traces, layout, { displaylogo: false, responsive: true, displayModeBar: false });
-  Plotly.relayout('relaydist', { showlegend: false });
+  attachPlotInteractions('relaydist');
 }
 
 function infoHTML(index) {
@@ -2016,10 +2365,12 @@ function updateLineWindows(index) {
 }
 
 function drawAll() {
-  document.getElementById('info').innerHTML = infoHTML(slot);
   document.getElementById('slider').value = String(slot);
   updateSliderProgress(slot);
   updateStatusUI();
+  updateInsightPanel(slot);
+  updateHeroFocus(slot);
+  renderAnalyticsStrip(slot);
 
   if (!plotsReady) {
     drawGlobe(slot);
@@ -2045,6 +2396,7 @@ function drawAll() {
     drawGlobe(slot);
     syncMetricLines(slot);
   }
+  updateChartSummaries(slot);
 }
 
 function tick() {
@@ -2101,6 +2453,7 @@ document.getElementById('theme').onclick = () => {
   plotsReady = false;
   globeReady = false;
   persistViewerSettings();
+  refreshPlotCardAccents();
   updateSliderProgress(slot);
   updateStatusUI();
   scheduleDraw();
@@ -2164,6 +2517,11 @@ if (MOTION_MEDIA_QUERY) {
 
 (async function boot() {
   document.documentElement.classList.toggle('dark', dark);
+  upgradePlotCards();
+  refreshPlotCardAccents();
+  bindPlotCardInteractions();
+  renderPlotToolbar();
+  applyPlotFilter();
   document.getElementById('step').value = String(stepSize);
   document.getElementById('speed').value = String(speedMultiplier);
   document.getElementById('motion').value = motionPreference;

@@ -54,14 +54,14 @@ interface SimResultsPanelProps {
   readonly overviewBundleOptions: ReadonlyArray<OverviewBundleOption | SimulationOverviewBundle>
   readonly selectedBundle: SimulationArtifactBundle
   readonly onSelectBundle: (bundle: SimulationArtifactBundle) => void
-  readonly exactChartSeries: ReadonlyArray<{
+  readonly exactChartSeries?: ReadonlyArray<{
     readonly artifactName: string
     readonly label: string
     readonly description: string
     readonly kind: SimulationArtifact['kind']
     readonly values: readonly number[]
   }>
-  readonly isExactChartDeckLoading: boolean
+  readonly isExactChartDeckLoading?: boolean
   readonly selectedOverviewBundleMetrics: SimulationOverviewBundle | null
   readonly overviewBlocks: readonly Block[]
   readonly isOverviewLoading: boolean
@@ -87,7 +87,7 @@ interface ExactMetricCard {
   readonly note?: string
 }
 
-type ExactChartSeries = SimResultsPanelProps['exactChartSeries'][number]
+type ExactChartSeries = NonNullable<SimResultsPanelProps['exactChartSeries']>[number]
 
 const CHART_VISUALS: Record<string, {
   readonly title: string
@@ -342,8 +342,8 @@ export function SimResultsPanel({
   overviewBundleOptions,
   selectedBundle,
   onSelectBundle,
-  exactChartSeries,
-  isExactChartDeckLoading,
+  exactChartSeries = [],
+  isExactChartDeckLoading = false,
   selectedOverviewBundleMetrics,
   overviewBlocks,
   isOverviewLoading,

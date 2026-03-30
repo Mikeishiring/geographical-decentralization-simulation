@@ -1012,7 +1012,7 @@ export function SimulationLabPage({
               onViewPublished={publishedSimulationExplorationId && onOpenCommunityExploration
                 ? () => onOpenCommunityExploration(publishedSimulationExplorationId)
                 : onTabChange
-                  ? () => onTabChange('history')
+                  ? () => onTabChange('community')
                   : undefined}
               onPublish={payload => publishMutation.mutate({
                 contextKey: simulationPublishContextKey,
@@ -1025,7 +1025,7 @@ export function SimulationLabPage({
       {onTabChange && (
         <Wayfinder links={[
           { label: 'Explore findings', hint: 'Curated lenses, guided questions, and paper-backed interpretation', onClick: () => onTabChange('explore') },
-          { label: 'Browse community notes', hint: 'See human-framed notes from paper readings and exact runs', onClick: () => onTabChange('history') },
+          { label: 'Browse community notes', hint: 'See human-framed notes from paper readings and exact runs', onClick: () => onTabChange('community') },
           { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
         ]} />
       )}
