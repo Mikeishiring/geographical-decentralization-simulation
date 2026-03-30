@@ -104,7 +104,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
   }
 
   return (
-    <div className="rounded-xl border border-border-subtle bg-canvas px-5 py-6 sm:px-8 sm:py-8">
+    <div className="rounded-xl border border-rule bg-canvas px-5 py-6 sm:px-8 sm:py-8">
       <div className={cn(
         'bg-white border border-border-subtle rounded-xl transition-all',
         isEnabled && 'focus-within:border-accent/30 focus-within:ring-2 focus-within:ring-accent/10',
@@ -146,12 +146,9 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
             transition={SPRING}
             className="mt-3"
           >
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="text-[11px] uppercase tracking-[0.12em] text-text-faint">
+            <div className="mb-3">
+              <span className="text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                 Best first prompts
-              </span>
-              <span className="text-[11px] text-text-faint">
-                Click to fill the question box
               </span>
             </div>
 
@@ -163,12 +160,12 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
                   animate={{ opacity: 1 }}
                   transition={{ ...SPRING, delay: i * 0.04 }}
                   onClick={() => handleChip(group.prompt)}
-                  className="rounded-lg border border-border-subtle bg-white px-3 py-2.5 text-left transition-all hover:border-border-hover"
+                  className="group rounded-lg border border-rule bg-white px-3 py-2.5 text-left transition-all hover:border-border-hover"
                 >
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint transition-colors group-hover:text-muted">
                     {group.label}
                   </div>
-                  <div className="mt-1 text-xs leading-5 text-text-primary">
+                  <div className="mt-1 text-xs leading-5 text-text-body transition-colors group-hover:text-text-primary">
                     {group.prompt}
                   </div>
                 </motion.button>
@@ -192,12 +189,11 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
             </span>
           </div>
         ) : (
-          <div className="space-y-1 text-center">
-            <p className="text-[11px] text-text-faint">
+          <div className="text-center">
+            <p className="text-[0.6875rem] text-text-faint leading-relaxed">
               {helperText ?? 'Ask about a mechanism, paradox, or comparison. The guide stays tied to the paper.'}
-            </p>
-            <p className="text-[11px] text-text-faint">
-              This box drafts or reopens a reading. Public community notes are a separate publish step.
+              <span className="text-rule"> · </span>
+              This box drafts or reopens a reading.
             </p>
           </div>
         )}
