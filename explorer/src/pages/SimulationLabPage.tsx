@@ -21,14 +21,19 @@ import {
 } from '../components/simulation/simulation-constants'
 import {
   ANALYTICS_VIEW_OPTIONS,
+  analyticsCompareModeOptions,
+  analyticsMetricOptionsForView,
+  buildAnalyticsDashboardPresets,
   buildAnalyticsBlocks,
   buildAnalyticsExportBundle,
   buildAnalyticsExportCsv,
   buildAnalyticsMetricCards,
   clampSlotIndex,
-  parseAnalyticsDeckView,
+  defaultAnalyticsQueryMetricForView,
   totalSlotsFromPayload,
+  type AnalyticsCompareMode,
   type AnalyticsDeckView,
+  type AnalyticsQueryMetric,
   type PublishedAnalyticsPayload,
 } from '../components/simulation/simulation-analytics'
 import { createExploration, getApiHealth, publishExploration } from '../lib/api'
@@ -43,19 +48,13 @@ import {
   getSimulationOverviewBundle,
   submitSimulationCopilot,
   submitSimulationForClient,
-  type SimulationArtifact,
   type SimulationCopilotResponse,
   type SimulationConfig,
   type SimulationJob,
-  type SimulationManifest,
-  type SimulationOverviewBundle,
 } from '../lib/simulation-api'
 import type { Block, SourceBlock } from '../types/blocks'
 import type { SimulationArtifactBundle } from '../types/simulation-view'
 import type {
-  PublishedDatasetRecommendation,
-  ResearchCatalog,
-  ResearchDatasetEntry,
   RunnerStatus,
   SurfaceMode,
   WorkerFailure,
@@ -97,6 +96,12 @@ export function SimulationLabPage({
   const [clientId] = useState(readOrCreateClientId)
   const [currentJobId, setCurrentJobId] = useState<string | null>(initialLabState.jobId ?? null)
   const [exactAnalyticsView, setExactAnalyticsView] = useState<AnalyticsDeckView>(initialLabState.analyticsView ?? 'concentration')
+  const [exactAnalyticsMetric, setExactAnalyticsMetric] = useState<AnalyticsQueryMetric>(
+    initialLabState.analyticsMetric ?? defaultAnalyticsQueryMetricForView(initialLabState.analyticsView ?? 'concentration'),
+  )
+  const [exactAnalyticsCompareMode, setExactAnalyticsCompareMode] = useState<AnalyticsCompareMode>(
+    initialLabState.analyticsCompareMode ?? 'absolute',
+  )
   const [exactAnalyticsRequestedSlot, setExactAnalyticsRequestedSlot] = useState<number | null>(initialLabState.analyticsSlot ?? null)
   const [exactComparisonPath, setExactComparisonPath] = useState<string | null>(initialLabState.comparisonPath ?? null)
   const [hasManualExactComparisonSelection, setHasManualExactComparisonSelection] = useState(Boolean(initialLabState.comparisonPath))
@@ -159,12 +164,22 @@ export function SimulationLabPage({
       surfaceMode,
       currentJobId,
       analyticsView: exactAnalyticsView,
+      analyticsMetric: exactAnalyticsMetric,
+      analyticsCompareMode: exactAnalyticsCompareMode,
       analyticsSlot: exactAnalyticsRequestedSlot,
       comparisonPath: exactComparisonPath,
     })
     if (!nextUrl) return
     window.history.replaceState({}, '', nextUrl)
-  }, [currentJobId, exactAnalyticsRequestedSlot, exactAnalyticsView, exactComparisonPath, surfaceMode])
+  }, [
+    currentJobId,
+    exactAnalyticsCompareMode,
+    exactAnalyticsMetric,
+    exactAnalyticsRequestedSlot,
+    exactAnalyticsView,
+    exactComparisonPath,
+    surfaceMode,
+  ])
 
   const updateConfig = <K extends keyof SimulationConfig>(key: K, value: SimulationConfig[K]) => {
     setConfig(previous => ({ ...previous, [key]: value }))
@@ -333,6 +348,18 @@ export function SimulationLabPage({
     staleTime: Infinity,
   })
   const comparisonAnalyticsPayload = comparisonAnalyticsQuery.data ?? null
+  const exactAnalyticsMetricOptions = useMemo(
+    () => analyticsMetricOptionsForView(exactAnalyticsView),
+    [exactAnalyticsView],
+  )
+  const exactAnalyticsCompareModeOptions = useMemo(
+    () => analyticsCompareModeOptions(Boolean(selectedComparisonDataset)),
+    [selectedComparisonDataset],
+  )
+  const exactDashboardPresets = useMemo(
+    () => buildAnalyticsDashboardPresets(Boolean(selectedComparisonDataset)),
+    [selectedComparisonDataset],
+  )
   const availableOverviewBundles = manifest?.overviewBundles ?? []
   const overviewBundleOptions = availableOverviewBundles.length > 0 ? availableOverviewBundles : OVERVIEW_BUNDLES
 
@@ -474,11 +501,15 @@ export function SimulationLabPage({
       surfaceMode,
       currentJobId,
       analyticsView: exactAnalyticsView,
+      analyticsMetric: exactAnalyticsMetric,
+      analyticsCompareMode: exactAnalyticsCompareMode,
       analyticsSlot: exactAnalyticsRequestedSlot == null ? null : exactAnalyticsSlot,
       comparisonPath: selectedComparisonDataset?.path ?? exactComparisonPath,
     }),
     [
       currentJobId,
+      exactAnalyticsCompareMode,
+      exactAnalyticsMetric,
       exactAnalyticsRequestedSlot,
       exactAnalyticsSlot,
       exactAnalyticsView,
@@ -535,15 +566,33 @@ export function SimulationLabPage({
   const exactAnalyticsMetricCards = useMemo(
     () => buildAnalyticsMetricCards({
       analyticsView: exactAnalyticsView,
+      queryMetric: exactAnalyticsMetric,
+      compareMode: exactAnalyticsCompareMode,
       payload: exactAnalyticsPayload,
       slot: exactAnalyticsSlot,
+      comparisonPayload: comparisonAnalyticsPayload,
+      comparisonSlot: comparisonAnalyticsSlot,
+      comparisonLabel: selectedComparisonDataset
+        ? `${selectedComparisonDataset.evaluation} / ${selectedComparisonDataset.paradigm}`
+        : 'Published foil',
     }),
-    [exactAnalyticsPayload, exactAnalyticsSlot, exactAnalyticsView],
+    [
+      comparisonAnalyticsPayload,
+      comparisonAnalyticsSlot,
+      exactAnalyticsCompareMode,
+      exactAnalyticsMetric,
+      exactAnalyticsPayload,
+      exactAnalyticsSlot,
+      exactAnalyticsView,
+      selectedComparisonDataset,
+    ],
   )
   const exactAnalyticsBlocks = useMemo<readonly Block[]>(
     () => exactAnalyticsPayload
       ? buildAnalyticsBlocks({
           analyticsView: exactAnalyticsView,
+          queryMetric: exactAnalyticsMetric,
+          compareMode: exactAnalyticsCompareMode,
           primaryPayload: exactAnalyticsPayload,
           primarySlot: exactAnalyticsSlot,
           sourceRefs: exactAnalyticsSourceRefs,
@@ -558,6 +607,8 @@ export function SimulationLabPage({
     [
       comparisonAnalyticsPayload,
       comparisonAnalyticsSlot,
+      exactAnalyticsCompareMode,
+      exactAnalyticsMetric,
       exactAnalyticsPayload,
       exactAnalyticsSlot,
       exactAnalyticsSourceRefs,
@@ -640,6 +691,16 @@ export function SimulationLabPage({
     }
   }, [exactAnalyticsRequestedSlot, exactAnalyticsTotalSlots])
 
+  useEffect(() => {
+    if (exactAnalyticsMetricOptions.some(option => option.id === exactAnalyticsMetric)) return
+    setExactAnalyticsMetric(defaultAnalyticsQueryMetricForView(exactAnalyticsView))
+  }, [exactAnalyticsMetric, exactAnalyticsMetricOptions, exactAnalyticsView])
+
+  useEffect(() => {
+    if (exactAnalyticsCompareModeOptions.some(option => option.id === exactAnalyticsCompareMode)) return
+    setExactAnalyticsCompareMode(exactAnalyticsCompareModeOptions[0]?.id ?? 'absolute')
+  }, [exactAnalyticsCompareMode, exactAnalyticsCompareModeOptions])
+
   const status: RunnerStatus = submitMutation.isPending
     ? 'submitting'
     : jobQuery.data?.status ?? 'idle'
@@ -672,9 +733,9 @@ export function SimulationLabPage({
     }, COPY_RESET_DELAY_MS)
   }
 
-  const handleCopyExactAnalyticsUrl = async () => {
-    if (!exactAnalyticsShareUrl || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return
-    await navigator.clipboard.writeText(exactAnalyticsShareUrl)
+  const handleCopyExactAnalyticsUrl = async (targetUrl = exactAnalyticsShareUrl) => {
+    if (!targetUrl || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return
+    await navigator.clipboard.writeText(targetUrl)
   }
 
   const handleCopyExactAnalyticsJson = async () => {
@@ -1047,6 +1108,12 @@ export function SimulationLabPage({
             analyticsView={exactAnalyticsView}
             onAnalyticsViewChange={setExactAnalyticsView}
             analyticsViewOptions={ANALYTICS_VIEW_OPTIONS}
+            analyticsMetric={exactAnalyticsMetric}
+            onAnalyticsMetricChange={setExactAnalyticsMetric}
+            analyticsMetricOptions={exactAnalyticsMetricOptions}
+            compareMode={exactAnalyticsCompareMode}
+            onCompareModeChange={setExactAnalyticsCompareMode}
+            compareModeOptions={exactAnalyticsCompareModeOptions}
             statusMessage={exactAnalyticsStatusMessage}
             metricCards={exactAnalyticsMetricCards}
             blocks={exactAnalyticsBlocks}
@@ -1054,6 +1121,72 @@ export function SimulationLabPage({
           >
             {exactAnalyticsPayload ? (
               <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+                <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Named dashboards</div>
+                  <div className="mt-2 text-xs leading-5 text-muted">
+                    These are reusable dashboard reads over the same exact-run payload, so you can move between stable analysis postures instead of rebuilding the query each time.
+                  </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {exactDashboardPresets.map(preset => {
+                      const presetUrl = buildSimulationLabUrl({
+                        surfaceMode,
+                        currentJobId,
+                        analyticsView: preset.analyticsView,
+                        analyticsMetric: preset.analyticsMetric,
+                        analyticsCompareMode: preset.analyticsCompareMode,
+                        analyticsSlot: exactAnalyticsRequestedSlot == null ? null : exactAnalyticsSlot,
+                        comparisonPath: selectedComparisonDataset?.path ?? exactComparisonPath,
+                      })
+                      const presetActive = exactAnalyticsView === preset.analyticsView
+                        && exactAnalyticsMetric === preset.analyticsMetric
+                        && exactAnalyticsCompareMode === preset.analyticsCompareMode
+
+                      return (
+                        <div
+                          key={preset.id}
+                          className={cn(
+                            'rounded-xl border px-3 py-3 transition-colors',
+                            presetActive
+                              ? 'border-accent bg-[#FAFAF8]'
+                              : 'border-border-subtle bg-white',
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-medium text-text-primary">{preset.label}</div>
+                              <div className="mt-1 text-xs leading-5 text-muted">{preset.note}</div>
+                            </div>
+                            {presetActive ? (
+                              <span className="rounded-full bg-accent px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white">
+                                Live
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => {
+                                setExactAnalyticsView(preset.analyticsView)
+                                setExactAnalyticsMetric(preset.analyticsMetric)
+                                setExactAnalyticsCompareMode(preset.analyticsCompareMode)
+                              }}
+                              className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                            >
+                              Open dashboard
+                            </button>
+                            <button
+                              onClick={() => void handleCopyExactAnalyticsUrl(presetUrl)}
+                              disabled={!presetUrl}
+                              className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Copy link
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 <div className="rounded-xl border border-rule bg-white px-4 py-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                     <div>
@@ -1102,8 +1235,8 @@ export function SimulationLabPage({
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                  <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Published foil</div>
+                <div className="rounded-xl border border-border-subtle bg-white px-4 py-4 xl:col-span-2">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Published foil</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">
                     {selectedComparisonDataset ? formatPublishedDatasetLabel(selectedComparisonDataset) : 'No published scenario selected'}
                   </div>

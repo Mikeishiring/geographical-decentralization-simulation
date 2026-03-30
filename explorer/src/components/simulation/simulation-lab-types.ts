@@ -1,5 +1,9 @@
 import type { Block } from '../../types/blocks'
-import type { AnalyticsDeckView } from './simulation-analytics'
+import type {
+  AnalyticsCompareMode,
+  AnalyticsDeckView,
+  AnalyticsQueryMetric,
+} from './simulation-analytics'
 
 export interface WorkerSuccess {
   readonly id: number
@@ -60,6 +64,8 @@ export interface InitialSimulationLabState {
   readonly surfaceMode: SurfaceMode
   readonly jobId?: string
   readonly analyticsView?: AnalyticsDeckView
+  readonly analyticsMetric?: AnalyticsQueryMetric
+  readonly analyticsCompareMode?: AnalyticsCompareMode
   readonly analyticsSlot?: number
   readonly comparisonPath?: string
 }
