@@ -39,29 +39,16 @@ export function SimCopilotPanel({
   return (
     <div className="lab-stage p-0 mb-6">
       <div className="lab-stage-soft m-3 p-5">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="lab-section-title">AI Interpretation</div>
+            <div className="lab-section-title">Simulation Guide</div>
             <div className="mt-2 text-sm font-medium text-text-primary">
               The exact run surface stays primary. The guide is an opt-in interpretation layer.
             </div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              It can reorganize supported charts, suggest bounded configs, and add clearly labeled interpretation.
-            </div>
           </div>
-          <div className={cn(
-            'mt-1 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium shrink-0',
-            isHealthLoading
-              ? 'border-border-subtle bg-white text-muted'
-              : copilotAvailable
-                ? 'border-success/30 bg-success/8 text-text-primary'
-                : 'border-border-subtle bg-white text-muted',
-          )}>
-            <span className={cn(
-              'h-1.5 w-1.5 rounded-full',
-              isHealthLoading ? 'bg-muted animate-pulse' : copilotAvailable ? 'bg-success' : 'bg-muted',
-            )} />
-            {isHealthLoading ? 'Checking...' : copilotAvailable ? 'Available' : 'Unavailable'}
+          <div className="max-w-xl text-xs leading-5 text-muted">
+            It can reorganize supported charts, suggest bounded configs, and add clearly labeled framing.
+            It cannot invent metrics, replace the default result surface, or change the exact engine.
           </div>
         </div>
 
@@ -69,7 +56,7 @@ export function SimCopilotPanel({
           {isHealthLoading
             ? 'Checking guide availability...'
             : copilotAvailable
-              ? 'Guide responses are available for bounded exact-mode questions. Use them when you want help comparing scenarios, explaining a run, or reordering supported visuals.'
+              ? 'Guide framing is available for bounded exact-mode questions. Use it when you want help comparing scenarios, explaining a run, or reordering supported visuals.'
               : 'Guide framing is offline. Add ANTHROPIC_API_KEY to explorer/.env to enable bounded simulation guidance.'}
         </div>
       </div>
@@ -77,12 +64,12 @@ export function SimCopilotPanel({
       {!showAssistant && (
         <div className="mx-3 mb-3 flex flex-col gap-4 rounded-[1.35rem] border border-border-subtle bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(247,244,238,0.92))] px-5 py-5 shadow-[0_16px_40px_rgba(15,23,42,0.05)] lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Results first</div>
+            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Default mode</div>
             <div className="mt-2 text-sm font-medium text-text-primary">
-              Review charts and data on your own, then ask the AI if you want deeper analysis.
+              Read the exact metadata, artifact labels, and charts first.
             </div>
             <div className="mt-2 max-w-2xl text-xs leading-5 text-muted">
-              Open the guide only when you want bounded help with phrasing a run, comparing scenarios, or turning the current exact result into a more deliberate story.
+              Open the assistant only when you want bounded help with phrasing a run, comparing scenarios, or turning the current exact result into a more deliberate story.
             </div>
           </div>
           <button
@@ -104,8 +91,8 @@ export function SimCopilotPanel({
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs text-muted">
               {hasManifest
-                ? 'Ask questions about your simulation results.'
-                : 'Get help setting up your next simulation.'}
+                ? 'Optional layer over the current exact run.'
+                : 'Optional help for shaping a bounded exact run.'}
             </div>
             <button
               onClick={() => setAssistantOpen(false)}
@@ -119,16 +106,16 @@ export function SimCopilotPanel({
             <div className="flex-1">
               <div className="mb-2 text-xs text-muted">
                 {hasManifest
-                  ? 'Ask about the results, compare with other scenarios, or request a follow-up run.'
-                  : 'Describe what you want to test and the AI will suggest a configuration.'}
+                  ? 'Ask about this exact run, or request the next bounded experiment.'
+                  : 'Ask for a bounded exact run setup that stays within the paper and simulator surface.'}
               </div>
               <textarea
                 value={copilotQuestion}
                 onChange={event => onQuestionChange(event.target.value)}
                 rows={3}
                 placeholder={hasManifest
-                  ? 'e.g. What drives the MEV differences between top regions? How does this compare to the baseline?'
-                  : 'e.g. Set up the SSP baseline from the paper, or compare SSP vs MSP at 1,000 validators.'}
+                  ? 'Example: Show avg_mev, then supermajority_success, then explain the top regions.'
+                  : 'Example: Set up the paper baseline SSP run, then tell me what to inspect first.'}
                 disabled={isHealthLoading || !copilotAvailable}
                 className={inputClassName}
               />
@@ -156,7 +143,7 @@ export function SimCopilotPanel({
                   onClick={() => onApplyConfig({ ...copilotResponse.proposedConfig! })}
                   className="lab-option-card rounded-xl px-4 py-3 text-sm text-text-primary transition-colors hover:border-border-hover"
                 >
-                  Use this configuration
+                  Apply proposed config
                 </button>
               )}
             </div>
@@ -211,26 +198,26 @@ export function SimCopilotPanel({
                 </div>
               </div>
 
-              <div className="rounded-[1.25rem] border border-border-subtle bg-white/90 px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">
-                  AI analysis
-                </div>
-                <div className="mt-2 text-sm leading-6 text-text-primary">{copilotResponse.summary}</div>
+                <div className="rounded-[1.25rem] border border-border-subtle bg-white/90 px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">
+                    Guide framing
+                  </div>
+                  <div className="mt-2 text-sm leading-6 text-text-primary">{copilotResponse.summary}</div>
                 {copilotResponse.guidance && (
                   <div className="mt-3 rounded-xl border border-border-subtle/90 bg-surface-active px-4 py-3">
-                    <div className="text-[11px] uppercase tracking-[0.14em] text-text-faint">Interpretation note</div>
+                    <div className="text-[11px] uppercase tracking-[0.14em] text-text-faint">Guide interpretation</div>
                     <div className="mt-1 text-xs leading-5 text-muted">{copilotResponse.guidance}</div>
                   </div>
                 )}
                 <div className="mt-3 text-xs text-muted">
                   {copilotResponse.mode === 'proposed-run'
-                    ? 'Suggested configuration'
+                    ? 'Proposed bounded run'
                     : copilotResponse.mode === 'guidance'
-                      ? 'Interpretation only'
-                      : 'Analysis of current results'}
+                      ? 'Guidance only'
+                      : 'Current exact result with guide framing'}
                   {copilotResponse.cached
-                    ? ' · reused cached study context'
-                    : ' · fresh response over the bounded simulation surface'}
+                    ? ' · guide reused cached study context'
+                    : ' · fresh guide response over the bounded simulation surface'}
                 </div>
               </div>
 

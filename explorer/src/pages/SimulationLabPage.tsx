@@ -53,14 +53,6 @@ interface WorkerFailure {
   readonly error: string
 }
 
-interface ExactChartSeriesData {
-  readonly artifactName: string
-  readonly label: string
-  readonly description: string
-  readonly kind: SimulationArtifact['kind']
-  readonly values: readonly number[]
-}
-
 type RunnerStatus = 'idle' | 'submitting' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
 
 function selectDefaultArtifact(artifacts: readonly SimulationArtifact[]): string | null {
@@ -208,14 +200,6 @@ function formatJobTimestamp(value: string | undefined): string | null {
     hour: 'numeric',
     minute: '2-digit',
   }).format(timestamp)
-}
-
-function parseExactChartSeries(rawText: string): readonly number[] {
-  const parsed = JSON.parse(rawText) as unknown
-  if (!Array.isArray(parsed)) {
-    throw new Error('Expected an array of numeric chart values.')
-  }
-  return parsed.map(value => (typeof value === 'number' && Number.isFinite(value) ? value : 0))
 }
 
 function PendingRunSurface({
@@ -410,7 +394,13 @@ function PendingRunSurface({
   )
 }
 
-export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
+export function SimulationLabPage({
+  onOpenCommunityExploration,
+  onTabChange,
+}: {
+  onOpenCommunityExploration?: (explorationId: string) => void
+  onTabChange?: (tab: TabId) => void
+} = {}) {
   const queryClient = useQueryClient()
   const [surfaceMode, setSurfaceMode] = useState<'research' | 'lab'>('research')
   const [config, setConfig] = useState<SimulationConfig>({ ...DEFAULT_CONFIG })
@@ -428,6 +418,7 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
   const [copilotQuestion, setCopilotQuestion] = useState('')
   const [copilotResponse, setCopilotResponse] = useState<SimulationCopilotResponse | null>(null)
   const [publishedSimulationKey, setPublishedSimulationKey] = useState<string | null>(null)
+  const [publishedSimulationExplorationId, setPublishedSimulationExplorationId] = useState<string | null>(null)
 
   const workerRef = useRef<Worker | null>(null)
   const workerRequestIdRef = useRef(0)
@@ -555,9 +546,10 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
         author: input.author || undefined,
       })
     },
-    onSuccess: (_published, variables) => {
+    onSuccess: (published, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['explorations'] })
       setPublishedSimulationKey(variables.contextKey)
+      setPublishedSimulationExplorationId(published.id)
     },
   })
 
@@ -633,37 +625,6 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
     staleTime: Infinity,
   })
   const selectedArtifactRawText = artifactQuery.data ?? null
-  const exactChartArtifacts = useMemo(
-    () => manifest?.artifacts.filter(artifact => artifact.renderable && artifact.kind === 'timeseries') ?? [],
-    [manifest],
-  )
-
-  const exactChartQueries = useQueries({
-    queries: exactChartArtifacts.map(artifact => ({
-      queryKey: ['simulation-chart-artifact', currentJobId, artifact.name, artifact.sha256],
-      queryFn: async () => parseExactChartSeries(await getSimulationArtifact(currentJobId!, artifact.name)),
-      enabled: Boolean(currentJobId),
-      staleTime: Infinity,
-    })),
-  })
-
-  const exactChartSeries = useMemo<readonly ExactChartSeriesData[]>(
-    () => exactChartArtifacts.flatMap((artifact, index) => {
-      const values = exactChartQueries[index]?.data
-      if (!values) return []
-      return [{
-        artifactName: artifact.name,
-        label: artifact.label,
-        description: artifact.description,
-        kind: artifact.kind,
-        values,
-      }]
-    }),
-    [exactChartArtifacts, exactChartQueries],
-  )
-
-  const isExactChartDeckLoading = exactChartArtifacts.length > 0
-    && exactChartSeries.length < exactChartArtifacts.length
 
   useEffect(() => {
     if (!selectedArtifact || !selectedArtifactRawText || !workerRef.current) {
@@ -732,6 +693,7 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
   const onSubmit = () => {
     publishMutation.reset()
     setPublishedSimulationKey(null)
+    setPublishedSimulationExplorationId(null)
     submitMutation.mutate(config)
   }
 
@@ -830,25 +792,32 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4 mb-5">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-2 h-2 rounded-full bg-accent shrink-0" />
-          <h1 className="text-base font-semibold text-text-primary truncate">Simulation</h1>
-          <span className="text-xs text-muted hidden sm:inline">Published results and exact experimental runs</span>
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-2.5 lg:items-center">
+          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent lg:mt-0" />
+          <div className="min-w-0">
+            <h1 className="text-base font-semibold text-text-primary">Simulation</h1>
+            <p className="mt-1 text-xs leading-5 text-muted lg:hidden">
+              Published scenarios, exact experiments, and artifact-backed interpretation
+            </p>
+          </div>
+          <span className="hidden text-xs text-muted lg:inline">
+            Published scenarios, exact experiments, and artifact-backed interpretation
+          </span>
         </div>
 
-        <div className="inline-flex rounded-full border border-border-subtle bg-white p-0.5 shrink-0">
+        <div className="grid w-full grid-cols-2 rounded-[1rem] border border-border-subtle bg-white p-1 lg:inline-flex lg:w-auto lg:rounded-full lg:p-0.5">
           <button
             onClick={() => setSurfaceMode('research')}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${surfaceMode === 'research' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
+            className={`rounded-full px-3 py-2 text-center text-xs font-medium transition-colors lg:py-1.5 ${surfaceMode === 'research' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
           >
-            Published results
+            Published scenarios
           </button>
           <button
             onClick={() => setSurfaceMode('lab')}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${surfaceMode === 'lab' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
+            className={`rounded-full px-3 py-2 text-center text-xs font-medium transition-colors lg:py-1.5 ${surfaceMode === 'lab' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
           >
-            Experimental run
+            Run exact experiment
           </button>
         </div>
       </div>
@@ -856,10 +825,10 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
       <div className="mb-5">
         <ModeBanner
           eyebrow="Mode"
-          title={surfaceMode === 'research' ? 'Published research results' : 'Experimental exact run'}
+          title={surfaceMode === 'research' ? 'Published research scenarios' : 'Experimental exact run'}
           detail={surfaceMode === 'research'
             ? 'This side stays on the frozen researcher datasets and viewer contract. It is for reproducing the published scenarios, not inventing new ones.'
-            : 'This side runs fresh exact simulations with the same engine, but only some configurations map directly onto the published experiment catalog.'}
+            : 'This side runs fresh exact simulations with the same engine. Use it for bounded comparisons, then publish a community note only after you have read the manifest and artifacts.'}
           tone={surfaceMode === 'research' ? 'canonical' : 'experimental'}
         />
       </div>
@@ -872,15 +841,14 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
       ) : (
         <>
       <div className="lab-stage-hero p-6 mb-6">
-        <div className="flex flex-col gap-5">
+        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.9fr]">
           <div>
-            <div className="lab-section-title">Run your own simulation</div>
+            <div className="lab-section-title">Experimental Runner</div>
             <h2 className="mt-3 max-w-3xl text-2xl font-semibold tracking-tight text-text-primary sm:text-[2rem]">
               Run fresh exact simulations inside our shell and let the explorer grow into the result surface.
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-              The lab stays on the canonical engine, but the experience now behaves like a premium instrument panel:
-              configure the run, watch the queue and execution state, and inspect the manifest and artifacts without any hard context switch.
+              Configure a bounded exact run, watch the queue and execution state, then inspect the manifest and artifacts without leaving the page.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {paperScenarioLabels(config).map(label => (
@@ -892,13 +860,37 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
             </div>
           </div>
 
-          <div className="flex items-center gap-3 text-xs text-muted">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              {config.paradigm} · {config.validators.toLocaleString()} validators · {config.slots.toLocaleString()} slots
-            </span>
-            <span className="text-border-subtle">|</span>
-            <span>{paperComparability.title}</span>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Default posture</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Fast iteration first</div>
+              <div className="mt-2 text-xs leading-5 text-muted">
+                Starts smaller than the paper catalog so the exact loop stays responsive while you tune the scenario.
+              </div>
+            </div>
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Paper-scale ceiling</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">1,000 validators · 10,000 slots</div>
+              <div className="mt-2 text-xs leading-5 text-muted">
+                Matches the upper scale of the published frozen runs when you want closer comparability.
+              </div>
+            </div>
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Current config</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">
+                {config.paradigm} · {config.validators.toLocaleString()} validators
+              </div>
+              <div className="mt-2 text-xs leading-5 text-muted">
+                {config.slots.toLocaleString()} slots, {formatEthValue(config.migrationCost)} migration cost, {config.slotTime}s slot time.
+              </div>
+            </div>
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Comparability</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{paperComparability.title}</div>
+              <div className="mt-2 text-xs leading-5 text-muted">
+                {paperComparability.detail}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -947,7 +939,6 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
         onCancel={onCancel}
         paperScenarioLabels={paperScenarioLabels(config)}
         paperComparability={paperComparability}
-        runnerStatus={status}
       />
 
       {(currentJobId || submitMutation.isError) && (
@@ -988,8 +979,6 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
             overviewBundleOptions={overviewBundleOptions}
             selectedBundle={selectedBundle}
             onSelectBundle={setSelectedBundle}
-            exactChartSeries={exactChartSeries}
-            isExactChartDeckLoading={isExactChartDeckLoading}
             selectedOverviewBundleMetrics={selectedOverviewBundleMetrics}
             overviewBlocks={overviewBlocks}
             isOverviewLoading={isOverviewLoading}
@@ -1010,17 +999,21 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
           {simulationPublishContextKey && (
             <ContributionComposer
               key={simulationPublishContextKey}
-              sourceLabel="Share your findings from this run"
+              sourceLabel="Publish this exact run as a community note"
               defaultTitle={simulationPublishTitle}
               defaultTakeaway={simulationPublishTakeaway}
-              helperText="Only intentionally published exact-run notes appear on the community surface. Add your own title and takeaway so the public note reflects what you saw in the artifacts, not just raw assistant phrasing."
+              helperText="Only intentionally published exact-run notes appear on the community surface. Add your own title and takeaway so the public note reflects what you saw in the artifacts, not just the default guide phrasing."
               publishLabel="Publish human-authored note"
               successLabel="Published human-authored note"
               viewPublishedLabel="Open Community"
               published={publishedSimulationKey === simulationPublishContextKey}
               isPublishing={publishMutation.isPending}
               error={(publishMutation.error as Error | null)?.message ?? null}
-              onViewPublished={undefined}
+              onViewPublished={publishedSimulationExplorationId && onOpenCommunityExploration
+                ? () => onOpenCommunityExploration(publishedSimulationExplorationId)
+                : onTabChange
+                  ? () => onTabChange('history')
+                  : undefined}
               onPublish={payload => publishMutation.mutate({
                 contextKey: simulationPublishContextKey,
                 ...payload,
@@ -1029,15 +1022,14 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
           )}
         </>
       )}
-        </>
-      )}
-
       {onTabChange && (
         <Wayfinder links={[
-          { label: 'Explore findings', hint: 'Curated lenses and paper-backed readings', onClick: () => onTabChange('explore') },
-          { label: 'Start another exact run', hint: 'Stay in Results and launch a different bounded scenario', onClick: () => onTabChange('results') },
+          { label: 'Explore findings', hint: 'Curated lenses, guided questions, and paper-backed interpretation', onClick: () => onTabChange('explore') },
+          { label: 'Browse community notes', hint: 'See human-framed notes from paper readings and exact runs', onClick: () => onTabChange('history') },
           { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
         ]} />
+      )}
+        </>
       )}
     </div>
   )
