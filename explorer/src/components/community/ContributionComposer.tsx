@@ -60,10 +60,10 @@ export function ContributionComposer({
   const canSubmit = trimmedTitle.length > 0 && trimmedTakeaway.length > 0 && hasIntentionalEdit && !isPublishing
 
   return (
-    <div className="mt-5 rounded-xl border border-border-subtle bg-white/92 px-4 py-4">
+    <div className="mt-5 rounded-xl border border-rule bg-white px-4 py-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
             Community contribution
           </div>
           <div className="mt-1 text-sm font-medium text-text-primary">
@@ -84,12 +84,7 @@ export function ContributionComposer({
               'Interpretation labeled',
               'Human title + takeaway',
             ].map(item => (
-              <span
-                key={item}
-                className="inline-flex items-center rounded-full border border-border-subtle bg-white px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-text-faint"
-              >
-                {item}
-              </span>
+              <span key={item} className="lab-chip">{item}</span>
             ))}
           </div>
         </div>

@@ -257,7 +257,7 @@ export function PublishedReplayNotesPanel({
     <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Paper notes</div>
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper notes</div>
           <div className="mt-2 text-sm font-medium text-text-primary">
             Attach notes to the exact replay posture, not just the scenario in general.
           </div>
@@ -282,7 +282,7 @@ export function PublishedReplayNotesPanel({
       </div>
 
       <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
-        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Pinned context</div>
+        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Pinned context</div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
           <span className="lab-chip">{datasetLabel(dataset)}</span>
           <span className="lab-chip">{paperLens} lens</span>
@@ -315,7 +315,7 @@ export function PublishedReplayNotesPanel({
       </div>
 
       <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
-        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Note anchor</div>
+        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Note anchor</div>
         <div className="mt-3 flex flex-wrap gap-2">
           {anchorOptions.map(option => (
             <button
@@ -335,7 +335,7 @@ export function PublishedReplayNotesPanel({
       </div>
 
       <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
-        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Note draft</div>
+        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Note draft</div>
         <textarea
           value={draft}
           onChange={event => setDraft(event.target.value)}
@@ -365,7 +365,7 @@ export function PublishedReplayNotesPanel({
       <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Thread for this slot</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Thread for this slot</div>
             <div className="mt-1 text-xs text-muted">Notes stay attached to this exact replay posture.</div>
           </div>
           {notesQuery.isLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted" /> : null}
@@ -401,14 +401,14 @@ export function PublishedReplayNotesPanel({
                 <div className="mt-4 space-y-2 border-t border-border-subtle pt-3">
                   {note.replies.map(reply => (
                     <div key={reply.id} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{formatTimestamp(reply.createdAt)}</div>
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{formatTimestamp(reply.createdAt)}</div>
                       <div className="mt-2 text-xs leading-5 text-text-primary">{reply.text}</div>
                     </div>
                   ))}
                 </div>
               ) : null}
               <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-3 py-3">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Reply</div>
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Reply</div>
                 <textarea
                   value={replyDrafts[note.id] ?? ''}
                   onChange={event => setReplyDrafts(current => ({ ...current, [note.id]: event.target.value }))}

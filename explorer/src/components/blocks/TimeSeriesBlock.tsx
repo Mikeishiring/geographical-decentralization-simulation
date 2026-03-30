@@ -154,7 +154,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
               key={`${entry.label}-${index}`}
               className="rounded-2xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(246,245,241,0.86))] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]"
             >
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Latest</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Latest</div>
               <div className="mt-1 text-xs font-medium text-text-primary">{entry.label}</div>
               <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
                 {formatSeriesNumber(entry.value)}
@@ -193,7 +193,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
 
         <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,245,241,0.9))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Integrity</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Integrity</div>
             <div className="mt-1 text-sm font-medium text-text-primary">
               Raw slot series, full ordering, no smoothing.
             </div>
@@ -210,7 +210,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 >
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: point.color }} />
-                    <span className="text-[10px] uppercase tracking-[0.14em] text-text-faint">Slot {point.x}</span>
+                    <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Slot {point.x}</span>
                   </div>
                   <div className="mt-1 text-xs font-medium text-text-primary">{point.label}</div>
                   <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
