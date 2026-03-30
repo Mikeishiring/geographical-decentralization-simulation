@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ContributionComposer } from '../community/ContributionComposer'
 import { BlockCanvas } from '../explore/BlockCanvas'
@@ -15,13 +15,22 @@ import { PublishedReplayNotesPanel } from './PublishedReplayNotesPanel'
 import { PublishedDatasetViewer, type PublishedViewerSnapshot } from './PublishedDatasetViewer'
 import { SimulationAnalyticsDesk } from './SimulationAnalyticsDesk'
 import {
+  analyticsCompareModeOptions,
+  analyticsMetricOptionsForView,
   ANALYTICS_VIEW_OPTIONS,
+  buildAnalyticsDashboardPresets,
   buildAnalyticsBlocks,
   buildAnalyticsMetricCards,
   clampSlotIndex,
+  defaultAnalyticsQueryMetricForView,
+  parseAnalyticsCompareMode,
   parseAnalyticsDeckView,
+  parseAnalyticsQueryMetric,
+  type AnalyticsCompareMode,
+  type AnalyticsDashboardPreset,
   type AnalyticsDeckView,
   type AnalyticsMetricCard,
+  type AnalyticsQueryMetric,
   type PublishedAnalyticsPayload,
   totalSlotsFromPayload,
 } from './simulation-analytics'
@@ -98,6 +107,8 @@ interface InitialWorkspaceState {
   readonly focusSlot?: number
   readonly compareFocusSlot?: number
   readonly analyticsView?: AnalyticsDeckView
+  readonly analyticsMetric?: AnalyticsQueryMetric
+  readonly analyticsCompareMode?: AnalyticsCompareMode
 }
 
 interface CanvasAnnotation {
@@ -207,6 +218,8 @@ function readInitialWorkspaceState(): InitialWorkspaceState {
     focusSlot: parseSlotIndex(params.get('slot')),
     compareFocusSlot: parseSlotIndex(params.get('compareSlot')),
     analyticsView: parseAnalyticsDeckView(params.get('analytics')),
+    analyticsMetric: parseAnalyticsQueryMetric(params.get('analyticsMetric')),
+    analyticsCompareMode: parseAnalyticsCompareMode(params.get('analyticsCompareMode')),
   }
 }
 
@@ -360,6 +373,12 @@ export function ResearchDemoSurface({
   const [comparePath, setComparePath] = useState(initialWorkspaceState.comparePath ?? '')
   const [audienceMode, setAudienceMode] = useState<AudienceMode>(initialWorkspaceState.audienceMode ?? 'reader')
   const [analyticsView, setAnalyticsView] = useState<AnalyticsDeckView>(initialWorkspaceState.analyticsView ?? 'concentration')
+  const [analyticsMetric, setAnalyticsMetric] = useState<AnalyticsQueryMetric>(
+    initialWorkspaceState.analyticsMetric ?? defaultAnalyticsQueryMetricForView(initialWorkspaceState.analyticsView ?? 'concentration'),
+  )
+  const [analyticsCompareMode, setAnalyticsCompareMode] = useState<AnalyticsCompareMode>(
+    initialWorkspaceState.analyticsCompareMode ?? 'absolute',
+  )
   const [paperSectionId, setPaperSectionId] = useState(initialWorkspaceState.paperSectionId ?? '')
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
   const viewerRef = useRef<HTMLElement | null>(null)
@@ -584,6 +603,8 @@ export function ResearchDemoSurface({
         paperLens,
         audienceMode,
         analyticsView,
+        analyticsMetric,
+        analyticsCompareMode,
         comparePath: comparePath || null,
         paperSectionId: selectedPaperSection?.id ?? null,
         replayQuestion: assistantDraft || null,
@@ -593,6 +614,8 @@ export function ResearchDemoSurface({
       metadata: selectedDataset.metadata ?? {},
     }, null, 2)
   }, [
+    analyticsCompareMode,
+    analyticsMetric,
     analyticsView,
     assistantDraft,
     audienceMode,
@@ -979,7 +1002,7 @@ export function ResearchDemoSurface({
   const primaryAnalyticsPayload = primaryAnalyticsQuery.data ?? null
   const comparisonAnalyticsPayload = comparisonAnalyticsQuery.data ?? null
 
-  const buildWorkspaceUrl = (overrides?: Partial<{
+  const buildWorkspaceUrl = useCallback((overrides?: Partial<{
     selectedEvaluation: string
     selectedParadigm: string
     selectedResult: string
@@ -995,6 +1018,8 @@ export function ResearchDemoSurface({
     focusSlot: number | null
     compareFocusSlot: number | null
     analyticsView: AnalyticsDeckView
+    analyticsMetric: AnalyticsQueryMetric
+    analyticsCompareMode: AnalyticsCompareMode
   }>) => {
     if (typeof window === 'undefined') return ''
 
@@ -1019,6 +1044,8 @@ export function ResearchDemoSurface({
         ? comparisonViewerSnapshot?.slotIndex ?? initialWorkspaceState.compareFocusSlot ?? null
         : null,
       analyticsView,
+      analyticsMetric,
+      analyticsCompareMode,
       ...overrides,
     }
 
@@ -1054,6 +1081,8 @@ export function ResearchDemoSurface({
     }
 
     params.set('analytics', nextState.analyticsView)
+    params.set('analyticsMetric', nextState.analyticsMetric)
+    params.set('analyticsCompareMode', nextState.analyticsCompareMode)
 
     if (typeof nextState.focusSlot === 'number' && nextState.focusSlot > 0) {
       params.set('slot', String(nextState.focusSlot))
@@ -1069,7 +1098,30 @@ export function ResearchDemoSurface({
 
     url.hash = ''
     return url.toString()
-  }
+  }, [
+    analyticsCompareMode,
+    analyticsMetric,
+    analyticsView,
+    assistantDraft,
+    audienceMode,
+    autoplay,
+    comparePath,
+    comparisonDataset?.path,
+    comparisonViewerSnapshot?.slotIndex,
+    initialWorkspaceState.compareFocusSlot,
+    initialWorkspaceState.focusSlot,
+    paperLens,
+    paperSectionId,
+    selectedDataset?.path,
+    selectedEvaluation,
+    selectedPaperSection?.id,
+    selectedParadigm,
+    selectedResult,
+    splitCompareActive,
+    step,
+    theme,
+    viewerSnapshot?.slotIndex,
+  ])
 
   const applyWorkspacePose = (config: {
     theme: WorkspaceTheme
@@ -1099,13 +1151,71 @@ export function ResearchDemoSurface({
     comparisonAnalyticsTotalSlots,
   )
   const analyticsViewOptions = ANALYTICS_VIEW_OPTIONS
+  const analyticsMetricOptions = useMemo(
+    () => analyticsMetricOptionsForView(analyticsView),
+    [analyticsView],
+  )
+  const availableAnalyticsCompareModeOptions = useMemo(
+    () => analyticsCompareModeOptions(Boolean(comparisonDataset)),
+    [comparisonDataset],
+  )
+  useEffect(() => {
+    if (analyticsMetricOptions.some(option => option.id === analyticsMetric)) return
+    setAnalyticsMetric(defaultAnalyticsQueryMetricForView(analyticsView))
+  }, [analyticsMetric, analyticsMetricOptions, analyticsView])
+  useEffect(() => {
+    if (availableAnalyticsCompareModeOptions.some(option => option.id === analyticsCompareMode)) return
+    setAnalyticsCompareMode(availableAnalyticsCompareModeOptions[0]?.id ?? 'absolute')
+  }, [analyticsCompareMode, availableAnalyticsCompareModeOptions])
+  const activeAnalyticsMetric = analyticsMetricOptions.find(option => option.id === analyticsMetric) ?? analyticsMetricOptions[0] ?? null
+  const activeCompareMode = availableAnalyticsCompareModeOptions.find(option => option.id === analyticsCompareMode)
+    ?? availableAnalyticsCompareModeOptions[0]
+    ?? null
+  const analyticsDashboardPresets = useMemo(
+    () => buildAnalyticsDashboardPresets(Boolean(comparisonDataset)),
+    [comparisonDataset],
+  )
+  const analyticsDashboardPresetCards = useMemo<Array<AnalyticsDashboardPreset & { url: string; active: boolean }>>(
+    () => analyticsDashboardPresets.map(preset => ({
+      ...preset,
+      url: buildWorkspaceUrl({
+        analyticsView: preset.analyticsView,
+        analyticsMetric: preset.analyticsMetric,
+        analyticsCompareMode: preset.analyticsCompareMode,
+      }),
+      active: analyticsView === preset.analyticsView
+        && analyticsMetric === preset.analyticsMetric
+        && analyticsCompareMode === preset.analyticsCompareMode,
+    })),
+    [
+      analyticsCompareMode,
+      analyticsDashboardPresets,
+      analyticsMetric,
+      analyticsView,
+      buildWorkspaceUrl,
+    ],
+  )
   const analyticsMetricCards = useMemo<AnalyticsMetricCard[]>(
     () => buildAnalyticsMetricCards({
       analyticsView,
+      queryMetric: activeAnalyticsMetric?.id ?? defaultAnalyticsQueryMetricForView(analyticsView),
+      compareMode: activeCompareMode?.id ?? 'absolute',
       payload: primaryAnalyticsPayload,
       slot: primaryAnalyticsSlot,
+      comparisonPayload: comparisonDataset ? comparisonAnalyticsPayload : null,
+      comparisonSlot: comparisonAnalyticsSlot,
+      comparisonLabel: 'Comparison replay',
     }),
-    [analyticsView, primaryAnalyticsPayload, primaryAnalyticsSlot],
+    [
+      activeAnalyticsMetric,
+      activeCompareMode,
+      analyticsView,
+      comparisonAnalyticsPayload,
+      comparisonAnalyticsSlot,
+      comparisonDataset,
+      primaryAnalyticsPayload,
+      primaryAnalyticsSlot,
+    ],
   )
   const analyticsSourceRefs = useMemo<readonly SourceBlock['refs'][number][]>(() => {
     if (!selectedDataset) return []
@@ -1113,7 +1223,7 @@ export function ResearchDemoSurface({
     return [
       {
         label: 'Analytics view',
-        section: analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics desk',
+        section: activeAnalyticsMetric?.label ?? analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics desk',
         url: shareUrl || undefined,
       },
       {
@@ -1138,6 +1248,7 @@ export function ResearchDemoSurface({
       }] : []),
     ]
   }, [
+    activeAnalyticsMetric,
     analyticsView,
     analyticsViewOptions,
     comparisonDataset,
@@ -1154,6 +1265,8 @@ export function ResearchDemoSurface({
 
     return buildAnalyticsBlocks({
       analyticsView,
+      queryMetric: activeAnalyticsMetric?.id ?? defaultAnalyticsQueryMetricForView(analyticsView),
+      compareMode: activeCompareMode?.id ?? 'absolute',
       primaryPayload: primaryAnalyticsPayload,
       primarySlot: primaryAnalyticsSlot,
       sourceRefs: analyticsSourceRefs,
@@ -1163,6 +1276,8 @@ export function ResearchDemoSurface({
       comparisonLabel: 'Comparison replay',
     })
   }, [
+    activeAnalyticsMetric,
+    activeCompareMode,
     analyticsSourceRefs,
     analyticsView,
     comparisonAnalyticsPayload,
@@ -1181,36 +1296,40 @@ export function ResearchDemoSurface({
     if (!selectedDataset) return []
 
     const viewLabel = analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics'
+    const metricLabel = activeAnalyticsMetric?.label ?? viewLabel
+    const compareModeLabel = activeCompareMode?.label?.toLowerCase() ?? 'absolute'
     const currentSlotLabel = `slot ${primaryAnalyticsSlot + 1}`
     const prompts = [
       {
         label: 'Read this query',
-        prompt: `Using the ${viewLabel.toLowerCase()} analytics query for ${selectedDataset.evaluation} / ${selectedDataset.paradigm}, explain what the evidence shows at ${currentSlotLabel} and at the final slot. Start with the observed metrics before interpretation.`,
+        prompt: `Using the ${metricLabel.toLowerCase()} query in the ${viewLabel.toLowerCase()} desk for ${selectedDataset.evaluation} / ${selectedDataset.paradigm}, explain what the evidence shows at ${currentSlotLabel} and at the final slot. Start with exact metrics before interpretation.`,
         detail: 'Replay evidence first',
       },
       comparisonDataset
         ? {
             label: 'Compare this query',
-            prompt: `Using the ${viewLabel.toLowerCase()} analytics query, compare ${selectedDataset.evaluation} / ${selectedDataset.paradigm} against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm}. Start with the observed metric differences, then explain what changes materially.`,
-            detail: 'Material delta only',
+            prompt: `Using the ${metricLabel.toLowerCase()} query in ${compareModeLabel} mode, compare ${selectedDataset.evaluation} / ${selectedDataset.paradigm} against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm}. Start with the exact metric differences, then explain what changes materially.`,
+            detail: `${activeCompareMode?.label ?? 'Compare'} read`,
           }
         : null,
       selectedPaperSection
         ? {
             label: `Bind ${selectedPaperSection.number}`,
-            prompt: `Use ${selectedPaperSection.number} ${selectedPaperSection.title} to interpret this ${viewLabel.toLowerCase()} analytics query. Start with the observed metrics, then explain what they mean for the paper's claim.`,
-            detail: 'Paper-backed read',
+            prompt: `Use ${selectedPaperSection.number} ${selectedPaperSection.title} to interpret this ${metricLabel.toLowerCase()} analytics query. Start with the observed metrics, then explain what they mean for the paper's claim.`,
+            detail: 'Canonical paper anchor',
           }
         : null,
       {
         label: 'Surface implication',
-        prompt: `From this ${viewLabel.toLowerCase()} analytics query, what is the strongest protocol or infrastructure implication? Start with the observed metrics first, then give your interpretation and say what remains uncertain.`,
+        prompt: `From this ${metricLabel.toLowerCase()} query, what is the strongest protocol or infrastructure implication? Start with the observed metrics first, then give your interpretation and say what remains uncertain.`,
         detail: 'Interpretive, not factual',
       },
     ].filter((entry): entry is AnalyticsPromptLauncher => Boolean(entry))
 
     return prompts
   }, [
+    activeAnalyticsMetric,
+    activeCompareMode,
     analyticsView,
     analyticsViewOptions,
     comparisonDataset,
@@ -1218,6 +1337,11 @@ export function ResearchDemoSurface({
     selectedDataset,
     selectedPaperSection,
   ])
+  const applyAnalyticsDashboardPreset = (preset: AnalyticsDashboardPreset) => {
+    setAnalyticsView(preset.analyticsView)
+    setAnalyticsMetric(preset.analyticsMetric)
+    setAnalyticsCompareMode(preset.analyticsCompareMode)
+  }
 
   const handleCopyShareUrl = async (targetUrl = shareUrl) => {
     if (!targetUrl || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
@@ -1849,6 +1973,8 @@ export function ResearchDemoSurface({
     params.set('lens', paperLens)
     params.set('audience', audienceMode)
     params.set('analytics', analyticsView)
+    params.set('analyticsMetric', analyticsMetric)
+    params.set('analyticsCompareMode', analyticsCompareMode)
 
     if (comparisonDataset?.path) {
       params.set('compare', comparisonDataset.path)
@@ -1884,6 +2010,8 @@ export function ResearchDemoSurface({
 
     window.history.replaceState({}, '', `${url.pathname}?${params.toString()}${url.hash}`)
   }, [
+    analyticsCompareMode,
+    analyticsMetric,
     analyticsView,
     assistantDraft,
     audienceMode,
@@ -2989,10 +3117,62 @@ export function ResearchDemoSurface({
                 analyticsView={analyticsView}
                 onAnalyticsViewChange={setAnalyticsView}
                 analyticsViewOptions={analyticsViewOptions}
+                analyticsMetric={activeAnalyticsMetric?.id ?? defaultAnalyticsQueryMetricForView(analyticsView)}
+                onAnalyticsMetricChange={setAnalyticsMetric}
+                analyticsMetricOptions={analyticsMetricOptions}
+                compareMode={activeCompareMode?.id ?? 'absolute'}
+                onCompareModeChange={setAnalyticsCompareMode}
+                compareModeOptions={availableAnalyticsCompareModeOptions}
                 statusMessage={analyticsStatusMessage}
                 metricCards={analyticsMetricCards}
                 blocks={analyticsBlocks}
               >
+                <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Named dashboards</div>
+                  <div className="mt-2 text-xs leading-5 text-muted">
+                    These dashboard links hold an authored analytics posture inside the paper workspace, so a reader can reopen the same query instead of reconstructing it from scratch.
+                  </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {analyticsDashboardPresetCards.map(preset => (
+                      <div
+                        key={preset.id}
+                        className={cn(
+                          'rounded-xl border px-4 py-4 transition-colors',
+                          preset.active
+                            ? 'border-accent bg-[#FAFAF8]'
+                            : 'border-rule bg-surface-active',
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-medium text-text-primary">{preset.label}</div>
+                            <div className="mt-1 text-xs leading-5 text-muted">{preset.note}</div>
+                          </div>
+                          {preset.active ? (
+                            <span className="rounded-full bg-accent px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white">
+                              Live
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            onClick={() => applyAnalyticsDashboardPreset(preset)}
+                            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          >
+                            Open dashboard
+                          </button>
+                          <button
+                            onClick={() => void handleCopyShareUrl(preset.url)}
+                            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                          >
+                            Copy link
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {analyticsPromptLaunchers.length > 0 ? (
                   <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
                     <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Ask from this analytic read</div>

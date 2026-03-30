@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { cn } from '../../lib/cn'
@@ -46,6 +46,14 @@ interface PublishedReplayAnchorSelectionDetail {
   readonly label: string
 }
 
+type ThreadFilterId =
+  | 'all'
+  | 'open_questions'
+  | 'contested'
+  | 'author_lane'
+  | 'following'
+  | 'range_notes'
+
 function datasetLabel(dataset: DatasetRef | null): string {
   if (!dataset) return 'No published replay selected'
   return `${dataset.evaluation} / ${dataset.paradigm} / ${dataset.result}`
@@ -76,12 +84,12 @@ function formatStatusLabel(status: PublishedReplayNoteStatus): string {
 
 function statusBadgeClass(status: PublishedReplayNoteStatus): string {
   if (status === 'supported' || status === 'author_addressed') {
-    return 'border-[#0F766E]/18 bg-[#ECFDF5] text-[#0F766E]'
+    return 'border-[#D7F1E6] bg-[#F7FDF9] text-[#0F766E]'
   }
   if (status === 'challenged') {
-    return 'border-[#BE123C]/18 bg-[#FFF1F2] text-[#BE123C]'
+    return 'border-[#F7D8E0] bg-[#FFF8FA] text-[#9F1239]'
   }
-  return 'border-[#C2410C]/18 bg-[#FFF7ED] text-[#9A3412]'
+  return 'border-[#F4E0C2] bg-[#FFF9F2] text-[#9A3412]'
 }
 
 const FOLLOWED_NOTES_STORAGE_KEY = 'published_replay_followed_note_ids'
@@ -188,6 +196,43 @@ const ANNOTATION_SCOPES: ReadonlyArray<{
   },
 ]
 
+const THREAD_FILTERS: ReadonlyArray<{
+  readonly id: ThreadFilterId
+  readonly label: string
+  readonly description: string
+}> = [
+  {
+    id: 'all',
+    label: 'All notes',
+    description: 'Show every contribution attached to this replay posture.',
+  },
+  {
+    id: 'open_questions',
+    label: 'Open questions',
+    description: 'Focus on notes that still need an answer or stronger evidence.',
+  },
+  {
+    id: 'contested',
+    label: 'Contested',
+    description: 'Surface challenged interpretations and counterpoints first.',
+  },
+  {
+    id: 'author_lane',
+    label: 'Author lane',
+    description: 'Review clarifications and direct responses from the authors.',
+  },
+  {
+    id: 'following',
+    label: 'Following',
+    description: 'Show only notes you marked to revisit.',
+  },
+  {
+    id: 'range_notes',
+    label: 'Range notes',
+    description: 'Focus on windows, trends, and region-over-time reasoning.',
+  },
+]
+
 function readFollowedNoteIds(): string[] {
   if (typeof window === 'undefined') return []
 
@@ -245,19 +290,28 @@ function mapContributionTypeToIntent(
 }
 
 function laneBadgeClass(lane: PublishedReplayCommunityLane): string {
-  if (lane === 'author') return 'border-[#2563EB]/18 bg-[#EFF6FF] text-[#1D4ED8]'
-  if (lane === 'reviewer') return 'border-[#BE123C]/18 bg-[#FFF1F2] text-[#BE123C]'
-  return 'border-[#0F766E]/18 bg-[#ECFDF5] text-[#0F766E]'
+  if (lane === 'author') return 'border-[#D9E7FF] bg-[#F8FBFF] text-[#1D4ED8]'
+  if (lane === 'reviewer') return 'border-[#F7D8E0] bg-[#FFF8FA] text-[#9F1239]'
+  return 'border-[#D7F1E6] bg-[#F7FDF9] text-[#0F766E]'
 }
 
 function contributionBadgeClass(
   contributionType: PublishedReplayContributionType,
 ): string {
-  if (contributionType === 'question') return 'border-[#C2410C]/18 bg-[#FFF7ED] text-[#9A3412]'
-  if (contributionType === 'counterpoint') return 'border-[#BE123C]/18 bg-[#FFF1F2] text-[#BE123C]'
-  if (contributionType === 'method_concern') return 'border-[#7C3AED]/18 bg-[#F5F3FF] text-[#6D28D9]'
-  if (contributionType === 'claim') return 'border-[#2563EB]/18 bg-[#EFF6FF] text-[#1D4ED8]'
-  return 'border-[#0F766E]/18 bg-[#ECFDF5] text-[#0F766E]'
+  if (contributionType === 'question') return 'border-[#F4E0C2] bg-[#FFF9F2] text-[#9A3412]'
+  if (contributionType === 'counterpoint') return 'border-[#F7D8E0] bg-[#FFF8FA] text-[#9F1239]'
+  if (contributionType === 'method_concern') return 'border-[#E6DDFD] bg-[#FAF8FF] text-[#6D28D9]'
+  if (contributionType === 'claim') return 'border-[#D9E7FF] bg-[#F8FBFF] text-[#1D4ED8]'
+  return 'border-[#D7F1E6] bg-[#F7FDF9] text-[#0F766E]'
+}
+
+function formatAnnotationScopeLabel(scope: PublishedReplayAnnotationScope): string {
+  if (scope === 'exact_slot') return 'exact slot'
+  if (scope === 'time_range') return 'time range'
+  if (scope === 'comparison_gap') return 'comparison gap'
+  if (scope === 'paper_claim') return 'paper claim'
+  if (scope === 'region_over_time') return 'region over time'
+  return 'trend'
 }
 
 export function PublishedReplayNotesPanel({
@@ -277,6 +331,7 @@ export function PublishedReplayNotesPanel({
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
   const [manualAnchor, setManualAnchor] = useState<NoteAnchorOption | null>(null)
   const [followedNoteIds, setFollowedNoteIds] = useState<string[]>(() => readFollowedNoteIds())
+  const [activeThreadFilter, setActiveThreadFilter] = useState<ThreadFilterId>('all')
   const [rangeStartSlotNumber, setRangeStartSlotNumber] = useState<string>('')
   const [rangeEndSlotNumber, setRangeEndSlotNumber] = useState<string>('')
   const anchorOptions = useMemo<readonly NoteAnchorOption[]>(() => {
@@ -521,6 +576,7 @@ export function PublishedReplayNotesPanel({
 
   const threadNotes = useMemo(() => notesQuery.data ?? [], [notesQuery.data])
   const followedNoteSet = useMemo(() => new Set(followedNoteIds), [followedNoteIds])
+  const selectedAnchorLabel = selectedAnchor?.label ?? 'Whole slot'
   const discovery = useMemo(() => {
     const anchors = new Map<string, number>()
     for (const note of threadNotes) {
@@ -531,20 +587,142 @@ export function PublishedReplayNotesPanel({
       total: threadNotes.length,
       openQuestions: threadNotes.filter(note => note.status === 'open_question' || note.contributionType === 'question').length,
       challenged: threadNotes.filter(note => note.status === 'challenged' || note.contributionType === 'counterpoint').length,
+      authorAddressed: threadNotes.filter(note => note.status === 'author_addressed' || note.communityLane === 'author').length,
       followed: threadNotes.filter(note => followedNoteSet.has(note.id)).length,
       topAnchors: [...anchors.entries()].sort((left, right) => right[1] - left[1]).slice(0, 3),
     }
   }, [followedNoteSet, threadNotes])
+  type ThreadNote = (typeof threadNotes)[number]
+  const matchesThreadFilter = useCallback((note: ThreadNote, filterId: ThreadFilterId): boolean => {
+    if (filterId === 'open_questions') {
+      return note.status === 'open_question' || note.contributionType === 'question'
+    }
+    if (filterId === 'contested') {
+      return note.status === 'challenged' || note.contributionType === 'counterpoint'
+    }
+    if (filterId === 'author_lane') {
+      return note.communityLane === 'author' || note.status === 'author_addressed'
+    }
+    if (filterId === 'following') {
+      return followedNoteSet.has(note.id)
+    }
+    if (filterId === 'range_notes') {
+      return (
+        note.annotationScope === 'time_range' ||
+        note.annotationScope === 'region_over_time' ||
+        note.annotationScope === 'trend'
+      )
+    }
+    return true
+  }, [followedNoteSet])
+  const threadFilterCounts = useMemo<Record<ThreadFilterId, number>>(() => ({
+    all: threadNotes.length,
+    open_questions: threadNotes.filter(note => matchesThreadFilter(note, 'open_questions')).length,
+    contested: threadNotes.filter(note => matchesThreadFilter(note, 'contested')).length,
+    author_lane: threadNotes.filter(note => matchesThreadFilter(note, 'author_lane')).length,
+    following: threadNotes.filter(note => matchesThreadFilter(note, 'following')).length,
+    range_notes: threadNotes.filter(note => matchesThreadFilter(note, 'range_notes')).length,
+  }), [matchesThreadFilter, threadNotes])
   const sortedNotes = useMemo(() => {
     const notes = [...threadNotes]
     notes.sort((left, right) => {
       const leftFollowed = followedNoteSet.has(left.id) ? 1 : 0
       const rightFollowed = followedNoteSet.has(right.id) ? 1 : 0
       if (leftFollowed !== rightFollowed) return rightFollowed - leftFollowed
+      const leftAuthor = left.communityLane === 'author' ? 1 : 0
+      const rightAuthor = right.communityLane === 'author' ? 1 : 0
+      if (leftAuthor !== rightAuthor) return rightAuthor - leftAuthor
+      const leftPriority =
+        (left.status === 'open_question' ? 4 : 0) +
+        (left.status === 'challenged' ? 3 : 0) +
+        (left.contributionType === 'question' ? 2 : 0) +
+        (left.contributionType === 'counterpoint' ? 2 : 0)
+      const rightPriority =
+        (right.status === 'open_question' ? 4 : 0) +
+        (right.status === 'challenged' ? 3 : 0) +
+        (right.contributionType === 'question' ? 2 : 0) +
+        (right.contributionType === 'counterpoint' ? 2 : 0)
+      if (leftPriority !== rightPriority) return rightPriority - leftPriority
+      if (left.replies.length !== right.replies.length) return right.replies.length - left.replies.length
       return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
     })
     return notes
   }, [followedNoteSet, threadNotes])
+  const threadViewNotes = useMemo(
+    () => sortedNotes.filter(note => matchesThreadFilter(note, activeThreadFilter)),
+    [activeThreadFilter, matchesThreadFilter, sortedNotes],
+  )
+  const activeThreadFilterMeta = useMemo(
+    () => THREAD_FILTERS.find(filter => filter.id === activeThreadFilter) ?? THREAD_FILTERS[0],
+    [activeThreadFilter],
+  )
+  const discussionLead = useMemo(() => {
+    const leadingAnchor = discovery.topAnchors[0]
+    if (!leadingAnchor) {
+      return 'No debate cluster has formed yet. The strongest first contribution is usually one bounded question or one falsifiable claim.'
+    }
+
+    const anchorMessage = `${leadingAnchor[0]} is carrying the thread with ${leadingAnchor[1]} note${leadingAnchor[1] === 1 ? '' : 's'}.`
+    if (discovery.openQuestions > 0) {
+      return `${anchorMessage} ${discovery.openQuestions} open question${discovery.openQuestions === 1 ? '' : 's'} still need a direct answer or stronger evidence.`
+    }
+    if (discovery.challenged > 0) {
+      return `${anchorMessage} ${discovery.challenged} challenged read${discovery.challenged === 1 ? '' : 's'} are keeping interpretation unstable.`
+    }
+    if (discovery.authorAddressed > 0) {
+      return `${anchorMessage} ${discovery.authorAddressed} author response${discovery.authorAddressed === 1 ? '' : 's'} already shape how this figure is being read.`
+    }
+    return `${anchorMessage} The next high-value note should either test the dominant interpretation or widen it to a time range.`
+  }, [discovery])
+  const composerGuidance = useMemo(() => {
+    const moveGuidance =
+      contributionType === 'question'
+        ? 'Ask something another reader could answer from the figure, the paper, or the comparison run.'
+        : contributionType === 'claim'
+          ? 'State a bounded interpretation and make it vulnerable to challenge.'
+          : contributionType === 'counterpoint'
+            ? 'Name the current reading you disagree with, then offer a tighter alternative.'
+            : contributionType === 'method_concern'
+              ? 'Point to the assumption, metric, or modelling choice that could change the conclusion.'
+              : 'Describe what the replay shows before you infer why it matters.'
+
+    const scopeGuidance =
+      annotationScope === 'time_range'
+        ? 'Use the slot window to show when the pattern begins and where it stops holding.'
+        : annotationScope === 'trend'
+          ? 'Keep the note about direction over time, not one isolated frame.'
+          : annotationScope === 'comparison_gap'
+            ? 'Make the gap explicit: what differs between the primary and comparison run, and why should a reader care?'
+            : annotationScope === 'paper_claim'
+              ? 'Tie the note back to a claim the paper is making, not just the raw telemetry.'
+              : annotationScope === 'region_over_time'
+                ? 'Track one geography through a window and say whether the pattern persists.'
+                : `Anchor the note to ${selectedAnchorLabel.toLowerCase()} so the next reader knows exactly what posture you mean.`
+
+    const laneGuidance =
+      communityLane === 'author'
+        ? 'Author lane should clarify, qualify, or directly address pressure coming from the thread.'
+        : communityLane === 'reviewer'
+          ? 'Reviewer lane should apply pressure concretely, not with generic skepticism.'
+          : 'Community lane works best when it converts observation into a sharper question or implication.'
+
+    return `${moveGuidance} ${scopeGuidance} ${laneGuidance}`
+  }, [annotationScope, communityLane, contributionType, selectedAnchorLabel])
+  const draftPlaceholder = useMemo(() => {
+    if (contributionType === 'question') {
+      return `Ask a bounded question about ${selectedAnchorLabel.toLowerCase()} that another reader can answer from the replay or paper.`
+    }
+    if (contributionType === 'claim') {
+      return `Make a concrete claim about ${selectedAnchorLabel.toLowerCase()} and say what evidence would weaken it.`
+    }
+    if (contributionType === 'counterpoint') {
+      return `Challenge the current read of ${selectedAnchorLabel.toLowerCase()} with a more defensible alternative.`
+    }
+    if (contributionType === 'method_concern') {
+      return `Name the modelling or measurement choice around ${selectedAnchorLabel.toLowerCase()} that could change the result.`
+    }
+    return `Describe exactly what the replay shows at ${selectedAnchorLabel.toLowerCase()} before interpreting it.`
+  }, [contributionType, selectedAnchorLabel])
 
   const canSave = queryEnabled && draft.trim().length > 0 && !mutation.isPending && (!rangeRequired || normalizedRange != null)
 
@@ -552,12 +730,12 @@ export function PublishedReplayNotesPanel({
     <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Research discussion</div>
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure annotations</div>
           <div className="mt-2 text-sm font-medium text-text-primary">
-            Turn the replay into a living figure with claims, questions, evidence, and counterpoints.
+            Click a figure target first, then leave a short note with the context already attached.
           </div>
           <div className="mt-2 max-w-2xl text-xs leading-5 text-muted">
-            The interface structures discussion and surfaces debate, but it does not think for the reader.
+            This follows the same interaction principle as Benji Taylor’s annotation work: pointing is the high-precision part, writing is the small follow-through. The figure target, slot, and replay posture carry the specificity for you.
           </div>
         </div>
 
@@ -576,11 +754,12 @@ export function PublishedReplayNotesPanel({
         </button>
       </div>
 
-      <div className="mt-4 grid gap-3 xl:grid-cols-4">
+      <div className="mt-4 grid gap-3 xl:grid-cols-5">
         {[
           { label: 'Notes here', value: discovery.total.toLocaleString(), detail: 'Structured contributions in this replay posture.' },
           { label: 'Open questions', value: discovery.openQuestions.toLocaleString(), detail: 'Questions still pulling thought forward.' },
           { label: 'Challenged reads', value: discovery.challenged.toLocaleString(), detail: 'Places where the interpretation is under pressure.' },
+          { label: 'Author addressed', value: discovery.authorAddressed.toLocaleString(), detail: 'Author clarifications and direct responses.' },
           { label: 'Following', value: discovery.followed.toLocaleString(), detail: 'Notes you marked to come back to.' },
         ].map(card => (
           <div key={card.label} className="rounded-xl border border-rule bg-surface-active px-4 py-3">
@@ -593,6 +772,7 @@ export function PublishedReplayNotesPanel({
 
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">What people are debating here</div>
+        <div className="mt-2 max-w-3xl text-xs leading-5 text-muted">{discussionLead}</div>
         <div className="mt-3 flex flex-wrap gap-2">
           {discovery.topAnchors.length > 0 ? discovery.topAnchors.map(([anchorLabel, count]) => (
             <button
@@ -612,7 +792,15 @@ export function PublishedReplayNotesPanel({
       </div>
 
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
-        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Pinned context</div>
+        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Captured context</div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-[#DBE4F0] bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary">
+            Selected target · {selectedAnchorLabel}
+          </span>
+          <span className="rounded-full border border-[#DBE4F0] bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary">
+            Scope · {ANNOTATION_SCOPES.find(option => option.id === annotationScope)?.label ?? annotationScope}
+          </span>
+        </div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
           <span className="lab-chip">{datasetLabel(dataset)}</span>
           <span className="lab-chip">{paperLens} lens</span>
@@ -623,6 +811,7 @@ export function PublishedReplayNotesPanel({
         <div className="mt-3 space-y-2 text-xs leading-5 text-muted">
           <div>{liveContext ?? 'Load the replay to pin notes to a slot.'}</div>
           {comparisonContext ? <div>{comparisonContext}</div> : null}
+          <div>The target and replay posture are captured automatically, so the note can stay short and specific.</div>
         </div>
       </div>
 
@@ -790,11 +979,18 @@ export function PublishedReplayNotesPanel({
 
       <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
         <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Note draft</div>
+        <div className="mt-2 rounded-xl border border-rule bg-surface-active px-3 py-3 text-xs leading-5 text-muted">
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Composer guidance</div>
+          <div className="mt-2">{composerGuidance}</div>
+        </div>
+        <div className="mt-3 text-[0.6875rem] leading-5 text-muted">
+          Keep the note short. The selected target, slot posture, and replay context already carry most of the precision.
+        </div>
         <textarea
           value={draft}
           onChange={event => setDraft(event.target.value)}
           className="mt-2 min-h-[120px] w-full resize-none bg-transparent text-sm leading-6 text-text-primary outline-none"
-          placeholder="Write a note that helps the next reader think harder about the figure."
+          placeholder={draftPlaceholder}
         />
       </div>
 
@@ -819,17 +1015,46 @@ export function PublishedReplayNotesPanel({
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Thread for this slot</div>
-            <div className="mt-1 text-xs text-muted">Notes stay attached to this exact replay posture, but they can talk about ranges, trends, claims, and comparison gaps.</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure thread</div>
+            <div className="mt-1 text-xs text-muted">Notes stay attached to this replay posture, but they can still speak in ranges, comparisons, claims, and challenges.</div>
           </div>
           {notesQuery.isLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted" /> : null}
         </div>
 
+        <div className="mt-4 flex flex-wrap gap-2">
+          {THREAD_FILTERS.map(filter => (
+            <button
+              key={filter.id}
+              onClick={() => setActiveThreadFilter(filter.id)}
+              title={filter.description}
+              className={cn(
+                'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                activeThreadFilter === filter.id
+                  ? 'border-[#DBE4F0] bg-[linear-gradient(180deg,#FFFFFF,#F8FAFC)] text-[#0F172A] shadow-[0_10px_22px_rgba(15,23,42,0.06)]'
+                  : 'border-rule bg-white text-text-primary hover:border-border-hover',
+              )}
+            >
+              {filter.label} · {threadFilterCounts[filter.id]}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-3 rounded-xl border border-rule bg-white px-3 py-3 text-xs leading-5 text-muted">
+          <span className="font-medium text-text-primary">{activeThreadFilterMeta.label}:</span> {activeThreadFilterMeta.description}
+        </div>
+
         <div className="mt-4 space-y-3">
-          {sortedNotes.map(note => (
+          {threadViewNotes.map(note => (
             <div key={note.id} className={cn(
               'rounded-xl border bg-white px-4 py-4',
-              followedNoteSet.has(note.id) ? 'border-[#0F172A]/12 shadow-[0_16px_30px_rgba(15,23,42,0.08)]' : 'border-rule',
+              followedNoteSet.has(note.id)
+                ? 'border-[#D8E4F3] shadow-[0_18px_34px_rgba(15,23,42,0.07)]'
+                : 'border-rule shadow-[0_8px_18px_rgba(15,23,42,0.03)]',
+              note.communityLane === 'author'
+                ? 'border-l-[3px] border-l-[#1D4ED8]'
+                : note.communityLane === 'reviewer'
+                  ? 'border-l-[3px] border-l-[#9F1239]'
+                  : 'border-l-[3px] border-l-[#0F766E]',
             )}>
               <div className="flex flex-wrap items-center gap-2 text-[0.6875rem] text-text-faint">
                 <span className={cn('rounded-full border px-2.5 py-0.5 text-[0.625rem] font-medium', laneBadgeClass(note.communityLane))}>{COMMUNITY_LANES.find(option => option.id === note.communityLane)?.label ?? note.communityLane}</span>
@@ -839,7 +1064,7 @@ export function PublishedReplayNotesPanel({
                 {(note.annotationScope === 'time_range' || note.annotationScope === 'region_over_time') && note.rangeStartSlotNumber != null && note.rangeEndSlotNumber != null ? (
                   <span className="lab-chip">window {note.rangeStartSlotNumber}-{note.rangeEndSlotNumber}</span>
                 ) : (
-                  <span className="lab-chip">{note.annotationScope.replace('_', ' ')}</span>
+                  <span className="lab-chip">{formatAnnotationScopeLabel(note.annotationScope)}</span>
                 )}
                 {note.anchorLabel ? <span className="lab-chip">{note.anchorLabel}</span> : null}
                 {note.comparisonSlotNumber != null ? <span className="lab-chip">compare slot {note.comparisonSlotNumber}</span> : null}
@@ -853,7 +1078,7 @@ export function PublishedReplayNotesPanel({
                   className={cn(
                     'ml-auto rounded-full border px-2.5 py-0.5 text-[0.625rem] font-medium transition-colors',
                     followedNoteSet.has(note.id)
-                      ? 'border-[#0F172A]/12 bg-[#0F172A] text-white'
+                      ? 'border-[#DBE4F0] bg-[linear-gradient(180deg,#FFFFFF,#F8FAFC)] text-[#0F172A]'
                       : 'border-rule bg-white text-text-primary hover:border-border-hover',
                   )}
                 >
@@ -905,9 +1130,11 @@ export function PublishedReplayNotesPanel({
             </div>
           ))}
 
-          {threadNotes.length === 0 && !notesQuery.isLoading ? (
+          {threadViewNotes.length === 0 && !notesQuery.isLoading ? (
             <div className="rounded-xl border border-dashed border-rule bg-white px-4 py-5 text-xs leading-5 text-muted">
-              No discussion note is attached to this replay posture yet. Seed the thread with a concrete question or a claim someone else can challenge.
+              {threadNotes.length === 0
+                ? 'No discussion note is attached to this replay posture yet. Seed the thread with a concrete question or a claim someone else can challenge.'
+                : `No notes match ${activeThreadFilterMeta.label.toLowerCase()} right now. Clear the filter or add the first note in that lane.`}
             </div>
           ) : null}
         </div>
