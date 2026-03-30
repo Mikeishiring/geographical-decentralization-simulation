@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowUpRight, ArrowLeft, ArrowRight, Eye, Link2, Quote, ChevronDown, ChevronUp, LayoutList, FileText, BookOpen, Check } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
-import { ModeBanner } from '../components/layout/ModeBanner'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY, HOVER_LIFT } from '../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
@@ -279,15 +278,6 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
 
   return (
     <div className="space-y-12">
-      <ModeBanner
-        eyebrow="Mode"
-        title={paperMode ? 'Paper format' : 'Editorial reading guide'}
-        detail={paperMode
-          ? 'Traditional academic layout — narrative and evidence flow in a single column, closest to the original arXiv paper.'
-          : 'This page stays anchored to the paper\'s claims, caveats, and section structure. It adds navigation and explanation, not new simulation results.'}
-        tone="editorial"
-      />
-
       {/* Paper title hero */}
       <motion.section
         initial={{ opacity: 0, y: 18 }}

@@ -13,7 +13,6 @@ import { ShimmerLoading } from '../components/explore/ShimmerBlock'
 import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, listExplorations, publishExploration, type Exploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
 import { NodeConstellation } from '../components/decorative/NodeConstellation'
-import { ModeBanner } from '../components/layout/ModeBanner'
 import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
@@ -464,43 +463,17 @@ export function FindingsPage({
 
   return (
     <div>
-      <div className="mb-5">
-        <ModeBanner
-          eyebrow="Mode"
-          title="Canonical claims, guided readings, and public responses"
-          detail="Start from the paper's strongest claims, then ask a sharper question, inspect the published scenarios, or publish a human-authored note grounded in the evidence."
-          tone="interpretation"
-        />
-      </div>
-
-      {/* Page header */}
-      <div className="mb-6 relative">
+      {/* Page header — entice engagement with the paper's core tension */}
+      <div className="mb-8 relative">
         <NodeConstellation className="absolute right-0 top-0 w-32 h-32 opacity-40 pointer-events-none hidden sm:block" />
 
-        <p className="text-[11px] text-text-faint mb-2 leading-relaxed max-w-xl">
-          Yang, Oz, Wu, Zhang (2025) · arXiv:2509.21475
-        </p>
-        <h1 className="text-xl sm:text-2xl font-bold text-text-primary font-serif leading-tight max-w-lg">
-          What the paper shows
+        <h1 className="text-xl sm:text-2xl font-bold text-text-primary font-serif leading-tight max-w-xl">
+          Both paradigms centralize — but for different reasons
         </h1>
-        <p className="mt-2 text-sm text-muted max-w-2xl leading-relaxed">
-          Start from the canonical claims, then move into the reading guide, published scenarios, or community notes. The goal is not just to ask a model questions, but to understand what the paper shows and respond to it in your own words.
+        <p className="mt-3 text-sm text-muted max-w-2xl leading-relaxed">
+          Ethereum validators cluster in low-latency regions regardless of whether block-building uses SSP or MSP.
+          The paper simulates 10,000+ validators across 40 GCP regions to measure exactly where and why.
         </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {[
-            'Canonical claims first',
-            'Ask sharper paper questions',
-            'Inspect or reproduce scenarios',
-            'Publish human-authored notes',
-          ].map(item => (
-            <span
-              key={item}
-              className="inline-flex items-center rounded-full border border-border-subtle bg-white px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-text-faint"
-            >
-              {item}
-            </span>
-          ))}
-        </div>
       </div>
 
       {!showAi && !showTopic && (
@@ -654,44 +627,6 @@ export function FindingsPage({
         </div>
 
       </div>
-
-      {/* Navigation cards — cross-tab wayfinding (default state only) */}
-      {!showAi && !showTopic && onTabChange && (
-        <div className="mb-8 grid gap-3 md:grid-cols-3">
-          <button
-            onClick={() => onTabChange('paper')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-          >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Read the canonical source</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Open the paper guide</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Editorial reading guide through the full paper, section by section.
-            </div>
-          </button>
-
-          <button
-            onClick={() => onTabChange('results')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-          >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Inspect or reproduce</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Browse results or run exact scenarios</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Canonical scenarios plus a fresh simulation runner to test claims against the actual artifacts.
-            </div>
-          </button>
-
-          <button
-            onClick={() => onTabChange('community')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-          >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Respond publicly</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Browse community notes</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Human-framed notes from paper readings and exact simulation runs.
-            </div>
-          </button>
-        </div>
-      )}
 
       {!showAi && !showTopic && communityPreviewNotes.length > 0 && (
         <div className="mb-8">
