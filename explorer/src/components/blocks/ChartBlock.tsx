@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { motion } from 'framer-motion'
-import { BLOCK_COLORS, SPRING, SPRING_SOFT } from '../../lib/theme'
+import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
 import type { ChartBlock as ChartBlockType } from '../../types/blocks'
 
 interface ChartBlockProps {
@@ -103,8 +103,8 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id={gradientId} x1="0%" x2="0%" y1="0%" y2="100%">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="#2563EB" stopOpacity="0.01" />
+              <stop offset="0%" stopColor="#2563EB" stopOpacity={CHART.areaTopOpacity} />
+              <stop offset="100%" stopColor="#2563EB" stopOpacity={CHART.areaBottomOpacity} />
             </linearGradient>
           </defs>
 
@@ -112,23 +112,23 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
             const y = padding.top + chartH * (1 - frac)
             return (
               <line key={frac} x1={padding.left} y1={y} x2={width - padding.right} y2={y}
-                stroke="#E8E8E6" strokeWidth={0.5} />
+                stroke="currentColor" strokeWidth={CHART.gridWidth} opacity={CHART.gridOpacity} />
             )
           })}
 
           <line x1={padding.left} y1={baselineY} x2={width - padding.right} y2={baselineY}
-            stroke="#CBD5E1" strokeWidth={0.8} />
+            stroke="currentColor" strokeWidth={0.8} opacity={0.1} />
 
           {areaD && (
             <motion.path d={areaD} fill={`url(#${gradientId})`}
               initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              transition={{ ...SPRING_SOFT, delay: 0.16 }} />
+              transition={{ ...SPRING_CRISP, delay: 0.12 }} />
           )}
 
           <motion.path d={pathD} fill="none" stroke="#2563EB" strokeWidth={2}
             strokeLinecap="round" strokeLinejoin="round"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={SPRING_SOFT} />
+            transition={SPRING_CRISP} />
 
           {points.map((p, i) => (
             <g key={`${p.label}-${i}`}>
@@ -136,7 +136,8 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
                 fill="white" stroke="#2563EB" strokeWidth={1.5} />
               {labelIndices.has(i) && (
                 <text x={p.x} y={height - 5} textAnchor="middle"
-                  className="fill-muted text-[9px]" fontFamily="var(--font-mono)">
+                  className="fill-muted" style={{ fontSize: CHART.labelSize }}
+                  fontFamily="var(--font-mono)">
                   {p.label}
                 </text>
               )}
@@ -200,7 +201,7 @@ function BarChart({
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${(Math.abs(d.value) / maxValue) * 100}%` }}
-                transition={{ ...SPRING, delay: i * 0.04 }}
+                transition={{ ...SPRING_CRISP, delay: i * CHART.stagger }}
                 className="absolute inset-y-0 left-0 rounded-full transition-shadow"
                 style={{
                   backgroundColor: barColor,

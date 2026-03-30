@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { BLOCK_COLORS, SPRING } from '../../lib/theme'
+import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
 import type { HistogramBlock as HistogramBlockType } from '../../types/blocks'
 
 interface HistogramBlockProps {
@@ -31,6 +31,8 @@ export function HistogramBlock({ block }: HistogramBlockProps) {
     colorIndex += 1
   }
 
+  const hoveredBin = hoveredIndex !== null ? block.bins[hoveredIndex] : null
+
   return (
     <div className="overflow-hidden rounded-xl border border-rule bg-white">
       <div className="border-b border-rule px-5 py-3">
@@ -52,7 +54,7 @@ export function HistogramBlock({ block }: HistogramBlockProps) {
         </div>
       </div>
 
-      <div className="px-5 py-4">
+      <div className="relative px-5 py-4">
         <div className="flex items-end gap-[2px]" style={{ height: 160 }}>
           {block.bins.map((bin, i) => {
             const barColor = bin.category
@@ -72,7 +74,7 @@ export function HistogramBlock({ block }: HistogramBlockProps) {
                 <motion.div
                   initial={{ height: 0 }}
                   animate={{ height: `${heightPct}%` }}
-                  transition={{ ...SPRING, delay: i * 0.03 }}
+                  transition={{ ...SPRING_CRISP, delay: i * CHART.stagger }}
                   className="rounded-t transition-shadow"
                   style={{
                     backgroundColor: barColor,
@@ -80,14 +82,6 @@ export function HistogramBlock({ block }: HistogramBlockProps) {
                     boxShadow: isHovered ? `0 0 10px ${barColor}40` : 'none',
                   }}
                 />
-
-                {isHovered && (
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap">
-                    <div className="rounded bg-text-primary/90 px-2 py-1 text-[0.625rem] text-white/85 shadow-lg">
-                      {bin.count}{block.unit ? ` ${block.unit}` : ''}
-                    </div>
-                  </div>
-                )}
               </div>
             )
           })}
@@ -111,6 +105,28 @@ export function HistogramBlock({ block }: HistogramBlockProps) {
             {maxCount}
           </span></span>
         </div>
+
+        {/* Floating tooltip card */}
+        {hoveredBin && hoveredIndex !== null && (
+          <div
+            className="pointer-events-none absolute z-20"
+            style={{
+              left: `${((hoveredIndex + 0.5) / block.bins.length) * 100}%`,
+              top: 0,
+              transform: 'translate(-50%, -4px)',
+            }}
+          >
+            <div
+              className="rounded-lg border border-rule bg-white px-3 py-2"
+              style={{ boxShadow: CHART.tooltipShadow }}
+            >
+              <div className="text-[0.6875rem] font-medium text-text-primary">{hoveredBin.range}</div>
+              <div className="mt-0.5 text-[0.8125rem] font-semibold tabular-nums text-text-primary">
+                {hoveredBin.count}{block.unit ? ` ${block.unit}` : ''}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
