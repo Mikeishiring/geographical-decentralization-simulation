@@ -82,6 +82,7 @@ interface PublishedDatasetViewerProps {
   readonly onClose?: () => void
   readonly onStateChange?: (snapshot: PublishedViewerSnapshot | null) => void
   readonly annotationNotes?: readonly PublishedViewerAnnotationNote[]
+  readonly anchorScope?: 'primary' | 'comparison'
 }
 
 interface PublishedMetrics {

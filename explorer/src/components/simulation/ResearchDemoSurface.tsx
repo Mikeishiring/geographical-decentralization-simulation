@@ -649,25 +649,6 @@ export function ResearchDemoSurface({
     ]
   }, [selectedDataset, selectedMetadata, selectedPaperSection])
 
-  const paperSectionPromptStarters = useMemo(() => {
-    if (!selectedDataset || !selectedPaperSection) return []
-
-    const prompts = [
-      `What in the active replay most directly supports or challenges ${selectedPaperSection.number} ${selectedPaperSection.title}?`,
-      viewerSnapshot
-        ? `Use slot ${viewerSnapshot.slotNumber.toLocaleString()} to explain how ${selectedPaperSection.number} ${selectedPaperSection.title} should be read.`
-        : `Turn ${selectedPaperSection.number} ${selectedPaperSection.title} into concrete expectations for this published replay.`,
-      comparisonDataset
-        ? `Using ${selectedPaperSection.number} ${selectedPaperSection.title}, what changes materially between the active replay and ${comparisonDataset.paradigm}?`
-        : null,
-      paperLens === 'methods'
-        ? `Which assumptions in ${selectedPaperSection.number} ${selectedPaperSection.title} matter most for interpreting this published replay?`
-        : null,
-    ].filter((value): value is string => Boolean(value))
-
-    return Array.from(new Set(prompts)).slice(0, 4)
-  }, [comparisonDataset, paperLens, selectedDataset, selectedPaperSection, viewerSnapshot])
-
   const spotlightDatasets = useMemo(() => {
     const ordered = selectedDataset
       ? [selectedDataset, ...(catalog?.datasets ?? [])]
@@ -695,6 +676,25 @@ export function ResearchDemoSurface({
     () => comparisonCandidates.find(entry => entry.path === comparePath) ?? comparisonCandidates[0] ?? null,
     [comparePath, comparisonCandidates],
   )
+
+  const paperSectionPromptStarters = useMemo(() => {
+    if (!selectedDataset || !selectedPaperSection) return []
+
+    const prompts = [
+      `What in the active replay most directly supports or challenges ${selectedPaperSection.number} ${selectedPaperSection.title}?`,
+      viewerSnapshot
+        ? `Use slot ${viewerSnapshot.slotNumber.toLocaleString()} to explain how ${selectedPaperSection.number} ${selectedPaperSection.title} should be read.`
+        : `Turn ${selectedPaperSection.number} ${selectedPaperSection.title} into concrete expectations for this published replay.`,
+      comparisonDataset
+        ? `Using ${selectedPaperSection.number} ${selectedPaperSection.title}, what changes materially between the active replay and ${comparisonDataset.paradigm}?`
+        : null,
+      paperLens === 'methods'
+        ? `Which assumptions in ${selectedPaperSection.number} ${selectedPaperSection.title} matter most for interpreting this published replay?`
+        : null,
+    ].filter((value): value is string => Boolean(value))
+
+    return Array.from(new Set(prompts)).slice(0, 4)
+  }, [comparisonDataset, paperLens, selectedDataset, selectedPaperSection, viewerSnapshot])
 
   const comparisonMetrics = useMemo(() => ([
     {
