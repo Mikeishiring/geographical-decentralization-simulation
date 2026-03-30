@@ -8,6 +8,7 @@ import { createExploration, publishExploration } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { listPublishedReplayNotes } from '../../lib/published-replay-notes-api'
 import type { PublishedReplayCopilotResponse } from '../../lib/published-replay-api'
+import { downloadBlobFile } from '../../lib/simulation-export'
 import type { Block, SourceBlock } from '../../types/blocks'
 import { formatNumber } from './simulation-constants'
 import { PublishedReplayCompanionPanel } from './PublishedReplayCompanionPanel'
@@ -20,6 +21,8 @@ import {
   ANALYTICS_VIEW_OPTIONS,
   buildAnalyticsDashboardPresets,
   buildAnalyticsBlocks,
+  buildAnalyticsExportBundle,
+  buildAnalyticsExportCsv,
   buildAnalyticsMetricCards,
   clampSlotIndex,
   defaultAnalyticsQueryMetricForView,
@@ -1287,6 +1290,44 @@ export function ResearchDemoSurface({
     primaryAnalyticsSlot,
     selectedDataset,
   ])
+  const analyticsExportBundle = useMemo(
+    () => primaryAnalyticsPayload && selectedDataset
+      ? buildAnalyticsExportBundle({
+          analyticsView,
+          queryMetric: activeAnalyticsMetric?.id ?? defaultAnalyticsQueryMetricForView(analyticsView),
+          compareMode: activeCompareMode?.id ?? 'absolute',
+          primaryPayload: primaryAnalyticsPayload,
+          primarySlot: primaryAnalyticsSlot,
+          sourceRefs: analyticsSourceRefs,
+          primaryLabel: 'Active replay',
+          comparisonPayload: comparisonDataset ? comparisonAnalyticsPayload : null,
+          comparisonSlot: comparisonAnalyticsSlot,
+          comparisonLabel: 'Comparison replay',
+          shareUrl,
+        })
+      : null,
+    [
+      activeAnalyticsMetric,
+      activeCompareMode,
+      analyticsSourceRefs,
+      analyticsView,
+      comparisonAnalyticsPayload,
+      comparisonAnalyticsSlot,
+      comparisonDataset,
+      primaryAnalyticsPayload,
+      primaryAnalyticsSlot,
+      selectedDataset,
+      shareUrl,
+    ],
+  )
+  const analyticsExportJson = useMemo(
+    () => analyticsExportBundle ? JSON.stringify(analyticsExportBundle, null, 2) : null,
+    [analyticsExportBundle],
+  )
+  const analyticsExportCsv = useMemo(
+    () => analyticsExportBundle ? buildAnalyticsExportCsv(analyticsExportBundle) : null,
+    [analyticsExportBundle],
+  )
   const analyticsStatusMessage = primaryAnalyticsQuery.isLoading
     ? 'Loading published analytics for the active replay...'
     : primaryAnalyticsQuery.isError
@@ -1355,6 +1396,33 @@ export function ResearchDemoSurface({
     } catch {
       setShareStatus('failed')
     }
+  }
+
+  const handleCopyAnalyticsJson = async () => {
+    if (!analyticsExportJson || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+      setShareStatus('failed')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(analyticsExportJson)
+      setShareStatus('copied')
+    } catch {
+      setShareStatus('failed')
+    }
+  }
+
+  const handleDownloadAnalyticsExport = (format: 'json' | 'csv') => {
+    const content = format === 'json' ? analyticsExportJson : analyticsExportCsv
+    if (!content) return
+
+    const filename = `published-analytics-${analyticsView}-${activeAnalyticsMetric?.id ?? defaultAnalyticsQueryMetricForView(analyticsView)}-${activeCompareMode?.id ?? 'absolute'}.${format}`
+    downloadBlobFile(
+      filename,
+      new Blob([content], {
+        type: format === 'json' ? 'application/json;charset=utf-8' : 'text/csv;charset=utf-8',
+      }),
+    )
   }
 
   const replayPublicationQuery = selectedDataset
@@ -3114,6 +3182,9 @@ export function ResearchDemoSurface({
                 description="Saved analytic reads over the frozen replay metrics, shareable without leaving the published paper workspace."
                 copyLabel="Copy analytics view"
                 onCopyShareUrl={() => void handleCopyShareUrl()}
+                onCopyQueryJson={() => void handleCopyAnalyticsJson()}
+                onDownloadQueryJson={() => handleDownloadAnalyticsExport('json')}
+                onDownloadQueryCsv={() => handleDownloadAnalyticsExport('csv')}
                 analyticsView={analyticsView}
                 onAnalyticsViewChange={setAnalyticsView}
                 analyticsViewOptions={analyticsViewOptions}

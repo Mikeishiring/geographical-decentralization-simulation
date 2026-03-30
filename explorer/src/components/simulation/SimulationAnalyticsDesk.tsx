@@ -17,6 +17,9 @@ interface SimulationAnalyticsDeskProps {
   readonly description: string
   readonly copyLabel?: string
   readonly onCopyShareUrl?: () => void
+  readonly onCopyQueryJson?: () => void
+  readonly onDownloadQueryJson?: () => void
+  readonly onDownloadQueryCsv?: () => void
   readonly analyticsView: AnalyticsDeckView
   readonly onAnalyticsViewChange: (view: AnalyticsDeckView) => void
   readonly analyticsViewOptions: readonly AnalyticsViewOption[]
@@ -38,6 +41,9 @@ export function SimulationAnalyticsDesk({
   description,
   copyLabel = 'Copy analytics view',
   onCopyShareUrl,
+  onCopyQueryJson,
+  onDownloadQueryJson,
+  onDownloadQueryCsv,
   analyticsView,
   onAnalyticsViewChange,
   analyticsViewOptions,
@@ -64,13 +70,41 @@ export function SimulationAnalyticsDesk({
           <div className="text-xs text-muted mb-1">{title}</div>
           <div className="text-sm text-text-primary">{description}</div>
         </div>
-        {onCopyShareUrl ? (
-          <button
-            onClick={onCopyShareUrl}
-            className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-          >
-            {copyLabel}
-          </button>
+        {onCopyShareUrl || onCopyQueryJson || onDownloadQueryJson || onDownloadQueryCsv ? (
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            {onCopyShareUrl ? (
+              <button
+                onClick={onCopyShareUrl}
+                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+              >
+                {copyLabel}
+              </button>
+            ) : null}
+            {onCopyQueryJson ? (
+              <button
+                onClick={onCopyQueryJson}
+                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+              >
+                Copy query JSON
+              </button>
+            ) : null}
+            {onDownloadQueryJson ? (
+              <button
+                onClick={onDownloadQueryJson}
+                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+              >
+                Download JSON
+              </button>
+            ) : null}
+            {onDownloadQueryCsv ? (
+              <button
+                onClick={onDownloadQueryCsv}
+                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+              >
+                Download CSV
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
 

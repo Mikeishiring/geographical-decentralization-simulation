@@ -57,7 +57,7 @@ function sanitizeArchivePathSegment(value: string): string {
     .replace(/\s+/g, '-')
 }
 
-function downloadBlobFile(filename: string, blob: Blob): void {
+export function downloadBlobFile(filename: string, blob: Blob): void {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
