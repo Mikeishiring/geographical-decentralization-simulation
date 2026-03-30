@@ -14,8 +14,35 @@ export interface PublishedReplayCopilotRequest {
   readonly compareSourceRole?: string | null
   readonly focusSlot?: number | null
   readonly paperLens?: 'evidence' | 'theory' | 'methods' | null
+  readonly paperSectionId?: string | null
+  readonly paperSectionLabel?: string | null
+  readonly paperSectionContext?: string | null
   readonly audienceMode?: 'reader' | 'reviewer' | 'researcher' | null
   readonly currentViewSummary?: string | null
+  readonly viewerSnapshot?: PublishedReplayViewerSnapshotContext | null
+  readonly comparisonViewerSnapshot?: PublishedReplayViewerSnapshotContext | null
+}
+
+export interface PublishedReplayViewerSnapshotContext {
+  readonly slotIndex: number
+  readonly slotNumber: number
+  readonly totalSlots: number
+  readonly stepSize: number
+  readonly playing: boolean
+  readonly activeRegions: number
+  readonly totalValidators: number
+  readonly dominantRegionId?: string | null
+  readonly dominantRegionCity?: string | null
+  readonly dominantRegionShare?: number | null
+  readonly currentGini?: number | null
+  readonly currentHhi?: number | null
+  readonly currentLiveness?: number | null
+  readonly currentMev?: number | null
+  readonly currentProposalTime?: number | null
+  readonly currentAttestation?: number | null
+  readonly currentTotalDistance?: number | null
+  readonly currentFailedBlockProposals?: number | null
+  readonly currentClusters?: number | null
 }
 
 export interface PublishedReplayCopilotResponse {

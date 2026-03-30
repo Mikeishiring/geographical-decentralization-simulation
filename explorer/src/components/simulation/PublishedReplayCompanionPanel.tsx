@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Loader2, Sparkles } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { cn } from '../../lib/cn'
 import { getApiHealth } from '../../lib/api'
-import { askPublishedReplayCopilot } from '../../lib/published-replay-api'
+import {
+  askPublishedReplayCopilot,
+  type PublishedReplayCopilotResponse,
+  type PublishedReplayViewerSnapshotContext,
+} from '../../lib/published-replay-api'
 import type { PublishedViewerSnapshot } from './PublishedDatasetViewer'
 
 interface DatasetRef {
@@ -15,15 +19,30 @@ interface DatasetRef {
   readonly sourceRole?: string
 }
 
+interface PaperSectionRef {
+  readonly id: string
+  readonly number: string
+  readonly title: string
+  readonly description: string
+  readonly context: string
+}
+
 interface PublishedReplayCompanionPanelProps {
   readonly question: string
   readonly onQuestionChange: (value: string) => void
   readonly dataset: DatasetRef | null
   readonly comparisonDataset: DatasetRef | null
+  readonly paperSection: PaperSectionRef | null
   readonly paperLens: 'evidence' | 'theory' | 'methods'
   readonly audienceMode: 'reader' | 'reviewer' | 'researcher'
   readonly currentViewSummary: string
   readonly viewerSnapshot: PublishedViewerSnapshot | null
+  readonly comparisonViewerSnapshot: PublishedViewerSnapshot | null
+  readonly onResponseChange?: (payload: {
+    question: string
+    response: PublishedReplayCopilotResponse
+    answeredContext: string
+  } | null) => void
 }
 
 function datasetLabel(dataset: DatasetRef | null): string {
@@ -37,22 +56,106 @@ function sourceRoleLabel(sourceRole: string | undefined): string {
   return 'Info sources'
 }
 
+function formatMetric(value: number | null | undefined, digits = 3): string {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: digits,
+      })
+    : 'N/A'
+}
+
+function snapshotContextLabel(snapshot: PublishedViewerSnapshot | null): string | null {
+  if (!snapshot) return null
+
+  const dominantRegion = snapshot.dominantRegionCity ?? snapshot.dominantRegionId ?? 'N/A'
+  return `slot ${snapshot.slotNumber.toLocaleString()} · ${snapshot.activeRegions.toLocaleString()} active regions · dominant ${dominantRegion}`
+}
+
+function toSnapshotContext(
+  snapshot: PublishedViewerSnapshot | null,
+): PublishedReplayViewerSnapshotContext | null {
+  if (!snapshot) return null
+
+  return {
+    slotIndex: snapshot.slotIndex,
+    slotNumber: snapshot.slotNumber,
+    totalSlots: snapshot.totalSlots,
+    stepSize: snapshot.stepSize,
+    playing: snapshot.playing,
+    activeRegions: snapshot.activeRegions,
+    totalValidators: snapshot.totalValidators,
+    dominantRegionId: snapshot.dominantRegionId ?? null,
+    dominantRegionCity: snapshot.dominantRegionCity ?? null,
+    dominantRegionShare: snapshot.dominantRegionShare ?? null,
+    currentGini: snapshot.currentGini ?? null,
+    currentHhi: snapshot.currentHhi ?? null,
+    currentLiveness: snapshot.currentLiveness ?? null,
+    currentMev: snapshot.currentMev ?? null,
+    currentProposalTime: snapshot.currentProposalTime ?? null,
+    currentAttestation: snapshot.currentAttestation ?? null,
+    currentTotalDistance: snapshot.currentTotalDistance ?? null,
+    currentFailedBlockProposals: snapshot.currentFailedBlockProposals ?? null,
+    currentClusters: snapshot.currentClusters ?? null,
+  }
+}
+
 export function PublishedReplayCompanionPanel({
   question,
   onQuestionChange,
   dataset,
   comparisonDataset,
+  paperSection,
   paperLens,
   audienceMode,
   currentViewSummary,
   viewerSnapshot,
+  comparisonViewerSnapshot,
+  onResponseChange,
 }: PublishedReplayCompanionPanelProps) {
   const apiHealthQuery = useQuery({
     queryKey: ['api-health'],
     queryFn: getApiHealth,
     staleTime: 30_000,
   })
-  const [answeredSlotNumber, setAnsweredSlotNumber] = useState<number | null>(null)
+  const [answeredContext, setAnsweredContext] = useState<string | null>(null)
+
+  const quickPrompts = useMemo(() => {
+    const prompts: string[] = []
+    const dominantRegion = viewerSnapshot?.dominantRegionCity ?? viewerSnapshot?.dominantRegionId
+    const primarySlot = viewerSnapshot?.slotNumber
+    const comparisonSlot = comparisonViewerSnapshot?.slotNumber
+
+    if (primarySlot != null) {
+      prompts.push(`What changed by slot ${primarySlot.toLocaleString()} in this replay?`)
+    }
+
+    if (dominantRegion) {
+      prompts.push(`Why is ${dominantRegion} dominant in the current replay state?`)
+    }
+
+    if (viewerSnapshot?.currentLiveness != null && viewerSnapshot.currentProposalTime != null) {
+      prompts.push('Explain the relationship between liveness and proposal time at the current slot.')
+    }
+
+    if (comparisonDataset && primarySlot != null) {
+      prompts.push(
+        comparisonSlot != null
+          ? `Compare the active replay at slot ${primarySlot.toLocaleString()} against the comparison replay at slot ${comparisonSlot.toLocaleString()}.`
+          : `What is materially different between the active replay and ${comparisonDataset.paradigm}?`,
+      )
+    }
+
+    if (paperLens === 'methods') {
+      prompts.push('Which result here comes from the frozen published payload, and which parts are assistant interpretation?')
+    }
+
+    if (paperSection && (paperLens === 'theory' || paperLens === 'methods')) {
+      prompts.push(`How should ${paperSection.number} ${paperSection.title} frame this replay?`)
+    }
+
+    return Array.from(new Set(prompts)).slice(0, 4)
+  }, [comparisonDataset, comparisonViewerSnapshot?.slotNumber, paperLens, paperSection, viewerSnapshot])
 
   const mutation = useMutation({
     mutationFn: (nextQuestion: string) => {
@@ -70,19 +173,41 @@ export function PublishedReplayCompanionPanel({
         compareSourceRole: comparisonDataset?.sourceRole ?? null,
         focusSlot: viewerSnapshot?.slotIndex ?? null,
         paperLens,
+        paperSectionId: paperSection?.id ?? null,
+        paperSectionLabel: paperSection ? `${paperSection.number} ${paperSection.title}` : null,
+        paperSectionContext: paperSection?.context ?? null,
         audienceMode,
         currentViewSummary,
+        viewerSnapshot: toSnapshotContext(viewerSnapshot),
+        comparisonViewerSnapshot: toSnapshotContext(comparisonViewerSnapshot),
       })
     },
-    onSuccess: () => {
-      setAnsweredSlotNumber(viewerSnapshot?.slotNumber ?? null)
+    onSuccess: (nextResponse, nextQuestion) => {
+      const contexts = [
+        snapshotContextLabel(viewerSnapshot) ? `primary ${snapshotContextLabel(viewerSnapshot)}` : null,
+        snapshotContextLabel(comparisonViewerSnapshot) ? `comparison ${snapshotContextLabel(comparisonViewerSnapshot)}` : null,
+      ].filter(Boolean)
+
+      const nextAnsweredContext =
+        contexts.length > 0
+          ? `Answered against ${contexts.join(' · ')}.`
+          : 'Answered against the active published replay posture.'
+
+      setAnsweredContext(nextAnsweredContext)
+      onResponseChange?.({
+        question: nextQuestion,
+        response: nextResponse,
+        answeredContext: nextAnsweredContext,
+      })
     },
   })
+  const resetReplayMutation = mutation.reset
 
   useEffect(() => {
-    mutation.reset()
-    setAnsweredSlotNumber(null)
-  }, [comparisonDataset?.path, dataset?.path, mutation, paperLens, audienceMode])
+    resetReplayMutation()
+    setAnsweredContext(null)
+    onResponseChange?.(null)
+  }, [audienceMode, comparisonDataset?.path, dataset?.path, onResponseChange, paperLens, paperSection?.id, resetReplayMutation])
 
   const isAnthropicEnabled = apiHealthQuery.data?.anthropicEnabled ?? false
   const disabledReason = !dataset
@@ -132,11 +257,45 @@ export function PublishedReplayCompanionPanel({
           <span className="lab-chip">{datasetLabel(dataset)}</span>
           <span className="lab-chip">{sourceRoleLabel(dataset?.sourceRole)}</span>
           <span className="lab-chip">{paperLens} lens</span>
+          {paperSection ? <span className="lab-chip">{paperSection.number} {paperSection.title}</span> : null}
           <span className="lab-chip">{audienceMode} mode</span>
           {viewerSnapshot ? <span className="lab-chip">slot {viewerSnapshot.slotNumber}</span> : null}
+          {viewerSnapshot?.dominantRegionCity || viewerSnapshot?.dominantRegionId ? (
+            <span className="lab-chip">
+              dominant {viewerSnapshot?.dominantRegionCity ?? viewerSnapshot?.dominantRegionId}
+            </span>
+          ) : null}
+          {viewerSnapshot?.currentGini != null ? <span className="lab-chip">gini {formatMetric(viewerSnapshot.currentGini, 3)}</span> : null}
+          {viewerSnapshot?.currentLiveness != null ? <span className="lab-chip">liveness {formatMetric(viewerSnapshot.currentLiveness, 1)}%</span> : null}
           {comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
+          {comparisonViewerSnapshot ? <span className="lab-chip">compare slot {comparisonViewerSnapshot.slotNumber}</span> : null}
         </div>
         <div className="mt-3 text-xs leading-5 text-muted">{currentViewSummary}</div>
+        {paperSection ? (
+          <div className="mt-2 text-[11px] leading-5 text-text-faint">
+            Canonical paper anchor: {paperSection.description}
+          </div>
+        ) : null}
+        {quickPrompts.length > 0 ? (
+          <div className="mt-4">
+            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Prompt starters</div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {quickPrompts.map(prompt => (
+                <button
+                  key={prompt}
+                  onClick={() => {
+                    onQuestionChange(prompt)
+                    mutation.mutate(prompt)
+                  }}
+                  disabled={mutation.isPending || !isAnthropicEnabled}
+                  className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:bg-surface-active disabled:text-muted"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {disabledReason ? (
@@ -176,9 +335,7 @@ export function PublishedReplayCompanionPanel({
               {response.truthBoundary.detail}
             </div>
             <div className="mt-2 text-[11px] text-text-faint">
-              {answeredSlotNumber != null
-                ? `Answered against slot ${answeredSlotNumber.toLocaleString()} of the active replay posture.`
-                : 'Answered against the active published replay selection.'}
+              {answeredContext ?? 'Answered against the active published replay selection.'}
             </div>
           </div>
 
