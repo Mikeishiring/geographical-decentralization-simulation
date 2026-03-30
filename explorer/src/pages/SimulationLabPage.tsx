@@ -13,6 +13,7 @@ import {
   OVERVIEW_BUNDLES,
   PRESETS,
   describePaperComparability,
+  formatNumber,
   paperScenarioLabels,
   readOrCreateClientId,
   readSessionArtifactBlocks,
@@ -62,6 +63,45 @@ interface WorkerFailure {
   readonly error: string
 }
 
+interface ResearchMetadata {
+  readonly v?: number
+  readonly cost?: number
+  readonly delta?: number
+  readonly cutoff?: number
+  readonly gamma?: number
+  readonly description?: string
+}
+
+interface ResearchDatasetEntry {
+  readonly evaluation: string
+  readonly paradigm: 'Local' | 'External'
+  readonly result: string
+  readonly path: string
+  readonly sourceRole?: string
+  readonly metadata?: ResearchMetadata
+}
+
+interface ResearchCatalog {
+  readonly introBlurb: string
+  readonly defaultSelection: {
+    readonly evaluation: string
+    readonly paradigm: string
+    readonly result: string
+    readonly path: string
+  } | null
+  readonly datasets: readonly ResearchDatasetEntry[]
+}
+
+interface PublishedDatasetRecommendation {
+  readonly dataset: ResearchDatasetEntry
+  readonly reason: string
+}
+
+interface NumericCatalogOption {
+  readonly value: number
+  readonly label: string
+}
+
 type RunnerStatus = 'idle' | 'submitting' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
 
 function selectDefaultArtifact(artifacts: readonly SimulationArtifact[]): string | null {
@@ -98,6 +138,7 @@ interface InitialSimulationLabState {
   readonly jobId?: string
   readonly analyticsView?: AnalyticsDeckView
   readonly analyticsSlot?: number
+  readonly comparisonPath?: string
 }
 
 function parseSurfaceMode(value: string | null): SurfaceMode | undefined {
@@ -120,7 +161,195 @@ function readInitialSimulationLabState(): InitialSimulationLabState {
     jobId,
     analyticsView: parseAnalyticsDeckView(params.get('exactAnalytics')),
     analyticsSlot: parseOptionalSlotIndex(params.get('exactSlot')),
+    comparisonPath: params.get('exactCompare') ?? undefined,
   }
+}
+
+async function fetchResearchCatalog(catalogScriptUrl: string): Promise<ResearchCatalog> {
+  const response = await fetch(catalogScriptUrl, { cache: 'force-cache' })
+  if (!response.ok) {
+    throw new Error('Failed to load the published research catalog for exact-run comparison.')
+  }
+
+  const scriptText = await response.text()
+  if (scriptText.startsWith('version https://git-lfs')) {
+    throw new Error(
+      'The published research catalog is still a Git LFS pointer. The deployment needs git-lfs installed so the frozen datasets can be loaded for comparison.',
+    )
+  }
+
+  try {
+    const sandbox = {} as { RESEARCH_CATALOG?: ResearchCatalog }
+    const catalog = Function('window', `${scriptText}; return window.RESEARCH_CATALOG;`)(sandbox) as ResearchCatalog | undefined
+    if (!catalog || !Array.isArray(catalog.datasets)) {
+      throw new Error('The published research catalog did not expose a dataset list.')
+    }
+    return catalog
+  } catch (error) {
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : 'Unable to parse the published research catalog for exact-run comparison.',
+    )
+  }
+}
+
+async function fetchPublishedAnalyticsPayload(
+  viewerBaseUrl: string,
+  datasetPath: string,
+): Promise<PublishedAnalyticsPayload> {
+  const normalizedBase = viewerBaseUrl.replace(/\/$/, '')
+  const response = await fetch(`${normalizedBase}/${datasetPath}`, { cache: 'force-cache' })
+  if (!response.ok) {
+    throw new Error(`Failed to load analytics payload for ${datasetPath}`)
+  }
+
+  const text = await response.text()
+  if (text.startsWith('version https://git-lfs')) {
+    throw new Error(
+      `${datasetPath} is a Git LFS pointer, not resolved analytics data. The deployment needs git-lfs installed to fetch the actual simulation files.`,
+    )
+  }
+
+  return JSON.parse(text) as PublishedAnalyticsPayload
+}
+
+function approximatelyEqual(left: number, right: number, epsilon = 0.0002): boolean {
+  return Math.abs(left - right) <= epsilon
+}
+
+function selectNearestCatalogOption(
+  value: number,
+  options: readonly NumericCatalogOption[],
+): NumericCatalogOption {
+  return options.reduce((best, option) => (
+    Math.abs(option.value - value) < Math.abs(best.value - value) ? option : best
+  ))
+}
+
+function resolvePublishedParadigm(paradigm: SimulationConfig['paradigm']): ResearchDatasetEntry['paradigm'] {
+  return paradigm === 'SSP' ? 'External' : 'Local'
+}
+
+function formatPublishedDatasetLabel(dataset: ResearchDatasetEntry): string {
+  return `${dataset.evaluation} · ${dataset.paradigm} · ${dataset.result}`
+}
+
+function recommendPublishedComparisonDataset(
+  config: SimulationConfig,
+  datasets: readonly ResearchDatasetEntry[],
+): PublishedDatasetRecommendation | null {
+  if (datasets.length === 0) return null
+
+  const baselineCostOptions: readonly NumericCatalogOption[] = [
+    { value: 0, label: 'cost_0.0' },
+    { value: 0.001, label: 'cost_0.001' },
+    { value: 0.002, label: 'cost_0.002' },
+    { value: 0.003, label: 'cost_0.003' },
+  ]
+  const se2CostOptions: readonly NumericCatalogOption[] = [
+    { value: 0, label: 'cost_0.0' },
+    { value: 0.002, label: 'cost_0.002' },
+  ]
+  const gammaOptions: readonly NumericCatalogOption[] = [
+    { value: 0.3333, label: 'gamma_0.3333' },
+    { value: 0.5, label: 'gamma_0.5' },
+    { value: 0.6667, label: 'gamma_0.6667' },
+    { value: 0.8, label: 'gamma_0.8' },
+  ]
+
+  const targetParadigm = resolvePublishedParadigm(config.paradigm)
+  const matchingParadigmDatasets = datasets.filter(dataset => dataset.paradigm === targetParadigm)
+  const searchSpace = matchingParadigmDatasets.length > 0 ? matchingParadigmDatasets : datasets
+
+  let targetEvaluation = 'Baseline'
+  let targetResult = selectNearestCatalogOption(config.migrationCost, baselineCostOptions).label
+  let reason = config.validators === 1000 && config.slots === 10000
+    ? 'This exact run matches a checked-in paper scenario family.'
+    : 'This is the nearest frozen paper scenario for the family your exact run is exploring.'
+
+  if (approximatelyEqual(config.slotTime, 6)) {
+    targetEvaluation = 'SE4-EIP7782'
+    targetResult = 'delta_6000_cutoff_3000'
+    reason = 'This is the frozen shorter-slot paper scenario, so the comparison stays tied to the EIP-7782 experiment.'
+  } else if (!approximatelyEqual(config.attestationThreshold, 2 / 3)) {
+    targetEvaluation = 'SE4-Attestation-Threshold'
+    targetResult = selectNearestCatalogOption(config.attestationThreshold, gammaOptions).label
+    reason = 'This is the nearest frozen attestation-threshold paper scenario for the exact run you just produced.'
+  } else if (config.distribution === 'heterogeneous' && config.sourcePlacement !== 'homogeneous') {
+    targetEvaluation = 'SE3-Joint-Heterogeneity'
+    targetResult = config.sourcePlacement
+    reason = 'This is the frozen joint-heterogeneity paper scenario, so the comparison stays within the same experimental family.'
+  } else if (config.distribution === 'heterogeneous') {
+    targetEvaluation = 'SE2-Validator-Distribution-Effect'
+    targetResult = selectNearestCatalogOption(config.migrationCost, se2CostOptions).label
+    reason = 'This is the frozen heterogeneous-validator paper scenario closest to the current exact configuration.'
+  } else if (config.sourcePlacement === 'latency-aligned' || config.sourcePlacement === 'latency-misaligned') {
+    targetEvaluation = 'SE1-Information-Source-Placement-Effect'
+    targetResult = config.sourcePlacement
+    reason = 'This is the frozen source-placement paper scenario that matches the current exact setup.'
+  }
+
+  const exactMatch = searchSpace.find(dataset => (
+    dataset.evaluation === targetEvaluation
+    && dataset.result === targetResult
+  ))
+  if (exactMatch) return { dataset: exactMatch, reason }
+
+  const familyMatch = searchSpace.find(dataset => dataset.evaluation === targetEvaluation)
+  if (familyMatch) {
+    return {
+      dataset: familyMatch,
+      reason: `No exact frozen result label matched, so this falls back to the nearest ${familyMatch.evaluation} paper scenario in the same paradigm.`,
+    }
+  }
+
+  const paradigmMatch = searchSpace[0] ?? datasets[0] ?? null
+  return paradigmMatch
+    ? {
+        dataset: paradigmMatch,
+        reason: 'No direct paper-family match was available, so this falls back to the nearest frozen scenario in the same paradigm.',
+      }
+    : null
+}
+
+function sortComparisonCandidates(
+  datasets: readonly ResearchDatasetEntry[],
+  recommendedDataset: ResearchDatasetEntry | null,
+  paradigm: SimulationConfig['paradigm'],
+): ResearchDatasetEntry[] {
+  const preferredParadigm = resolvePublishedParadigm(paradigm)
+
+  return [...datasets]
+    .map((dataset, index) => ({
+      dataset,
+      index,
+      score: [
+        dataset.path === recommendedDataset?.path ? 0 : 1,
+        dataset.paradigm === preferredParadigm ? 0 : 1,
+        dataset.evaluation === recommendedDataset?.evaluation ? 0 : 1,
+      ],
+    }))
+    .sort((left, right) => {
+      for (let index = 0; index < left.score.length; index += 1) {
+        if (left.score[index] !== right.score[index]) {
+          return left.score[index]! - right.score[index]!
+        }
+      }
+      return left.index - right.index
+    })
+    .map(entry => entry.dataset)
+}
+
+function alignComparisonSlot(
+  primarySlot: number,
+  primaryTotalSlots: number,
+  comparisonTotalSlots: number,
+): number {
+  if (comparisonTotalSlots <= 1) return 0
+  if (primaryTotalSlots <= 1) return Math.max(0, comparisonTotalSlots - 1)
+  const progress = primarySlot / Math.max(1, primaryTotalSlots - 1)
+  return clampSlotIndex(Math.round(progress * Math.max(0, comparisonTotalSlots - 1)), comparisonTotalSlots)
 }
 
 function buildSimulationLabUrl(options: {
@@ -128,6 +357,7 @@ function buildSimulationLabUrl(options: {
   readonly currentJobId: string | null
   readonly analyticsView: AnalyticsDeckView
   readonly analyticsSlot: number | null
+  readonly comparisonPath: string | null
 }): string | null {
   if (typeof window === 'undefined') return null
 
@@ -147,10 +377,16 @@ function buildSimulationLabUrl(options: {
     } else {
       url.searchParams.delete('exactSlot')
     }
+    if (options.comparisonPath) {
+      url.searchParams.set('exactCompare', options.comparisonPath)
+    } else {
+      url.searchParams.delete('exactCompare')
+    }
   } else {
     url.searchParams.delete('simulationJob')
     url.searchParams.delete('exactAnalytics')
     url.searchParams.delete('exactSlot')
+    url.searchParams.delete('exactCompare')
   }
 
   return url.toString()
@@ -490,6 +726,8 @@ export function SimulationLabPage({
 } = {}) {
   const initialLabState = useMemo(() => readInitialSimulationLabState(), [])
   const appBaseUrl = resolveAppBaseUrl()
+  const researchCatalogScriptUrl = `${appBaseUrl}/research-demo/assets/research-catalog.js`
+  const researchViewerBaseUrl = `${appBaseUrl}/research-demo`
   const queryClient = useQueryClient()
   const [surfaceMode, setSurfaceMode] = useState<SurfaceMode>(initialLabState.surfaceMode)
   const [config, setConfig] = useState<SimulationConfig>({ ...DEFAULT_CONFIG })
@@ -497,6 +735,8 @@ export function SimulationLabPage({
   const [currentJobId, setCurrentJobId] = useState<string | null>(initialLabState.jobId ?? null)
   const [exactAnalyticsView, setExactAnalyticsView] = useState<AnalyticsDeckView>(initialLabState.analyticsView ?? 'concentration')
   const [exactAnalyticsRequestedSlot, setExactAnalyticsRequestedSlot] = useState<number | null>(initialLabState.analyticsSlot ?? null)
+  const [exactComparisonPath, setExactComparisonPath] = useState<string | null>(initialLabState.comparisonPath ?? null)
+  const [hasManualExactComparisonSelection, setHasManualExactComparisonSelection] = useState(Boolean(initialLabState.comparisonPath))
   const [selectedArtifactName, setSelectedArtifactName] = useState<string | null>(null)
   const [selectedBundle, setSelectedBundle] = useState<SimulationArtifactBundle>('core-outcomes')
   const [parsedBlocks, setParsedBlocks] = useState<readonly Block[]>([])
@@ -557,10 +797,11 @@ export function SimulationLabPage({
       currentJobId,
       analyticsView: exactAnalyticsView,
       analyticsSlot: exactAnalyticsRequestedSlot,
+      comparisonPath: exactComparisonPath,
     })
     if (!nextUrl) return
     window.history.replaceState({}, '', nextUrl)
-  }, [currentJobId, exactAnalyticsRequestedSlot, exactAnalyticsView, surfaceMode])
+  }, [currentJobId, exactAnalyticsRequestedSlot, exactAnalyticsView, exactComparisonPath, surfaceMode])
 
   const updateConfig = <K extends keyof SimulationConfig>(key: K, value: SimulationConfig[K]) => {
     setConfig(previous => ({ ...previous, [key]: value }))
@@ -588,6 +829,8 @@ export function SimulationLabPage({
       setSurfaceMode('lab')
       setCurrentJobId(job.id)
       setExactAnalyticsRequestedSlot(null)
+      setExactComparisonPath(null)
+      setHasManualExactComparisonSelection(false)
       setSelectedBundle('core-outcomes')
       setSelectedArtifactName(null)
       setParsedBlocks([])
@@ -669,6 +912,13 @@ export function SimulationLabPage({
     staleTime: 30_000,
   })
 
+  const researchCatalogQuery = useQuery({
+    queryKey: ['research-catalog', researchCatalogScriptUrl],
+    queryFn: () => fetchResearchCatalog(researchCatalogScriptUrl),
+    enabled: surfaceMode === 'lab',
+    staleTime: Infinity,
+  })
+
   const manifestQuery = useQuery({
     queryKey: ['simulation-manifest', currentJobId],
     queryFn: () => getSimulationManifest(currentJobId!),
@@ -686,6 +936,40 @@ export function SimulationLabPage({
     staleTime: Infinity,
   })
   const exactAnalyticsPayload = exactAnalyticsPayloadQuery.data ?? null
+  const comparisonReferenceConfig = manifest?.config ?? config
+  const publishedResearchDatasets = useMemo(
+    () => (researchCatalogQuery.data?.datasets ?? []).filter(dataset => dataset.evaluation !== 'Test'),
+    [researchCatalogQuery.data],
+  )
+  const recommendedComparison = useMemo(
+    () => recommendPublishedComparisonDataset(comparisonReferenceConfig, publishedResearchDatasets),
+    [comparisonReferenceConfig, publishedResearchDatasets],
+  )
+  const exactComparisonCandidates = useMemo(
+    () => sortComparisonCandidates(
+      publishedResearchDatasets,
+      recommendedComparison?.dataset ?? null,
+      comparisonReferenceConfig.paradigm,
+    ),
+    [comparisonReferenceConfig.paradigm, publishedResearchDatasets, recommendedComparison],
+  )
+  const selectedComparisonDataset = useMemo(
+    () => exactComparisonCandidates.find(dataset => dataset.path === exactComparisonPath)
+      ?? recommendedComparison?.dataset
+      ?? exactComparisonCandidates[0]
+      ?? null,
+    [exactComparisonCandidates, exactComparisonPath, recommendedComparison],
+  )
+  const comparisonDatasetUrl = selectedComparisonDataset
+    ? `${researchViewerBaseUrl}/${selectedComparisonDataset.path}`
+    : null
+  const comparisonAnalyticsQuery = useQuery({
+    queryKey: ['published-analytics-payload', researchViewerBaseUrl, selectedComparisonDataset?.path ?? ''],
+    queryFn: () => fetchPublishedAnalyticsPayload(researchViewerBaseUrl, selectedComparisonDataset!.path),
+    enabled: surfaceMode === 'lab' && Boolean(selectedComparisonDataset?.path),
+    staleTime: Infinity,
+  })
+  const comparisonAnalyticsPayload = comparisonAnalyticsQuery.data ?? null
   const availableOverviewBundles = manifest?.overviewBundles ?? []
   const overviewBundleOptions = availableOverviewBundles.length > 0 ? availableOverviewBundles : OVERVIEW_BUNDLES
 
@@ -726,6 +1010,24 @@ export function SimulationLabPage({
       setSelectedBundle(manifest.overviewBundles[0]!.bundle)
     })
   }, [manifest, selectedBundle])
+
+  useEffect(() => {
+    if (exactComparisonCandidates.length === 0) return
+
+    const currentSelectionIsValid = exactComparisonPath != null
+      && exactComparisonCandidates.some(dataset => dataset.path === exactComparisonPath)
+    if (currentSelectionIsValid && hasManualExactComparisonSelection) return
+
+    const recommendedPath = recommendedComparison?.dataset.path ?? exactComparisonCandidates[0]!.path
+    if (!currentSelectionIsValid || (!hasManualExactComparisonSelection && exactComparisonPath !== recommendedPath)) {
+      setExactComparisonPath(recommendedPath)
+    }
+  }, [
+    exactComparisonCandidates,
+    exactComparisonPath,
+    hasManualExactComparisonSelection,
+    recommendedComparison,
+  ])
 
   const selectedArtifact = useMemo(
     () => manifest?.artifacts.find(artifact => artifact.name === selectedArtifactName) ?? null,
@@ -810,9 +1112,27 @@ export function SimulationLabPage({
       currentJobId,
       analyticsView: exactAnalyticsView,
       analyticsSlot: exactAnalyticsRequestedSlot == null ? null : exactAnalyticsSlot,
+      comparisonPath: selectedComparisonDataset?.path ?? exactComparisonPath,
     }),
-    [currentJobId, exactAnalyticsRequestedSlot, exactAnalyticsSlot, exactAnalyticsView, surfaceMode],
+    [
+      currentJobId,
+      exactAnalyticsRequestedSlot,
+      exactAnalyticsSlot,
+      exactAnalyticsView,
+      exactComparisonPath,
+      selectedComparisonDataset,
+      surfaceMode,
+    ],
   )
+  const comparisonAnalyticsTotalSlots = totalSlotsFromPayload(comparisonAnalyticsPayload)
+  const comparisonAnalyticsSlot = alignComparisonSlot(
+    exactAnalyticsSlot,
+    exactAnalyticsTotalSlots,
+    comparisonAnalyticsTotalSlots,
+  )
+  const comparisonProgressPercent = exactAnalyticsTotalSlots <= 1
+    ? 100
+    : (exactAnalyticsSlot / Math.max(1, exactAnalyticsTotalSlots - 1)) * 100
   const exactAnalyticsSourceRefs = useMemo<readonly SourceBlock['refs'][number][]>(() => {
     if (!manifest || !currentJobId) return []
 
@@ -835,8 +1155,20 @@ export function SimulationLabPage({
         section: manifest.configHash,
         url: manifestUrl,
       },
+      ...(selectedComparisonDataset && comparisonDatasetUrl ? [{
+        label: 'Published foil dataset',
+        section: selectedComparisonDataset.path,
+        url: comparisonDatasetUrl,
+      }] : []),
     ]
-  }, [appBaseUrl, currentJobId, exactAnalyticsShareUrl, manifest])
+  }, [
+    appBaseUrl,
+    comparisonDatasetUrl,
+    currentJobId,
+    exactAnalyticsShareUrl,
+    manifest,
+    selectedComparisonDataset,
+  ])
   const exactAnalyticsMetricCards = useMemo(
     () => buildAnalyticsMetricCards({
       analyticsView: exactAnalyticsView,
@@ -853,9 +1185,22 @@ export function SimulationLabPage({
           primarySlot: exactAnalyticsSlot,
           sourceRefs: exactAnalyticsSourceRefs,
           primaryLabel: 'Exact run',
+          comparisonPayload: comparisonAnalyticsPayload,
+          comparisonSlot: comparisonAnalyticsSlot,
+          comparisonLabel: selectedComparisonDataset
+            ? `${selectedComparisonDataset.evaluation} / ${selectedComparisonDataset.paradigm}`
+            : 'Published foil',
         })
       : [],
-    [exactAnalyticsPayload, exactAnalyticsSlot, exactAnalyticsSourceRefs, exactAnalyticsView],
+    [
+      comparisonAnalyticsPayload,
+      comparisonAnalyticsSlot,
+      exactAnalyticsPayload,
+      exactAnalyticsSlot,
+      exactAnalyticsSourceRefs,
+      exactAnalyticsView,
+      selectedComparisonDataset,
+    ],
   )
   const exactAnalyticsStatusMessage = !manifest
     ? null
@@ -866,6 +1211,24 @@ export function SimulationLabPage({
         : !exactAnalyticsPayload
           ? 'This exact run did not emit the published-style analytics payload yet.'
           : null
+  const exactComparisonStatusMessage = researchCatalogQuery.isLoading
+    ? 'Loading the frozen paper catalog for comparison...'
+    : researchCatalogQuery.isError
+      ? (researchCatalogQuery.error as Error).message
+      : !selectedComparisonDataset
+        ? 'Select a published scenario to compare against this exact run.'
+        : comparisonAnalyticsQuery.isLoading
+          ? `Loading ${formatPublishedDatasetLabel(selectedComparisonDataset)}...`
+          : comparisonAnalyticsQuery.isError
+            ? (comparisonAnalyticsQuery.error as Error).message
+            : comparisonAnalyticsPayload
+              ? `Aligned to slot ${comparisonAnalyticsSlot + 1} of ${comparisonAnalyticsTotalSlots.toLocaleString()} (${formatNumber(comparisonProgressPercent, 1)}% through the frozen run).`
+              : 'Choose a published foil to add a frozen-paper comparison table.'
+  const exactComparisonRecommendationDetail = selectedComparisonDataset?.path === recommendedComparison?.dataset.path
+    ? recommendedComparison?.reason ?? 'This selection is the closest frozen paper foil for the active exact run.'
+    : recommendedComparison
+      ? `Recommended default: ${formatPublishedDatasetLabel(recommendedComparison.dataset)}.`
+      : 'Select any checked-in paper scenario as the foil for this exact run.'
 
   useEffect(() => {
     if (exactAnalyticsRequestedSlot == null) return
@@ -1024,7 +1387,7 @@ export function SimulationLabPage({
                   'rounded-2xl border px-4 py-4 text-left transition-all',
                   isActive
                     ? 'border-accent bg-white shadow-[0_18px_34px_rgba(15,23,42,0.06)]'
-                    : 'border-rule bg-[#FAFAF8] hover:-translate-y-0.5 hover:border-border-hover hover:bg-white',
+                    : 'border-border-subtle bg-[#FAFAF8] hover:-translate-y-0.5 hover:border-border-hover hover:bg-white',
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -1058,8 +1421,8 @@ export function SimulationLabPage({
 
       {surfaceMode === 'research' ? (
         <ResearchDemoSurface
-          catalogScriptUrl={`${appBaseUrl}/research-demo/assets/research-catalog.js`}
-          viewerBaseUrl={`${appBaseUrl}/research-demo`}
+          catalogScriptUrl={researchCatalogScriptUrl}
+          viewerBaseUrl={researchViewerBaseUrl}
           onOpenCommunityExploration={onOpenCommunityExploration}
           onOpenExactLab={() => setSurfaceMode('lab')}
           onTabChange={onTabChange}
@@ -1151,14 +1514,14 @@ export function SimulationLabPage({
             <button
               key={preset.label}
               onClick={() => applyPreset(preset.config)}
-              className="lab-option-card text-left px-4 py-4 transition-colors hover:border-border-hover"
+              className="lab-option-card text-left px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-border-hover hover:shadow-[0_14px_34px_rgba(15,23,42,0.08)]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-sm font-medium text-text-primary">{preset.label}</div>
                   <div className="mt-2 text-xs leading-5 text-muted">{preset.description}</div>
                 </div>
-                <span className="rounded-full border border-rule bg-white/80 px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                <span className="rounded-full border border-border-subtle bg-white/80 px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                   Load
                 </span>
               </div>
@@ -1247,47 +1610,134 @@ export function SimulationLabPage({
             queryHint="These are the exact-run metrics exported into the shared analytics contract. Start with the measurement itself, then decide whether the run deserves interpretation or publication."
           >
             {exactAnalyticsPayload ? (
-              <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Slot posture</div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">
-                      Slot {exactAnalyticsSlot + 1} of {exactAnalyticsTotalSlots.toLocaleString()}
+              <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+                <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Slot posture</div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">
+                        Slot {exactAnalyticsSlot + 1} of {exactAnalyticsTotalSlots.toLocaleString()}
+                      </div>
+                      <div className="mt-1 text-xs leading-5 text-muted">
+                        Scrub the exact run directly from the analytics desk. The cards, sources, and comparison table stay bound to this slot.
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs leading-5 text-muted">
-                      Scrub the exact run directly from the analytics desk. The cards and blocks stay bound to this slot.
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: 'First', slot: 0 },
+                        { label: 'Mid', slot: Math.max(0, Math.floor((exactAnalyticsTotalSlots - 1) / 2)) },
+                        { label: 'Final', slot: Math.max(0, exactAnalyticsTotalSlots - 1) },
+                      ].map(option => (
+                        <button
+                          key={option.label}
+                          onClick={() => setExactAnalyticsRequestedSlot(option.slot)}
+                          className={cn(
+                            'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                            exactAnalyticsSlot === option.slot
+                              ? 'border-accent bg-[#FAFAF8] text-accent'
+                              : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { label: 'First', slot: 0 },
-                      { label: 'Mid', slot: Math.max(0, Math.floor((exactAnalyticsTotalSlots - 1) / 2)) },
-                      { label: 'Final', slot: Math.max(0, exactAnalyticsTotalSlots - 1) },
-                    ].map(option => (
-                      <button
-                        key={option.label}
-                        onClick={() => setExactAnalyticsRequestedSlot(option.slot)}
-                        className={cn(
-                          'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                          exactAnalyticsSlot === option.slot
-                            ? 'border-accent bg-[#FAFAF8] text-accent'
-                            : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
-                        )}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
+                  <input
+                    type="range"
+                    min={0}
+                    max={Math.max(0, exactAnalyticsTotalSlots - 1)}
+                    step={1}
+                    value={exactAnalyticsSlot}
+                    onChange={event => setExactAnalyticsRequestedSlot(Number.parseInt(event.target.value, 10))}
+                    className="mt-4 w-full accent-[var(--accent,#2563EB)]"
+                  />
+                  <div className="mt-3 text-xs leading-5 text-muted">
+                    {comparisonAnalyticsPayload
+                      ? `The published foil is aligned to the same progress point: slot ${comparisonAnalyticsSlot + 1} of ${comparisonAnalyticsTotalSlots.toLocaleString()}.`
+                      : 'Add a published foil to see the exact run against a frozen paper result at the same progress point.'}
                   </div>
                 </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={Math.max(0, exactAnalyticsTotalSlots - 1)}
-                  step={1}
-                  value={exactAnalyticsSlot}
-                  onChange={event => setExactAnalyticsRequestedSlot(Number.parseInt(event.target.value, 10))}
-                  className="mt-4 w-full accent-[var(--accent,#2563EB)]"
-                />
+
+                <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Published foil</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">
+                    {selectedComparisonDataset ? formatPublishedDatasetLabel(selectedComparisonDataset) : 'No published scenario selected'}
+                  </div>
+                  <div className="mt-2 text-xs leading-5 text-muted">
+                    {selectedComparisonDataset?.metadata?.description ?? 'Choose a checked-in paper dataset so the exact run can be compared against frozen evidence in the same desk.'}
+                  </div>
+
+                  <label className="mt-4 block text-xs text-muted">
+                    Compare against
+                  </label>
+                  <select
+                    value={selectedComparisonDataset?.path ?? ''}
+                    onChange={event => {
+                      setHasManualExactComparisonSelection(true)
+                      setExactComparisonPath(event.target.value || null)
+                    }}
+                    disabled={exactComparisonCandidates.length === 0}
+                    className="mt-1.5 w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {exactComparisonCandidates.length > 0 ? (
+                      exactComparisonCandidates.map(dataset => (
+                        <option key={dataset.path} value={dataset.path}>
+                          {formatPublishedDatasetLabel(dataset)}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">Published catalog unavailable</option>
+                    )}
+                  </select>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-border-subtle bg-white px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Recommendation</div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">
+                        {recommendedComparison ? formatPublishedDatasetLabel(recommendedComparison.dataset) : 'Awaiting catalog'}
+                      </div>
+                      <div className="mt-2 text-xs leading-5 text-muted">{exactComparisonRecommendationDetail}</div>
+                    </div>
+                    <div className="rounded-xl border border-border-subtle bg-white px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Alignment</div>
+                      <div className="mt-2 text-sm font-medium text-text-primary">
+                        {comparisonAnalyticsPayload
+                          ? `Slot ${comparisonAnalyticsSlot + 1} / ${comparisonAnalyticsTotalSlots.toLocaleString()}`
+                          : 'Waiting for foil'}
+                      </div>
+                      <div className="mt-2 text-xs leading-5 text-muted">{exactComparisonStatusMessage}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <a
+                      href={comparisonDatasetUrl ?? undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={cn(
+                        'inline-flex items-center justify-center rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
+                        !comparisonDatasetUrl && 'pointer-events-none opacity-60',
+                      )}
+                    >
+                      Open dataset JSON
+                    </a>
+                    <button
+                      onClick={() => {
+                        setHasManualExactComparisonSelection(false)
+                        setExactComparisonPath(recommendedComparison?.dataset.path ?? null)
+                      }}
+                      disabled={!recommendedComparison}
+                      className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Restore recommendation
+                    </button>
+                  </div>
+
+                  <div className="mt-4 text-xs leading-5 text-muted">
+                    Shared exact-analytics links preserve the active foil dataset, analytics view, and slot posture.
+                  </div>
+                </div>
               </div>
             ) : null}
           </SimulationAnalyticsDesk>

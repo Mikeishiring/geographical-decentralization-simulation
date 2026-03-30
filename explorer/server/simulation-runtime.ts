@@ -17,10 +17,11 @@ const REPO_ROOT = process.env.SIMULATION_REPO_ROOT
 const WORKER_PATH = path.join(SERVER_DIR, 'simulation_worker.py')
 const SIMULATION_CACHE_ROOT = path.join(REPO_ROOT, '.simulation_cache')
 const DEFAULT_PYTHON_EXECUTABLE = process.platform === 'win32' ? 'python' : 'python3'
+const DETECTED_PARALLELISM = Math.max(1, availableParallelism())
 const DEFAULT_WORKER_POOL_SIZE = Math.max(
   1,
   Math.min(
-    Number(process.env.SIMULATION_WORKERS ?? Math.max(2, Math.ceil(availableParallelism() / 2))),
+    Number(process.env.SIMULATION_WORKERS ?? DETECTED_PARALLELISM),
     8,
   ),
 )

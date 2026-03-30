@@ -54,6 +54,17 @@ function assert(condition: unknown, message: string): asserts condition {
   }
 }
 
+async function assertOk(response: Response, message: string): Promise<void> {
+  if (response.ok) return
+
+  const body = await response.text().catch(() => '')
+  throw new Error(
+    body
+      ? `${message} (${response.status} ${response.statusText}): ${body}`
+      : `${message} (${response.status} ${response.statusText})`,
+  )
+}
+
 async function waitForSimulation(
   jobId: string,
   attempts = 240,
@@ -246,7 +257,7 @@ async function main() {
           author: 'smoke',
         }),
       })
-      assert(publishResponse.ok, 'Expected /api/explorations/:id/publish to succeed')
+      await assertOk(publishResponse, 'Expected /api/explorations/:id/publish to succeed')
       const publishedPayload = await publishResponse.json() as Record<string, unknown>
       const publication = publishedPayload.publication as Record<string, unknown> | undefined
       assert(publication?.published === true, 'Expected publish endpoint to mark the exploration as published')
