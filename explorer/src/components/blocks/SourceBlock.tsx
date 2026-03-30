@@ -1,4 +1,3 @@
-import { FileText, ExternalLink } from 'lucide-react'
 import type { SourceBlock as SourceBlockType } from '../../types/blocks'
 
 interface SourceBlockProps {
@@ -9,11 +8,13 @@ export function SourceBlock({ block }: SourceBlockProps) {
   if (block.refs.length === 0) return null
 
   return (
-    <div className="bg-white border border-border-subtle rounded-xl p-4">
-      <div className="space-y-1.5">
+    <div className="rounded-xl border border-rule bg-white px-4 py-3">
+      <span className="mb-2 block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+        Sources
+      </span>
+      <div className="divide-y divide-rule">
         {block.refs.map((ref, i) => {
           const isExternal = Boolean(ref.url)
-          const Icon = isExternal ? ExternalLink : FileText
 
           return isExternal ? (
             <a
@@ -21,21 +22,24 @@ export function SourceBlock({ block }: SourceBlockProps) {
               href={ref.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2.5 text-xs text-accent hover:text-accent/80 transition-colors py-1"
+              className="flex items-baseline justify-between gap-2 py-2 text-[0.8125rem] text-accent hover:text-accent/80 transition-colors"
             >
-              <Icon className="w-3.5 h-3.5 shrink-0" />
-              <span>{ref.label}</span>
-              {ref.section && (
-                <span className="text-muted">· {ref.section}</span>
-              )}
+              <span>
+                {ref.label}
+                {ref.section && (
+                  <span className="text-muted ml-1">· {ref.section}</span>
+                )}
+              </span>
+              <span className="shrink-0 text-xs text-text-faint">→</span>
             </a>
           ) : (
-            <div key={i} className="flex items-center gap-2.5 text-xs text-muted py-1">
-              <Icon className="w-3.5 h-3.5 shrink-0" />
-              <span>{ref.label}</span>
-              {ref.section && (
-                <span className="text-text-faint">· {ref.section}</span>
-              )}
+            <div key={i} className="flex items-baseline gap-2 py-2 text-[0.8125rem] text-muted">
+              <span>
+                {ref.label}
+                {ref.section && (
+                  <span className="text-text-faint ml-1">· {ref.section}</span>
+                )}
+              </span>
             </div>
           )
         })}

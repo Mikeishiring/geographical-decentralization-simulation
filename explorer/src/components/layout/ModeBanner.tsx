@@ -43,13 +43,13 @@ export function ModeBanner({
   return (
     <div className={cn('rounded-xl border px-4 py-3', palette.border, palette.bg)}>
       <div className="flex items-center gap-2">
-        <span className={cn('h-2 w-2 rounded-full', palette.dot)} />
-        <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-text-faint">
+        <span className={cn('h-1.5 w-1.5 rounded-full', palette.dot)} />
+        <span className="text-[0.625rem] font-medium uppercase tracking-[0.12em] text-text-faint">
           {eyebrow}
         </span>
       </div>
-      <div className="mt-2 text-sm font-medium text-text-primary">{title}</div>
-      <p className="mt-1 text-sm text-muted">{detail}</p>
+      <div className="mt-1.5 text-[0.8125rem] font-medium text-text-primary">{title}</div>
+      <p className="mt-0.5 text-[0.8125rem] leading-[1.6] text-muted">{detail}</p>
     </div>
   )
 }
