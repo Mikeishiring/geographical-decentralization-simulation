@@ -26,7 +26,7 @@ export function InsightBlock({ block }: InsightBlockProps) {
     <motion.div
       {...HOVER_LIFT}
       className={cn(
-        'bg-white border border-border-subtle rounded-lg p-5 border-l-[3px] topo-bg',
+        'bg-white border border-border-subtle rounded-xl p-5 border-l-[3px] topo-bg',
         emphasisStyles[emphasis],
       )}
     >
