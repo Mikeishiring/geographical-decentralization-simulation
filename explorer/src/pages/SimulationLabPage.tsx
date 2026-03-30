@@ -874,6 +874,42 @@ export function SimulationLabPage({
       <div className="lab-stage-soft p-5 mb-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
+            <div className="lab-section-title">How to use this surface</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">
+              Configure, inspect, then publish only if the evidence deserves a public note.
+            </div>
+          </div>
+          <div className="max-w-2xl text-xs leading-5 text-muted">
+            The exact runner is strongest when it stays bounded. Start from a reference setup, read the manifest and artifacts, then decide whether there is a note worth sharing.
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {[
+            {
+              title: '1. Load or tune a bounded run',
+              detail: 'Use a preset or adjust the exact config until the scenario matches the comparison you actually want to make.',
+            },
+            {
+              title: '2. Read the run before asking the guide',
+              detail: 'Start with the manifest, overview bundles, and renderable artifacts. The guide is optional and should stay secondary to the exact result.',
+            },
+            {
+              title: '3. Share only after you have a takeaway',
+              detail: 'A community note should summarize what this exact run shows and why it matters, not just restate the default assistant phrasing.',
+            },
+          ].map(item => (
+            <div key={item.title} className="lab-option-card px-4 py-4">
+              <div className="text-sm font-medium text-text-primary">{item.title}</div>
+              <div className="mt-2 text-xs leading-5 text-muted">{item.detail}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="lab-stage-soft p-5 mb-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
             <div className="lab-section-title">Quick Presets</div>
             <div className="mt-2 text-sm font-medium text-text-primary">
               Load a reference scenario, then tune from there.

@@ -717,10 +717,32 @@ function EmptyState({
     <div className="space-y-6">
       <ModeBanner
         eyebrow="Mode"
-        title="Community contributions plus the reading archive"
-        detail="This page becomes useful after people publish intentional notes from Findings or the Simulation Lab. Saved readings remain secondary until someone adds a human-authored title and takeaway."
+        title="Community contributions"
+        detail="This page becomes useful once people publish intentional notes from Findings or the Simulation Lab. The public surface is for human-authored framing over evidence, not for raw saved readings."
         tone="editorial"
       />
+
+      <div className="grid gap-3 md:grid-cols-3">
+        {[
+          {
+            title: '1. Start from evidence',
+            detail: 'Open a paper reading or exact run first so the note is grounded in a canonical section, curated finding, or simulation artifact.',
+          },
+          {
+            title: '2. Add your own read',
+            detail: 'Write a real title and takeaway in your own words. Lead with what the source shows, then label the inference.',
+          },
+          {
+            title: '3. Publish intentionally',
+            detail: 'Only intentionally published notes appear here. Drafts and saved readings stay off the public surface until someone makes that choice.',
+          },
+        ].map(item => (
+          <div key={item.title} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+            <div className="text-sm font-medium text-text-primary">{item.title}</div>
+            <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
+          </div>
+        ))}
+      </div>
 
       <div className="flex flex-col items-center justify-center rounded-xl border border-border-subtle bg-white py-20 text-center">
         <Tag className="mb-4 h-8 w-8 text-text-faint" />

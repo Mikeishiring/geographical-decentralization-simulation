@@ -34,6 +34,20 @@ const dotColor: Record<string, string> = {
 
 const CANONICAL_ENTRY_IDS = ['ssp-vs-msp', 'attestation-threshold', 'initial-distribution', 'policy-implications'] as const
 const PAPER_SECTION_DETAILS = new Map(PAPER_SECTIONS.map(section => [section.id, `${section.number} ${section.title}`]))
+const IMPLICATION_STRIPS = [
+  {
+    title: 'Timing rules reshape advantage',
+    detail: 'Slot timing and attestation thresholds are not neutral knobs. The paper shows they can reallocate advantage toward low-latency geographies in paradigm-specific ways.',
+  },
+  {
+    title: 'Infrastructure geography matters',
+    detail: 'Relay or source placement changes concentration pressure directly, which means part of the design space lives in infrastructure coordination, not only core protocol code.',
+  },
+  {
+    title: 'Diagnosis is stronger than prescription',
+    detail: 'The paper is strongest when it explains where concentration pressure comes from. Policy recommendations should stay explicitly downstream of that evidence.',
+  },
+] as const
 
 function fallbackCuratedProvenance(label: string, detail: string): ExploreProvenance {
   return {
@@ -534,6 +548,27 @@ export function FindingsPage({
                 </div>
               </button>
             ))}
+          </div>
+
+          <div className="mt-5 rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,246,242,0.96))] px-4 py-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Why it matters</div>
+                <div className="mt-1 text-sm font-medium text-text-primary">Implications and design posture</div>
+              </div>
+              <div className="max-w-2xl text-xs leading-5 text-muted">
+                These are the paper-backed stakes to keep in mind before turning a finding into a recommendation.
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {IMPLICATION_STRIPS.map(item => (
+                <div key={item.title} className="rounded-lg border border-border-subtle bg-white px-3 py-3">
+                  <div className="text-sm font-medium text-text-primary">{item.title}</div>
+                  <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
