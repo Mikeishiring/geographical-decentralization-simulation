@@ -493,7 +493,7 @@ export function PublishedReplayCompanionPanel({
         </div>
         <div className="mt-3 text-xs leading-5 text-muted">{currentViewSummary}</div>
         {paperSection ? (
-          <div className="mt-2 text-[11px] leading-5 text-text-faint">
+          <div className="mt-2 text-[0.6875rem] leading-5 text-text-faint">
             Canonical paper anchor: {paperSection.description}
           </div>
         ) : null}
@@ -539,7 +539,7 @@ export function PublishedReplayCompanionPanel({
 
       {mutation.isPending ? (
         <div className="mt-4 grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
-          <div className="rounded-[1.1rem] border border-rule bg-surface-active p-4">
+          <div className="rounded-xl border border-rule bg-surface-active p-4">
             <div className="lab-skeleton lab-skeleton-line w-1/3" />
             <div className="mt-3 space-y-3">
               <div className="lab-skeleton lab-skeleton-line w-full" />
@@ -560,7 +560,7 @@ export function PublishedReplayCompanionPanel({
             </div>
           ) : null}
 
-          <div className="rounded-[1.1rem] border border-rule bg-surface-active px-4 py-4">
+          <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Evidence used</div>
             <div className="mt-2 text-xs leading-5 text-muted">
               Start from the replay posture and the linked source material. The assistant interpretation stays secondary.
@@ -577,7 +577,7 @@ export function PublishedReplayCompanionPanel({
             ) : null}
           </div>
 
-          <div className="rounded-[1.1rem] border border-warning/25 bg-warning/7 px-4 py-4">
+          <div className="rounded-xl border border-warning/25 bg-warning/7 px-4 py-4">
             <div className="flex items-center gap-1.5 text-xs font-medium text-text-primary">
               <span className="h-1.5 w-1.5 rounded-full bg-warning" />
               {response.truthBoundary.label}
@@ -585,7 +585,7 @@ export function PublishedReplayCompanionPanel({
             <div className="mt-2 text-xs leading-5 text-muted">
               {response.truthBoundary.detail}
             </div>
-            <div className="mt-2 text-[11px] text-text-faint">
+            <div className="mt-2 text-[0.6875rem] text-text-faint">
               {answeredContext ?? 'Answered against the active published replay selection.'}
             </div>
           </div>
@@ -599,7 +599,7 @@ export function PublishedReplayCompanionPanel({
             </div>
           ) : null}
 
-          <div className="rounded-[1.25rem] border border-rule bg-white px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+          <div className="rounded-xl border border-rule bg-white px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Assistant interpretation</div>
@@ -661,11 +661,11 @@ export function PublishedReplayCompanionPanel({
                   <div key={`${entry.question}-${index}`} className="rounded-xl border border-rule bg-white px-4 py-4">
                     <div className="text-xs font-medium text-text-primary">{entry.question}</div>
                     <div className="mt-2 text-xs leading-5 text-muted">{entry.response.summary}</div>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-text-faint">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[0.6875rem] text-text-faint">
                       <span>{entry.answeredContext}</span>
                       <button
                         onClick={() => onQuestionChange(entry.question)}
-                        className="rounded-full border border-rule bg-surface-active px-3 py-1 text-[11px] font-medium text-text-primary transition-colors hover:border-border-hover"
+                        className="rounded-full border border-rule bg-surface-active px-3 py-1 text-[0.6875rem] font-medium text-text-primary transition-colors hover:border-border-hover"
                       >
                         Reuse question
                       </button>

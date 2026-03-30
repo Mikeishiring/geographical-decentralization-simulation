@@ -230,7 +230,7 @@ function ExactChartDeck({
 
       {!loading && focusedSeries && focusedVisual && focusedBlock && (
         <div className="mt-4 grid gap-4 xl:grid-cols-[1.18fr_0.82fr]">
-          <div className="overflow-hidden rounded-[1.4rem] border border-rule bg-[radial-gradient(circle_at_12%_0%,rgba(37,99,235,0.08),transparent_28%),radial-gradient(circle_at_100%_10%,rgba(194,85,58,0.08),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,243,239,0.92))] p-4 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+          <div className="overflow-hidden rounded-xl border border-rule bg-white p-4">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Focused measurement</div>
@@ -245,13 +245,13 @@ function ExactChartDeck({
                 ].map(metric => (
                   <div
                     key={metric.label}
-                    className="rounded-2xl border border-rule bg-white/88 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]"
+                    className="rounded-2xl border border-rule bg-white/88 px-3 py-3"
                   >
                     <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
                     <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
                       {metric.value == null ? '—' : formatExactChartValue(metric.value)}
                     </div>
-                    <div className="mt-1 text-[11px] text-muted">{focusedVisual.unit}</div>
+                    <div className="mt-1 text-[0.6875rem] text-muted">{focusedVisual.unit}</div>
                   </div>
                 ))}
               </div>
@@ -278,7 +278,7 @@ function ExactChartDeck({
                   onMouseEnter={() => setHoveredArtifactName(entry.artifactName)}
                   onMouseLeave={() => setHoveredArtifactName(null)}
                   className={cn(
-                    'group relative overflow-hidden rounded-[1.25rem] border px-4 py-4 text-left transition-all duration-200 hover:border-border-hover',
+                    'group relative overflow-hidden rounded-xl border px-4 py-4 text-left transition-all duration-200 hover:border-border-hover',
                     isFocused
                       ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.08),rgba(255,255,255,0.98))] shadow-[0_16px_36px_rgba(37,99,235,0.12)]'
                       : 'border-rule bg-white/92',
@@ -301,13 +301,13 @@ function ExactChartDeck({
                     </div>
                   </div>
 
-                  <div className="mt-4 overflow-hidden rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(250,250,248,1),rgba(244,243,239,0.92))] px-3 py-3">
+                  <div className="mt-4 overflow-hidden rounded-xl border border-rule bg-surface-active px-3 py-3">
                     <svg viewBox="0 0 220 72" className="w-full" preserveAspectRatio="none">
                       <path d={sparkline} fill="none" stroke={visual?.color ?? '#2563EB'} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-[0.6875rem]">
                     {[
                       { label: 'Start', value: start },
                       { label: 'Peak', value: peak },
@@ -329,7 +329,7 @@ function ExactChartDeck({
       )}
 
       {!loading && series.length === 0 && (
-        <div className="mt-4 rounded-[1.15rem] border border-dashed border-rule bg-surface-active/70 px-5 py-12 text-center text-sm text-muted">
+        <div className="mt-4 rounded-xl border border-dashed border-rule bg-surface-active/70 px-5 py-12 text-center text-sm text-muted">
           This exact run did not emit any interactive chart series.
         </div>
       )}
@@ -452,7 +452,7 @@ export function SimResultsPanel({
                 <div className="mt-1 text-xs text-muted">{card.suffix}</div>
               )}
               {card.note && (
-                <div className="mt-2 text-[11px] leading-5 text-muted">{card.note}</div>
+                <div className="mt-2 text-[0.6875rem] leading-5 text-muted">{card.note}</div>
               )}
             </div>
           ))}
@@ -503,7 +503,7 @@ export function SimResultsPanel({
             <div className="mt-3">
               <span
                 className={cn(
-                  'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium',
+                  'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.6875rem] font-medium',
                   paperComparability.tone === 'canonical' && 'border-success/30 bg-success/8 text-text-primary',
                   paperComparability.tone === 'editorial' && 'border-warning/30 bg-warning/8 text-text-primary',
                   paperComparability.tone === 'experimental' && 'border-rule bg-white text-text-primary',
@@ -676,7 +676,7 @@ export function SimResultsPanel({
               <div className="text-xs font-medium text-text-primary">{option.label}</div>
               <div className="text-xs text-muted">{option.description}</div>
               {isManifestOverviewBundle(option) && (
-                <div className="mt-1 text-[11px] text-text-faint">
+                <div className="mt-1 text-[0.6875rem] text-text-faint">
                   {[
                     formatBytes(option.bytes),
                     option.brotliBytes != null ? `br ${formatBytes(option.brotliBytes)}` : null,
@@ -691,7 +691,7 @@ export function SimResultsPanel({
         {isOverviewLoading && overviewBlocks.length === 0 && (
           <div className="grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
             <div className="lab-skeleton lab-skeleton-block h-[320px]" />
-            <div className="space-y-3 rounded-[1.15rem] border border-rule bg-white/80 p-4">
+            <div className="space-y-3 rounded-xl border border-rule bg-white/80 p-4">
               <div className="lab-skeleton lab-skeleton-line w-1/3" />
               <div className="lab-skeleton lab-skeleton-line w-full" />
               <div className="lab-skeleton lab-skeleton-line w-4/5" />
@@ -706,7 +706,7 @@ export function SimResultsPanel({
         )}
 
         {!isOverviewLoading && overviewBlocks.length === 0 && (
-          <div className="rounded-[1.15rem] border border-dashed border-rule bg-surface-active/70 px-5 py-12 text-center text-sm text-muted">
+          <div className="rounded-xl border border-dashed border-rule bg-surface-active/70 px-5 py-12 text-center text-sm text-muted">
             This exact run does not have a ready overview sidecar for the selected bundle yet.
           </div>
         )}
@@ -787,7 +787,7 @@ export function SimResultsPanel({
         {((isArtifactFetching && !parsedBlocks.length) || isParsing) && (
           <div className="grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
             <div className="lab-skeleton lab-skeleton-block h-[320px]" />
-            <div className="space-y-3 rounded-[1.15rem] border border-rule bg-white/80 p-4">
+            <div className="space-y-3 rounded-xl border border-rule bg-white/80 p-4">
               <div className="lab-skeleton lab-skeleton-line w-1/3" />
               <div className="lab-skeleton lab-skeleton-line w-full" />
               <div className="lab-skeleton lab-skeleton-line w-5/6" />
@@ -808,7 +808,7 @@ export function SimResultsPanel({
         )}
 
         {!isArtifactFetching && !isParsing && !parseError && parsedBlocks.length === 0 && (
-          <div className="rounded-[1.15rem] border border-dashed border-rule bg-surface-active/70 px-5 py-12 text-center text-sm text-muted">
+          <div className="rounded-xl border border-dashed border-rule bg-surface-active/70 px-5 py-12 text-center text-sm text-muted">
             Pick a renderable artifact to inspect the exact run.
           </div>
         )}

@@ -159,7 +159,7 @@ export function MapBlock({ block }: MapBlockProps) {
           </div>
           <div className="flex items-center gap-3 text-xs text-muted">
             <span>{regions.length} regions</span>
-            <span className="font-mono text-[10px] opacity-60">{edges.length} links</span>
+            <span className="font-mono text-[0.625rem] opacity-60">{edges.length} links</span>
           </div>
         </div>
       </div>
@@ -364,14 +364,14 @@ export function MapBlock({ block }: MapBlockProps) {
                   />
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: tooltip.color }} />
-                    <span className="text-[11px] font-medium text-white/95">{tooltip.label}</span>
+                    <span className="text-[0.6875rem] font-medium text-white/95">{tooltip.label}</span>
                   </div>
                   <div className="mt-0.5 flex items-baseline gap-1.5 pl-4">
                     <span className="text-sm font-semibold tabular-nums text-white">
                       {tooltip.value.toLocaleString()}
                     </span>
                     {block.unit && (
-                      <span className="text-[10px] text-white/50">{block.unit}</span>
+                      <span className="text-[0.625rem] text-white/50">{block.unit}</span>
                     )}
                   </div>
                   {tooltip.rank < block.regions.length && (
@@ -510,19 +510,19 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
       <div className="grid grid-cols-2 gap-x-2 gap-y-1">
         <span className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-[#64748B]" />
-          <span className="text-[10px]">Low</span>
+          <span className="text-[0.625rem]">Low</span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-[#3B82F6]" />
-          <span className="text-[10px]">Moderate</span>
+          <span className="text-[0.625rem]">Moderate</span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-[#C2553A]" />
-          <span className="text-[10px]">High</span>
+          <span className="text-[0.625rem]">High</span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-[#F59E0B]" />
-          <span className="text-[10px]">Dominant</span>
+          <span className="text-[0.625rem]">Dominant</span>
         </span>
       </div>
       <p className="text-[9px] text-text-faint mt-1.5 leading-tight">
