@@ -1091,43 +1091,55 @@ export function PublishedDatasetViewer({
                 key: 'slot',
                 noteCount: annotationNotes.length,
                 focus: false,
+                anchor: { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
                 block: { type: 'stat' as const, value: `${countLabel(slot + 1)} / ${countLabel(totalSlots)}`, label: 'Current slot', sublabel: `Playback step ${stepSize}`, delta: slotLocked ? 'Locked for notes' : playing ? 'Autoplay active' : 'Paused', sentiment: 'neutral' as const },
               },
               {
                 key: 'regions',
                 noteCount: metricNoteCounts.geography,
                 focus: focusedArea === 'geography',
+                anchor: topRegion?.region
+                  ? { kind: 'region' as const, key: topRegion.regionId, label: `Region · ${topRegion.region.city}` }
+                  : { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
                 block: { type: 'stat' as const, value: countLabel(currentRegions.length), label: 'Active regions', sublabel: `${countLabel(totalValidators)} validators visible in this slot`, delta: `${currentRegions.length - initialRegions.length >= 0 ? '+' : ''}${countLabel(currentRegions.length - initialRegions.length)} vs slot 1`, sentiment: currentRegions.length <= initialRegions.length ? 'positive' as const : 'neutral' as const },
               },
               {
                 key: 'dominant',
                 noteCount: metricNoteCounts.geography,
                 focus: focusedArea === 'geography',
+                anchor: topRegion?.region
+                  ? { kind: 'region' as const, key: topRegion.regionId, label: `Region · ${topRegion.region.city}` }
+                  : { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
                 block: { type: 'stat' as const, value: regionShareLabel(topRegion, totalValidators), label: 'Dominant region share', sublabel: topRegion?.region ? topRegion.region.city : 'No active region', delta: deltaLabel(dominantShare, initialDominantShare), sentiment: dominantShare >= initialDominantShare ? 'negative' as const : 'positive' as const },
               },
               {
                 key: 'gini',
                 noteCount: metricNoteCounts.gini,
                 focus: focusedArea === 'concentration',
+                anchor: { kind: 'metric' as const, key: 'gini', label: 'Metric · Gini' },
                 block: { type: 'stat' as const, value: currentGini != null ? compactNumber(currentGini, 3) : 'N/A', label: 'Gini', sublabel: 'Geographic concentration', delta: deltaLabel(currentGini, initialGini), sentiment: (currentGini ?? 0) <= (initialGini ?? 0) ? 'positive' as const : 'negative' as const },
               },
               {
                 key: 'mev',
                 noteCount: metricNoteCounts.mev,
                 focus: focusedArea === 'performance',
+                anchor: { kind: 'metric' as const, key: 'mev', label: 'Metric · MEV' },
                 block: { type: 'stat' as const, value: currentMev != null ? `${compactNumber(currentMev, 4)} ETH` : 'N/A', label: 'Average MEV', sublabel: 'Current slot reward surface', delta: deltaLabel(currentMev, initialMev), sentiment: (currentMev ?? 0) >= (initialMev ?? 0) ? 'positive' as const : 'neutral' as const },
               },
               {
                 key: 'proposal',
                 noteCount: metricNoteCounts.proposalTime,
                 focus: focusedArea === 'performance',
+                anchor: { kind: 'metric' as const, key: 'proposal_time', label: 'Metric · Proposal time' },
                 block: { type: 'stat' as const, value: currentProposalTime != null ? `${compactNumber(currentProposalTime, 1)} ms` : 'N/A', label: 'Proposal time', sublabel: currentAttestation != null ? `Attestation ${percentage(currentAttestation, 1)}` : 'Consensus timing', delta: deltaLabel(currentProposalTime, initialProposalTime), sentiment: (currentProposalTime ?? Number.POSITIVE_INFINITY) <= (initialProposalTime ?? Number.POSITIVE_INFINITY) ? 'positive' as const : 'negative' as const },
               },
             ].map(card => (
-              <div
+              <button
                 key={card.key}
+                type="button"
+                onClick={() => dispatchPublishedReplayAnchorSelection(card.anchor)}
                 className={cn(
-                  'relative transition-all duration-300',
+                  'relative w-full text-left transition-all duration-300',
                   card.focus ? 'rounded-[1.15rem] ring-2 ring-accent/30 shadow-[0_16px_34px_rgba(37,99,235,0.08)]' : '',
                 )}
               >
@@ -1137,7 +1149,7 @@ export function PublishedDatasetViewer({
                   </div>
                 ) : null}
                 <StatBlock block={card.block} />
-              </div>
+              </button>
             ))}
           </div>
         </div>
