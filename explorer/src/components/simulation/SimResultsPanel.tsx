@@ -404,18 +404,18 @@ export function SimResultsPanel({
 
   return (
     <>
-      <div className="lab-stage-hero p-6 mb-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div className="lab-stage-hero p-5 mb-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <div className="lab-section-title">Exact Result Surface</div>
-            <div className="mt-3 text-2xl font-semibold tracking-tight text-text-primary sm:text-[1.9rem]">
+            <div className="mt-2 text-[1.65rem] font-semibold tracking-tight text-text-primary sm:text-[1.8rem]">
               The manifest landed. This view stays literal to what the exact run emitted.
             </div>
-            <div className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+            <div className="mt-2 max-w-2xl text-sm leading-6 text-muted">
               The explorer now upgrades itself into the results shell using the current manifest, overview bundles,
               and renderable artifacts. No paper metrics are inferred unless the exact output explicitly exports them.
             </div>
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               {paperScenarioLabels(manifest.config).map(label => (
                 <span key={label} className="lab-chip bg-white/80">
                   <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -425,58 +425,58 @@ export function SimResultsPanel({
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px]">
-            <div className="lab-option-card px-4 py-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[340px]">
+            <div className="lab-option-card px-4 py-3">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Execution mode</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">
+              <div className="mt-1.5 text-sm font-medium text-text-primary">
                 {manifest.cacheHit ? 'Exact cache hit' : 'Fresh exact execution'}
               </div>
               <div className="mt-1 text-xs text-muted">{formatNumber(manifest.runtimeSeconds, 2)}s runtime</div>
             </div>
-            <div className="lab-option-card px-4 py-4">
+            <div className="lab-option-card px-4 py-3">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Scenario</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">{describeParadigmWithAlias(manifest.config.paradigm)}</div>
+              <div className="mt-1.5 text-sm font-medium text-text-primary">{describeParadigmWithAlias(manifest.config.paradigm)}</div>
               <div className="mt-1 text-xs text-muted">{manifest.config.validators.toLocaleString()} validators · {manifest.config.slots.toLocaleString()} slots</div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mt-5 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 mt-4 xl:grid-cols-6">
           {exactMetricCards.map(card => (
-            <div key={card.key} className="lab-option-card px-4 py-4">
+            <div key={card.key} className="lab-option-card px-4 py-3">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
-              <div className="mt-2 text-xl font-semibold text-text-primary tabular-nums">
+              <div className="mt-1.5 text-lg font-semibold text-text-primary tabular-nums">
                 {card.value}
               </div>
               {card.suffix && (
                 <div className="mt-1 text-xs text-muted">{card.suffix}</div>
               )}
               {card.note && (
-                <div className="mt-2 text-[0.6875rem] leading-5 text-muted">{card.note}</div>
+                <div className="mt-1.5 text-[0.6875rem] leading-5 text-muted">{card.note}</div>
               )}
             </div>
           ))}
         </div>
       </div>
 
-      <div className="grid gap-3 mb-6 md:grid-cols-3">
-        <div className="lab-lens-card px-4 py-4">
+      <div className="grid gap-3 mb-5 md:grid-cols-3">
+        <div className="lab-lens-card px-4 py-3.5">
           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Reading mode</div>
-          <div className="mt-2 text-sm font-medium text-text-primary">Live exact experiment</div>
+          <div className="mt-1.5 text-sm font-medium text-text-primary">Live exact experiment</div>
           <div className="mt-1 text-xs leading-5 text-muted">
             This view is assembled from the current manifest and emitted artifact sidecars for one exact run.
           </div>
         </div>
-        <div className="lab-lens-card px-4 py-4">
+        <div className="lab-lens-card px-4 py-3.5">
           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Chart integrity</div>
-          <div className="mt-2 text-sm font-medium text-text-primary">Raw slot ordering preserved</div>
+          <div className="mt-1.5 text-sm font-medium text-text-primary">Raw slot ordering preserved</div>
           <div className="mt-1 text-xs leading-5 text-muted">
             Hover, preview, and pinning only change the reading posture. They do not smooth or reinterpret the emitted series.
           </div>
         </div>
-        <div className="lab-lens-card px-4 py-4">
+        <div className="lab-lens-card px-4 py-3.5">
           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparability</div>
-          <div className="mt-2 text-sm font-medium text-text-primary">{paperComparability.title}</div>
+          <div className="mt-1.5 text-sm font-medium text-text-primary">{paperComparability.title}</div>
           <div className="mt-1 text-xs leading-5 text-muted">{paperComparability.detail}</div>
         </div>
       </div>

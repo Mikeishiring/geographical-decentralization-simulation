@@ -255,13 +255,13 @@ export function SimulationLabPage({
                       published={workflow.publishedSimulationKey === workflow.simulationPublishContextKey}
                       isPublishing={workflow.publishMutation.isPending}
                       error={(workflow.publishMutation.error as Error | null)?.message ?? null}
-                      onViewPublished={workflow.publishedSimulationExplorationId && onOpenCommunityExploration
-                        ? () => onOpenCommunityExploration(workflow.publishedSimulationExplorationId)
+                      onViewPublished={workflow.publishedSimulationExplorationId != null && onOpenCommunityExploration
+                        ? () => onOpenCommunityExploration(workflow.publishedSimulationExplorationId!)
                         : onTabChange
                           ? () => onTabChange('community')
                           : undefined}
                       onPublish={payload => workflow.publishMutation.mutate({
-                        contextKey: workflow.simulationPublishContextKey,
+                        contextKey: workflow.simulationPublishContextKey!,
                         ...payload,
                       })}
                     />
