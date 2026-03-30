@@ -162,8 +162,8 @@ export function ExploreHistoryPage({
     <div className="space-y-6">
       {(onGoToFindings || onTabChange) && (
         <div className="rounded-xl border border-rule bg-white px-5 py-5">
-          <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Read, respond, share</span>
-          <div className="mt-1 text-[0.8125rem] font-medium text-text-primary">Community notes work best when they start from a canonical reading or an exact run.</div>
+          <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Read evidence, then publish</span>
+          <div className="mt-1 text-[0.8125rem] font-medium text-text-primary">Community works best when notes start from a canonical reading or an exact run, not from raw guide output.</div>
 
           <div className="mt-4 divide-y divide-rule">
             {onGoToFindings && (
@@ -174,7 +174,7 @@ export function ExploreHistoryPage({
                 <div>
                   <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper-backed reading</span>
                   <div className="mt-0.5 text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">Start in Explore</div>
-                  <div className="mt-0.5 text-xs leading-5 text-muted">Use guided readings and curated findings before turning them into a public note.</div>
+                  <div className="mt-0.5 text-xs leading-5 text-muted">Open a canonical claim or ask a bounded question before writing a public note.</div>
                 </div>
                 <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
               </button>
@@ -187,7 +187,7 @@ export function ExploreHistoryPage({
                 <div>
                   <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Exact evidence</span>
                   <div className="mt-0.5 text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">Open Results</div>
-                  <div className="mt-0.5 text-xs leading-5 text-muted">Inspect a published replay or run an exact scenario before publishing an interpretation.</div>
+                  <div className="mt-0.5 text-xs leading-5 text-muted">Read the published replay first, then run an exact scenario only when the fixed evidence is not enough.</div>
                 </div>
                 <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
               </button>
@@ -209,18 +209,18 @@ export function ExploreHistoryPage({
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="stagger-reveal grid gap-3 sm:grid-cols-3">
         <SummaryCard
           icon={<Users className="h-4 w-4 text-accent" />}
           label="Published reading notes"
           value={publishedReadingNotes.length}
-          detail="Human-framed notes that started from Findings or a saved reading."
+          detail="Reader-written notes that started from Findings or a saved paper reading."
         />
         <SummaryCard
           icon={<Sparkles className="h-4 w-4 text-warning" />}
           label="Published exact-run notes"
           value={publishedSimulationNotes.length}
-          detail="Community framing layered on top of simulation manifests and artifacts."
+          detail="Reader-written notes layered on top of exact manifests, figures, and artifacts."
         />
         <SummaryCard
           icon={<Sparkles className="h-4 w-4 text-accent-warm" />}
@@ -231,7 +231,7 @@ export function ExploreHistoryPage({
       </div>
 
       <div className="rounded-xl border border-rule bg-white px-5 py-4">
-        <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Publishing standard</span>
+        <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Community standard</span>
         <div className="mt-3 divide-y divide-rule">
           {[
             {
@@ -300,7 +300,7 @@ export function ExploreHistoryPage({
           <ContributionSection
             eyebrow="Featured"
             title="Featured contributions"
-            detail="Start here for the clearest public notes: researcher-verified or editorially surfaced readings over the evidence."
+            detail="Start here for the clearest public readings: researcher-verified or editorially surfaced notes over the evidence."
             explorations={featuredContributions}
             expandedId={expandedId}
             onToggleExpand={toggleExpand}
@@ -316,7 +316,7 @@ export function ExploreHistoryPage({
           <ContributionSection
             eyebrow="Latest"
             title="Latest published notes"
-            detail="Published readings and simulation notes that people intentionally sent to the shared surface."
+            detail="Published readings and simulation notes that people intentionally sent to the shared surface after reviewing the evidence."
             explorations={communityContributions}
             expandedId={expandedId}
             onToggleExpand={toggleExpand}

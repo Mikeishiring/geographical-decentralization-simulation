@@ -120,6 +120,7 @@ export function SimulationLabPage({
   const showPendingRunSurface = Boolean(routeState.currentJobId)
     && !manifest
     && (workflow.status === 'submitting' || workflow.status === 'queued' || workflow.status === 'running' || workflow.status === 'completed')
+  const showJobStatus = Boolean(workflow.submitMutation.isError) || (Boolean(routeState.currentJobId) && !manifest)
 
   return (
     <div>
@@ -137,33 +138,7 @@ export function SimulationLabPage({
         />
       ) : (
         <>
-          {!routeState.currentJobId ? (
-            <PrecomputedSimulationSurface
-              config={config}
-              catalogScriptUrl={routeState.researchCatalogScriptUrl}
-              viewerBaseUrl={routeState.researchViewerBaseUrl}
-            />
-          ) : null}
-
-          <ExactLabIntro
-            config={config}
-            comparabilityTitle={paperComparability.title}
-            onApplyPreset={applyPreset}
-          />
-
-          <SimConfigPanel
-            config={config}
-            onConfigChange={updateConfig}
-            onSubmit={workflow.onSubmit}
-            onReset={resetConfig}
-            isSubmitting={workflow.submitMutation.isPending}
-            canCancel={workflow.canCancel}
-            onCancel={workflow.onCancel}
-            paperScenarioLabels={paperScenarioLabels(config)}
-            paperComparability={paperComparability}
-          />
-
-          {(routeState.currentJobId || workflow.submitMutation.isError) && (
+          {showJobStatus && (
             <SimJobStatus
               status={workflow.status}
               jobData={jobQuery.data ?? null}
@@ -179,20 +154,6 @@ export function SimulationLabPage({
               config={config}
             />
           )}
-
-          <SimCopilotPanel
-            copilotQuestion={workflow.copilotQuestion}
-            onQuestionChange={workflow.setCopilotQuestion}
-            onAsk={question => workflow.copilotMutation.mutate(question)}
-            onApplyConfig={setConfig}
-            copilotResponse={workflow.copilotResponse}
-            copilotAvailable={workflow.copilotAvailable}
-            isHealthLoading={workflow.apiHealthQuery.isLoading}
-            isMutating={workflow.copilotMutation.isPending}
-            mutationError={(workflow.copilotMutation.error as Error | null) ?? null}
-            hasManifest={Boolean(manifest)}
-            promptSuggestions={workflow.copilotPromptSuggestions}
-          />
 
           {manifest && (
             <>
@@ -281,6 +242,67 @@ export function SimulationLabPage({
               )}
             </>
           )}
+
+          {!routeState.currentJobId ? (
+            <PrecomputedSimulationSurface
+              config={config}
+              catalogScriptUrl={routeState.researchCatalogScriptUrl}
+              viewerBaseUrl={routeState.researchViewerBaseUrl}
+            />
+          ) : null}
+
+          <details open={!manifest} className="mb-5 overflow-hidden rounded-[24px] border border-rule bg-[linear-gradient(180deg,rgba(248,250,252,0.82),rgba(255,255,255,0.96))]">
+            <summary className="flex cursor-pointer list-none flex-col gap-3 border-b border-rule/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="lab-section-title">Lab controls</div>
+                <div className="mt-1 text-sm font-medium text-text-primary">
+                  {manifest
+                    ? 'Adjust the scenario and rerun only when the current exact result is no longer the right comparison.'
+                    : 'Open the exact lab after reading the starter result and deciding what to vary.'}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs text-muted">
+                <span className="lab-chip bg-white/85">{config.paradigm}</span>
+                <span className="lab-chip bg-white/85">{config.validators.toLocaleString()} validators</span>
+                <span className="lab-chip bg-white/85">{config.slots.toLocaleString()} slots</span>
+                <span className="lab-chip bg-white/85">{paperComparability.title}</span>
+              </div>
+            </summary>
+
+            <div className="px-4 py-4">
+              <ExactLabIntro
+                config={config}
+                comparabilityTitle={paperComparability.title}
+                onApplyPreset={applyPreset}
+              />
+
+              <SimConfigPanel
+                config={config}
+                onConfigChange={updateConfig}
+                onSubmit={workflow.onSubmit}
+                onReset={resetConfig}
+                isSubmitting={workflow.submitMutation.isPending}
+                canCancel={workflow.canCancel}
+                onCancel={workflow.onCancel}
+                paperScenarioLabels={paperScenarioLabels(config)}
+                paperComparability={paperComparability}
+              />
+
+              <SimCopilotPanel
+                copilotQuestion={workflow.copilotQuestion}
+                onQuestionChange={workflow.setCopilotQuestion}
+                onAsk={question => workflow.copilotMutation.mutate(question)}
+                onApplyConfig={setConfig}
+                copilotResponse={workflow.copilotResponse}
+                copilotAvailable={workflow.copilotAvailable}
+                isHealthLoading={workflow.apiHealthQuery.isLoading}
+                isMutating={workflow.copilotMutation.isPending}
+                mutationError={(workflow.copilotMutation.error as Error | null) ?? null}
+                hasManifest={Boolean(manifest)}
+                promptSuggestions={workflow.copilotPromptSuggestions}
+              />
+            </div>
+          </details>
         </>
       )}
     </div>

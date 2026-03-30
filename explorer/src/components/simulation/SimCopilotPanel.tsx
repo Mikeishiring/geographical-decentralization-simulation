@@ -35,67 +35,49 @@ export function SimCopilotPanel({
   const copilotDisabled = isHealthLoading || !copilotAvailable || isMutating
   const showAssistant = assistantOpen || Boolean(copilotResponse) || Boolean(mutationError) || isMutating
   const inputClassName = 'lab-input-shell min-h-[112px] w-full resize-y rounded-[1rem] px-4 py-3 text-sm text-text-primary outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/10'
+  const availabilityText = isHealthLoading
+    ? 'Checking guide availability...'
+    : copilotAvailable
+      ? 'Optional help for comparing scenarios or explaining the current run after you read the visible evidence.'
+      : 'Guide framing is offline. Add ANTHROPIC_API_KEY to explorer/.env to enable it.'
 
-  return (
-    <div className="lab-stage p-0 mb-6">
-      <div className="lab-stage-soft m-3 p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+  if (!showAssistant) {
+    return (
+      <div className="mb-5 rounded-2xl border border-rule bg-white/88 px-4 py-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="lab-section-title">Simulation Guide</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">
-              The exact run surface stays primary. The guide is an opt-in interpretation layer.
-            </div>
+            <div className="lab-section-title">Optional guide</div>
+            <div className="mt-1 text-xs leading-5 text-muted">{availabilityText}</div>
           </div>
-          <div className="max-w-xl text-xs leading-5 text-muted">
-            It can reorganize supported charts, suggest bounded configs, and add clearly labeled framing.
-            It cannot invent metrics, replace the default result surface, or change the exact engine.
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-rule bg-white/80 px-4 py-3 text-xs leading-5 text-muted">
-          {isHealthLoading
-            ? 'Checking guide availability...'
-            : copilotAvailable
-              ? 'Guide framing is available for bounded exact-mode questions. Use it when you want help comparing scenarios, explaining a run, or reordering supported visuals.'
-              : 'Guide framing is offline. Add ANTHROPIC_API_KEY to explorer/.env to enable bounded simulation guidance.'}
-        </div>
-        <div className="mt-3 text-[0.6875rem] leading-5 text-text-faint">
-          Guide output stays inside this private run surface until you publish a separate community note in your own words.
-        </div>
-      </div>
-
-      {!showAssistant && (
-        <div className="mx-3 mb-3 flex flex-col gap-4 rounded-xl border border-rule bg-white px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Default mode</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">
-              Read the exact metadata, artifact labels, and charts first.
-            </div>
-            <div className="mt-2 max-w-2xl text-xs leading-5 text-muted">
-              Open the assistant only when you want bounded help with phrasing a run, comparing scenarios, or turning the current exact result into a more deliberate story.
-            </div>
-          </div>
-            <button
-              onClick={() => setAssistantOpen(true)}
-              disabled={!copilotAvailable && !isHealthLoading}
-              className={cn(
-                'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
-                'bg-accent text-white hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60',
-              )}
-            >
-              <Sparkles className="h-4 w-4" />
+          <button
+            onClick={() => setAssistantOpen(true)}
+            disabled={!copilotAvailable && !isHealthLoading}
+            className={cn(
+              'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
+              'bg-accent text-white hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60',
+            )}
+          >
+            <Sparkles className="h-4 w-4" />
             Open optional guide
           </button>
         </div>
-      )}
+      </div>
+    )
+  }
 
-      {showAssistant && (
-        <div className="mx-3 mb-3 rounded-xl border border-rule bg-white p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-xs text-muted">
-              {hasManifest
-                ? 'Optional layer over the current exact run.'
-                : 'Optional help for shaping a bounded exact run.'}
+  return (
+    <div className="lab-stage mb-5 p-4">
+      <div className="rounded-xl border border-rule bg-white p-5">
+        <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="lab-section-title">Simulation Guide</div>
+            <div className="mt-1 text-xs leading-5 text-muted">
+              {availabilityText}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-[0.6875rem] leading-5 text-text-faint">
+              Guide output stays private until you publish a separate note.
             </div>
             <button
               onClick={() => setAssistantOpen(false)}
@@ -104,12 +86,24 @@ export function SimCopilotPanel({
               Hide guide
             </button>
           </div>
+        </div>
+
+        <div className="rounded-xl border border-rule bg-surface-active/70 px-4 py-3 text-xs leading-5 text-muted">
+          Read the replay, manifest, or exact figures first. Then use the guide to compare scenarios, frame the next run, or summarize supported charts. It does not replace the visible evidence or invent new metrics.
+        </div>
+
+        <div className="mt-4">
+          <div className="text-xs text-muted">
+            {hasManifest
+              ? 'Secondary layer over the current exact run.'
+              : 'Secondary layer for shaping a bounded exact run.'}
+          </div>
 
           <div className="mt-4 flex flex-col gap-3 lg:flex-row">
             <div className="flex-1">
               <div className="mb-2 text-xs text-muted">
                 {hasManifest
-                  ? 'Ask about this exact run, or request the next bounded experiment.'
+                  ? 'Ask about this run only after you have read the emitted figures, or request the next bounded experiment.'
                   : 'Ask for a bounded exact run setup that stays within the paper and simulator surface.'}
               </div>
               <textarea
@@ -138,7 +132,7 @@ export function SimCopilotPanel({
                   ? 'Checking...'
                   : isMutating
                     ? 'Thinking...'
-                    : 'Draft guidance'}
+                    : 'Draft guide reading'}
               </button>
 
               {copilotResponse?.proposedConfig && (
@@ -249,7 +243,7 @@ export function SimCopilotPanel({
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

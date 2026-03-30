@@ -88,7 +88,7 @@ export function ExactSimulationAnalyticsPanel({
       {exactAnalyticsPayload ? (
         <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-xl border border-accent/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.92))] px-4 py-3 xl:col-span-2">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">How to read this desk</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">How to read this desk</div>
             <div className="mt-1 text-sm font-medium text-text-primary">
               Treat the exact run like a publication artifact: evidence first, comparison second, takeaway last.
             </div>
@@ -115,8 +115,8 @@ export function ExactSimulationAnalyticsPanel({
             </div>
           </div>
 
-          <div className="rounded-xl border border-border-subtle bg-white px-4 py-3">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Named dashboards</div>
+          <div className="rounded-xl border border-rule bg-white px-4 py-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Named dashboards</div>
             <div className="mt-1 text-xs leading-5 text-muted">
               These are reusable dashboard reads over the same exact-run payload, so you can move between stable analysis postures instead of rebuilding the query each time.
             </div>
@@ -141,8 +141,8 @@ export function ExactSimulationAnalyticsPanel({
                     className={cn(
                       'rounded-xl border px-3 py-2.5 transition-colors',
                       presetActive
-                        ? 'border-accent bg-[#FAFAF8]'
-                        : 'border-border-subtle bg-white',
+                        ? 'border-accent bg-surface-active'
+                        : 'border-rule bg-white',
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -151,7 +151,7 @@ export function ExactSimulationAnalyticsPanel({
                         <div className="mt-1 text-xs leading-5 text-muted">{preset.note}</div>
                       </div>
                       {presetActive ? (
-                        <span className="rounded-full bg-accent px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white">
+                        <span className="rounded-full bg-accent px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-white">
                           Live
                         </span>
                       ) : null}
@@ -163,14 +163,14 @@ export function ExactSimulationAnalyticsPanel({
                           onAnalyticsMetricChange(preset.analyticsMetric)
                           onAnalyticsCompareModeChange(preset.analyticsCompareMode)
                         }}
-                        className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                        className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                       >
                         Open dashboard
                       </button>
                       <button
                         onClick={() => onCopyShareUrl(presetUrl)}
                         disabled={!presetUrl}
-                        className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         Copy link
                       </button>
@@ -229,8 +229,8 @@ export function ExactSimulationAnalyticsPanel({
             </div>
           </div>
 
-          <div className="rounded-xl border border-border-subtle bg-white px-4 py-3 xl:col-span-2">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Published foil</div>
+          <div className="rounded-xl border border-rule bg-white px-4 py-3 xl:col-span-2">
+            <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Published foil</div>
             <div className="mt-1 text-sm font-medium text-text-primary">
               {selectedComparisonDataset ? formatPublishedDatasetLabel(selectedComparisonDataset) : 'No published scenario selected'}
             </div>
