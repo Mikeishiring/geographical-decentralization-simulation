@@ -85,6 +85,21 @@ class EthereumRawModel(Model):
         self.attestation_rate = 0.0  # Calculated as a percentage
         self.failed_block_proposals = 0  # Count of failed block proposals
         self.region_profits = []
+        self.current_proposer_agent = None
+        self.current_attesters = []
+        self.current_attester_regions = ()
+        self.required_attesters_for_supermajority = 0
+        self.slot_model_history = []
+        self.slot_proposer_history = []
+        self.slot_mev_by_slot = []
+        self.slot_estimated_mev_by_slot = []
+        self.slot_attest_by_slot = []
+        self.slot_proposal_time_by_slot = []
+        self.slot_proposal_time_avg = []
+        self.slot_attestation_sum = []
+        self.slot_region_counter_per_slot = {}
+        self.top_regions_final = []
+        self.validator_step_order = []
         self.region_counter_per_slot = {}
         self.minimal_needed_time_cache = {}
 
@@ -116,6 +131,79 @@ class EthereumRawModel(Model):
         )
 
 
+    def _record_slot_history(self):
+        """Capture slot-level series used by the exact-run worker exports."""
+        if self.current_slot_idx < 0:
+            return
+
+        completed_slots = self.current_slot_idx + 1
+        self.slot_model_history.append(
+            {
+                "Average_MEV_Earned": (
+                    self.total_mev_earned / completed_slots if completed_slots > 0 else 0.0
+                ),
+                "Supermajority_Success_Rate": (
+                    (self.supermajority_met_slots / completed_slots) * 100
+                    if completed_slots > 0
+                    else 0.0
+                ),
+                "Failed_Block_Proposals": self.failed_block_proposals,
+                "Utility_Increase": (
+                    self.current_proposer_agent.estimated_profit_increase
+                    if self.current_proposer_agent
+                    else 0.0
+                ),
+            }
+        )
+
+        mev_by_slot = []
+        estimated_mev_by_slot = []
+        attest_by_slot = []
+        proposal_time_by_slot = []
+        proposal_time_positive_values = []
+        attestation_sum = 0.0
+        region_counts = Counter()
+
+        for validator in self.validator_step_order:
+            mev_by_slot.append(validator.mev_captured)
+            estimated_mev_by_slot.append(validator.estimated_profit)
+            attest_by_slot.append(validator.attestation_rate)
+            proposal_time_by_slot.append(validator.proposed_time_ms)
+
+            if validator.proposed_time_ms > 0:
+                proposal_time_positive_values.append(validator.proposed_time_ms)
+
+            attestation_sum += validator.attestation_rate
+            region_counts[validator.gcp_region] += 1
+
+        self.slot_mev_by_slot.append(mev_by_slot)
+        self.slot_estimated_mev_by_slot.append(estimated_mev_by_slot)
+        self.slot_attest_by_slot.append(attest_by_slot)
+        self.slot_proposal_time_by_slot.append(proposal_time_by_slot)
+        self.slot_proposal_time_avg.append(
+            (sum(proposal_time_positive_values) / len(proposal_time_positive_values))
+            if proposal_time_positive_values
+            else 0.0
+        )
+        self.slot_attestation_sum.append(attestation_sum)
+        top_regions = region_counts.most_common()
+        self.slot_region_counter_per_slot[self.current_slot_idx] = top_regions
+        self.top_regions_final = top_regions
+
+        if self.current_proposer_agent:
+            self.slot_proposer_history.append(
+                {
+                    "Slot": self.current_slot_idx,
+                    "Location_Strategy": (
+                        self.current_proposer_agent.location_strategy["type"]
+                        if self.current_proposer_agent.location_strategy
+                        else "none"
+                    ),
+                    "MEV_Captured_Slot": self.current_proposer_agent.mev_captured,
+                }
+            )
+
+
     def _record_region_counter_for_slot(self):
         """Capture the final validator region distribution for the current slot."""
         region_counts = Counter(validator.gcp_region for validator in self.validators)
@@ -138,6 +226,9 @@ class EthereumRawModel(Model):
         available_validators = [v for v in self.validators if not v.is_migrating]
         if not available_validators:
             self.current_proposer_agent = None  # No proposer this slot
+            self.current_attesters = []
+            self.current_attester_regions = ()
+            self.required_attesters_for_supermajority = 0
             return
 
         # Randomly select a Proposer from available validators
@@ -148,6 +239,13 @@ class EthereumRawModel(Model):
             for v in available_validators
             if v.unique_id != self.current_proposer_agent.unique_id
         ]
+        self.current_attester_regions = tuple(
+            attester.gcp_region for attester in self.current_attesters
+        )
+        self.required_attesters_for_supermajority = math.ceil(
+            self.consensus_settings.attestation_threshold
+            * len(self.current_attesters)
+        )
         for attester in self.current_attesters:
             attester.set_attester_role()
         # Set the Proposer's role and prepare for the slot
@@ -242,7 +340,7 @@ class EthereumRawModel(Model):
                 )
                 self.total_successful_attestations += slot_successful_attestations
 
-            self._record_region_counter_for_slot()
+            self._record_slot_history()
 
             # Collect data after all agents have acted in this step
             self.datacollector.collect(self)
@@ -314,6 +412,7 @@ class EthereumRawModel(Model):
         # Find all validators after they have been created and assigned positions
         self.validators = self.agents.select(agent_type=ValidatorAgent)
         self.update_validator_profiles()
+        self.validator_step_order = list(self.validators)
         
         # Set validator type and preferences
         self.validators = list(self.validators)  # Convert to list for shuffling
