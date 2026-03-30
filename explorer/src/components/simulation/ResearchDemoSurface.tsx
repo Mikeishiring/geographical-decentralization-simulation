@@ -489,7 +489,7 @@ export function ResearchDemoSurface({
             <div className="lab-selection-card px-4 py-3">
               <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Result file</div>
               <div className="mt-2 text-sm font-medium text-text-primary">{selectedDataset?.result ?? 'N/A'}</div>
-              <div className="mt-1 text-xs text-muted">Frozen published payload choice</div>
+              <div className="mt-1 text-xs text-muted">Frozen published payload path</div>
             </div>
             <div className="lab-selection-card px-4 py-3">
               <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Dataset path</div>
