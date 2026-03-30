@@ -3314,87 +3314,6 @@ export function ResearchDemoSurface({
               </div>
 
               <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">Actions</div>
-                <div className="text-sm text-text-primary">
-                  Stay in the embedded preview by default. Drop into standalone or raw artifacts only when the workflow calls for it.
-                </div>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <button
-                    onClick={handleFocusViewer}
-                    disabled={!selectedDataset}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Jump to live preview
-                  </button>
-                  <button
-                    onClick={handleLaunchViewer}
-                    disabled={!selectedDataset}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Open standalone viewer →
-                  </button>
-                  <a
-                    href={datasetUrl ?? undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={cn(
-                      'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
-                      !datasetUrl && 'pointer-events-none opacity-60',
-                    )}
-                  >
-                    Download data.json
-                  </a>
-                  <button
-                    onClick={() => setShowConfig(current => !current)}
-                    disabled={!selectionConfig}
-                    className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {showConfig ? 'Hide config' : 'View config'}
-                  </button>
-                  <a
-                    href={sourceUrl ?? undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={cn(
-                      'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
-                      !sourceUrl && 'pointer-events-none opacity-60',
-                    )}
-                  >
-                    View source
-                  </a>
-                  <a
-                    href={`${viewerBaseUrl}/`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover sm:col-span-2"
-                  >
-                    Open Original Published Launcher
-                  </a>
-                </div>
-
-                {showConfig && selectionConfig && (
-                  <div className="mt-4 rounded-xl border border-rule bg-surface-active p-4">
-                    <div className="text-xs text-muted mb-2">Selection config</div>
-                    <pre className="overflow-x-auto text-xs text-text-primary">{selectionConfig}</pre>
-                  </div>
-                )}
-              </div>
-
-              <div className="lab-stage p-5">
-                <div className="text-xs text-muted mb-1">{activeAudienceBrief.title}</div>
-                <div className="text-sm text-text-primary">
-                  {activeAudienceBrief.summary}
-                </div>
-                <div className="mt-4 space-y-3">
-                  {activeAudienceBrief.items.map(item => (
-                    <div key={item} className="rounded-xl border border-rule bg-white px-4 py-4 text-sm leading-6 text-text-primary">
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="lab-stage p-5">
                 <div className="text-xs text-muted mb-1">Paper note rail</div>
                 <div className="text-sm text-text-primary">
                   These notes change with the selected scenario and lens, so the surrounding paper can stay synchronized with the evidence surface.
@@ -3408,6 +3327,80 @@ export function ResearchDemoSurface({
                   ))}
                 </div>
               </div>
+
+              <details className="lab-stage">
+                <summary className="cursor-pointer px-5 py-4 text-xs text-muted select-none transition-colors hover:text-text-primary [&::-webkit-details-marker]:hidden list-none">
+                  <span className="flex items-center gap-2">
+                    <span className="text-xs text-muted">Actions &amp; raw artifacts</span>
+                    <span className="text-[0.625rem] text-text-faint">▸</span>
+                  </span>
+                </summary>
+                <div className="border-t border-rule px-5 pb-5 pt-4">
+                  <div className="text-sm text-text-primary mb-4">
+                    Stay in the embedded preview by default. Drop into standalone or raw artifacts only when the workflow calls for it.
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      onClick={handleFocusViewer}
+                      disabled={!selectedDataset}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Jump to live preview
+                    </button>
+                    <button
+                      onClick={handleLaunchViewer}
+                      disabled={!selectedDataset}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Open standalone viewer →
+                    </button>
+                    <a
+                      href={datasetUrl ?? undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={cn(
+                        'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
+                        !datasetUrl && 'pointer-events-none opacity-60',
+                      )}
+                    >
+                      Download data.json
+                    </a>
+                    <button
+                      onClick={() => setShowConfig(current => !current)}
+                      disabled={!selectionConfig}
+                      className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {showConfig ? 'Hide config' : 'View config'}
+                    </button>
+                    <a
+                      href={sourceUrl ?? undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={cn(
+                        'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
+                        !sourceUrl && 'pointer-events-none opacity-60',
+                      )}
+                    >
+                      View source
+                    </a>
+                    <a
+                      href={`${viewerBaseUrl}/`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover sm:col-span-2"
+                    >
+                      Open Original Published Launcher
+                    </a>
+                  </div>
+
+                  {showConfig && selectionConfig && (
+                    <div className="mt-4 rounded-xl border border-rule bg-surface-active p-4">
+                      <div className="text-xs text-muted mb-2">Selection config</div>
+                      <pre className="overflow-x-auto text-xs text-text-primary">{selectionConfig}</pre>
+                    </div>
+                  )}
+                </div>
+              </details>
             </div>
           </div>
         </div>
