@@ -2,14 +2,13 @@ import math
 
 from enum import Enum
 from mesa import Agent
+from multiprocessing import cpu_count
+from concurrent.futures import ThreadPoolExecutor
 
 from constants import (
     BASE_NETWORK_LATENCY_MS,
 )
-from distribution import (
-    find_min_threshold_prepared,
-    prepare_threshold_evaluation_inputs,
-)
+from distribution import find_min_threshold_fast
 from source_agent import RelayType
 
 # --- Validator Agent Class Definition ---
@@ -146,12 +145,6 @@ class RawValidatorAgent(Agent):
         self.role = "attester"
 
 
-    def _get_latency_executor(self, job_count):
-        # The exact-mode threshold path is CPU-bound enough that Python thread-pool
-        # management costs dominate on the measured local workloads.
-        return None
-
-
     # --- Migration Methods ---
     def how_to_migrate(self):
         pass
@@ -171,95 +164,46 @@ class RawValidatorAgent(Agent):
 
     def calculate_minimal_needed_time_params(self, gcp_region):
         """Calculates the latency threshold for the Proposer based on its timing strategy."""
-        cache_key = (gcp_region, self.model.fast_mode)
-        if cache_key in self.model.slot_latency_params_cache:
-            return self.model.slot_latency_params_cache[cache_key]
-
         if self.timing_strategy["type"] == "optimal_latency":
-            to_attester_latency = self.model.slot_sorted_attester_latencies.get(
-                gcp_region, ()
-            )
-            required_attesters_for_supermajority = (
-                self.model.required_attesters_for_supermajority
+            to_attester_latency = [
+                self.model.gcp_latency_model.get_latency(gcp_region, a.gcp_region)
+                for a in self.model.current_attesters
+            ]
+            # Sort latencies for threshold calculation
+            to_attester_latency.sort()
+
+            required_attesters_for_supermajority = math.ceil(
+                (self.model.consensus_settings.attestation_threshold)
+                * len(self.model.current_attesters)
             )
 
             # In fast mode, return a simplified estimate
             if self.model.fast_mode:
-                params = (
+                return (
                     to_attester_latency,
                     required_attesters_for_supermajority,
                 )
             else:
-                prepared_inputs = prepare_threshold_evaluation_inputs(
-                    to_attester_latency,
-                    self.model.slot_attester_std_ratios,
-                )
-                params = (
-                    prepared_inputs,
+                return (
+                    tuple(to_attester_latency),
+                    tuple([0.5] * len(self.model.current_attesters)),
                     required_attesters_for_supermajority,
                     0.99,
                     0.0,
                     self.model.consensus_settings.attestation_time_ms,
                     1.0
                 )
-
-            self.model.slot_latency_params_cache[cache_key] = params
-            return params
     
 
     def calculate_minimal_needed_time(self, gcp_region):
-        if gcp_region in self.model.slot_minimal_needed_time_cache:
-            return self.model.slot_minimal_needed_time_cache[gcp_region]
-
         params = self.calculate_minimal_needed_time_params(gcp_region)
         if self.model.fast_mode:
             to_attester_latency, required_attesters_for_supermajority = params
-            if not to_attester_latency:
-                minimal_needed_time = 0.0
-            else:
-                minimal_needed_time = to_attester_latency[
-                    max(required_attesters_for_supermajority - 1, 0)
-                ]
+            return to_attester_latency[required_attesters_for_supermajority]
         else:
-            minimal_needed_time = find_min_threshold_prepared(
+            return find_min_threshold_fast(
                 *params
             )
-
-        self.model.slot_minimal_needed_time_cache[gcp_region] = minimal_needed_time
-        return minimal_needed_time
-
-
-    def calculate_minimal_needed_times(self, gcp_regions):
-        unique_regions = list(dict.fromkeys(gcp_regions))
-        uncached_regions = [
-            gcp_region
-            for gcp_region in unique_regions
-            if gcp_region not in self.model.slot_minimal_needed_time_cache
-        ]
-
-        if uncached_regions:
-            if self.model.fast_mode:
-                for gcp_region in uncached_regions:
-                    self.calculate_minimal_needed_time(gcp_region)
-            else:
-                region_params = [
-                    (gcp_region, self.calculate_minimal_needed_time_params(gcp_region))
-                    for gcp_region in uncached_regions
-                ]
-                minimal_needed_times = [
-                    find_min_threshold_prepared(*params)
-                    for _, params in region_params
-                ]
-
-                for (gcp_region, _), minimal_needed_time in zip(
-                    region_params, minimal_needed_times
-                ):
-                    self.model.slot_minimal_needed_time_cache[gcp_region] = minimal_needed_time
-
-        return [
-            (gcp_region, self.model.slot_minimal_needed_time_cache[gcp_region])
-            for gcp_region in gcp_regions
-        ]
 
 
     # dummy method for now, we complete migration immediately
@@ -301,16 +245,25 @@ class MSPValidator(RawValidatorAgent):
 
     def simulation_with_signals(self):
         simulation_results = []
-        candidate_regions = self.model.all_gcp_regions
-        time_simulations = self.calculate_minimal_needed_times(candidate_regions)
+        time_simulations = []
+        region_data = [self.calculate_minimal_needed_time_params(gcp_region) for gcp_region in self.model.gcp_latency_model.gcp_regions["Region"].values]
+        if self.model.fast_mode:
+            for gcp_region, params in zip(self.model.gcp_latency_model.gcp_regions["Region"].values, region_data):
+                to_attester_latency, required_attesters_for_supermajority = params
+                idx = max(0, required_attesters_for_supermajority - 1)
+                time_simulations.append((gcp_region, to_attester_latency[idx],))
+        else:
+            thread_number = min(10, cpu_count(), len(self.model.gcp_latency_model.gcp_regions))
+            with ThreadPoolExecutor(max_workers=thread_number) as ex:
+                time_simulations = list(ex.map(lambda p: find_min_threshold_fast(*p), region_data))
+            time_simulations = list(zip(self.model.gcp_latency_model.gcp_regions["Region"].values, time_simulations))
 
         for gcp_region, required_time in time_simulations:
             base_threshold = self.model.consensus_settings.attestation_time_ms - required_time
 
             mev_offer = 0.0
-            signal_latency_map = self.model.signal_latency_by_region[gcp_region]
             for signal_agent in self.model.signal_agents:
-                to_signal_latency = signal_latency_map[signal_agent.unique_id]
+                to_signal_latency = self.model.gcp_latency_model.get_latency(gcp_region, signal_agent.gcp_region)
                 latency_threshold = base_threshold - to_signal_latency
                 mev_offer += signal_agent.get_mev_offer_at_time(latency_threshold)
 
@@ -337,15 +290,14 @@ class MSPValidator(RawValidatorAgent):
         simulation_results.sort(key=lambda x: (
             -x["mev_offer"],
             0 if x["gcp_region"] == self.gcp_region else 1,
-            x["latency_threshold"],
-            x["gcp_region"],
+            x["latency_threshold"]
         ))
 
 
         for i in simulation_results:
             i["slot"] = self.model.current_slot_idx
         
-        self.model.region_profits.extend(simulation_results)
+        self.model.region_profits += simulation_results
 
         return simulation_results[0]
     
@@ -368,8 +320,7 @@ class MSPValidator(RawValidatorAgent):
         elif self.location_strategy["type"] == "best_relay":
             simulation_result = self.how_to_migrate()
 
-            if self.model.verbose:
-                print(f"current: {self.gcp_region}, target: {simulation_result['gcp_region']}, estimated profit: {self.estimated_profit}, target profit: {simulation_result['mev_offer']}, latency threshold: {simulation_result['latency_threshold']}")
+            print(f"current: {self.gcp_region}, target: {simulation_result['gcp_region']}, estimated profit: {self.estimated_profit}, target profit: {simulation_result['mev_offer']}, latency threshold: {simulation_result['latency_threshold']}")
 
             # No migration needed if already at the best relay
             if simulation_result["gcp_region"] == self.gcp_region:
@@ -408,10 +359,11 @@ class MSPValidator(RawValidatorAgent):
                 + self.model.consensus_settings.time_granularity_ms
                 > self.required_time_ms
             ):
-                signal_latency_map = self.model.signal_latency_by_region[self.gcp_region]
                 mev_offer = 0.0
                 for signal_agent in self.model.signal_agents:
-                    to_signal_latency = signal_latency_map[signal_agent.unique_id]
+                    to_signal_latency = self.model.gcp_latency_model.get_latency(
+                        self.gcp_region, signal_agent.gcp_region
+                    )
                     latency_threshold = (
                         self.required_time_ms
                         - to_signal_latency
@@ -445,10 +397,10 @@ class MSPValidator(RawValidatorAgent):
         """
         if self.has_attested:  # Already attested or migrating, cannot act
             return
-
+        
         if proposer_id in self.attested_to_blocks:
             return
-
+        
 
         # TODO: We should also account for how other attesters behave
         # i.e., an attester should not attest if it knows that the block is not getting enough attestations
@@ -472,12 +424,12 @@ class MSPValidator(RawValidatorAgent):
     def make_attestation(self, current_slot_time_ms_inner):
         # Attesters need to know the proposer's block proposed time and their latency to the relay
         proposers = self.model.get_current_proposer_agents()
-        if not proposers:
+        if not proposers: 
             return
 
         if current_slot_time_ms_inner <= self.model.consensus_settings.attestation_time_ms:
             return
-
+        
         if self.has_attested:
             return
 
@@ -490,17 +442,9 @@ class MSPValidator(RawValidatorAgent):
             self.decide_and_attest(
                 proposer.unique_id,
                 proposer.proposed_time_ms,
-                self.model.latency_generator.get_latency(
-                    to_attester_latency,
-                    self.model.latency_std_dev_ratio,
-                )
+                self.model.latency_generator.get_latency(to_attester_latency, 0.5)
             )
 
-        if len(proposers) == 1:
-            self.attested_to_proposer_block = self.attested_to_blocks.get(
-                proposers[0].unique_id,
-                False,
-            )
         self.has_attested = True
 
 class MCPValidator(MSPValidator):
@@ -536,8 +480,22 @@ class MCPValidator(MSPValidator):
 
     def simulation_with_signals(self, signal_user_counts, update_state=True, marginal=True):
         simulation_results = []
-        candidate_regions = self.model.all_gcp_regions
-        time_simulations = self.calculate_minimal_needed_times(candidate_regions)
+        time_simulations = []
+        region_data = [
+            self.calculate_minimal_needed_time_params(gcp_region)
+            for gcp_region in self.model.gcp_latency_model.gcp_regions["Region"].values
+        ]
+
+        if self.model.fast_mode:
+            for gcp_region, params in zip(self.model.gcp_latency_model.gcp_regions["Region"].values, region_data):
+                to_attester_latency, required_attesters_for_supermajority = params
+                idx = max(0, required_attesters_for_supermajority - 1)
+                time_simulations.append((gcp_region, to_attester_latency[idx],))
+        else:
+            thread_number = min(10, cpu_count(), len(self.model.gcp_latency_model.gcp_regions))
+            with ThreadPoolExecutor(max_workers=thread_number) as ex:
+                time_simulations = list(ex.map(lambda p: find_min_threshold_fast(*p), region_data))
+            time_simulations = list(zip(self.model.gcp_latency_model.gcp_regions["Region"].values, time_simulations))
 
         for gcp_region, required_time in time_simulations:
             base_threshold = self.model.consensus_settings.attestation_time_ms - required_time
@@ -581,7 +539,7 @@ class MCPValidator(MSPValidator):
             self.assigned_signal_id = None
 
         return simulation_results
-
+    
     def assign_best_signal_and_commit(self, signal_user_counts):
         '''
         Assigns the best signal to this validator in its current region and updates the user counts.
@@ -688,22 +646,18 @@ class SSPValidator(RawValidatorAgent):
         self.target_relay = None  # The relay this proposer targets
         self.relay_id = None
         self.network_latency_to_target = {}  # Latency to each relay
-        self.network_latency_region = None
         self.latency_threshold = -1 
 
 
     # utility functions for MEV-Boost related operations    
     def set_latency_to_relays(self):
-        if (
-            self.network_latency_region == self.gcp_region
-            and self.network_latency_to_target
-        ):
-            return
-
-        self.network_latency_to_target = dict(
-            self.model.relay_latency_by_region[self.gcp_region]
-        )
-        self.network_latency_region = self.gcp_region
+        self.network_latency_to_target = {}
+        for relay_agent in self.model.relay_agents:
+            self.network_latency_to_target[relay_agent.unique_id] = (
+                self.model.gcp_latency_model.get_latency(
+                    self.gcp_region, relay_agent.gcp_region
+                )
+            )
 
 
     def set_proposer_role(self):
@@ -737,21 +691,10 @@ class SSPValidator(RawValidatorAgent):
         Proposer queries all relays for their current MEV offers.
         Returns the best MEV offer from all relays.
         """
-        best_offer = 0.0
-        best_relay_id = None
-        for relay_agent in relay_agents:
-            if (
-                self.preference == ValidatorPreference.COMPLIANT
-                and relay_agent.type != RelayType.CENSORING
-            ):
-                continue
-
-            mev_offer = relay_agent.get_mev_offer_at_time(current_time)
-            if best_relay_id is None or mev_offer > best_offer:
-                best_offer = mev_offer
-                best_relay_id = relay_agent.unique_id
-
-        return best_offer, best_relay_id
+        mev_offers = self.get_mev_offer_from_relays(current_time, relay_agents)
+        if len(mev_offers) == 0:
+            return 0.0, None
+        return max(mev_offers, key=lambda x: x[0])
   
         
     def set_latency_threshold(self, target_relay=None, relay_latency=None):
@@ -769,13 +712,23 @@ class SSPValidator(RawValidatorAgent):
     
     def simulation_with_relays(self):
         simulation_results = []
-        if self.preference == ValidatorPreference.NONCOMPLIANT:
-            target_relays = self.model.relay_agents
-        else:
-            target_relays = self.model.censoring_relays
+        time_simulations = []
+        
+        relay_regions = set([r.gcp_region for r in self.model.relay_agents])
+        other_regions = set(self.model.gcp_latency_model.gcp_regions["Region"].values) - relay_regions
+
+        target_relays = [relay_agent for relay_agent in self.model.relay_agents if (self.preference == ValidatorPreference.NONCOMPLIANT or relay_agent.type == RelayType.CENSORING)]
         target_gcp_regions = [r.gcp_region for r in target_relays]
-        minimal_needed_times = self.calculate_minimal_needed_times(target_gcp_regions)
-        time_simulations = list(zip(target_relays, [required_time for _, required_time in minimal_needed_times]))
+        region_data = [self.calculate_minimal_needed_time_params(gcp_region) for gcp_region in target_gcp_regions]
+        if self.model.fast_mode:
+            for target_relay, params in zip(target_relays, region_data):
+                to_attester_latency, required_attesters_for_supermajority = params
+                time_simulations.append((target_relay, to_attester_latency[required_attesters_for_supermajority],))
+        else:
+            thread_number = min(10, cpu_count(), len(self.model.gcp_latency_model.gcp_regions))
+            with ThreadPoolExecutor(max_workers=thread_number) as ex:
+                time_simulations = list(ex.map(lambda p: find_min_threshold_fast(*p), region_data))
+            time_simulations = list(zip(target_relays, time_simulations)) 
 
         for target_relay, minimal_needed_time in time_simulations:
             latency_threshold = (
@@ -791,10 +744,8 @@ class SSPValidator(RawValidatorAgent):
                 }
             )
 
-            for region in self.model.other_gcp_regions:
-                region_to_relay_latency = self.model.relay_latency_by_region[region][
-                    target_relay.unique_id
-                ]
+            for region in other_regions:
+                region_to_relay_latency = self.model.gcp_latency_model.get_latency(region, target_relay.gcp_region)
                 new_latency_threshold = latency_threshold - region_to_relay_latency
                 mev_offer = target_relay.get_mev_offer_at_time(new_latency_threshold)
                 simulation_results.append(
@@ -807,14 +758,7 @@ class SSPValidator(RawValidatorAgent):
                 )
 
         sub_results = [result for result in simulation_results if result["gcp_region"] == self.gcp_region]
-        sub_results.sort(
-            key=lambda x: (
-                -x["mev_offer"],
-                x["latency_threshold"],
-                x["gcp_region"],
-                x["relay"].unique_id,
-            )
-        )
+        sub_results.sort(key=lambda x: (-x["mev_offer"], x["latency_threshold"]))
         self.estimated_profit = sub_results[0]["mev_offer"]
         self.target_relay = sub_results[0]["relay"]
 
@@ -830,20 +774,12 @@ class SSPValidator(RawValidatorAgent):
         simulation_results.sort(key=lambda x: (
             -x["mev_offer"],
             0 if x["gcp_region"] == self.gcp_region else 1,
-            x["latency_threshold"],
-            x["gcp_region"],
-            x["relay"].unique_id)
+            x["latency_threshold"])
         )
 
         for i in simulation_results:
             i["slot"] = self.model.current_slot_idx
-        self.model.region_profits.extend([
-            {
-                key: (value.unique_id if key == "relay" else value)
-                for key, value in result.items()
-            }
-            for result in simulation_results
-        ])
+        self.model.region_profits += simulation_results
 
         return simulation_results[0]
 
@@ -868,8 +804,7 @@ class SSPValidator(RawValidatorAgent):
        
         elif self.location_strategy["type"] == "best_relay":
             simulation_result = self.how_to_migrate()
-            if self.model.verbose:
-                print(f"current: {self.gcp_region}, target: {simulation_result['gcp_region']}, estimated profit: {self.estimated_profit}, target profit: {simulation_result['mev_offer']}, latency threshold: {simulation_result['latency_threshold']}")
+            print(f"current: {self.gcp_region}, target: {simulation_result['gcp_region']}, estimated profit: {self.estimated_profit}, target profit: {simulation_result['mev_offer']}, latency threshold: {simulation_result['latency_threshold']}")
 
             if simulation_result["gcp_region"] == self.gcp_region:
                 return False, "utility_not_improved"
@@ -885,13 +820,11 @@ class SSPValidator(RawValidatorAgent):
                 target_gcp_region = simulation_result["gcp_region"]
                 self.target_relay = simulation_result["relay"]
 
-                if self.model.verbose:
-                    print(
-                        f"Validator {self.unique_id} (at {self.gcp_region}) considering migration to Relay {self.target_relay.unique_id}  with MEV offer {simulation_result['mev_offer']:.4f} ETH and latency threshold {simulation_result['latency_threshold']} ms"
-                    )
+                print(
+                    f"Validator {self.unique_id} (at {self.gcp_region}) considering migration to Relay {self.target_relay.unique_id}  with MEV offer {simulation_result['mev_offer']:.4f} ETH and latency threshold {simulation_result['latency_threshold']} ms"
+                )
                 if self.gcp_region != target_gcp_region:
-                    if self.model.verbose:
-                        print(f"  Deciding to migrate ({self.target_relay.unique_id}).")
+                    print(f"  Deciding to migrate ({self.target_relay.unique_id}).")
                     self.do_migration(target_gcp_region)
                     return True, "utility_improved"
 
@@ -915,6 +848,10 @@ class SSPValidator(RawValidatorAgent):
         # Q: We may need to reconsider this wrt the latency to the relay.
         # we can just say the marginal value of time is known hence everyone can compute it for themselves
         # therefore no need to query the relay
+        mev_offer, relay_id = self.get_best_mev_offer_from_relays(
+            current_slot_time_ms_inner, relay_agents
+        )
+
         if self.timing_strategy["type"] == "fixed_delay":
             if current_slot_time_ms_inner >= self.timing_strategy["delay_ms"]:
                 mev_offer, relay_id = self.get_best_mev_offer_from_relays(
@@ -923,9 +860,6 @@ class SSPValidator(RawValidatorAgent):
 
                 return True, mev_offer, relay_id, self.timing_strategy["delay_ms"]
         elif self.timing_strategy["type"] == "threshold_and_max_delay":
-            mev_offer, relay_id = self.get_best_mev_offer_from_relays(
-                current_slot_time_ms_inner, relay_agents
-            )
             if (
                 mev_offer >= self.timing_strategy["mev_threshold"]
                 or current_slot_time_ms_inner >= self.timing_strategy["max_delay_ms"]
@@ -944,7 +878,9 @@ class SSPValidator(RawValidatorAgent):
         ):  # The proposer knows its latency is optimized
             if self.latency_threshold == -1:
                 # Calculate the latency threshold for optimal latency strategy
-                to_relay_latency = self.network_latency_to_target[self.target_relay.unique_id]
+                to_relay_latency = self.model.gcp_latency_model.get_latency(
+                    self.gcp_region, self.target_relay.gcp_region
+                )
                 self.set_latency_threshold(self.target_relay, to_relay_latency)
             if (
                 current_slot_time_ms_inner <= self.latency_threshold
@@ -1022,22 +958,7 @@ class SSPValidator(RawValidatorAgent):
 
 
     def make_attestation(self, current_slot_time_ms_inner):
-        if self.has_attested:
-            return
-
-        if current_slot_time_ms_inner <= self.model.consensus_settings.attestation_time_ms:
-            return
-
         proposer_agent = self.model.get_current_proposer_agent()
-        if (
-            proposer_agent is None
-            or proposer_agent.proposed_time_ms == -1
-            or proposer_agent.relay_id is None
-        ):
-            self.attested_to_proposer_block = False
-            self.has_attested = True
-            return
-
         proposer_to_relay_latency = (
             proposer_agent.network_latency_to_target[proposer_agent.relay_id]
             if proposer_agent and proposer_agent.relay_id
@@ -1054,8 +975,5 @@ class SSPValidator(RawValidatorAgent):
                 current_slot_time_ms_inner,
                 proposer_agent.proposed_time_ms,
                 proposer_to_relay_latency,
-                self.model.latency_generator.get_latency(
-                    avg_latency_to_relay,
-                    self.model.latency_std_dev_ratio,
-                ),
+                self.model.latency_generator.get_latency(avg_latency_to_relay, 0.5),
             )
