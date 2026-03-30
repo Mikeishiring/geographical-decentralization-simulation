@@ -426,7 +426,6 @@ export function FindingsPage({
       </div>
 
       {/* Topic cards — go deeper into specific findings */}
-      {/* Topic cards — go deeper into specific findings */}
       <div className="mb-8">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-xs text-muted">
