@@ -3,9 +3,23 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL
   : '/api'
 
 export type PublishedReplayNoteIntent = 'observation' | 'question' | 'theory' | 'methods'
-export type PublishedReplayNoteStatus = 'open' | 'resolved'
+export type PublishedReplayNoteStatus =
+  | 'open_question'
+  | 'needs_evidence'
+  | 'challenged'
+  | 'supported'
+  | 'author_addressed'
 export type PublishedReplayPaperLens = 'evidence' | 'theory' | 'methods'
 export type PublishedReplayAudienceMode = 'reader' | 'reviewer' | 'researcher'
+export type PublishedReplayContributionType = 'claim' | 'question' | 'evidence' | 'counterpoint' | 'method_concern'
+export type PublishedReplayCommunityLane = 'author' | 'reviewer' | 'community'
+export type PublishedReplayAnnotationScope =
+  | 'exact_slot'
+  | 'time_range'
+  | 'trend'
+  | 'comparison_gap'
+  | 'paper_claim'
+  | 'region_over_time'
 
 export interface PublishedReplayNoteReply {
   readonly id: string
@@ -27,6 +41,13 @@ export interface PublishedReplayNote {
   readonly audienceMode: PublishedReplayAudienceMode
   readonly intent: PublishedReplayNoteIntent
   readonly status: PublishedReplayNoteStatus
+  readonly contributionType: PublishedReplayContributionType
+  readonly communityLane: PublishedReplayCommunityLane
+  readonly annotationScope: PublishedReplayAnnotationScope
+  readonly rangeStartSlotIndex?: number | null
+  readonly rangeStartSlotNumber?: number | null
+  readonly rangeEndSlotIndex?: number | null
+  readonly rangeEndSlotNumber?: number | null
   readonly anchorKind?: 'general' | 'region' | 'metric' | 'comparison' | null
   readonly anchorKey?: string | null
   readonly anchorLabel?: string | null
@@ -51,6 +72,14 @@ export interface CreatePublishedReplayNoteRequest extends ListPublishedReplayNot
   readonly slotNumber: number
   readonly comparisonSlotNumber?: number | null
   readonly intent: PublishedReplayNoteIntent
+  readonly status: PublishedReplayNoteStatus
+  readonly contributionType: PublishedReplayContributionType
+  readonly communityLane: PublishedReplayCommunityLane
+  readonly annotationScope: PublishedReplayAnnotationScope
+  readonly rangeStartSlotIndex?: number | null
+  readonly rangeStartSlotNumber?: number | null
+  readonly rangeEndSlotIndex?: number | null
+  readonly rangeEndSlotNumber?: number | null
   readonly anchorKind?: 'general' | 'region' | 'metric' | 'comparison' | null
   readonly anchorKey?: string | null
   readonly anchorLabel?: string | null
@@ -71,6 +100,70 @@ async function parseApiError(res: Response, fallback: string): Promise<Error> {
   return new Error(typeof body.error === 'string' ? body.error : fallback)
 }
 
+function normalizeDiscussionState(raw: unknown): PublishedReplayNoteStatus {
+  if (
+    raw === 'open_question'
+    || raw === 'needs_evidence'
+    || raw === 'challenged'
+    || raw === 'supported'
+    || raw === 'author_addressed'
+  ) {
+    return raw
+  }
+  if (raw === 'resolved') return 'author_addressed'
+  return 'open_question'
+}
+
+function normalizeContributionType(
+  raw: unknown,
+  intent: PublishedReplayNoteIntent,
+): PublishedReplayContributionType {
+  if (
+    raw === 'claim'
+    || raw === 'question'
+    || raw === 'evidence'
+    || raw === 'counterpoint'
+    || raw === 'method_concern'
+  ) {
+    return raw
+  }
+  if (intent === 'question') return 'question'
+  if (intent === 'methods') return 'method_concern'
+  if (intent === 'theory') return 'claim'
+  return 'evidence'
+}
+
+function normalizeCommunityLane(
+  raw: unknown,
+  audienceMode: PublishedReplayAudienceMode,
+): PublishedReplayCommunityLane {
+  if (raw === 'author' || raw === 'reviewer' || raw === 'community') {
+    return raw
+  }
+  return audienceMode === 'reviewer' ? 'reviewer' : 'community'
+}
+
+function normalizeAnnotationScope(
+  raw: unknown,
+  anchorKind: PublishedReplayNote['anchorKind'],
+): PublishedReplayAnnotationScope {
+  if (
+    raw === 'exact_slot'
+    || raw === 'time_range'
+    || raw === 'trend'
+    || raw === 'comparison_gap'
+    || raw === 'paper_claim'
+    || raw === 'region_over_time'
+  ) {
+    return raw
+  }
+  return anchorKind === 'comparison' ? 'comparison_gap' : 'exact_slot'
+}
+
+function normalizeNumericField(raw: unknown): number | null {
+  return typeof raw === 'number' && Number.isFinite(raw) ? raw : null
+}
+
 function normalizeNote(raw: Record<string, unknown>): PublishedReplayNote | null {
   if (
     typeof raw.id !== 'string'
@@ -86,11 +179,14 @@ function normalizeNote(raw: Record<string, unknown>): PublishedReplayNote | null
   const paperLens = raw.paperLens
   const audienceMode = raw.audienceMode
   const intent = raw.intent
-  const status = raw.status
   if (paperLens !== 'evidence' && paperLens !== 'theory' && paperLens !== 'methods') return null
   if (audienceMode !== 'reader' && audienceMode !== 'reviewer' && audienceMode !== 'researcher') return null
   if (intent !== 'observation' && intent !== 'question' && intent !== 'theory' && intent !== 'methods') return null
-  if (status !== 'open' && status !== 'resolved') return null
+
+  const anchorKind =
+    raw.anchorKind === 'region' || raw.anchorKind === 'metric' || raw.anchorKind === 'comparison' || raw.anchorKind === 'general'
+      ? raw.anchorKind
+      : null
 
   const replies = Array.isArray(raw.replies)
     ? raw.replies.flatMap(reply => {
@@ -119,16 +215,20 @@ function normalizeNote(raw: Record<string, unknown>): PublishedReplayNote | null
     compareLabel: typeof raw.compareLabel === 'string' ? raw.compareLabel : null,
     slotIndex: raw.slotIndex,
     slotNumber: raw.slotNumber,
-    comparisonSlotIndex: typeof raw.comparisonSlotIndex === 'number' ? raw.comparisonSlotIndex : null,
-    comparisonSlotNumber: typeof raw.comparisonSlotNumber === 'number' ? raw.comparisonSlotNumber : null,
+    comparisonSlotIndex: normalizeNumericField(raw.comparisonSlotIndex),
+    comparisonSlotNumber: normalizeNumericField(raw.comparisonSlotNumber),
     paperLens,
     audienceMode,
     intent,
-    status,
-    anchorKind:
-      raw.anchorKind === 'region' || raw.anchorKind === 'metric' || raw.anchorKind === 'comparison' || raw.anchorKind === 'general'
-        ? raw.anchorKind
-        : null,
+    status: normalizeDiscussionState(raw.status),
+    contributionType: normalizeContributionType(raw.contributionType, intent),
+    communityLane: normalizeCommunityLane(raw.communityLane, audienceMode),
+    annotationScope: normalizeAnnotationScope(raw.annotationScope, anchorKind),
+    rangeStartSlotIndex: normalizeNumericField(raw.rangeStartSlotIndex),
+    rangeStartSlotNumber: normalizeNumericField(raw.rangeStartSlotNumber),
+    rangeEndSlotIndex: normalizeNumericField(raw.rangeEndSlotIndex),
+    rangeEndSlotNumber: normalizeNumericField(raw.rangeEndSlotNumber),
+    anchorKind,
     anchorKey: typeof raw.anchorKey === 'string' ? raw.anchorKey : null,
     anchorLabel: typeof raw.anchorLabel === 'string' ? raw.anchorLabel : null,
     note: raw.note,

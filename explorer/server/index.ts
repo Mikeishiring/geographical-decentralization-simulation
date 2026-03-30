@@ -415,6 +415,8 @@ const PUBLISHED_REPLAY_NOTE_ANCHOR_KINDS = new Set([
   'comparison',
 ])
 const publishedReplayNotesStore = new Map<string, PublishedReplayNote[]>()
+const PUBLISHED_REPLAY_NOTES_FILE = path.join(__dirname, 'data', 'published-replay-notes.json')
+let publishedReplayNotesPersistPromise: Promise<void> = Promise.resolve()
 
 interface PublishedReplayMetrics {
   readonly clusters?: readonly number[]
@@ -1660,6 +1662,39 @@ function buildPublishedReplayNoteThreadKey(args: {
     args.paperLens,
     args.audienceMode,
   ])
+}
+
+async function loadPublishedReplayNotesStore(): Promise<void> {
+  try {
+    const raw = await fs.readFile(PUBLISHED_REPLAY_NOTES_FILE, 'utf8')
+    const parsed = JSON.parse(raw) as Record<string, PublishedReplayNote[]>
+    if (!parsed || typeof parsed !== 'object') {
+      return
+    }
+
+    publishedReplayNotesStore.clear()
+    for (const [threadKey, notes] of Object.entries(parsed)) {
+      if (!Array.isArray(notes)) continue
+      publishedReplayNotesStore.set(threadKey, notes)
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      // eslint-disable-next-line no-console
+      console.error('Failed to load published replay notes from disk.', error)
+    }
+  }
+}
+
+function persistPublishedReplayNotesStore(): Promise<void> {
+  publishedReplayNotesPersistPromise = publishedReplayNotesPersistPromise
+    .catch(() => undefined)
+    .then(async () => {
+      await fs.mkdir(path.dirname(PUBLISHED_REPLAY_NOTES_FILE), { recursive: true })
+      const serialized = Object.fromEntries(publishedReplayNotesStore.entries())
+      await fs.writeFile(PUBLISHED_REPLAY_NOTES_FILE, JSON.stringify(serialized, null, 2), 'utf8')
+    })
+
+  return publishedReplayNotesPersistPromise
 }
 
 function findPublishedReplayNoteById(
@@ -2935,7 +2970,7 @@ app.get('/api/published-replay-notes', (req, res) => {
   })
 })
 
-app.post('/api/published-replay-notes', (req, res) => {
+app.post('/api/published-replay-notes', async (req, res) => {
   const request = req.body as CreatePublishedReplayNoteRequest
   const datasetPath = normalizePublishedDatasetPath(request.datasetPath)
   const slotIndex = toNonNegativeInteger(request.slotIndex)
@@ -3005,10 +3040,19 @@ app.post('/api/published-replay-notes', (req, res) => {
   const existing = publishedReplayNotesStore.get(threadKey) ?? []
   publishedReplayNotesStore.set(threadKey, [nextNote, ...existing].slice(0, 100))
 
+  try {
+    await persistPublishedReplayNotesStore()
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to persist published replay note.', error)
+    res.status(500).json({ error: 'Failed to persist the replay note.' })
+    return
+  }
+
   res.status(201).json({ note: nextNote })
 })
 
-app.post('/api/published-replay-notes/:noteId/replies', (req, res) => {
+app.post('/api/published-replay-notes/:noteId/replies', async (req, res) => {
   const noteId = typeof req.params.noteId === 'string' ? req.params.noteId : ''
   const request = req.body as AddPublishedReplayNoteReplyRequest
   const reply = request.reply?.trim()
@@ -3048,10 +3092,19 @@ app.post('/api/published-replay-notes/:noteId/replies', (req, res) => {
   nextNotes[located.index] = updatedNote
   publishedReplayNotesStore.set(located.threadKey, nextNotes)
 
+  try {
+    await persistPublishedReplayNotesStore()
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to persist published replay note reply.', error)
+    res.status(500).json({ error: 'Failed to persist the replay note reply.' })
+    return
+  }
+
   res.status(201).json({ note: updatedNote })
 })
 
-app.post('/api/published-replay-notes/:noteId/status', (req, res) => {
+app.post('/api/published-replay-notes/:noteId/status', async (req, res) => {
   const noteId = typeof req.params.noteId === 'string' ? req.params.noteId : ''
   const request = req.body as UpdatePublishedReplayNoteStatusRequest
   const status = request.status && PUBLISHED_REPLAY_NOTE_STATUSES.has(request.status)
@@ -3081,6 +3134,15 @@ app.post('/api/published-replay-notes/:noteId/status', (req, res) => {
   const nextNotes = [...located.notes]
   nextNotes[located.index] = updatedNote
   publishedReplayNotesStore.set(located.threadKey, nextNotes)
+
+  try {
+    await persistPublishedReplayNotesStore()
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to persist published replay note status.', error)
+    res.status(500).json({ error: 'Failed to persist the replay note status.' })
+    return
+  }
 
   res.json({ note: updatedNote })
 })
@@ -3575,7 +3637,18 @@ if (existsSync(DIST_DIR)) {
 }
 
 const PORT = Number(process.env.PORT ?? 3201)
-app.listen(PORT, () => {
+
+async function startExplorerApi(): Promise<void> {
+  await loadPublishedReplayNotesStore()
+
+  app.listen(PORT, () => {
+    // eslint-disable-next-line no-console
+    console.log(`Explorer API listening on http://localhost:${PORT}`)
+  })
+}
+
+void startExplorerApi().catch(error => {
   // eslint-disable-next-line no-console
-  console.log(`Explorer API listening on http://localhost:${PORT}`)
+  console.error('Failed to start Explorer API.', error)
+  process.exit(1)
 })

@@ -9,11 +9,23 @@ import { createExploration, publishExploration } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { listPublishedReplayNotes } from '../../lib/published-replay-notes-api'
 import type { PublishedReplayCopilotResponse } from '../../lib/published-replay-api'
-import type { Block } from '../../types/blocks'
+import type { Block, SourceBlock } from '../../types/blocks'
 import { formatNumber } from './simulation-constants'
 import { PublishedReplayCompanionPanel } from './PublishedReplayCompanionPanel'
 import { PublishedReplayNotesPanel } from './PublishedReplayNotesPanel'
 import { PublishedDatasetViewer, type PublishedViewerSnapshot } from './PublishedDatasetViewer'
+import { SimulationAnalyticsDesk } from './SimulationAnalyticsDesk'
+import {
+  ANALYTICS_VIEW_OPTIONS,
+  buildAnalyticsBlocks,
+  buildAnalyticsMetricCards,
+  clampSlotIndex,
+  parseAnalyticsDeckView,
+  type AnalyticsDeckView,
+  type AnalyticsMetricCard,
+  type PublishedAnalyticsPayload,
+  totalSlotsFromPayload,
+} from './simulation-analytics'
 
 interface ResearchMetadata {
   readonly v?: number
@@ -62,7 +74,6 @@ type WorkspaceTheme = 'auto' | 'light' | 'dark'
 type WorkspaceStep = 1 | 10 | 50
 type PaperLens = 'evidence' | 'theory' | 'methods'
 type AudienceMode = 'reader' | 'reviewer' | 'researcher'
-type AnalyticsDeckView = 'concentration' | 'latency' | 'economics' | 'geography'
 
 interface ViewerLaunch {
   readonly dataset: ResearchDatasetEntry
@@ -111,39 +122,6 @@ interface AnalyticsPromptLauncher {
   readonly label: string
   readonly prompt: string
   readonly detail: string
-}
-
-interface PublishedAnalyticsMetrics {
-  readonly clusters?: readonly number[]
-  readonly total_distance?: readonly number[]
-  readonly mev?: readonly number[]
-  readonly attestations?: readonly number[]
-  readonly proposal_times?: readonly number[]
-  readonly gini?: readonly number[]
-  readonly hhi?: readonly number[]
-  readonly liveness?: readonly number[]
-  readonly failed_block_proposals?: readonly number[]
-}
-
-interface PublishedAnalyticsPayload {
-  readonly v?: number
-  readonly description?: string
-  readonly n_slots?: number
-  readonly metrics?: PublishedAnalyticsMetrics
-  readonly sources?: ReadonlyArray<readonly [string, string]>
-  readonly slots?: Record<string, ReadonlyArray<readonly [string, number]>>
-}
-
-interface AnalyticsMetricCard {
-  readonly label: string
-  readonly value: string
-  readonly detail: string
-}
-
-function parseAnalyticsDeckView(value: string | null): AnalyticsDeckView | undefined {
-  return value === 'concentration' || value === 'latency' || value === 'economics' || value === 'geography'
-    ? value
-    : undefined
 }
 
 function readResearchCatalog(): ResearchCatalog | null {
@@ -232,116 +210,6 @@ function readInitialWorkspaceState(): InitialWorkspaceState {
     compareFocusSlot: parseSlotIndex(params.get('compareSlot')),
     analyticsView: parseAnalyticsDeckView(params.get('analytics')),
   }
-}
-
-function totalSlotsFromPayload(payload: PublishedAnalyticsPayload | null): number {
-  return Math.max(
-    1,
-    payload?.n_slots ?? 0,
-    payload?.metrics?.gini?.length ?? 0,
-    payload?.metrics?.mev?.length ?? 0,
-    Object.keys(payload?.slots ?? {}).length,
-  )
-}
-
-function clampSlotIndex(slot: number | null | undefined, totalSlots: number): number {
-  if (typeof slot !== 'number' || !Number.isFinite(slot)) return 0
-  return Math.max(0, Math.min(Math.floor(slot), Math.max(0, totalSlots - 1)))
-}
-
-function readMetricValue(series: readonly number[] | undefined, slot: number): number | null {
-  if (!series?.length) return null
-  const index = Math.max(0, Math.min(slot, series.length - 1))
-  const value = series[index]
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
-}
-
-function sampleSeries(
-  series: readonly number[] | undefined,
-  maxPoints = 240,
-): Array<{ x: number; y: number }> {
-  if (!series?.length) return []
-
-  const step = Math.max(1, Math.ceil(series.length / maxPoints))
-  const points: Array<{ x: number; y: number }> = []
-
-  for (let index = 0; index < series.length; index += step) {
-    const value = series[index]
-    if (typeof value !== 'number' || !Number.isFinite(value)) continue
-    points.push({ x: index + 1, y: value })
-  }
-
-  const lastIndex = series.length - 1
-  const lastValue = series[lastIndex]
-  if (
-    typeof lastValue === 'number'
-    && Number.isFinite(lastValue)
-    && points[points.length - 1]?.x !== lastIndex + 1
-  ) {
-    points.push({ x: lastIndex + 1, y: lastValue })
-  }
-
-  return points
-}
-
-function sampleActiveRegionsSeries(
-  payload: PublishedAnalyticsPayload | null,
-  maxPoints = 240,
-): Array<{ x: number; y: number }> {
-  if (!payload?.slots) return []
-
-  const totalSlots = totalSlotsFromPayload(payload)
-  const step = Math.max(1, Math.ceil(totalSlots / maxPoints))
-  const points: Array<{ x: number; y: number }> = []
-
-  for (let slotIndex = 0; slotIndex < totalSlots; slotIndex += step) {
-    const slotRegions = payload.slots[String(slotIndex)] ?? []
-    points.push({
-      x: slotIndex + 1,
-      y: slotRegions.filter(([, count]) => Number(count) > 0).length,
-    })
-  }
-
-  const finalSlotIndex = Math.max(0, totalSlots - 1)
-  if (points[points.length - 1]?.x !== finalSlotIndex + 1) {
-    const finalRegions = payload.slots[String(finalSlotIndex)] ?? []
-    points.push({
-      x: finalSlotIndex + 1,
-      y: finalRegions.filter(([, count]) => Number(count) > 0).length,
-    })
-  }
-
-  return points
-}
-
-function topRegionsForSlot(
-  payload: PublishedAnalyticsPayload | null,
-  slotIndex: number,
-  limit = 5,
-): Array<{ label: string; count: number; share: number }> {
-  if (!payload?.slots) return []
-
-  const rawRegions = payload.slots[String(slotIndex)] ?? []
-  const totalValidators = payload.v ?? rawRegions.reduce((sum, [, count]) => sum + Number(count || 0), 0)
-
-  return rawRegions
-    .map(([regionId, count]) => ({
-      label: regionId,
-      count: Number(count) || 0,
-      share: totalValidators > 0 ? ((Number(count) || 0) / totalValidators) * 100 : 0,
-    }))
-    .filter(region => region.count > 0)
-    .sort((left, right) => right.count - left.count)
-    .slice(0, limit)
-}
-
-function activeRegionCountAtSlot(
-  payload: PublishedAnalyticsPayload | null,
-  slotIndex: number,
-): number {
-  if (!payload?.slots) return 0
-  const rawRegions = payload.slots[String(slotIndex)] ?? []
-  return rawRegions.filter(([, count]) => Number(count) > 0).length
 }
 
 async function fetchPublishedAnalyticsPayload(
@@ -1251,334 +1119,79 @@ export function ResearchDemoSurface({
     comparisonViewerSnapshot?.slotIndex ?? initialWorkspaceState.compareFocusSlot ?? 0,
     comparisonAnalyticsTotalSlots,
   )
-  const analyticsViewOptions = useMemo(() => ([
-    {
-      id: 'concentration' as const,
-      label: 'Concentration',
-      description: 'Gini, HHI, and region compression over time.',
-    },
-    {
-      id: 'latency' as const,
-      label: 'Latency',
-      description: 'Liveness, proposal timing, and failure posture.',
-    },
-    {
-      id: 'economics' as const,
-      label: 'Economics',
-      description: 'MEV, attestation output, and cluster behavior.',
-    },
-    {
-      id: 'geography' as const,
-      label: 'Geography',
-      description: 'Active-region spread and top-region rank tables.',
-    },
-  ] as const), [])
-  const analyticsMetricCards = useMemo<AnalyticsMetricCard[]>(() => {
-    if (!primaryAnalyticsPayload) return []
+  const analyticsViewOptions = ANALYTICS_VIEW_OPTIONS
+  const analyticsMetricCards = useMemo<AnalyticsMetricCard[]>(
+    () => buildAnalyticsMetricCards({
+      analyticsView,
+      payload: primaryAnalyticsPayload,
+      slot: primaryAnalyticsSlot,
+    }),
+    [analyticsView, primaryAnalyticsPayload, primaryAnalyticsSlot],
+  )
+  const analyticsSourceRefs = useMemo<readonly SourceBlock['refs'][number][]>(() => {
+    if (!selectedDataset) return []
 
-    const metrics = primaryAnalyticsPayload.metrics ?? {}
-    const finalSlot = Math.max(0, primaryAnalyticsTotalSlots - 1)
-    const currentTopRegion = topRegionsForSlot(primaryAnalyticsPayload, primaryAnalyticsSlot, 1)[0] ?? null
-    const finalTopRegion = topRegionsForSlot(primaryAnalyticsPayload, finalSlot, 1)[0] ?? null
-
-    switch (analyticsView) {
-      case 'latency':
-        return [
-          {
-            label: 'Current liveness',
-            value: formatPercentValue(readMetricValue(metrics.liveness, primaryAnalyticsSlot)),
-            detail: `Exact value at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Current proposal time',
-            value: formatOptionalMilliseconds(readMetricValue(metrics.proposal_times, primaryAnalyticsSlot)),
-            detail: `Proposal timing at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Final failed proposals',
-            value: readMetricValue(metrics.failed_block_proposals, finalSlot)?.toLocaleString() ?? 'N/A',
-            detail: 'Frozen final-slot failure count.',
-          },
-          {
-            label: 'Final liveness',
-            value: formatPercentValue(readMetricValue(metrics.liveness, finalSlot)),
-            detail: 'Replay endpoint for network liveness.',
-          },
-        ]
-      case 'economics':
-        return [
-          {
-            label: 'Current MEV',
-            value: formatOptionalEth(readMetricValue(metrics.mev, primaryAnalyticsSlot)),
-            detail: `Exact MEV value at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Final MEV',
-            value: formatOptionalEth(readMetricValue(metrics.mev, finalSlot)),
-            detail: 'Replay endpoint for value capture.',
-          },
-          {
-            label: 'Current attestation',
-            value: readMetricValue(metrics.attestations, primaryAnalyticsSlot)?.toLocaleString() ?? 'N/A',
-            detail: `Attestation count at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Final clusters',
-            value: readMetricValue(metrics.clusters, finalSlot)?.toLocaleString() ?? 'N/A',
-            detail: 'Final geographic cluster count.',
-          },
-        ]
-      case 'geography':
-        return [
-          {
-            label: 'Current active regions',
-            value: activeRegionCountAtSlot(primaryAnalyticsPayload, primaryAnalyticsSlot).toLocaleString(),
-            detail: `Regions with non-zero validators at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Final active regions',
-            value: activeRegionCountAtSlot(primaryAnalyticsPayload, finalSlot).toLocaleString(),
-            detail: 'Replay endpoint for geographic spread.',
-          },
-          {
-            label: 'Current leader',
-            value: currentTopRegion?.label ?? 'N/A',
-            detail: currentTopRegion ? `${formatNumber(currentTopRegion.share, 1)}% share.` : 'No dominant region.',
-          },
-          {
-            label: 'Final leader',
-            value: finalTopRegion?.label ?? 'N/A',
-            detail: finalTopRegion ? `${formatNumber(finalTopRegion.share, 1)}% share.` : 'No dominant region.',
-          },
-        ]
-      case 'concentration':
-      default:
-        return [
-          {
-            label: 'Current Gini',
-            value: readMetricValue(metrics.gini, primaryAnalyticsSlot) != null
-              ? formatNumber(readMetricValue(metrics.gini, primaryAnalyticsSlot) ?? 0, 3)
-              : 'N/A',
-            detail: `Concentration at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Final Gini',
-            value: readMetricValue(metrics.gini, finalSlot) != null
-              ? formatNumber(readMetricValue(metrics.gini, finalSlot) ?? 0, 3)
-              : 'N/A',
-            detail: 'Replay endpoint for concentration.',
-          },
-          {
-            label: 'Current HHI',
-            value: readMetricValue(metrics.hhi, primaryAnalyticsSlot) != null
-              ? formatNumber(readMetricValue(metrics.hhi, primaryAnalyticsSlot) ?? 0, 3)
-              : 'N/A',
-            detail: `HHI at slot ${primaryAnalyticsSlot + 1}.`,
-          },
-          {
-            label: 'Active regions now',
-            value: activeRegionCountAtSlot(primaryAnalyticsPayload, primaryAnalyticsSlot).toLocaleString(),
-            detail: 'How many regions still retain validators.',
-          },
-        ]
-    }
-  }, [analyticsView, primaryAnalyticsPayload, primaryAnalyticsSlot, primaryAnalyticsTotalSlots])
-  const analyticsBlocks = useMemo<readonly Block[]>(() => {
-    if (!primaryAnalyticsPayload || !selectedDataset) return []
-
-    const metrics = primaryAnalyticsPayload.metrics ?? {}
-    const finalSlot = Math.max(0, primaryAnalyticsTotalSlots - 1)
-    const currentTopRegions = topRegionsForSlot(primaryAnalyticsPayload, primaryAnalyticsSlot, 5)
-    const finalTopRegions = topRegionsForSlot(primaryAnalyticsPayload, finalSlot, 5)
-    const blocks: Block[] = [
+    return [
       {
-        type: 'source',
-        refs: [
-          {
-            label: 'Analytics view',
-            section: analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics desk',
-            url: shareUrl || undefined,
-          },
-          {
-            label: 'Published dataset JSON',
-            section: selectedDataset.path,
-            url: datasetUrl || undefined,
-          },
-          ...(sourceUrl ? [{
-            label: 'Dataset source file',
-            section: selectedDataset.path,
-            url: sourceUrl,
-          }] : []),
-          ...(selectedPaperSection ? [{
-            label: 'Canonical paper section',
-            section: `${selectedPaperSection.number} ${selectedPaperSection.title}`,
-            url: paperSectionUrl || undefined,
-          }] : []),
-          ...(comparisonDataset && comparisonDatasetUrl ? [{
-            label: 'Comparison dataset JSON',
-            section: comparisonDataset.path,
-            url: comparisonDatasetUrl,
-          }] : []),
-        ],
+        label: 'Analytics view',
+        section: analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics desk',
+        url: shareUrl || undefined,
       },
+      {
+        label: 'Published dataset JSON',
+        section: selectedDataset.path,
+        url: datasetUrl || undefined,
+      },
+      ...(sourceUrl ? [{
+        label: 'Dataset source file',
+        section: selectedDataset.path,
+        url: sourceUrl,
+      }] : []),
+      ...(selectedPaperSection ? [{
+        label: 'Canonical paper section',
+        section: `${selectedPaperSection.number} ${selectedPaperSection.title}`,
+        url: paperSectionUrl || undefined,
+      }] : []),
+      ...(comparisonDataset && comparisonDatasetUrl ? [{
+        label: 'Comparison dataset JSON',
+        section: comparisonDataset.path,
+        url: comparisonDatasetUrl,
+      }] : []),
     ]
-
-    if (analyticsView === 'concentration') {
-      blocks.push(
-        {
-          type: 'timeseries',
-          title: 'Concentration query',
-          series: [
-            { label: 'Gini', data: sampleSeries(metrics.gini), color: '#C2553A' },
-            { label: 'HHI', data: sampleSeries(metrics.hhi), color: '#2563EB' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'Index',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-        {
-          type: 'timeseries',
-          title: 'Active-region spread',
-          series: [
-            { label: 'Active regions', data: sampleActiveRegionsSeries(primaryAnalyticsPayload), color: '#0F766E' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'Regions',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-      )
-    }
-
-    if (analyticsView === 'latency') {
-      blocks.push(
-        {
-          type: 'timeseries',
-          title: 'Liveness query',
-          series: [
-            { label: 'Liveness', data: sampleSeries(metrics.liveness), color: '#16A34A' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'Percent',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-        {
-          type: 'timeseries',
-          title: 'Proposal-time query',
-          series: [
-            { label: 'Proposal time', data: sampleSeries(metrics.proposal_times), color: '#D97706' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'Milliseconds',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-      )
-    }
-
-    if (analyticsView === 'economics') {
-      blocks.push(
-        {
-          type: 'timeseries',
-          title: 'MEV query',
-          series: [
-            { label: 'MEV', data: sampleSeries(metrics.mev), color: '#2563EB' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'ETH',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-        {
-          type: 'timeseries',
-          title: 'Attestation output',
-          series: [
-            { label: 'Attestations', data: sampleSeries(metrics.attestations), color: '#0F766E' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'Count',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-      )
-    }
-
-    if (analyticsView === 'geography') {
-      blocks.push(
-        {
-          type: 'timeseries',
-          title: 'Geographic spread query',
-          series: [
-            { label: 'Active regions', data: sampleActiveRegionsSeries(primaryAnalyticsPayload), color: '#7C3AED' },
-          ],
-          xLabel: 'Slot',
-          yLabel: 'Regions',
-          annotations: [{ x: primaryAnalyticsSlot + 1, label: 'Current slot' }],
-        },
-        {
-          type: 'table',
-          title: 'Current vs final top regions',
-          headers: ['Rank', `Slot ${primaryAnalyticsSlot + 1}`, 'Final slot'],
-          rows: Array.from({ length: Math.max(currentTopRegions.length, finalTopRegions.length, 3) }, (_, index) => [
-            `#${index + 1}`,
-            currentTopRegions[index]
-              ? `${currentTopRegions[index]!.label} (${formatNumber(currentTopRegions[index]!.share, 1)}%)`
-              : 'N/A',
-            finalTopRegions[index]
-              ? `${finalTopRegions[index]!.label} (${formatNumber(finalTopRegions[index]!.share, 1)}%)`
-              : 'N/A',
-          ]),
-        },
-      )
-    }
-
-    if (comparisonDataset && comparisonAnalyticsPayload) {
-      const compareMetrics = comparisonAnalyticsPayload.metrics ?? {}
-      const compareCurrentSlot = comparisonAnalyticsSlot
-      const compareTopRegion = topRegionsForSlot(comparisonAnalyticsPayload, compareCurrentSlot, 1)[0] ?? null
-      blocks.push({
-        type: 'table',
-        title: 'Current query comparison',
-        headers: ['Metric', 'Active replay', 'Comparison replay'],
-        rows: analyticsView === 'latency'
-          ? [
-              ['Liveness', formatPercentValue(readMetricValue(metrics.liveness, primaryAnalyticsSlot)), formatPercentValue(readMetricValue(compareMetrics.liveness, compareCurrentSlot))],
-              ['Proposal time', formatOptionalMilliseconds(readMetricValue(metrics.proposal_times, primaryAnalyticsSlot)), formatOptionalMilliseconds(readMetricValue(compareMetrics.proposal_times, compareCurrentSlot))],
-              ['Failed proposals', readMetricValue(metrics.failed_block_proposals, primaryAnalyticsSlot)?.toLocaleString() ?? 'N/A', readMetricValue(compareMetrics.failed_block_proposals, compareCurrentSlot)?.toLocaleString() ?? 'N/A'],
-            ]
-          : analyticsView === 'economics'
-            ? [
-                ['MEV', formatOptionalEth(readMetricValue(metrics.mev, primaryAnalyticsSlot)), formatOptionalEth(readMetricValue(compareMetrics.mev, compareCurrentSlot))],
-                ['Attestations', readMetricValue(metrics.attestations, primaryAnalyticsSlot)?.toLocaleString() ?? 'N/A', readMetricValue(compareMetrics.attestations, compareCurrentSlot)?.toLocaleString() ?? 'N/A'],
-                ['Clusters', readMetricValue(metrics.clusters, primaryAnalyticsSlot)?.toLocaleString() ?? 'N/A', readMetricValue(compareMetrics.clusters, compareCurrentSlot)?.toLocaleString() ?? 'N/A'],
-              ]
-            : analyticsView === 'geography'
-              ? [
-                  ['Active regions', activeRegionCountAtSlot(primaryAnalyticsPayload, primaryAnalyticsSlot).toLocaleString(), activeRegionCountAtSlot(comparisonAnalyticsPayload, compareCurrentSlot).toLocaleString()],
-                  ['Leading region', currentTopRegions[0]?.label ?? 'N/A', compareTopRegion?.label ?? 'N/A'],
-                  ['Leading share', currentTopRegions[0] ? `${formatNumber(currentTopRegions[0]!.share, 1)}%` : 'N/A', compareTopRegion ? `${formatNumber(compareTopRegion.share, 1)}%` : 'N/A'],
-                ]
-              : [
-                  ['Gini', readMetricValue(metrics.gini, primaryAnalyticsSlot) != null ? formatNumber(readMetricValue(metrics.gini, primaryAnalyticsSlot) ?? 0, 3) : 'N/A', readMetricValue(compareMetrics.gini, compareCurrentSlot) != null ? formatNumber(readMetricValue(compareMetrics.gini, compareCurrentSlot) ?? 0, 3) : 'N/A'],
-                  ['HHI', readMetricValue(metrics.hhi, primaryAnalyticsSlot) != null ? formatNumber(readMetricValue(metrics.hhi, primaryAnalyticsSlot) ?? 0, 3) : 'N/A', readMetricValue(compareMetrics.hhi, compareCurrentSlot) != null ? formatNumber(readMetricValue(compareMetrics.hhi, compareCurrentSlot) ?? 0, 3) : 'N/A'],
-                  ['Active regions', activeRegionCountAtSlot(primaryAnalyticsPayload, primaryAnalyticsSlot).toLocaleString(), activeRegionCountAtSlot(comparisonAnalyticsPayload, compareCurrentSlot).toLocaleString()],
-                ],
-      })
-    }
-
-    return blocks
   }, [
     analyticsView,
     analyticsViewOptions,
-    comparisonAnalyticsPayload,
-    comparisonAnalyticsSlot,
     comparisonDataset,
     comparisonDatasetUrl,
     datasetUrl,
     paperSectionUrl,
-    primaryAnalyticsPayload,
-    primaryAnalyticsSlot,
-    primaryAnalyticsTotalSlots,
     selectedDataset,
     selectedPaperSection,
     shareUrl,
     sourceUrl,
+  ])
+  const analyticsBlocks = useMemo<readonly Block[]>(() => {
+    if (!primaryAnalyticsPayload || !selectedDataset) return []
+
+    return buildAnalyticsBlocks({
+      analyticsView,
+      primaryPayload: primaryAnalyticsPayload,
+      primarySlot: primaryAnalyticsSlot,
+      sourceRefs: analyticsSourceRefs,
+      primaryLabel: 'Active replay',
+      comparisonPayload: comparisonDataset ? comparisonAnalyticsPayload : null,
+      comparisonSlot: comparisonAnalyticsSlot,
+      comparisonLabel: 'Comparison replay',
+    })
+  }, [
+    analyticsSourceRefs,
+    analyticsView,
+    comparisonAnalyticsPayload,
+    comparisonAnalyticsSlot,
+    comparisonDataset,
+    primaryAnalyticsPayload,
+    primaryAnalyticsSlot,
+    selectedDataset,
   ])
   const analyticsStatusMessage = primaryAnalyticsQuery.isLoading
     ? 'Loading exact analytics queries from the published dataset...'
@@ -3569,59 +3182,18 @@ export function ResearchDemoSurface({
                 </div>
               </div>
 
-              <div className="lab-stage p-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <div className="text-xs text-muted mb-1">Analytics desk</div>
-                    <div className="text-sm text-text-primary">
-                      This is the next Dune-like layer: exact query presets over the frozen replay metrics, shareable in the same published workspace.
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => void handleCopyShareUrl()}
-                    className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                  >
-                    Copy analytics view
-                  </button>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {analyticsViewOptions.map(view => (
-                    <button
-                      key={view.id}
-                      onClick={() => setAnalyticsView(view.id)}
-                      className={cn(
-                        'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                        analyticsView === view.id
-                          ? 'border-accent bg-white text-accent'
-                          : 'border-border-subtle bg-[#FAFAF8] text-text-primary hover:border-border-hover',
-                      )}
-                    >
-                      {view.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Query framing</div>
-                  <div className="mt-2 text-sm font-medium text-text-primary">
-                    {analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics'} query
-                  </div>
-                  <div className="mt-2 text-xs leading-5 text-muted">
-                    {analyticsViewOptions.find(view => view.id === analyticsView)?.description ?? 'Exact metric query over the frozen replay.'}
-                  </div>
-                  <div className="mt-3 text-[11px] leading-5 text-text-faint">
-                    Use the query to establish what the replay shows first. Only then ask for implications or interpretation.
-                  </div>
-                </div>
-
-                {analyticsStatusMessage ? (
-                  <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4 text-sm text-muted">
-                    {analyticsStatusMessage}
-                  </div>
-                ) : null}
-
-                {!analyticsStatusMessage && analyticsPromptLaunchers.length > 0 ? (
+              <SimulationAnalyticsDesk
+                description="This is the next Dune-like layer: exact query presets over the frozen replay metrics, shareable in the same published workspace."
+                copyLabel="Copy analytics view"
+                onCopyShareUrl={() => void handleCopyShareUrl()}
+                analyticsView={analyticsView}
+                onAnalyticsViewChange={setAnalyticsView}
+                analyticsViewOptions={analyticsViewOptions}
+                statusMessage={analyticsStatusMessage}
+                metricCards={analyticsMetricCards}
+                blocks={analyticsBlocks}
+              >
+                {analyticsPromptLaunchers.length > 0 ? (
                   <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
                     <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Ask from this query</div>
                     <div className="mt-2 text-xs leading-5 text-muted">
@@ -3642,25 +3214,7 @@ export function ResearchDemoSurface({
                     </div>
                   </div>
                 ) : null}
-
-                {!analyticsStatusMessage && analyticsMetricCards.length > 0 ? (
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    {analyticsMetricCards.map(card => (
-                      <div key={card.label} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-                        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{card.label}</div>
-                        <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
-                        <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-
-                {!analyticsStatusMessage && analyticsBlocks.length > 0 ? (
-                  <div className="mt-4">
-                    <BlockCanvas blocks={analyticsBlocks} showExport={false} />
-                  </div>
-                ) : null}
-              </div>
+              </SimulationAnalyticsDesk>
 
               <div className="lab-stage p-5">
                 <div className="text-xs text-muted mb-1">Comparison desk</div>

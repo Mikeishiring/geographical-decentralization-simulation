@@ -387,6 +387,46 @@ function focusAreaLabel(area: PublishedViewerFocusArea): string {
   return 'geography canvas'
 }
 
+function noteTargetsStatCard(
+  note: PublishedViewerAnnotationNote,
+  cardKey: string,
+): boolean {
+  if (cardKey === 'slot') {
+    return note.anchorKind == null || note.anchorKind === 'general'
+  }
+  if (cardKey === 'regions' || cardKey === 'dominant') {
+    return isRegionAnchoredNote(note)
+  }
+
+  const metricKey = resolvedMetricAnchorKey(note)
+  if (cardKey === 'gini') {
+    return metricKey === 'gini' || metricKey === 'hhi' || metricKey === 'liveness'
+  }
+  if (cardKey === 'mev') {
+    return metricKey === 'mev'
+  }
+  if (cardKey === 'proposalTime') {
+    return metricKey === 'proposal_time' || metricKey === 'total_distance' || note.anchorKind === 'comparison'
+  }
+  return false
+}
+
+function noteTargetsChart(
+  note: PublishedViewerAnnotationNote,
+  chartKey: 'concentration' | 'distance' | 'proposal' | 'mev',
+): boolean {
+  if (chartKey === 'concentration') {
+    return isRegionAnchoredNote(note) || noteMatchesMetric(note, ['gini', 'hhi', 'liveness'])
+  }
+  if (chartKey === 'distance') {
+    return noteMatchesMetric(note, ['total_distance'])
+  }
+  if (chartKey === 'proposal') {
+    return noteMatchesMetric(note, ['proposal_time']) || note.anchorKind === 'comparison'
+  }
+  return noteMatchesMetric(note, ['mev'])
+}
+
 function noteMatchesMetric(
   note: PublishedViewerAnnotationNote,
   keys: readonly string[],
@@ -896,6 +936,9 @@ export function PublishedDatasetViewer({
     [filteredAnnotationNotes, selectedNoteId],
   )
   const focusedArea = focusedNote ? noteFocusArea(focusedNote) : null
+  const focusedChartKey = focusedNote
+    ? (['concentration', 'distance', 'proposal', 'mev'] as const).find(chartKey => noteTargetsChart(focusedNote, chartKey)) ?? null
+    : null
   const buildChartNotePins = (
     notes: readonly PublishedViewerAnnotationNote[],
     chartKey: 'concentration' | 'distance' | 'proposal' | 'mev',
@@ -1233,8 +1276,16 @@ export function PublishedDatasetViewer({
                 className={cn(
                   'relative w-full text-left transition-all duration-300',
                   card.focus ? 'rounded-[1.15rem] ring-2 ring-accent/30 shadow-[0_16px_34px_rgba(37,99,235,0.08)]' : '',
+                  focusedNote && noteTargetsStatCard(focusedNote, card.key)
+                    ? 'rounded-[1.15rem] ring-2 ring-[#0F172A]/14 shadow-[0_18px_42px_rgba(15,23,42,0.12)]'
+                    : '',
                 )}
               >
+                {focusedNote && noteTargetsStatCard(focusedNote, card.key) ? (
+                  <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-full border border-[#0F172A]/10 bg-white/96 px-2 py-0.5 text-[10px] font-medium text-[#0F172A] shadow-[0_10px_20px_rgba(15,23,42,0.06)]">
+                    Focused note
+                  </div>
+                ) : null}
                 {card.noteCount > 0 ? (
                   <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-[#7C3AED]/18 bg-[#F5F3FF]/96 px-2 py-0.5 text-[10px] font-medium text-[#6D28D9] shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
                     {card.noteCount} note{card.noteCount === 1 ? '' : 's'}
@@ -1494,8 +1545,10 @@ export function PublishedDatasetViewer({
             ) : null}
             <div className={cn(
               'transition-all duration-300',
-              (focusedArea === 'concentration' && entry.key === 'concentration')
-                || (focusedArea === 'performance' && entry.key !== 'concentration')
+              focusedChartKey === entry.key
+                ? 'rounded-[1.2rem] ring-2 ring-[#0F172A]/16 shadow-[0_22px_42px_rgba(15,23,42,0.12)]'
+                : (focusedArea === 'concentration' && entry.key === 'concentration')
+                  || (focusedArea === 'performance' && entry.key !== 'concentration')
                 ? 'rounded-[1.2rem] ring-2 ring-accent/35 shadow-[0_18px_36px_rgba(37,99,235,0.1)]'
                 : '',
             )}>
