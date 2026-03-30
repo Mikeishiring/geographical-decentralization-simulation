@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import gzip
+import hashlib
 import io
 import json
 import os
@@ -31,12 +32,6 @@ from consensus import ConsensusSettings
 from distribution import parse_gcp_latency
 from simulation import (
     DEFAULT_SIMULATION_SEED,
-    SIMULATION_CACHE_DIRNAME,
-    SIMULATION_CACHE_VERSION,
-    SIMULATION_CODE_FILES,
-    build_paper_geography_metrics,
-    compute_simulation_cache_key,
-    file_sha256,
     homogeneous_validators,
     homogeneous_validators_per_gcp,
     random_validators,
@@ -58,6 +53,17 @@ ATTESTATION_CUTOFF_BY_SLOT_SECONDS = {
     8: 4000,
     12: 4000,
 }
+SIMULATION_CACHE_VERSION = 2
+SIMULATION_CACHE_DIRNAME = ".simulation_cache"
+SIMULATION_CODE_FILES = (
+    "simulation.py",
+    "models.py",
+    "validator_agent.py",
+    "source_agent.py",
+    "distribution.py",
+    "consensus.py",
+    "constants.py",
+)
 
 ARTIFACT_SPECS = (
     {
@@ -191,6 +197,175 @@ REQUIRED_OUTPUTS = {
 }
 
 CACHE_ROOT = REPO_ROOT / SIMULATION_CACHE_DIRNAME
+
+_CONTINENT_RULES = (
+    ("northamerica-", "North America"),
+    ("us-", "North America"),
+    ("southamerica-", "South America"),
+    ("europe-", "Europe"),
+    ("asia-", "Asia"),
+    ("australia-", "Oceania"),
+    ("africa-", "Africa"),
+    ("me-", "Middle East"),
+)
+
+
+def normalize_for_hash(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): normalize_for_hash(item) for key, item in sorted(value.items(), key=lambda entry: str(entry[0]))}
+    if isinstance(value, (list, tuple)):
+        return [normalize_for_hash(item) for item in value]
+    if isinstance(value, set):
+        return sorted(normalize_for_hash(item) for item in value)
+    if isinstance(value, pd.DataFrame):
+        return dataframe_hash(value)
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
+def dataframe_hash(df: pd.DataFrame) -> str:
+    hasher = hashlib.sha256()
+    hasher.update(json.dumps(list(df.columns)).encode("utf-8"))
+    hasher.update(json.dumps([str(dtype) for dtype in df.dtypes]).encode("utf-8"))
+    row_hashes = pd.util.hash_pandas_object(df, index=True, categorize=True).to_numpy(dtype=np.uint64)
+    hasher.update(row_hashes.tobytes())
+    return hasher.hexdigest()
+
+
+def file_sha256(path: Path) -> str:
+    hasher = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def compute_simulation_cache_key(cache_context: dict[str, Any]) -> str:
+    normalized = normalize_for_hash(cache_context)
+    encoded = json.dumps(normalized, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def to_continent(region_name: str | None) -> str:
+    normalized = str(region_name or "").strip().lower()
+    for prefix, continent in _CONTINENT_RULES:
+        if normalized.startswith(prefix):
+            return continent
+    return "Other"
+
+
+def gini_coefficient(values: list[float]) -> float:
+    series = np.asarray(values, dtype=float)
+    if series.size == 0:
+        return 0.0
+    series = np.clip(series, a_min=0.0, a_max=None)
+    total = float(series.sum())
+    if total <= 0:
+        return 0.0
+    sorted_values = np.sort(series)
+    n = sorted_values.size
+    weighted_sum = float(np.sum((np.arange(1, n + 1) * sorted_values)))
+    return float((2 * weighted_sum) / (n * total) - (n + 1) / n)
+
+
+def hhi_index(values: list[float]) -> float:
+    series = np.asarray(values, dtype=float)
+    total = float(series.sum())
+    if total <= 0:
+        return 0.0
+    shares = series / total
+    return float(np.sum(shares ** 2))
+
+
+def liveness_coefficient(values: list[float]) -> float:
+    series = np.asarray(values, dtype=float)
+    non_zero = int(np.count_nonzero(series > 0))
+    total = int(series.size)
+    if total == 0:
+        return 0.0
+    return float(non_zero / total)
+
+
+def build_paper_geography_metrics(region_counts_per_slot: dict[str, Any], region_profits_df: pd.DataFrame) -> dict[str, list[float]]:
+    known_continents = tuple(dict.fromkeys(continent for _, continent in _CONTINENT_RULES))
+
+    gini_hist: list[float] = []
+    hhi_hist: list[float] = []
+    liveness_hist: list[float] = []
+
+    slot_keys = sorted(
+        region_counts_per_slot.keys(),
+        key=lambda value: int(value) if str(value).isdigit() else str(value),
+    )
+    for slot_key in slot_keys:
+        raw_counts = region_counts_per_slot.get(slot_key, {})
+        continent_counts = {continent: 0 for continent in known_continents}
+
+        if isinstance(raw_counts, dict):
+            entries = raw_counts.items()
+        elif isinstance(raw_counts, list):
+            entries = raw_counts
+        else:
+            entries = []
+
+        for entry in entries:
+            if isinstance(entry, tuple) or isinstance(entry, list):
+                if len(entry) < 2:
+                    continue
+                region_name, count = entry[0], entry[1]
+            else:
+                continue
+            continent_counts[to_continent(str(region_name))] += int(count)
+
+        values = [continent_counts.get(continent, 0) for continent in known_continents]
+        gini_hist.append(round(gini_coefficient(values), 6))
+        hhi_hist.append(round(hhi_index(values), 6))
+        liveness_hist.append(round(liveness_coefficient(values), 6))
+
+    profit_variance_hist: list[float] = []
+    if not region_profits_df.empty:
+        working = region_profits_df.copy()
+        if {"gcp_region", "mev_offer", "slot"}.issubset(working.columns):
+            region_column = "gcp_region"
+            profit_column = "mev_offer"
+            slot_column = "slot"
+        elif {"Region", "Profit", "Time"}.issubset(working.columns):
+            region_column = "Region"
+            profit_column = "Profit"
+            slot_column = "Time"
+        else:
+            region_column = None
+            profit_column = None
+            slot_column = None
+
+        if region_column and profit_column and slot_column:
+            working["continent"] = working[region_column].map(to_continent)
+            for _, slot_frame in working.groupby(slot_column, sort=True):
+                profit_by_continent = slot_frame.groupby("continent")[profit_column].sum()
+                ordered = np.asarray(
+                    [float(profit_by_continent.get(continent, 0.0)) for continent in known_continents],
+                    dtype=float,
+                )
+                mean = float(np.mean(ordered)) if ordered.size else 0.0
+                cv = 0.0 if mean == 0.0 else float(np.std(ordered) / mean)
+                profit_variance_hist.append(round(cv, 6))
+
+    target_length = len(gini_hist)
+    if len(profit_variance_hist) < target_length:
+        last_value = profit_variance_hist[-1] if profit_variance_hist else 0.0
+        profit_variance_hist.extend([last_value] * (target_length - len(profit_variance_hist)))
+    elif len(profit_variance_hist) > target_length:
+        profit_variance_hist = profit_variance_hist[:target_length]
+
+    return {
+        "gini": gini_hist,
+        "hhi": hhi_hist,
+        "liveness": liveness_hist,
+        "profit_variance": profit_variance_hist,
+    }
 
 BUNDLE_SPECS = (
     {
@@ -864,7 +1039,7 @@ def run_job(job_id: str, raw_config: dict[str, Any]) -> dict[str, Any]:
                 cost=float(config["migrationCost"]),
                 seed=int(config["seed"]),
                 collect_full_history=False,
-                export_raw_artifacts=False,
+                export_raw_artifacts=True,
                 verbose=False,
             )
         runtime_seconds = time.perf_counter() - start_time

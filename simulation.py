@@ -19,6 +19,37 @@ from source_agent import initialize_relays, initialize_signals
 DEFAULT_SIMULATION_SEED = 0x06511
 
 
+def build_export_payloads(model_standard):
+    avg_mev_series = [
+        slot["Average_MEV_Earned"] for slot in model_standard.slot_model_history
+    ]
+    supermajority_series = [
+        slot["Supermajority_Success_Rate"] for slot in model_standard.slot_model_history
+    ]
+    failed_block_proposals = [
+        slot["Failed_Block_Proposals"] for slot in model_standard.slot_model_history
+    ]
+    utility_increase_series = [
+        slot["Utility_Increase"] for slot in model_standard.slot_model_history
+    ]
+
+    return {
+        "avg_mev": avg_mev_series,
+        "supermajority_success": supermajority_series,
+        "failed_block_proposals": failed_block_proposals,
+        "utility_increase": utility_increase_series,
+        "mev_by_slot": list(getattr(model_standard, "slot_mev_by_slot", [])),
+        "estimated_mev_by_slot": list(getattr(model_standard, "slot_estimated_mev_by_slot", [])),
+        "attest_by_slot": list(getattr(model_standard, "slot_attest_by_slot", [])),
+        "proposal_time_by_slot": list(getattr(model_standard, "slot_proposal_time_by_slot", [])),
+        "proposal_time_avg": list(getattr(model_standard, "slot_proposal_time_avg", [])),
+        "attestation_sum": list(getattr(model_standard, "slot_attestation_sum", [])),
+        "proposer_strategy_and_mev": list(getattr(model_standard, "slot_proposer_history", [])),
+        "region_counter_per_slot": dict(getattr(model_standard, "slot_region_counter_per_slot", {})),
+        "top_regions_final": list(getattr(model_standard, "top_regions_final", [])),
+    }
+
+
 # --- Simulation Initialization Functions ---
 
 def load_simulation_config(config_file_path):
@@ -147,6 +178,9 @@ def simulation(
     cost=0.0001,  # Cost for migration, default to 0.0001
     latency_std_dev_ratio=0.5,
     seed=DEFAULT_SIMULATION_SEED,
+    collect_full_history=False,
+    export_raw_artifacts=True,
+    verbose=False,
 ):
     # --- Simulation Execution ---
     random.seed(seed)  # For reproducibility
@@ -221,12 +255,8 @@ def simulation(
     print(
         f"Avg MEV Earned per Slot: {model_standard.total_mev_earned / (model_standard.current_slot_idx):.4f} ETH"
     )
-    model_data = model_standard.datacollector.get_model_vars_dataframe()
-    failed_block_proposals = model_data["Failed_Block_Proposals"].tolist()
-
-    print("\n--- Collected Model Data ---")
-    print(model_data.head())
-    print(model_data.tail())
+    export_payloads = build_export_payloads(model_standard)
+    failed_block_proposals = export_payloads["failed_block_proposals"]
 
     # profiles:
     for profiles, output_name in [
@@ -238,11 +268,33 @@ def simulation(
             json.dump(names, f)
 
     gcp_region_profits = pd.DataFrame(model_standard.region_profits)
-    utility_increase = pd.DataFrame(model_data["Utility_Increase"].tolist())
     gcp_region_profits.to_csv(f"{output_folder}/region_profits.csv", index=False)
-    utility_increase.to_json(f"{output_folder}/utility_increase.json")
+    with open(f"{output_folder}/avg_mev.json", "w") as f:
+        json.dump(export_payloads["avg_mev"], f)
+    with open(f"{output_folder}/supermajority_success.json", "w") as f:
+        json.dump(export_payloads["supermajority_success"], f)
+    with open(f"{output_folder}/failed_block_proposals.json", "w") as f:
+        json.dump(export_payloads["failed_block_proposals"], f)
+    with open(f"{output_folder}/utility_increase.json", "w") as f:
+        json.dump(export_payloads["utility_increase"], f)
     with open(f"{output_folder}/region_counter_per_slot.json", "w") as f:
-        json.dump(model_standard.region_counter_per_slot, f)
+        json.dump(export_payloads["region_counter_per_slot"], f)
+    with open(f"{output_folder}/proposer_strategy_and_mev.json", "w") as f:
+        json.dump(export_payloads["proposer_strategy_and_mev"], f)
+
+    if export_raw_artifacts:
+        with open(f"{output_folder}/mev_by_slot.json", "w") as f:
+            json.dump(export_payloads["mev_by_slot"], f)
+        with open(f"{output_folder}/estimated_mev_by_slot.json", "w") as f:
+            json.dump(export_payloads["estimated_mev_by_slot"], f)
+        with open(f"{output_folder}/attest_by_slot.json", "w") as f:
+            json.dump(export_payloads["attest_by_slot"], f)
+        with open(f"{output_folder}/proposal_time_by_slot.json", "w") as f:
+            json.dump(export_payloads["proposal_time_by_slot"], f)
+        action_reasons_df = pd.DataFrame(
+            model_standard.action_reasons, columns=["Action_Reason", "Previous_Region", "New_Region"]
+        )
+        action_reasons_df.to_csv(f"{output_folder}/action_reasons.csv", index=False)
 
     summary = {
         "simulation_name": simulation_name,
@@ -259,7 +311,7 @@ def simulation(
     with open(f"{output_folder}/summary.json", "w") as f:
         json.dump(summary, f)
 
-    print("Saved summary, region_counter_per_slot.json, region_profits.csv, and utility_increase.json in the output directory.")
+    print("Saved summary, series exports, region traces, and profit outputs in the output directory.")
     print("Information Sources:")
     if model == "SSP":
         print("Relays:")
@@ -532,6 +584,9 @@ if __name__ == "__main__":
             cost=cost,
             latency_std_dev_ratio=latency_std_dev_ratio,
             seed=seed,
+            collect_full_history=False,
+            export_raw_artifacts=True,
+            verbose=False,
         )
 
     except (FileNotFoundError, ValueError, RuntimeError) as e:
