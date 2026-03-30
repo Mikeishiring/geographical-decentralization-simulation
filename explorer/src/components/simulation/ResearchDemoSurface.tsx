@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUpRight } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { formatNumber } from './simulation-constants'
-import { PublishedDatasetViewer } from './PublishedDatasetViewer'
+import { PublishedReplayCompanionPanel } from './PublishedReplayCompanionPanel'
+import { PublishedDatasetViewer, type PublishedViewerSnapshot } from './PublishedDatasetViewer'
 
 interface ResearchMetadata {
   readonly v?: number
@@ -135,6 +136,21 @@ function themeLabel(theme: WorkspaceTheme): string {
   return 'Light'
 }
 
+function describeViewerSnapshot(
+  snapshot: PublishedViewerSnapshot | null,
+  label: string,
+): string | null {
+  if (!snapshot) return null
+
+  const dominantRegion = snapshot.dominantRegionCity ?? snapshot.dominantRegionId ?? 'no dominant region'
+  const gini = snapshot.currentGini != null ? formatNumber(snapshot.currentGini, 3) : 'N/A'
+  const liveness = snapshot.currentLiveness != null ? `${formatNumber(snapshot.currentLiveness, 1)}%` : 'N/A'
+  const mev = snapshot.currentMev != null ? `${formatNumber(snapshot.currentMev, 4)} ETH` : 'N/A'
+  const proposalTime = snapshot.currentProposalTime != null ? `${formatNumber(snapshot.currentProposalTime, 1)} ms` : 'N/A'
+
+  return `${label} is at slot ${snapshot.slotNumber.toLocaleString()} of ${snapshot.totalSlots.toLocaleString()}, with ${snapshot.activeRegions.toLocaleString()} active regions. Dominant region: ${dominantRegion}. Gini ${gini}, liveness ${liveness}, MEV ${mev}, proposal time ${proposalTime}.`
+}
+
 export function ResearchDemoSurface({
   catalogScriptUrl,
   viewerBaseUrl,
@@ -155,6 +171,8 @@ export function ResearchDemoSurface({
   const [audienceMode, setAudienceMode] = useState<AudienceMode>(initialWorkspaceState.audienceMode ?? 'reader')
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
   const viewerRef = useRef<HTMLElement | null>(null)
+  const [viewerSnapshot, setViewerSnapshot] = useState<PublishedViewerSnapshot | null>(null)
+  const [comparisonViewerSnapshot, setComparisonViewerSnapshot] = useState<PublishedViewerSnapshot | null>(null)
 
   useEffect(() => {
     const existing = readResearchCatalog()
@@ -517,10 +535,14 @@ export function ResearchDemoSurface({
       )
     }
 
+    const replayComparison = viewerSnapshot && comparisonViewerSnapshot
+      ? ` The active replay is currently at slot ${viewerSnapshot.slotNumber.toLocaleString()} with ${viewerSnapshot.activeRegions.toLocaleString()} active regions, while the comparison replay is at slot ${comparisonViewerSnapshot.slotNumber.toLocaleString()} with ${comparisonViewerSnapshot.activeRegions.toLocaleString()} active regions.`
+      : ''
+
     return statements.length > 0
-      ? `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} serves as a foil. ${statements.join(' ')}`
-      : `Compare ${selectedDataset.result} against ${comparisonDataset.result} with the map, timeline, and current paper lens.`
-  }, [comparisonDataset, selectedDataset, selectedMetadata])
+      ? `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} serves as a foil. ${statements.join(' ')}${replayComparison}`
+      : `Compare ${selectedDataset.result} against ${comparisonDataset.result} with the map, timeline, and current paper lens.${replayComparison}`
+  }, [comparisonDataset, comparisonViewerSnapshot, selectedDataset, selectedMetadata, viewerSnapshot])
 
   const viewPresets = useMemo(() => ([
     {
@@ -843,8 +865,30 @@ export function ResearchDemoSurface({
       : 'single-scenario focus'
 
     const chapterLabel = activeChapterRoute ? ` ${activeChapterRoute.label}.` : ''
-    return `${audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode with ${matchedViewPreset?.label ?? 'Custom'} stack: ${themeLabel(theme)} theme, step ${step}, ${playbackLabel}, ${paperLens} lens, ${compareLabel}.${chapterLabel}`
-  }, [activeChapterRoute, audienceMode, audienceProfiles, autoplay, comparisonDataset, matchedViewPreset, paperLens, step, theme])
+    const primaryReplaySummary = describeViewerSnapshot(viewerSnapshot, 'Primary replay')
+    const compareReplaySummary = splitCompareActive
+      ? describeViewerSnapshot(comparisonViewerSnapshot, 'Comparison replay')
+      : null
+
+    return [
+      `${audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode with ${matchedViewPreset?.label ?? 'Custom'} stack: ${themeLabel(theme)} theme, step ${step}, ${playbackLabel}, ${paperLens} lens, ${compareLabel}.${chapterLabel}`,
+      primaryReplaySummary,
+      compareReplaySummary,
+    ].filter(Boolean).join(' ')
+  }, [
+    activeChapterRoute,
+    audienceMode,
+    audienceProfiles,
+    autoplay,
+    comparisonDataset,
+    comparisonViewerSnapshot,
+    matchedViewPreset,
+    paperLens,
+    splitCompareActive,
+    step,
+    theme,
+    viewerSnapshot,
+  ])
 
   const activeAudienceBrief = useMemo(() => {
     if (audienceMode === 'reviewer') {
@@ -912,6 +956,16 @@ export function ResearchDemoSurface({
   const primaryCanvasAnnotations = useMemo(() => {
     if (!selectedDataset) return []
 
+    const liveSlotNote = viewerSnapshot
+      ? {
+          title: `Slot ${viewerSnapshot.slotNumber.toLocaleString()} of ${viewerSnapshot.totalSlots.toLocaleString()}`,
+          body: `Dominant region ${viewerSnapshot.dominantRegionCity ?? viewerSnapshot.dominantRegionId ?? 'N/A'} with ${formatNumber(viewerSnapshot.dominantRegionShare, 1)}% share. Active regions ${viewerSnapshot.activeRegions.toLocaleString()}, gini ${viewerSnapshot.currentGini != null ? formatNumber(viewerSnapshot.currentGini, 3) : 'N/A'}, liveness ${viewerSnapshot.currentLiveness != null ? `${formatNumber(viewerSnapshot.currentLiveness, 1)}%` : 'N/A'}, MEV ${viewerSnapshot.currentMev != null ? `${formatNumber(viewerSnapshot.currentMev, 4)} ETH` : 'N/A'}.`,
+        }
+      : {
+          title: 'Live replay',
+          body: 'Once the replay loads, these overlays will speak to the exact slot on screen instead of staying generic.',
+        }
+
     return [
       {
         title: paperLens === 'theory' ? 'Theory read' : paperLens === 'methods' ? 'Methods read' : 'Start here',
@@ -921,6 +975,7 @@ export function ResearchDemoSurface({
             ? 'Read this as a checked-in published payload. The selector rail changes the evidence contract, not a full-scale rerun.'
             : 'Begin with the geography and concentration plots, then trace latency and liveness as the slot progression advances.',
       },
+      liveSlotNote,
       {
         title: 'View posture',
         body: currentViewSummary,
@@ -930,7 +985,7 @@ export function ResearchDemoSurface({
         body: activeAudienceBrief.summary,
       },
     ]
-  }, [activeAudienceBrief, currentViewSummary, paperLens, selectedDataset, selectedMetadata])
+  }, [activeAudienceBrief, currentViewSummary, paperLens, selectedDataset, selectedMetadata, viewerSnapshot])
 
   const comparisonCanvasAnnotations = useMemo(() => {
     if (!comparisonDataset) return []
@@ -938,14 +993,16 @@ export function ResearchDemoSurface({
     return [
       {
         title: 'Foil scenario',
-        body: `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} gives the comparison anchor. Use it to ask what changes materially versus what remains stable.`,
+        body: comparisonViewerSnapshot
+          ? `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} is currently at slot ${comparisonViewerSnapshot.slotNumber.toLocaleString()} of ${comparisonViewerSnapshot.totalSlots.toLocaleString()}, with ${comparisonViewerSnapshot.activeRegions.toLocaleString()} active regions and dominant region ${comparisonViewerSnapshot.dominantRegionCity ?? comparisonViewerSnapshot.dominantRegionId ?? 'N/A'}.`
+          : `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} gives the comparison anchor. Use it to ask what changes materially versus what remains stable.`,
       },
       {
         title: 'Compare prompt',
         body: comparisonNarrative,
       },
     ]
-  }, [comparisonDataset, comparisonNarrative])
+  }, [comparisonDataset, comparisonNarrative, comparisonViewerSnapshot])
 
   useEffect(() => {
     setAssistantDraft(assistantPrompts[0]?.prompt ?? '')
@@ -1209,6 +1266,7 @@ export function ResearchDemoSurface({
                     viewerBaseUrl={viewerBaseUrl}
                     dataset={activeViewer.dataset}
                     initialSettings={activeViewer.settings}
+                    onStateChange={setViewerSnapshot}
                   />
                 </div>
               </div>
@@ -1235,6 +1293,7 @@ export function ResearchDemoSurface({
                     viewerBaseUrl={viewerBaseUrl}
                     dataset={comparisonDataset}
                     initialSettings={activeViewer.settings}
+                    onStateChange={setComparisonViewerSnapshot}
                   />
                 </div>
               </div>
@@ -1254,6 +1313,7 @@ export function ResearchDemoSurface({
                 viewerBaseUrl={viewerBaseUrl}
                 dataset={activeViewer.dataset}
                 initialSettings={activeViewer.settings}
+                onStateChange={setViewerSnapshot}
               />
             </div>
           )}
@@ -1710,6 +1770,37 @@ export function ResearchDemoSurface({
                   />
                 </div>
 
+                <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Active context</div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
+                    <span className="lab-chip">{selectedDataset?.evaluation ?? 'No scenario'}</span>
+                    <span className="lab-chip">{selectedDataset?.paradigm ?? 'No mode'}</span>
+                    <span className="lab-chip">{selectedDataset?.result ?? 'No result'}</span>
+                    <span className="lab-chip">{selectedDataset?.sourceRole ?? 'No source role'}</span>
+                    <span className="lab-chip">{matchedViewPreset?.label ?? 'Custom'} preset</span>
+                    {activeChapterRoute ? (
+                      <span className="lab-chip">{activeChapterRoute.label}</span>
+                    ) : null}
+                    <span className="lab-chip">{themeLabel(theme)} theme</span>
+                    <span className="lab-chip">step {step}</span>
+                    <span className="lab-chip">{paperLens} lens</span>
+                    {viewerSnapshot ? <span className="lab-chip">slot {viewerSnapshot.slotNumber}</span> : null}
+                  </div>
+                  <div className="mt-3 text-xs leading-5 text-muted">
+                    Use this draft to guide a reading, compare scenarios, or frame a public note against this selected replay.
+                  </div>
+                </div>
+
+                <PublishedReplayCompanionPanel
+                  question={assistantDraft}
+                  onQuestionChange={setAssistantDraft}
+                  dataset={selectedDataset}
+                  comparisonDataset={comparisonDataset}
+                  paperLens={paperLens}
+                  audienceMode={audienceMode}
+                  currentViewSummary={currentViewSummary}
+                  viewerSnapshot={viewerSnapshot}
+                />
               </div>
 
               <div className="lab-stage p-5">
