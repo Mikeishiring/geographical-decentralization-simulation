@@ -27,7 +27,7 @@ function getInitialTab(): TabId {
   if (tab && VALID_TABS.includes(tab)) return tab
   if (params.get('eid')) return 'history'
   if (params.get('q')) return 'explore'
-  return 'paper'
+  return 'explore'
 }
 
 function getInitialQuery(): string | null {
@@ -49,7 +49,7 @@ function readRouteState(): ExplorerRouteState {
 function writeRouteState(next: ExplorerRouteState, replace = false) {
   const url = new URL(window.location.href)
 
-  if (next.tab === 'paper') {
+  if (next.tab === 'explore') {
     url.searchParams.delete('tab')
   } else {
     url.searchParams.set('tab', next.tab)

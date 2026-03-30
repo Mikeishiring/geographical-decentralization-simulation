@@ -12,10 +12,10 @@ interface TabNavProps {
 }
 
 const tabs: { id: TabId; label: string; shortLabel: string; hint: string }[] = [
-  { id: 'explore', label: 'Findings', shortLabel: 'Findings', hint: 'Curated questions, implications, and paper-backed readings' },
-  { id: 'history', label: 'Community', shortLabel: 'Community', hint: 'Published notes plus the private reading archive' },
   { id: 'paper', label: 'Paper', shortLabel: 'Paper', hint: 'Canonical paper text with the editorial reading guide' },
+  { id: 'explore', label: 'Findings', shortLabel: 'Findings', hint: 'Curated questions, implications, and paper-backed readings' },
   { id: 'results', label: 'Simulation', shortLabel: 'Simulation', hint: 'Published scenarios plus fresh exact experiments' },
+  { id: 'history', label: 'Community', shortLabel: 'Community', hint: 'Published notes plus the private reading archive' },
 ]
 
 export function TabNav({ activeTab, onTabChange }: TabNavProps) {

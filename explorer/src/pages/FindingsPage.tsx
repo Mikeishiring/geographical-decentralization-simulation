@@ -329,7 +329,7 @@ export function FindingsPage({
     ? aiResponse.summary
     : showTopic && activeTopic
       ? activeTopic.title
-      : 'Start with the paper’s sharpest questions'
+      : "Start with the paper's sharpest questions"
 
   const displayProvenance = aiResponse?.provenance
     ?? (showTopic && activeTopic
@@ -395,126 +395,67 @@ export function FindingsPage({
         <ModeBanner
           eyebrow="Mode"
           title="Curated questions, implications, and guided readings"
-          detail="Use this page for bounded, paper-backed questions. The responses can synthesize and interpret, but the paper and published results remain the canonical sources, and only intentionally published notes enter the community surface."
+          detail="The responses synthesize and interpret, but the paper and published results remain the canonical sources."
           tone="interpretation"
         />
       </div>
 
-      {/* Page header with constellation decoration */}
+      {/* Page header — framed for cold visitors */}
       <div className="mb-6 relative">
         <NodeConstellation className="absolute right-0 top-0 w-32 h-32 opacity-40 pointer-events-none hidden sm:block" />
 
         <p className="text-[11px] text-text-faint mb-2 leading-relaxed max-w-xl">
-          An interactive companion for the geo-decentralization paper. Start with a curated lens, read community notes, or ask a bounded question about latency, concentration metrics, and protocol design.
+          Yang, Oz, Wu, Zhang (2025) · arXiv:2509.21475
         </p>
         <h1 className="text-xl sm:text-2xl font-bold text-text-primary font-serif leading-tight max-w-lg">
-          Start with the paper’s sharpest questions.
+          What did this paper find?
         </h1>
         <p className="mt-2 text-sm text-muted max-w-2xl leading-relaxed">
-          Curated lenses for the stakes, protocol tradeoffs, paradoxes, and model limitations. Then ask a bounded question.
+          Ethereum validator geography is shaped by latency and protocol timing rules. Both block-building paradigms push toward concentration, but through different mechanisms — and the same protocol change can help one while hurting the other.
         </p>
-
-        <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-muted">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-success" />
-            Curated lenses
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-warning" />
-            Prior readings
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent dot-pulse" />
-            Fresh interpretation
-          </span>
-        </div>
-
-        <div className="mt-3">
-          <QueryBar
-            onSubmit={handleQuery}
-            loading={loading}
-            disabled={queryBarDisabled}
-            disabledReason={queryBarDisabledReason}
-            helperText={queryBarHelperText}
-          />
-        </div>
       </div>
 
-      {!showAi && !showTopic && onTabChange && (
-        <div className="mb-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <button
-            onClick={() => onTabChange('paper')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-          >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Read first</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Open the paper guide</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Start here if you want the cleanest paper-backed overview before asking a question.
+      {/* Executive summary — key findings shown immediately */}
+      {!showAi && !showTopic && (
+        <div className="mb-8">
+          <BlockCanvas blocks={DEFAULT_BLOCKS} />
+          {promptOptions.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-rule">
+              <span className="text-xs text-muted mb-2 block">
+                {promptSectionTitle}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {promptOptions.map((query, index) => (
+                  <button
+                    key={`${query}-${index}`}
+                    onClick={() => handleQuery(query)}
+                    className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                    title={`Ask: ${query}`}
+                  >
+                    <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </button>
-
-          <button
-            onClick={() => onTabChange('results')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-          >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">See the evidence</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Browse published results</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Jump straight to the canonical scenarios and the experimental runner when you want to verify a claim with the actual artifacts.
-            </div>
-          </button>
-
-          <button
-            onClick={() => onTabChange('results')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-          >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Verify with data</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Open published results</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Use the frozen researcher datasets when you want the canonical scenarios rather than an interpretation.
-            </div>
-          </button>
-
-          <div className="rounded-xl border border-accent/20 bg-[linear-gradient(180deg,rgba(37,99,235,0.05),rgba(255,255,255,0.96))] px-4 py-4">
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Ask here</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Use Findings for bounded questions</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Great questions compare paradigms, isolate a mechanism, or ask where confidence should stop.
-            </div>
-          </div>
+          )}
         </div>
       )}
 
-      <QueryHistory
-        entries={history}
-        onSelect={handleHistorySelect}
-        activeQuery={activeQuery ?? undefined}
-      />
+      <div className="mb-6">
+        <QueryBar
+          onSubmit={handleQuery}
+          loading={loading}
+          disabled={queryBarDisabled}
+          disabledReason={queryBarDisabledReason}
+          helperText={queryBarHelperText}
+        />
+      </div>
 
-      {/* Topic cards */}
+      {/* Topic cards — go deeper into specific findings */}
       <div className="mb-8">
-        {policyCard && (
-          <div className="mb-4 rounded-xl border border-warning/30 bg-warning/6 px-4 py-4">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Protocol and policy lens</div>
-            <div className="mt-1 text-sm font-medium text-text-primary">
-              Read the paper as a design-tradeoff argument, not only as a mechanism explainer.
-            </div>
-            <p className="mt-1 max-w-2xl text-xs text-muted">
-              This lens pulls the implications angle into the top-level Findings flow: shorter slots, threshold tuning, and infrastructure geography all shift incentives differently, and the paper is stronger on diagnosis than on a single validated fix.
-            </p>
-            <button
-              onClick={() => handleTopicClick(policyCard)}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent transition-colors hover:text-accent/80"
-            >
-              Open implications lens
-              <ArrowRight className="h-3 w-3" />
-            </button>
-          </div>
-        )}
-
         <div className="mb-3 flex items-center justify-between">
           <span className="text-xs text-muted">
-            Start with a lens
+            {showTopic || showAi ? 'Curated lenses' : 'Go deeper'}
           </span>
           {(showTopic || showAi) && (
             <button
@@ -537,7 +478,7 @@ export function FindingsPage({
                 key={card.id}
                 onClick={() => handleTopicClick(card)}
                 layout
-                whileHover={{ y: -2, boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
+                whileHover={{ y: -2, boxShadow: "0 4px 12px rgba(0,0,0,0.06)" }}
                 whileTap={{ scale: 0.985 }}
                 transition={SPRING}
                 aria-label={card.title}
@@ -568,56 +509,123 @@ export function FindingsPage({
             )
           })}
         </div>
+
+        {policyCard && !showAi && !showTopic && (
+          <div className="mt-4 rounded-xl border border-warning/30 bg-warning/6 px-4 py-4">
+            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Protocol and policy lens</div>
+            <div className="mt-1 text-sm font-medium text-text-primary">
+              Read the paper as a design-tradeoff argument, not only as a mechanism explainer.
+            </div>
+            <p className="mt-1 max-w-2xl text-xs text-muted">
+              Shorter slots, threshold tuning, and infrastructure geography all shift incentives differently. The paper is stronger on diagnosis than on a single validated fix.
+            </p>
+            <button
+              onClick={() => handleTopicClick(policyCard)}
+              className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent transition-colors hover:text-accent/80"
+            >
+              Open implications lens
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="topo-divider mb-6" />
+      {/* Navigation cards — cross-tab wayfinding (default state only) */}
+      {!showAi && !showTopic && onTabChange && (
+        <div className="mb-8 grid gap-3 md:grid-cols-3">
+          <button
+            onClick={() => onTabChange('paper')}
+            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+          >
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Read the source</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">Open the paper guide</div>
+            <div className="mt-1 text-xs leading-5 text-muted">
+              Editorial reading guide through the full paper, section by section.
+            </div>
+          </button>
 
-      {/* Active lens */}
-      <div className="mb-5">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <h2 className="text-base font-semibold text-text-primary font-serif truncate">
-            {heading}
-          </h2>
-          <div className="flex items-center gap-1.5 text-xs text-muted shrink-0">
-            <span className={cn('w-1.5 h-1.5 rounded-full', dotColor[displayProvenance.source] ?? 'bg-accent')} />
-            {evidencePath}
-          </div>
+          <button
+            onClick={() => onTabChange('results')}
+            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+          >
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Verify with data</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">Browse published results</div>
+            <div className="mt-1 text-xs leading-5 text-muted">
+              Canonical scenarios plus a fresh simulation runner to test claims against the actual artifacts.
+            </div>
+          </button>
+
+          <button
+            onClick={() => onTabChange('history')}
+            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+          >
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">See what others found</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">Community notes</div>
+            <div className="mt-1 text-xs leading-5 text-muted">
+              Human-framed notes from paper readings and exact simulation runs.
+            </div>
+          </button>
         </div>
+      )}
 
-        <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Research integrity</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">{displayProvenance.label}</div>
-              <div className="mt-1 text-sm text-muted">{displayProvenance.detail || interpretationBoundary}</div>
-              <div className="mt-2 text-xs text-muted">
-                Truth boundary: {interpretationBoundary}
+      <QueryHistory
+        entries={history}
+        onSelect={handleHistorySelect}
+        activeQuery={activeQuery ?? undefined}
+      />
+
+      {/* Active lens / AI response area — only when exploring */}
+      {(showAi || showTopic) && (
+        <>
+          <div className="topo-divider mb-6" />
+
+          <div className="mb-5">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h2 className="text-base font-semibold text-text-primary font-serif truncate">
+                {heading}
+              </h2>
+              <div className="flex items-center gap-1.5 text-xs text-muted shrink-0">
+                <span className={cn('w-1.5 h-1.5 rounded-full', dotColor[displayProvenance.source] ?? 'bg-accent')} />
+                {evidencePath}
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2 lg:w-[340px]">
-              <a
-                href="https://arxiv.org/abs/2509.21475"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
-              >
-                <span>Read canonical paper</span>
-                <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
-              </a>
-              {onTabChange && (
-                <button
-                  onClick={() => onTabChange('results')}
-                  className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
-                >
-                  <span>Open simulation tab</span>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
-                </button>
-              )}
+            <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-2xl">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Research integrity</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">{displayProvenance.label}</div>
+                  <div className="mt-1 text-sm text-muted">{displayProvenance.detail || interpretationBoundary}</div>
+                  <div className="mt-2 text-xs text-muted">
+                    Truth boundary: {interpretationBoundary}
+                  </div>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2 lg:w-[340px]">
+                  <a
+                    href="https://arxiv.org/abs/2509.21475"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    <span>Read canonical paper</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+                  </a>
+                  {onTabChange && (
+                    <button
+                      onClick={() => onTabChange('results')}
+                      className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                    >
+                      <span>Open simulation tab</span>
+                      <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       <AnimatePresence mode="wait">
         {loading ? (
@@ -650,7 +658,6 @@ export function FindingsPage({
           >
             <BlockCanvas blocks={aiResponse.blocks} />
 
-            {/* Share + Export actions */}
             <div className="mt-4 flex items-center gap-3 text-xs">
               {aiResponse.provenance.explorationId && (
                 <button
@@ -768,36 +775,7 @@ export function FindingsPage({
               </div>
             )}
           </motion.div>
-        ) : (
-          <motion.div
-            key="default"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={SPRING}
-          >
-            <BlockCanvas blocks={DEFAULT_BLOCKS} />
-            {promptOptions.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-rule">
-                <span className="text-xs text-muted mb-2 block">
-                  {promptSectionTitle}
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {promptOptions.map((query, index) => (
-                    <button
-                      key={`${query}-${index}`}
-                      onClick={() => handleQuery(query)}
-                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
-                      title={`Ask: ${query}`}
-                    >
-                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
 
       {onTabChange && (
