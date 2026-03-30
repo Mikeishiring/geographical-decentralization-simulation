@@ -7,7 +7,6 @@ import random
 import time
 import traceback
 import yaml  # Import yaml library
-from collections import defaultdict, Counter
 
 from constants import LinearMEVUtility
 from consensus import ConsensusSettings
@@ -15,6 +14,9 @@ from distribution import parse_gcp_latency
 from measure import *  # Assuming measure.py contains necessary measurement functions
 from models import SingleSourceParadigm, MultiSourceParadigm
 from source_agent import initialize_relays, initialize_signals
+
+
+DEFAULT_SIMULATION_SEED = 0x06511
 
 
 # --- Simulation Initialization Functions ---
@@ -143,12 +145,12 @@ def simulation(
     time_window,  # Time window for migration checks
     fast_mode=False,  # Fast mode for latency computation
     cost=0.0001,  # Cost for migration, default to 0.0001
-    num_proposers_per_slot=1,  # Number of proposers per slot
-    proposer_mode="MSP"  # Proposer mode, default to "MSP"
+    latency_std_dev_ratio=0.5,
+    seed=DEFAULT_SIMULATION_SEED,
 ):
     # --- Simulation Execution ---
-    random.seed(0x06511)  # For reproducibility
-    np.random.seed(0x06511)  # For reproducibility in NumPy operations
+    random.seed(seed)  # For reproducibility
+    np.random.seed(seed)  # For reproducibility in NumPy operations
 
     # --- Define Simulation Parameters ---
     # Calculate total time steps using values from ConsensusSettings
@@ -182,12 +184,12 @@ def simulation(
         "time_window": time_window,  # Time window for migration checks
         "fast_mode": fast_mode,  # Fast mode for latency computation
         "cost": cost,  # Cost for migration
-        "num_proposers_per_slot": num_proposers_per_slot,
-        "proposer_mode": proposer_mode
+        "latency_std_dev_ratio": latency_std_dev_ratio,
     }
 
     # --- Create and Run the Model ---
     print(f"\n--- Starting MEV-Boost Simulation: {simulation_name} ---")
+    print(f"Simulation seed: {seed}")
     start_time = time.time()
 
     if model == "SSP":
@@ -195,7 +197,7 @@ def simulation(
     else:
         model_standard = MultiSourceParadigm(**model_params_standard_nomig)
 
-    for i in range(TOTAL_TIME_STEPS):
+    while model_standard.steps < TOTAL_TIME_STEPS:
         model_standard.step()
         if not model_standard.running:
             print(
@@ -220,6 +222,7 @@ def simulation(
         f"Avg MEV Earned per Slot: {model_standard.total_mev_earned / (model_standard.current_slot_idx):.4f} ETH"
     )
     model_data = model_standard.datacollector.get_model_vars_dataframe()
+    failed_block_proposals = model_data["Failed_Block_Proposals"].tolist()
 
     print("\n--- Collected Model Data ---")
     print(model_data.head())
@@ -234,92 +237,29 @@ def simulation(
         with open(f"{output_folder}/{output_name}", "w") as f:
             json.dump(names, f)
 
-    avg_mev_series = model_data["Average_MEV_Earned"].tolist()
-    supermaj_series = model_data["Supermajority_Success_Rate"].tolist()
-    failed_block_proposals = model_data["Failed_Block_Proposals"].tolist()
-    utility_increase_series = model_data["Utility_Increase"].tolist()
-
     gcp_region_profits = pd.DataFrame(model_standard.region_profits)
+    utility_increase = pd.DataFrame(model_data["Utility_Increase"].tolist())
     gcp_region_profits.to_csv(f"{output_folder}/region_profits.csv", index=False)
-
-    with open(f"{output_folder}/avg_mev.json", "w") as f:
-        json.dump(avg_mev_series, f)
-
-    with open(f"{output_folder}/supermajority_success.json", "w") as f:
-        json.dump(supermaj_series, f)
-
-    with open(f"{output_folder}/failed_block_proposals.json", "w") as f:
-        json.dump(failed_block_proposals, f)
-
-    with open(f"{output_folder}/utility_increase.json", "w") as f:
-        json.dump(utility_increase_series, f)
-
-    action_reasons = model_standard.action_reasons
-    action_reasons_df = pd.DataFrame(
-        action_reasons, columns=["Action_Reason", "Previous_Region", "New_Region"]
-    )
-    action_reasons_df.to_csv(f"{output_folder}/action_reasons.csv", index=False)
-
-    agent_data = model_standard.datacollector.get_agent_vars_dataframe()
-
-    print("\n--- Agent Data Collected ---")
-    print("DataFrame Head:")
-    print(agent_data.head())
-
-    print("\nDataFrame Tail:")
-    print(agent_data.tail())
-
-    print("\nDataFrame Info:")
-    agent_data.info()
-    if isinstance(agent_data.index, pd.MultiIndex):
-        agent_data = agent_data.reset_index()
-
-    validator_agent_data = agent_data[(agent_data["Role"] != "relay_agent") & (agent_data["Role"] != "signal_agent")].reindex()
-    
-    # Group by slot and collect lists of per-agent values:
-    mev_by_slot = (
-        validator_agent_data.groupby("Slot")["MEV_Captured_Slot"].apply(list).tolist()
-    )
-    estimated_mev_by_slot = (
-        validator_agent_data.groupby("Slot")["Estimated_Profit"].apply(list).tolist()
-    )
-    attest_by_slot = (
-        validator_agent_data.groupby("Slot")["Attestation_Rate"].apply(list).tolist()
-    )
-    proposal_time_by_slot = (
-        validator_agent_data.groupby("Slot")["Proposal Time"].apply(list).tolist()
-    )
-
-    latest_steps = (
-        validator_agent_data.sort_values("Step")
-        .groupby(["Slot", "AgentID"], as_index=False)
-        .last()
-    )
-    region_counter_per_slot = defaultdict(list)
-    for slot, slot_df in latest_steps.groupby("Slot"):
-        region_counts = Counter(slot_df["GCP_Region"])
-        region_counter_per_slot[int(slot)] = region_counts.most_common()
-
-    # Proposer data
-    proposer_data = agent_data[agent_data["Role"] == "proposer"]
-    proposer_strategy_and_mev = proposer_data[
-        ["Slot", "Location_Strategy", "MEV_Captured_Slot"]
-    ].to_dict(orient="records")
-
-    with open(f"{output_folder}/mev_by_slot.json", "w") as f:
-        json.dump(mev_by_slot, f)
-    with open(f"{output_folder}/estimated_mev_by_slot.json", "w") as f:
-        json.dump(estimated_mev_by_slot, f)
-    with open(f"{output_folder}/attest_by_slot.json", "w") as f:
-        json.dump(attest_by_slot, f)
-    with open(f"{output_folder}/proposal_time_by_slot.json", "w") as f:
-        json.dump(proposal_time_by_slot, f)
-    with open(f"{output_folder}/proposer_strategy_and_mev.json", "w") as f:
-        json.dump(proposer_strategy_and_mev, f)
+    utility_increase.to_json(f"{output_folder}/utility_increase.json")
     with open(f"{output_folder}/region_counter_per_slot.json", "w") as f:
-        json.dump(region_counter_per_slot, f)
+        json.dump(model_standard.region_counter_per_slot, f)
 
-    print("Saved data in JSON files in the output directory.")
+    summary = {
+        "simulation_name": simulation_name,
+        "seed": seed,
+        "model": model,
+        "latency_std_dev_ratio": latency_std_dev_ratio,
+        "total_slots": model_standard.current_slot_idx + 1,
+        "total_mev_earned": model_standard.total_mev_earned,
+        "avg_mev_per_slot": model_standard.total_mev_earned / model_standard.current_slot_idx
+        if model_standard.current_slot_idx > 0
+        else 0.0,
+        "failed_block_proposals_total": failed_block_proposals[-1],
+    }
+    with open(f"{output_folder}/summary.json", "w") as f:
+        json.dump(summary, f)
+
+    print("Saved summary, region_counter_per_slot.json, region_profits.csv, and utility_increase.json in the output directory.")
     print("Information Sources:")
     if model == "SSP":
         print("Relays:")
@@ -422,19 +362,16 @@ if __name__ == "__main__":
         help="Cutoff time for attestations in milliseconds (default: 4000)",
     )
     parser.add_argument(
-        "--num_proposers_per_slot",
+        "--seed",
         type=int,
         default=None,
-        help="Number of proposers per slot (default: 1)",
+        help=f"Random seed for the simulation (default: YAML seed or {DEFAULT_SIMULATION_SEED})",
     )
-
     parser.add_argument(
-        "--proposer_mode",
-        type=str,
-        default="MSP",
-        choices=["MSP", "MCP"],
-        help="Proposer mode: MSP (sum signals) or MCP (choose best signal). "
-             "(default: MSP)",
+        "--latency-std-dev-ratio",
+        type=float,
+        default=None,
+        help="Latency sampling standard deviation as a fraction of mean latency (default: YAML value or 0.5)",
     )
 
     args = parser.parse_args()
@@ -470,29 +407,25 @@ if __name__ == "__main__":
 
         # cost for migration
         cost = args.cost if args.cost is not None else config.get("migration_cost", 0.0001)
-
-        # proposers per slot
-        num_proposers_per_slot = args.num_proposers_per_slot if args.num_proposers_per_slot is not None else config.get("num_proposers_per_slot", 1)
-        if model == "SSP" and num_proposers_per_slot != 1:
-            print("Warning: SSP model only supports 1 proposer per slot. Overriding to 1.")
-            num_proposers_per_slot = 1
-
-        proposer_mode = (
-            args.proposer_mode
-            if args.proposer_mode is not None
-            else config.get("proposer_mode", None)
+        seed = args.seed if args.seed is not None else config.get("seed", DEFAULT_SIMULATION_SEED)
+        latency_std_dev_ratio = (
+            args.latency_std_dev_ratio
+            if args.latency_std_dev_ratio is not None
+            else config.get("latency_std_dev_ratio", 0.5)
         )
-
-        if num_proposers_per_slot > 1 and proposer_mode == "MSP":
-            proposer_mode = "MCP"
+        if latency_std_dev_ratio < 0:
+            raise ValueError("latency_std_dev_ratio must be non-negative")
 
         if args.output_dir == "default":
             output_folder = os.path.join(
                 output_folder,
-                f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{args.gamma}_delta_{args.delta}_cutoff_{args.cutoff}",
+                f"num_slots_{num_slots}_validators_{num_validators}_time_window_{time_window}_cost_{cost}_gamma_{args.gamma}_delta_{args.delta}_cutoff_{args.cutoff}_latstd_{latency_std_dev_ratio}_seed_{seed}",
             )
         else:
             output_folder = args.output_dir
+
+        random.seed(seed)
+        np.random.seed(seed)
 
         gcp_regions = pd.read_csv(os.path.join(input_folder, "gcp_regions.csv"))
         gcp_latency = pd.read_csv(os.path.join(input_folder, "gcp_latency.csv"))
@@ -508,7 +441,7 @@ if __name__ == "__main__":
         validators = pd.read_csv(os.path.join(input_folder, "validators.csv"))
         # Sample validators if the CSV has more than the configured number
         if len(validators) > num_validators:
-            validators = validators.sample(n=num_validators, random_state=42)
+            validators = validators.sample(n=num_validators, random_state=seed)
         else:
             print(
                 f"Using all {len(validators)} validators from CSV as it's less than configured {num_validators}."
@@ -566,8 +499,8 @@ if __name__ == "__main__":
             time_window=time_window,
             fast_mode=fast_mode,
             cost=cost,
-            num_proposers_per_slot=num_proposers_per_slot,
-            proposer_mode=proposer_mode
+            latency_std_dev_ratio=latency_std_dev_ratio,
+            seed=seed,
         )
 
     except (FileNotFoundError, ValueError, RuntimeError) as e:
