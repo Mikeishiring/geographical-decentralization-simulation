@@ -2,7 +2,6 @@ import math
 import numpy as np
 
 from scipy.stats import norm, lognorm, poisson_binom
-from scipy import special
 from functools import lru_cache
 
 
@@ -197,93 +196,85 @@ def inititalize_distribution(mean_latency, std_dev_ratio=0.1):
 
 
 @lru_cache(maxsize=1024)
-def prepare_threshold_evaluation_inputs(
-        broadcast_latencies,  # MUST be a tuple
-        broadcast_stds,       # MUST be a tuple
-    ):
-        latencies = np.array(broadcast_latencies, dtype=np.float64)
-        stds = np.array(broadcast_stds, dtype=np.float64)
-
-        zero_latency_count = int(np.count_nonzero(latencies <= 0))
-        zero_std_latencies = latencies[(latencies > 0) & (stds <= 0)]
-        valid_latencies = latencies[(latencies > 0) & (stds > 0)]
-        valid_stds = stds[(latencies > 0) & (stds > 0)]
-
-        if valid_latencies.size == 0:
-            return (
-                zero_latency_count,
-                zero_std_latencies,
-                np.array([], dtype=np.float64),
-                np.array([], dtype=np.float64),
-            )
-
-        std_dev = valid_latencies * valid_stds
-        mean_sq = valid_latencies**2
-        std_dev_sq = std_dev**2
-        valid_mu = np.log(mean_sq / np.sqrt(mean_sq + std_dev_sq))
-        valid_sigma = np.sqrt(np.log1p(std_dev_sq / mean_sq))
-
-        return zero_latency_count, zero_std_latencies, valid_mu, valid_sigma
-
-
-def evaluate_prepared_threshold_fast(
-        prepared_inputs,
-        threshold,
-        required_attesters
-    ):
-        zero_latency_count, zero_std_latencies, valid_mu, valid_sigma = prepared_inputs
-
-        total_count = (
-            zero_latency_count
-            + zero_std_latencies.size
-            + valid_sigma.size
-        )
-        if total_count == 0 or required_attesters <= 0:
-            return 0.0
-
-        probability_vector = np.empty(total_count, dtype=np.float64)
-
-        next_index = 0
-        if zero_latency_count:
-            probability_vector[:zero_latency_count] = 1.0
-            next_index += zero_latency_count
-
-        zero_std_count = zero_std_latencies.size
-        if zero_std_count:
-            probability_vector[next_index:next_index + zero_std_count] = (
-                zero_std_latencies < threshold
-            )
-            next_index += zero_std_count
-
-        valid_count = valid_sigma.size
-        if valid_count:
-            if threshold <= 0:
-                probability_vector[next_index:next_index + valid_count] = 0.0
-            else:
-                log_threshold = math.log(threshold)
-                probability_vector[next_index:next_index + valid_count] = special.ndtr(
-                    (log_threshold - valid_mu) / valid_sigma
-                )
-
-        return poisson_binom.sf(required_attesters - 1, probability_vector)
-
-
-@lru_cache(maxsize=1024)
 def evaluate_threshold_fast(
         broadcast_latencies, # MUST be a tuple
         broadcast_stds,      # MUST be a tuple
         threshold,
         required_attesters
     ):
-        zero_latency_count, zero_std_latencies, valid_mu, valid_sigma = (
-            prepare_threshold_evaluation_inputs(broadcast_latencies, broadcast_stds)
+        prepared = _prepare_threshold_inputs(broadcast_latencies, broadcast_stds)
+        return _evaluate_threshold_from_prepared(
+            prepared,
+            threshold=threshold,
+            required_attesters=required_attesters,
         )
 
-        return evaluate_prepared_threshold_fast(
-            (zero_latency_count, zero_std_latencies, valid_mu, valid_sigma),
+
+def _prepare_threshold_inputs(broadcast_latencies, broadcast_stds):
+    """Precompute arrays and lognormal parameters shared by every binary-search step."""
+    if not broadcast_latencies:
+        return None
+
+    latencies = np.array(broadcast_latencies, dtype=np.float64)
+    stds = np.array(broadcast_stds, dtype=np.float64)
+
+    zero_latency_mask = latencies <= 0
+    zero_std_mask = (stds <= 0) & ~zero_latency_mask
+    valid_mask = ~zero_latency_mask & ~zero_std_mask
+
+    valid_latencies = latencies[valid_mask]
+    valid_scales = None
+    valid_sigma = None
+
+    if valid_latencies.size:
+        std_dev = valid_latencies * stds[valid_mask]
+        mean_sq = valid_latencies**2
+        std_dev_sq = std_dev**2
+        mu = np.log(mean_sq / np.sqrt(mean_sq + std_dev_sq))
+        valid_sigma = np.sqrt(np.log(1 + (std_dev_sq / mean_sq)))
+        valid_scales = np.exp(mu)
+
+    return (
+        latencies,
+        zero_latency_mask,
+        zero_std_mask,
+        valid_mask,
+        valid_sigma,
+        valid_scales,
+    )
+
+
+def _evaluate_threshold_from_prepared(prepared, threshold, required_attesters):
+    """Evaluate one threshold using precomputed inputs."""
+    if prepared is None:
+        return 0.0
+
+    (
+        latencies,
+        zero_latency_mask,
+        zero_std_mask,
+        valid_mask,
+        valid_sigma,
+        valid_scales,
+    ) = prepared
+
+    probabilities = np.zeros_like(latencies)
+    probabilities[zero_latency_mask] = 1.0
+    probabilities[zero_std_mask] = np.where(
+        latencies[zero_std_mask] < threshold,
+        1.0,
+        0.0,
+    )
+
+    if valid_sigma is not None:
+        probabilities[valid_mask] = lognorm.cdf(
             threshold,
-            required_attesters,
+            s=valid_sigma,
+            scale=valid_scales,
         )
+
+    pb = poisson_binom(probabilities.tolist())
+    return pb.sf(required_attesters - 1)
 
 
 @lru_cache(maxsize=1024)
@@ -296,10 +287,7 @@ def find_min_threshold_fast(
         threshold_high=4000.0,
         tolerance=1.0
     ):
-        prepared_inputs = prepare_threshold_evaluation_inputs(
-            broadcast_latencies,
-            broadcast_stds,
-        )
+        prepared = _prepare_threshold_inputs(broadcast_latencies, broadcast_stds)
 
         while threshold_high - threshold_low > tolerance:
             mid = (threshold_low + threshold_high) / 2
@@ -307,8 +295,8 @@ def find_min_threshold_fast(
                 threshold_low = tolerance
                 continue
             
-            prob = evaluate_prepared_threshold_fast(
-                prepared_inputs,
+            prob = _evaluate_threshold_from_prepared(
+                prepared,
                 threshold=mid,
                 required_attesters=required_attesters,
             )
@@ -318,35 +306,4 @@ def find_min_threshold_fast(
             else:
                 threshold_low = mid
         
-        return (threshold_high + threshold_low) / 2
-
-
-def find_min_threshold_prepared(
-        prepared_inputs,
-        required_attesters,
-        target_prob=0.99,
-        threshold_low=0.0,
-        threshold_high=4000.0,
-        tolerance=1.0
-    ):
-        if required_attesters <= 0:
-            return 0.0
-
-        while threshold_high - threshold_low > tolerance:
-            mid = (threshold_low + threshold_high) / 2
-            if mid <= 0:
-                threshold_low = tolerance
-                continue
-
-            prob = evaluate_prepared_threshold_fast(
-                prepared_inputs,
-                threshold=mid,
-                required_attesters=required_attesters
-            )
-
-            if prob >= target_prob:
-                threshold_high = mid
-            else:
-                threshold_low = mid
-
         return (threshold_high + threshold_low) / 2
