@@ -65,7 +65,7 @@ export function SimCopilotPanel({
       </div>
 
       {!showAssistant && (
-        <div className="mx-3 mb-3 flex flex-col gap-4 rounded-[1.35rem] border border-border-subtle bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(247,244,238,0.92))] px-5 py-5 shadow-[0_16px_40px_rgba(15,23,42,0.05)] lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-3 mb-3 flex flex-col gap-4 rounded-xl border border-rule bg-white px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Default mode</div>
             <div className="mt-2 text-sm font-medium text-text-primary">
@@ -90,7 +90,7 @@ export function SimCopilotPanel({
       )}
 
       {showAssistant && (
-        <div className="mx-3 mb-3 rounded-[1.35rem] border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(248,246,242,0.93))] p-5 shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
+        <div className="mx-3 mb-3 rounded-xl border border-rule bg-white p-5">
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs text-muted">
               {hasManifest
@@ -177,7 +177,7 @@ export function SimCopilotPanel({
 
           {isMutating && !copilotResponse && (
             <div className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-              <div className="rounded-[1.1rem] border border-border-subtle bg-white/80 p-4">
+              <div className="rounded-[1.1rem] border border-rule bg-white/80 p-4">
                 <div className="lab-skeleton lab-skeleton-line w-1/3" />
                 <div className="mt-3 space-y-3">
                   <div className="lab-skeleton lab-skeleton-line w-full" />
@@ -201,7 +201,7 @@ export function SimCopilotPanel({
                 </div>
               </div>
 
-                <div className="rounded-[1.25rem] border border-border-subtle bg-white/90 px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                <div className="rounded-[1.25rem] border border-rule bg-white/90 px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                     Guide framing
                   </div>

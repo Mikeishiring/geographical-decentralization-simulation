@@ -397,7 +397,7 @@ export function SimConfigPanel({
                 'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium',
                 paperComparability.tone === 'canonical' && 'border-success/30 bg-success/8 text-text-primary',
                 paperComparability.tone === 'editorial' && 'border-warning/30 bg-warning/8 text-text-primary',
-                paperComparability.tone === 'experimental' && 'border-border-subtle bg-white text-text-primary',
+                paperComparability.tone === 'experimental' && 'border-rule bg-white text-text-primary',
               )}
             >
               <span

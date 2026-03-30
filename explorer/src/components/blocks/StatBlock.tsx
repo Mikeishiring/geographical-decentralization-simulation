@@ -1,6 +1,4 @@
-import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
-import { HOVER_LIFT } from '../../lib/theme'
 import type { StatBlock as StatBlockType } from '../../types/blocks'
 
 interface StatBlockProps {
@@ -9,9 +7,8 @@ interface StatBlockProps {
 
 export function StatBlock({ block }: StatBlockProps) {
   return (
-    <motion.div
-      {...HOVER_LIFT}
-      className="bg-white border border-border-subtle rounded-xl p-5 topo-bg relative overflow-hidden group geo-accent-bar"
+    <div
+      className="bg-white border border-rule rounded-xl p-5 topo-bg relative overflow-hidden group geo-accent-bar"
     >
       {/* Faint coordinate corner — reveals on hover */}
       <span aria-hidden="true" className="coord-label absolute top-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -46,6 +43,6 @@ export function StatBlock({ block }: StatBlockProps) {
           {block.delta}
         </div>
       )}
-    </motion.div>
+    </div>
   )
 }
