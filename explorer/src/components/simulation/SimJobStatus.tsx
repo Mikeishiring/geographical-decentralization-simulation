@@ -116,7 +116,7 @@ export function SimJobStatus({
 
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-2xl">
-          <div className="text-[0.68rem] uppercase tracking-[0.16em] text-slate-400">
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">
             Job status
           </div>
           <div className="mt-3 flex items-center gap-3">
@@ -144,7 +144,7 @@ export function SimJobStatus({
 
         <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[320px]">
           <div className="rounded-xl border border-white/10 bg-white/6 px-4 py-3">
-            <span className="block text-[10px] uppercase tracking-[0.14em] text-slate-400">Queue</span>
+            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Queue</span>
             <div className="mt-2 text-base font-semibold text-white">
               {jobData?.queuePosition ?? 'Live'}
             </div>
@@ -155,7 +155,7 @@ export function SimJobStatus({
             </div>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/6 px-4 py-3">
-            <span className="block text-[10px] uppercase tracking-[0.14em] text-slate-400">Cache path</span>
+            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Cache path</span>
             <div className="mt-2 text-base font-semibold text-white">
               {jobData?.cacheHit == null ? 'Pending' : jobData.cacheHit ? 'Hit' : 'Fresh'}
             </div>
@@ -164,14 +164,14 @@ export function SimJobStatus({
             </div>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/6 px-4 py-3">
-            <span className="block text-[10px] uppercase tracking-[0.14em] text-slate-400">Created</span>
+            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Created</span>
             <div className="mt-2 text-base font-semibold text-white">{createdLabel ?? 'Waiting'}</div>
             <div className="mt-1 text-xs text-slate-300">
               {jobData?.id ? `Job ${jobData.id.slice(0, 8)}` : 'Ticket pending'}
             </div>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/6 px-4 py-3">
-            <span className="block text-[10px] uppercase tracking-[0.14em] text-slate-400">Updated</span>
+            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Updated</span>
             <div className="mt-2 text-base font-semibold text-white">{updatedLabel ?? 'Waiting'}</div>
             <div className="mt-1 text-xs text-slate-300">
               {status === 'completed' ? 'Ready to inspect' : 'Stream stays live'}
