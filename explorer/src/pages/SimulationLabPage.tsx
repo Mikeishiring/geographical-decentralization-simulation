@@ -799,36 +799,76 @@ export function SimulationLabPage({
   const showPendingRunSurface = Boolean(currentJobId)
     && !manifest
     && (status === 'submitting' || status === 'queued' || status === 'running' || status === 'completed')
+  const surfaceOptions = [
+    {
+      id: 'research' as const,
+      title: 'Published scenarios',
+      eyebrow: 'Recommended first',
+      detail: 'Read the checked-in replay, inspect the analytics desk, and use the guide against frozen evidence already tied to the paper.',
+      chips: ['Immediate', 'Paper-backed', 'Shareable view'],
+    },
+    {
+      id: 'lab' as const,
+      title: 'Run exact experiment',
+      eyebrow: 'When you need fresh evidence',
+      detail: 'Launch a new bounded run with the exact engine, then inspect the manifest, artifacts, and optional guide before publishing anything.',
+      chips: ['Slower', 'Exact engine', 'Fresh manifest'],
+    },
+  ] as const
 
   return (
     <div>
-      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mb-6 space-y-4">
         <div className="flex min-w-0 items-start gap-2.5 lg:items-center">
           <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent lg:mt-0" />
           <div className="min-w-0">
             <h1 className="text-base font-semibold text-text-primary">Simulation</h1>
-            <p className="mt-1 text-xs leading-5 text-muted lg:hidden">
-              Published scenarios, exact experiments, and artifact-backed interpretation
+            <p className="mt-1 text-xs leading-5 text-muted">
+              Start from published evidence unless you already know you need a fresh exact run.
             </p>
           </div>
-          <span className="hidden text-xs text-muted lg:inline">
-            Published scenarios, exact experiments, and artifact-backed interpretation
-          </span>
         </div>
 
-        <div className="grid w-full grid-cols-2 rounded-[1rem] border border-border-subtle bg-white p-1 lg:inline-flex lg:w-auto lg:rounded-full lg:p-0.5">
-          <button
-            onClick={() => setSurfaceMode('research')}
-            className={`rounded-full px-3 py-2 text-center text-xs font-medium transition-colors lg:py-1.5 ${surfaceMode === 'research' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
-          >
-            Published scenarios
-          </button>
-          <button
-            onClick={() => setSurfaceMode('lab')}
-            className={`rounded-full px-3 py-2 text-center text-xs font-medium transition-colors lg:py-1.5 ${surfaceMode === 'lab' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
-          >
-            Run exact experiment
-          </button>
+        <div className="grid gap-3 md:grid-cols-2">
+          {surfaceOptions.map(option => {
+            const isActive = surfaceMode === option.id
+            return (
+              <button
+                key={option.id}
+                onClick={() => setSurfaceMode(option.id)}
+                className={cn(
+                  'rounded-2xl border px-4 py-4 text-left transition-all',
+                  isActive
+                    ? 'border-accent bg-white shadow-[0_18px_34px_rgba(15,23,42,0.06)]'
+                    : 'border-border-subtle bg-[#FAFAF8] hover:-translate-y-0.5 hover:border-border-hover hover:bg-white',
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{option.eyebrow}</div>
+                    <div className="mt-2 text-sm font-medium text-text-primary">{option.title}</div>
+                  </div>
+                  {isActive ? (
+                    <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-white">
+                      Active
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-2 text-xs leading-5 text-muted">{option.detail}</div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {option.chips.map(chip => (
+                    <span key={chip} className="lab-chip">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="text-xs leading-5 text-muted">
+          Published scenarios keep the paper, analytics, and replay guide on one fixed evidence surface. The exact lab is for reproducing or extending the research with a fresh bounded run.
         </div>
       </div>
 
