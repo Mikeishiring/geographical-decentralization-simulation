@@ -1,13 +1,26 @@
-import { useState, useCallback, useEffect } from 'react'
+import { Suspense, lazy, startTransition, useState, useCallback, useEffect } from 'react'
 import { Header } from './components/layout/Header'
 import { TabNav, type TabId } from './components/layout/TabNav'
 import { Footer } from './components/layout/Footer'
 import { FindingsPage } from './pages/FindingsPage'
-import { PaperReaderPage } from './pages/PaperReaderPage'
-import { SimulationLabPage } from './pages/SimulationLabPage'
 import { cn } from './lib/cn'
 
 const VALID_TABS: readonly TabId[] = ['explore', 'paper', 'results']
+const PAPER_TAB: TabId = 'paper'
+const RESULTS_TAB: TabId = 'results'
+
+const loadPaperReaderPageModule = () => import('./pages/PaperReaderPage')
+const loadSimulationLabPageModule = () => import('./pages/SimulationLabPage')
+
+const PaperReaderPage = lazy(async () => {
+  const module = await loadPaperReaderPageModule()
+  return { default: module.PaperReaderPage }
+})
+
+const SimulationLabPage = lazy(async () => {
+  const module = await loadSimulationLabPageModule()
+  return { default: module.SimulationLabPage }
+})
 
 interface ExplorerRouteState {
   readonly tab: TabId
@@ -73,17 +86,49 @@ function writeRouteState(next: ExplorerRouteState, replace = false) {
   }
 }
 
+function preloadTab(tab: TabId) {
+  if (tab === PAPER_TAB) {
+    void loadPaperReaderPageModule()
+    return
+  }
+  if (tab === RESULTS_TAB) {
+    void loadSimulationLabPageModule()
+  }
+}
+
+function PageFallback({ label }: { readonly label: string }) {
+  return (
+    <div className="rounded-2xl border border-border-subtle bg-white/92 px-5 py-8 shadow-sm">
+      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Loading</div>
+      <div className="mt-2 text-lg font-medium text-text-primary">{label}</div>
+      <div className="mt-4 space-y-3">
+        <div className="h-4 w-1/3 animate-pulse rounded bg-surface-active" />
+        <div className="h-24 animate-pulse rounded-xl bg-surface-active" />
+        <div className="h-24 animate-pulse rounded-xl bg-surface-active" />
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const initialRoute = readRouteState()
   const [activeTab, setActiveTab] = useState<TabId>(initialRoute.tab)
   const [sharedQuery, setSharedQuery] = useState<string | null>(initialRoute.query)
   const [sharedExplorationId, setSharedExplorationId] = useState<string | null>(initialRoute.explorationId)
+  const [visitedTabs, setVisitedTabs] = useState<Record<TabId, boolean>>({
+    explore: initialRoute.tab === 'explore',
+    paper: initialRoute.tab === PAPER_TAB,
+    results: initialRoute.tab === RESULTS_TAB,
+  })
 
   const applyRouteState = useCallback((next: ExplorerRouteState, replace = false) => {
-    setActiveTab(next.tab)
-    setSharedQuery(next.query)
-    setSharedExplorationId(next.explorationId)
-    writeRouteState(next, replace)
+    startTransition(() => {
+      setActiveTab(next.tab)
+      setSharedQuery(next.query)
+      setSharedExplorationId(next.explorationId)
+      setVisitedTabs(previous => (previous[next.tab] ? previous : { ...previous, [next.tab]: true }))
+      writeRouteState(next, replace)
+    })
   }, [])
 
   const syncFromLocation = useCallback(() => {
@@ -102,9 +147,29 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [syncFromLocation])
 
+  useEffect(() => {
+    setVisitedTabs(previous => (previous[activeTab] ? previous : { ...previous, [activeTab]: true }))
+    preloadTab(activeTab)
+  }, [activeTab])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      ;([PAPER_TAB, RESULTS_TAB] as const)
+        .filter(tab => tab !== activeTab)
+        .forEach(preloadTab)
+    }, 1200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [activeTab])
+
   const handleTabChange = useCallback((tab: TabId) => {
+    preloadTab(tab)
     applyRouteState({ tab, query: sharedQuery, explorationId: null }, false)
   }, [applyRouteState, sharedQuery])
+
+  const handleTabIntent = useCallback((tab: TabId) => {
+    preloadTab(tab)
+  }, [])
 
   const handleFindingsQueryChange = useCallback((query: string | null) => {
     applyRouteState({ tab: 'explore', query, explorationId: null }, false)
@@ -120,7 +185,7 @@ function App() {
         Skip to content
       </a>
       <Header />
-      <TabNav activeTab={activeTab} onTabChange={handleTabChange} />
+      <TabNav activeTab={activeTab} onTabChange={handleTabChange} onTabIntent={handleTabIntent} />
 
       <main
         id="main-content"
@@ -140,13 +205,21 @@ function App() {
           />
         </div>
 
-        <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
-          <PaperReaderPage onTabChange={handleTabChange} />
-        </div>
+        {visitedTabs.paper && (
+          <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
+            <Suspense fallback={<PageFallback label="Loading paper guide" />}>
+              <PaperReaderPage onTabChange={handleTabChange} />
+            </Suspense>
+          </div>
+        )}
 
-        <div hidden={activeTab !== 'results'} aria-hidden={activeTab !== 'results'}>
-          <SimulationLabPage onTabChange={handleTabChange} />
-        </div>
+        {visitedTabs.results && (
+          <div hidden={activeTab !== 'results'} aria-hidden={activeTab !== 'results'}>
+            <Suspense fallback={<PageFallback label="Loading simulation surface" />}>
+              <SimulationLabPage onTabChange={handleTabChange} />
+            </Suspense>
+          </div>
+        )}
       </main>
 
       <Footer />
