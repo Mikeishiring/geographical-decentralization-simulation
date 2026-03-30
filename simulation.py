@@ -20,7 +20,7 @@ from source_agent import initialize_relays, initialize_signals
 
 
 DEFAULT_SIMULATION_SEED = 0x06511
-SIMULATION_CACHE_VERSION = 1
+SIMULATION_CACHE_VERSION = 2
 SIMULATION_CACHE_DIRNAME = ".simulation_cache"
 SIMULATION_CODE_FILES = (
     "simulation.py",
@@ -152,6 +152,124 @@ def build_export_payloads(model_standard):
         "proposer_strategy_and_mev": list(model_standard.slot_proposer_history),
         "region_counter_per_slot": region_counter_per_slot,
         "top_regions_final": top_regions_final,
+    }
+
+
+_CONTINENT_RULES = (
+    ("northamerica-", "North America"),
+    ("us-", "North America"),
+    ("southamerica-", "South America"),
+    ("europe-", "Europe"),
+    ("asia-", "Asia"),
+    ("australia-", "Oceania"),
+    ("africa-", "Africa"),
+    ("me-", "Middle East"),
+)
+
+
+def to_continent(region_name):
+    normalized = str(region_name or "").strip().lower()
+    for prefix, continent in _CONTINENT_RULES:
+        if normalized.startswith(prefix):
+            return continent
+    return "Other"
+
+
+def gini_coefficient(values):
+    series = np.asarray(values, dtype=float)
+    if series.size == 0:
+        return 0.0
+    series = np.clip(series, a_min=0.0, a_max=None)
+    total = float(series.sum())
+    if total <= 0:
+        return 0.0
+    sorted_values = np.sort(series)
+    n = sorted_values.size
+    weighted_sum = float(np.sum((np.arange(1, n + 1) * sorted_values)))
+    return float((2 * weighted_sum) / (n * total) - (n + 1) / n)
+
+
+def hhi_index(values):
+    series = np.asarray(values, dtype=float)
+    total = float(series.sum())
+    if total <= 0:
+        return 0.0
+    shares = series / total
+    return float(np.sum(shares ** 2))
+
+
+def liveness_coefficient(values):
+    series = np.asarray(values, dtype=float)
+    non_zero = int(np.count_nonzero(series > 0))
+    total = int(series.size)
+    if total == 0:
+        return 0.0
+    return float(non_zero / total)
+
+
+def build_paper_geography_metrics(region_counts_per_slot, region_profits_df):
+    known_continents = tuple(dict.fromkeys(continent for _, continent in _CONTINENT_RULES))
+
+    gini_hist = []
+    hhi_hist = []
+    liveness_hist = []
+
+    slot_keys = sorted(
+        region_counts_per_slot.keys(),
+        key=lambda value: int(value) if str(value).isdigit() else str(value),
+    )
+    for slot_key in slot_keys:
+        raw_counts = region_counts_per_slot.get(slot_key, {})
+        continent_counts = Counter({continent: 0 for continent in known_continents})
+        if isinstance(raw_counts, dict):
+            for region_name, count in raw_counts.items():
+                continent_counts[to_continent(region_name)] += int(count)
+
+        values = [continent_counts.get(continent, 0) for continent in known_continents]
+        gini_hist.append(round(gini_coefficient(values), 6))
+        hhi_hist.append(round(hhi_index(values), 6))
+        liveness_hist.append(round(liveness_coefficient(values), 6))
+
+    profit_variance_hist = []
+    if isinstance(region_profits_df, pd.DataFrame) and not region_profits_df.empty:
+        working = region_profits_df.copy()
+        if {"gcp_region", "mev_offer", "slot"}.issubset(working.columns):
+            region_column = "gcp_region"
+            profit_column = "mev_offer"
+            slot_column = "slot"
+        elif {"Region", "Profit", "Time"}.issubset(working.columns):
+            region_column = "Region"
+            profit_column = "Profit"
+            slot_column = "Time"
+        else:
+            region_column = None
+            profit_column = None
+            slot_column = None
+
+        if region_column and profit_column and slot_column:
+            working["continent"] = working[region_column].map(to_continent)
+            for _, slot_frame in working.groupby(slot_column, sort=True):
+                profit_by_continent = slot_frame.groupby("continent")[profit_column].sum()
+                ordered = np.asarray(
+                    [float(profit_by_continent.get(continent, 0.0)) for continent in known_continents],
+                    dtype=float,
+                )
+                mean = float(np.mean(ordered)) if ordered.size else 0.0
+                cv = 0.0 if mean == 0.0 else float(np.std(ordered) / mean)
+                profit_variance_hist.append(round(cv, 6))
+
+    target_length = len(gini_hist)
+    if len(profit_variance_hist) < target_length:
+        last_value = profit_variance_hist[-1] if profit_variance_hist else 0.0
+        profit_variance_hist.extend([last_value] * (target_length - len(profit_variance_hist)))
+    elif len(profit_variance_hist) > target_length:
+        profit_variance_hist = profit_variance_hist[:target_length]
+
+    return {
+        "gini": gini_hist,
+        "hhi": hhi_hist,
+        "liveness": liveness_hist,
+        "profit_variance": profit_variance_hist,
     }
 
 
@@ -403,6 +521,26 @@ def simulation(
             json.dump(export_payloads["proposer_strategy_and_mev"], f)
         with open(f"{output_folder}/top_regions_final.json", "w") as f:
             json.dump(export_payloads["top_regions_final"], f)
+        with open(f"{output_folder}/paper_geography_metrics.json", "w") as f:
+            json.dump(
+                build_paper_geography_metrics(
+                    export_payloads["region_counter_per_slot"],
+                    gcp_region_profits,
+                ),
+                f,
+            )
+        with open(f"{output_folder}/region_counter_per_slot.json", "w") as f:
+            json.dump(export_payloads["region_counter_per_slot"], f)
+
+        if export_raw_artifacts:
+            with open(f"{output_folder}/mev_by_slot.json", "w") as f:
+                json.dump(export_payloads["mev_by_slot"], f)
+            with open(f"{output_folder}/estimated_mev_by_slot.json", "w") as f:
+                json.dump(export_payloads["estimated_mev_by_slot"], f)
+            with open(f"{output_folder}/attest_by_slot.json", "w") as f:
+                json.dump(export_payloads["attest_by_slot"], f)
+            with open(f"{output_folder}/proposal_time_by_slot.json", "w") as f:
+                json.dump(export_payloads["proposal_time_by_slot"], f)
 
         if export_raw_artifacts:
             with open(f"{output_folder}/mev_by_slot.json", "w") as f:
@@ -723,8 +861,10 @@ if __name__ == "__main__":
     except (FileNotFoundError, ValueError, RuntimeError) as e:
         traceback.print_exc()
         print(f"\nFatal error during simulation setup or execution: {e}")
+        raise SystemExit(1) from e
     except SystemExit:
         raise
     except Exception as e:
         traceback.print_exc()
         print(f"\nAn unexpected error occurred: {e}")
+        raise SystemExit(1) from e

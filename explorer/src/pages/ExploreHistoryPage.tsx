@@ -74,7 +74,7 @@ export function ExploreHistoryPage({
       voteExploration(id, delta),
     onMutate: async ({ id, delta }) => {
       await queryClient.cancelQueries({ queryKey: ['explorations'] })
-      const previous = queryClient.getQueryData<Exploration[]>(['explorations', sort, search])
+      const previous = queryClient.getQueryData<Exploration[]>(['explorations', sort, search, 'published'])
 
       queryClient.setQueryData<Exploration[]>(
         ['explorations', sort, search],
@@ -85,7 +85,7 @@ export function ExploreHistoryPage({
     },
     onError: (_err, _vars, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['explorations', sort, search], context.previous)
+        queryClient.setQueryData(['explorations', sort, search, 'published'], context.previous)
       }
     },
     onSettled: () => {
@@ -175,23 +175,6 @@ export function ExploreHistoryPage({
           value={readingArchive.length}
           detail="Saved readings and exact-run notes that are not public."
         />
-      </div>
-
-      <div className="rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,246,242,0.96))] px-4 py-4">
-        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Publishing standard</div>
-        <div className="mt-2 grid gap-3 md:grid-cols-3">
-          {[
-            {
-              title: 'Lead with observation',
-              detail: 'Start from what the paper, chart, or exact run actually shows before adding your interpretation.',
-            },
-            {
-              title: 'Label the inference',
-              detail: 'Treat design advice and intuition as your reading of the evidence, not as new facts emitted by the system.',
-            },
-            {
-              title: 'Publish intentionally',
-              detail: 'The public surface should contain notes with a real title and takeaway, not raw assistant exhaust.',
             },
           ].map(item => (
             <div key={item.title} className="rounded-lg border border-border-subtle bg-white px-3 py-3">
@@ -260,13 +243,6 @@ export function ExploreHistoryPage({
             deepLinkedExplorationId={initialExplorationId}
             emptyMessage="No saved readings match the current filters."
           />
-        </div>
-      )}
-
-      {onTabChange && (
-        <Wayfinder links={[
-          { label: 'Ask the paper', hint: 'Curated lenses, implications, and guided readings', onClick: () => onTabChange('findings') },
-          { label: 'Run exact experiments', hint: 'Use the simulation lab, then publish a note intentionally', onClick: () => onTabChange('simulation') },
           { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
         ]} />
       )}

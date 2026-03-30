@@ -110,7 +110,6 @@ explorer/
 │   └── study-context.ts         # Paper knowledge for system prompt
 ├── PLAN.md                      # Full implementation plan
 ├── DECISIONS.md                 # D1-D19 architectural decisions
-├── CHAT_LOG.md                  # Session-by-session development log
 └── UPSTREAM_RECOMMENDATIONS.md  # Suggestions for researchers
 ```
 
