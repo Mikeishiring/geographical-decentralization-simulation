@@ -173,7 +173,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: snapshot.color }} />
                 <div className="text-xs font-medium text-text-primary">{snapshot.label}</div>
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-[0.6875rem]">
+              <div className="mt-3 grid grid-cols-1 gap-2 text-[0.6875rem] sm:grid-cols-3">
                 <div>
                   <div className="uppercase tracking-[0.1em] text-text-faint">Start</div>
                   <div className="mt-1 font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.first)}</div>

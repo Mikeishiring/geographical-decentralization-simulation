@@ -6,7 +6,7 @@ export interface ExplorerRouteState {
   readonly explorationId: string | null
 }
 
-const VALID_TABS: readonly TabId[] = ['explore', 'paper', 'results', 'community']
+const VALID_TABS: readonly TabId[] = ['explore', 'paper', 'results', 'community', 'agent']
 const DEFAULT_TAB: TabId = 'explore'
 const RESULTS_TAB: TabId = 'results'
 

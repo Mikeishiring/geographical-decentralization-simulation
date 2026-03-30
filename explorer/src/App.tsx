@@ -3,6 +3,7 @@ import { Header } from './components/layout/Header'
 import { TabNav, type TabId } from './components/layout/TabNav'
 import { Footer } from './components/layout/Footer'
 import { FindingsPage } from './pages/FindingsPage'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { cn } from './lib/cn'
 import { readRouteStateFromLocation, type ExplorerRouteState } from './lib/route-state'
 import { PAPER_SECTIONS } from './data/paper-sections'
@@ -11,11 +12,13 @@ const DEFAULT_TAB: TabId = 'explore'
 const PAPER_TAB: TabId = 'paper'
 const RESULTS_TAB: TabId = 'results'
 const COMMUNITY_TAB: TabId = 'community'
+const AGENT_TAB: TabId = 'agent'
 const PAPER_SECTION_IDS = new Set(PAPER_SECTIONS.map(section => section.id))
 
 const loadPaperReaderPageModule = () => import('./pages/PaperReaderPage')
 const loadSimulationLabPageModule = () => import('./pages/SimulationLabPage')
 const loadExploreHistoryPageModule = () => import('./pages/ExploreHistoryPage')
+const loadAgentLabPageModule = () => import('./pages/AgentLabPage')
 
 const PaperReaderPage = lazy(async () => {
   const module = await loadPaperReaderPageModule()
@@ -30,6 +33,11 @@ const SimulationLabPage = lazy(async () => {
 const ExploreHistoryPage = lazy(async () => {
   const module = await loadExploreHistoryPageModule()
   return { default: module.ExploreHistoryPage }
+})
+
+const AgentLabPage = lazy(async () => {
+  const module = await loadAgentLabPageModule()
+  return { default: module.default }
 })
 
 function writeRouteState(next: ExplorerRouteState, replace = false) {
@@ -76,6 +84,10 @@ function preloadTab(tab: TabId) {
   }
   if (tab === COMMUNITY_TAB) {
     void loadExploreHistoryPageModule()
+    return
+  }
+  if (tab === AGENT_TAB) {
+    void loadAgentLabPageModule()
   }
 }
 
@@ -103,6 +115,7 @@ function App() {
     paper: initialRoute.tab === PAPER_TAB,
     results: initialRoute.tab === RESULTS_TAB,
     community: initialRoute.tab === COMMUNITY_TAB,
+    agent: initialRoute.tab === AGENT_TAB,
   })
 
   const applyRouteState = useCallback((next: ExplorerRouteState, replace = false) => {
@@ -195,46 +208,64 @@ function App() {
           )}
         >
         <div hidden={activeTab !== 'explore'} aria-hidden={activeTab !== 'explore'}>
-          <FindingsPage
-            initialQuery={sharedQuery}
-            initialExplorationId={sharedExplorationId}
-            isActive={activeTab === 'explore'}
-            onQueryChange={handleFindingsQueryChange}
-            onExplorationIdChange={handleExplorationIdChange}
-            onOpenCommunityExploration={handleOpenCommunityExploration}
-            onTabChange={handleTabChange}
-          />
+          <ErrorBoundary fallbackLabel="The Explore tab encountered an error.">
+            <FindingsPage
+              initialQuery={sharedQuery}
+              initialExplorationId={sharedExplorationId}
+              isActive={activeTab === 'explore'}
+              onQueryChange={handleFindingsQueryChange}
+              onExplorationIdChange={handleExplorationIdChange}
+              onOpenCommunityExploration={handleOpenCommunityExploration}
+              onTabChange={handleTabChange}
+            />
+          </ErrorBoundary>
         </div>
 
         {visitedTabs.paper && (
           <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
-            <Suspense fallback={<PageFallback label="Loading paper guide" />}>
-              <PaperReaderPage onTabChange={handleTabChange} />
-            </Suspense>
+            <ErrorBoundary fallbackLabel="The Paper tab encountered an error.">
+              <Suspense fallback={<PageFallback label="Loading paper guide" />}>
+                <PaperReaderPage onTabChange={handleTabChange} />
+              </Suspense>
+            </ErrorBoundary>
           </div>
         )}
 
         {visitedTabs.results && (
           <div hidden={activeTab !== 'results'} aria-hidden={activeTab !== 'results'}>
-            <Suspense fallback={<PageFallback label="Loading simulation surface" />}>
-              <SimulationLabPage
-                onOpenCommunityExploration={handleOpenCommunityExploration}
-                onTabChange={handleTabChange}
-              />
-            </Suspense>
+            <ErrorBoundary fallbackLabel="The Results tab encountered an error.">
+              <Suspense fallback={<PageFallback label="Loading simulation surface" />}>
+                <SimulationLabPage
+                  onOpenCommunityExploration={handleOpenCommunityExploration}
+                  onTabChange={handleTabChange}
+                />
+              </Suspense>
+            </ErrorBoundary>
           </div>
         )}
 
         {visitedTabs.community && (
           <div hidden={activeTab !== 'community'} aria-hidden={activeTab !== 'community'}>
-            <Suspense fallback={<PageFallback label="Loading community notes" />}>
-              <ExploreHistoryPage
-                initialExplorationId={sharedExplorationId}
-                onGoToFindings={handleCommunityGoToFindings}
-                onOpenQuery={handleCommunityOpenQuery}
-                onTabChange={handleTabChange}
-              />
-            </Suspense>
+            <ErrorBoundary fallbackLabel="The Community tab encountered an error.">
+              <Suspense fallback={<PageFallback label="Loading community notes" />}>
+                <ExploreHistoryPage
+                  initialExplorationId={sharedExplorationId}
+                  onGoToFindings={handleCommunityGoToFindings}
+                  onOpenQuery={handleCommunityOpenQuery}
+                  onTabChange={handleTabChange}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {visitedTabs.agent && (
+          <div hidden={activeTab !== 'agent'} aria-hidden={activeTab !== 'agent'}>
+            <ErrorBoundary fallbackLabel="The Agent Lab encountered an error.">
+              <Suspense fallback={<PageFallback label="Loading agent lab" />}>
+                <AgentLabPage />
+              </Suspense>
+            </ErrorBoundary>
           </div>
         )}
       </main>
