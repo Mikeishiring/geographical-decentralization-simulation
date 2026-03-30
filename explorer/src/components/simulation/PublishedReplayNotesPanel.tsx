@@ -3,11 +3,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import {
+  addPublishedReplayNoteReply,
   createPublishedReplayNote,
   listPublishedReplayNotes,
+  updatePublishedReplayNoteStatus,
   type PublishedReplayAudienceMode,
   type PublishedReplayNoteIntent,
   type PublishedReplayPaperLens,
+  type PublishedReplayNoteStatus,
 } from '../../lib/published-replay-notes-api'
 import type { PublishedViewerSnapshot } from './PublishedDatasetViewer'
 
@@ -30,6 +33,12 @@ interface PublishedReplayNotesPanelProps {
 
 interface NoteAnchorOption {
   readonly kind: 'general' | 'region' | 'metric' | 'comparison'
+  readonly key: string
+  readonly label: string
+}
+
+interface PublishedReplayAnchorSelectionDetail {
+  readonly kind: NoteAnchorOption['kind']
   readonly key: string
   readonly label: string
 }
@@ -82,6 +91,8 @@ export function PublishedReplayNotesPanel({
   const queryClient = useQueryClient()
   const [intent, setIntent] = useState<PublishedReplayNoteIntent>(defaultIntentForLens(paperLens))
   const [draft, setDraft] = useState('')
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
+  const [manualAnchor, setManualAnchor] = useState<NoteAnchorOption | null>(null)
   const anchorOptions = useMemo<readonly NoteAnchorOption[]>(() => {
     const dominantRegionLabel = viewerSnapshot?.dominantRegionCity ?? viewerSnapshot?.dominantRegionId ?? null
     const options: NoteAnchorOption[] = [
@@ -115,8 +126,12 @@ export function PublishedReplayNotesPanel({
       })
     }
 
+    if (manualAnchor && !options.some(option => option.kind === manualAnchor.kind && option.key === manualAnchor.key)) {
+      options.push(manualAnchor)
+    }
+
     return options
-  }, [comparisonViewerSnapshot, viewerSnapshot?.dominantRegionCity, viewerSnapshot?.dominantRegionId])
+  }, [comparisonViewerSnapshot, manualAnchor, viewerSnapshot?.dominantRegionCity, viewerSnapshot?.dominantRegionId])
   const [selectedAnchorKey, setSelectedAnchorKey] = useState<string>('slot')
 
   useEffect(() => {
@@ -128,6 +143,25 @@ export function PublishedReplayNotesPanel({
       setSelectedAnchorKey(anchorOptions[0]?.key ?? 'slot')
     }
   }, [anchorOptions, selectedAnchorKey])
+
+  useEffect(() => {
+    const handleAnchorSelection = (event: Event) => {
+      const detail = (event as CustomEvent<PublishedReplayAnchorSelectionDetail>).detail
+      if (!detail || typeof detail.key !== 'string' || typeof detail.label !== 'string') return
+      const nextAnchor: NoteAnchorOption = {
+        kind: detail.kind,
+        key: detail.key,
+        label: detail.label,
+      }
+      setManualAnchor(nextAnchor)
+      setSelectedAnchorKey(detail.key)
+    }
+
+    window.addEventListener('published-replay-anchor-select', handleAnchorSelection as EventListener)
+    return () => {
+      window.removeEventListener('published-replay-anchor-select', handleAnchorSelection as EventListener)
+    }
+  }, [])
 
   const notesQueryKey = useMemo(() => ([
     'published-replay-notes',
@@ -196,6 +230,23 @@ export function PublishedReplayNotesPanel({
     },
     onSuccess: async () => {
       setDraft('')
+      await queryClient.invalidateQueries({ queryKey: notesQueryKey })
+    },
+  })
+
+  const replyMutation = useMutation({
+    mutationFn: ({ noteId, reply }: { noteId: string; reply: string }) =>
+      addPublishedReplayNoteReply(noteId, { reply }),
+    onSuccess: async (_, variables) => {
+      setReplyDrafts(current => ({ ...current, [variables.noteId]: '' }))
+      await queryClient.invalidateQueries({ queryKey: notesQueryKey })
+    },
+  })
+
+  const statusMutation = useMutation({
+    mutationFn: ({ noteId, status }: { noteId: string; status: PublishedReplayNoteStatus }) =>
+      updatePublishedReplayNoteStatus(noteId, { status }),
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: notesQueryKey })
     },
   })
@@ -325,6 +376,18 @@ export function PublishedReplayNotesPanel({
             <div key={note.id} className="rounded-xl border border-border-subtle bg-white px-4 py-4">
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-text-faint">
                 <span className="lab-chip">{note.intent}</span>
+                <button
+                  onClick={() => statusMutation.mutate({ noteId: note.id, status: note.status === 'open' ? 'resolved' : 'open' })}
+                  disabled={statusMutation.isPending}
+                  className={cn(
+                    'rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition-colors',
+                    note.status === 'resolved'
+                      ? 'border-[#0F766E]/18 bg-[#ECFDF5] text-[#0F766E]'
+                      : 'border-[#C2410C]/18 bg-[#FFF7ED] text-[#9A3412]',
+                  )}
+                >
+                  {note.status}
+                </button>
                 <span className="lab-chip">slot {note.slotNumber}</span>
                 {note.anchorLabel ? <span className="lab-chip">{note.anchorLabel}</span> : null}
                 {note.comparisonSlotNumber != null ? <span className="lab-chip">compare slot {note.comparisonSlotNumber}</span> : null}
@@ -334,6 +397,34 @@ export function PublishedReplayNotesPanel({
                 <div className="mt-2 text-[11px] leading-5 text-muted">{note.contextLabel}</div>
               ) : null}
               <div className="mt-3 text-sm leading-6 text-text-primary">{note.note}</div>
+              {note.replies.length > 0 ? (
+                <div className="mt-4 space-y-2 border-t border-border-subtle pt-3">
+                  {note.replies.map(reply => (
+                    <div key={reply.id} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{formatTimestamp(reply.createdAt)}</div>
+                      <div className="mt-2 text-xs leading-5 text-text-primary">{reply.text}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-3 py-3">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Reply</div>
+                <textarea
+                  value={replyDrafts[note.id] ?? ''}
+                  onChange={event => setReplyDrafts(current => ({ ...current, [note.id]: event.target.value }))}
+                  className="mt-2 min-h-[72px] w-full resize-none bg-transparent text-xs leading-5 text-text-primary outline-none"
+                  placeholder="Add a lightweight thread reply..."
+                />
+                <div className="mt-3 flex justify-end">
+                  <button
+                    onClick={() => replyMutation.mutate({ noteId: note.id, reply: (replyDrafts[note.id] ?? '').trim() })}
+                    disabled={!((replyDrafts[note.id] ?? '').trim()) || replyMutation.isPending}
+                    className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:bg-surface-active disabled:text-muted"
+                  >
+                    {replyMutation.isPending ? 'Saving reply' : 'Add reply'}
+                  </button>
+                </div>
+              </div>
             </div>
           ))}
 

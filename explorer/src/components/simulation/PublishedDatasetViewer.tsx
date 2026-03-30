@@ -375,6 +375,15 @@ function noteMatchesRegion(
   return note.anchorKind === 'region' && (note.anchorKey === regionId || note.anchorKey === regionLabel)
 }
 
+function dispatchPublishedReplayAnchorSelection(detail: {
+  kind: 'general' | 'region' | 'metric' | 'comparison'
+  key: string
+  label: string
+}) {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent('published-replay-anchor-select', { detail }))
+}
+
 function PublishedGeoCard({
   title,
   regions,
@@ -528,7 +537,15 @@ function PublishedGeoCard({
                 const share = totalValidators > 0 ? (region.count / totalValidators) * 100 : 0
 
                 return (
-                  <g key={region.regionId}>
+                  <g
+                    key={region.regionId}
+                    onClick={() => dispatchPublishedReplayAnchorSelection({
+                      kind: 'region',
+                      key: region.regionId,
+                      label: `Region · ${geoRegion.city}`,
+                    })}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <circle
                       cx={x}
                       cy={y}
@@ -564,7 +581,16 @@ function PublishedGeoCard({
                 const share = totalValidators > 0 ? (region.count / totalValidators) * 100 : 0
                 const regionNoteCount = regionAnchoredNotes.filter(note => noteMatchesRegion(note, region.regionId, regionLabel)).length
                 return (
-                  <div key={region.regionId}>
+                  <button
+                    key={region.regionId}
+                    type="button"
+                    onClick={() => dispatchPublishedReplayAnchorSelection({
+                      kind: 'region',
+                      key: region.regionId,
+                      label: `Region · ${regionLabel}`,
+                    })}
+                    className="block w-full text-left"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
@@ -588,7 +614,7 @@ function PublishedGeoCard({
                         style={{ width: `${share}%`, backgroundColor: fill, transition: 'width 420ms ease' }}
                       />
                     </div>
-                  </div>
+                  </button>
                 )
               })}
             </div>
