@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, ArrowLeft, ArrowUpRight, Link2, FileText } from 'lucide-react'
 import { cn } from '../lib/cn'
 import { DEFAULT_BLOCKS, OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../data/default-blocks'
+import { PAPER_SECTIONS } from '../data/paper-sections'
 import { ContributionComposer } from '../components/community/ContributionComposer'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { QueryBar } from '../components/explore/QueryBar'
@@ -32,6 +33,7 @@ const dotColor: Record<string, string> = {
 }
 
 const CANONICAL_ENTRY_IDS = ['ssp-vs-msp', 'attestation-threshold', 'initial-distribution', 'policy-implications'] as const
+const PAPER_SECTION_DETAILS = new Map(PAPER_SECTIONS.map(section => [section.id, `${section.number} ${section.title}`]))
 
 function fallbackCuratedProvenance(label: string, detail: string): ExploreProvenance {
   return {
@@ -90,6 +92,7 @@ export function FindingsPage({
   const [exportState, setExportState] = useState<'idle' | 'copied'>('idle')
   const [publishedContextKey, setPublishedContextKey] = useState<string | null>(null)
   const [publishedExplorationId, setPublishedExplorationId] = useState<string | null>(null)
+  const [activeHash, setActiveHash] = useState(() => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#/, ''))
   const lastSyncedQueryRef = useRef<string | null>(initialQuery)
   const lastSyncedEidRef = useRef<string | null>(initialExplorationId)
 
@@ -266,6 +269,15 @@ export function FindingsPage({
   }, [activeQuery, handleQuery])
 
   useEffect(() => {
+    const handleHashChange = () => {
+      setActiveHash(window.location.hash.replace(/^#/, ''))
+    }
+
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
+  useEffect(() => {
     if (!isActive) return
 
     if (!initialQuery) {
@@ -334,16 +346,16 @@ export function FindingsPage({
   }, [initialExplorationId, isActive, onExplorationIdChange])
 
   const handleShare = useCallback(async () => {
-    const explorationId = aiResponse?.provenance.explorationId
+    const explorationId = publishedExplorationId ?? aiResponse?.provenance.explorationId
     if (!explorationId) return
     const url = new URL(window.location.href)
     url.searchParams.delete('q')
-    url.searchParams.delete('tab')
+    url.searchParams.set('tab', publishedExplorationId ? 'community' : 'explore')
     url.searchParams.set('eid', explorationId)
     await navigator.clipboard.writeText(url.toString())
     setShareState('copied')
     setTimeout(() => setShareState('idle'), 2000)
-  }, [aiResponse])
+  }, [aiResponse, publishedExplorationId])
 
   const handleExportMarkdown = useCallback(async () => {
     const response = aiResponse
@@ -427,6 +439,7 @@ export function FindingsPage({
     ? 'Add your own title and takeaway before publishing. This turns a guided reading into an intentional community note instead of dumping raw model output into the feed.'
     : 'Publishing a curated lens still requires your own title and takeaway. Community notes should carry a human-authored framing layer, not just the default card.'
   const currentReadingPublished = readingPublishContextKey !== null && publishedContextKey === readingPublishContextKey
+  const paperSectionHint = PAPER_SECTION_DETAILS.get(activeHash) ?? null
   const interpretationBoundary = aiResponse
     ? aiResponse.provenance.canonical
       ? 'This reading is tied directly to a canonical or curated paper-backed source.'
@@ -478,6 +491,25 @@ export function FindingsPage({
 
       {!showAi && !showTopic && (
         <div className="mb-6">
+          {paperSectionHint && onTabChange && (
+            <div className="mb-4 rounded-xl border border-accent/20 bg-accent/[0.04] px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Canonical section available</div>
+              <div className="mt-1 text-sm font-medium text-text-primary">
+                This link points to {paperSectionHint} in the paper guide.
+              </div>
+              <p className="mt-1 max-w-3xl text-xs leading-5 text-muted">
+                Explore is the right place for claims, questions, and public responses. For the canonical source section tied to this anchor, open the Paper tab.
+              </p>
+              <button
+                onClick={() => onTabChange('paper')}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+              >
+                Open paper section
+                <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+              </button>
+            </div>
+          )}
+
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Start here</div>
@@ -766,7 +798,7 @@ export function FindingsPage({
                   className="inline-flex items-center gap-1.5 text-muted hover:text-accent transition-colors"
                 >
                   <Link2 className="w-3 h-3" />
-                  {shareState === 'copied' ? 'Link copied' : 'Share exploration'}
+                  {shareState === 'copied' ? 'Link copied' : publishedExplorationId ? 'Share community note' : 'Share reading'}
                 </button>
               )}
               <button
@@ -912,7 +944,7 @@ export function FindingsPage({
         <Wayfinder links={[
           { label: 'Read the full paper', hint: 'Canonical paper text with the editorial guide', onClick: () => onTabChange('paper') },
           { label: 'Open simulation', hint: 'Inspect published scenarios or run a fresh exact experiment', onClick: () => onTabChange('results') },
-          { label: 'Start a fresh question', hint: 'Reset the page and ask a sharper paper-backed prompt', onClick: handleBackToOverview },
+          { label: 'Browse community notes', hint: 'See public human-authored responses to paper readings and exact runs', onClick: () => onTabChange('community') },
         ]} />
       )}
     </div>

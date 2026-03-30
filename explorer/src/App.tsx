@@ -4,11 +4,14 @@ import { TabNav, type TabId } from './components/layout/TabNav'
 import { Footer } from './components/layout/Footer'
 import { FindingsPage } from './pages/FindingsPage'
 import { cn } from './lib/cn'
+import { PAPER_SECTIONS } from './data/paper-sections'
 
 const VALID_TABS: readonly TabId[] = ['explore', 'paper', 'results', 'community']
+const DEFAULT_TAB: TabId = 'explore'
 const PAPER_TAB: TabId = 'paper'
 const RESULTS_TAB: TabId = 'results'
 const COMMUNITY_TAB: TabId = 'community'
+const PAPER_SECTION_IDS = new Set(PAPER_SECTIONS.map(section => section.id))
 
 const loadPaperReaderPageModule = () => import('./pages/PaperReaderPage')
 const loadSimulationLabPageModule = () => import('./pages/SimulationLabPage')
@@ -35,6 +38,11 @@ interface ExplorerRouteState {
   readonly explorationId: string | null
 }
 
+function hasPaperSectionHash(): boolean {
+  const hash = window.location.hash.replace(/^#/, '')
+  return hash.length > 0 && PAPER_SECTION_IDS.has(hash)
+}
+
 function getInitialTab(): TabId {
   const params = new URLSearchParams(window.location.search)
   const raw = params.get('tab')
@@ -45,9 +53,16 @@ function getInitialTab(): TabId {
     : raw === 'history' ? 'community'
     : raw
   const tab = migrated as TabId | null
-  if (tab && VALID_TABS.includes(tab)) return tab
+  const hasPaperHash = hasPaperSectionHash()
+  if (tab && VALID_TABS.includes(tab)) {
+    if (tab === 'explore' && hasPaperHash && !params.get('q') && !params.get('eid')) {
+      return 'paper'
+    }
+    return tab
+  }
   if (params.get('q') || params.get('eid') || params.get('topic')) return 'explore'
-  return 'paper'
+  if (hasPaperHash) return 'paper'
+  return DEFAULT_TAB
 }
 
 function getInitialQuery(): string | null {
@@ -68,7 +83,7 @@ function readRouteState(): ExplorerRouteState {
 
 function writeRouteState(next: ExplorerRouteState, replace = false) {
   const url = new URL(window.location.href)
-  const shouldKeepExplicitTab = next.tab !== 'paper' || Boolean(next.query) || Boolean(next.explorationId)
+  const shouldKeepExplicitTab = next.tab !== DEFAULT_TAB || Boolean(next.query) || Boolean(next.explorationId)
 
   if (shouldKeepExplicitTab) {
     url.searchParams.set('tab', next.tab)
@@ -129,7 +144,7 @@ function App() {
   const [sharedQuery, setSharedQuery] = useState<string | null>(initialRoute.query)
   const [sharedExplorationId, setSharedExplorationId] = useState<string | null>(initialRoute.explorationId)
   const [visitedTabs, setVisitedTabs] = useState<Record<TabId, boolean>>({
-    explore: initialRoute.tab === 'explore',
+    explore: initialRoute.tab === DEFAULT_TAB,
     paper: initialRoute.tab === PAPER_TAB,
     results: initialRoute.tab === RESULTS_TAB,
     community: initialRoute.tab === COMMUNITY_TAB,
@@ -243,7 +258,10 @@ function App() {
         {visitedTabs.results && (
           <div hidden={activeTab !== 'results'} aria-hidden={activeTab !== 'results'}>
             <Suspense fallback={<PageFallback label="Loading simulation surface" />}>
-              <SimulationLabPage onTabChange={handleTabChange} />
+              <SimulationLabPage
+                onOpenCommunityExploration={handleOpenCommunityExploration}
+                onTabChange={handleTabChange}
+              />
             </Suspense>
           </div>
         )}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BookOpen, Code } from 'lucide-react'
+import { BookOpen, GitBranch } from 'lucide-react'
 import { SPRING_SOFT, SPRING_SNAPPY, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { VALIDATOR_COUNTS } from '../../data/validator-counts'
 import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
@@ -84,7 +84,7 @@ export function Header() {
               >
                 Yang, Oz, Wu, Zhang (2025)
                 <span className="text-text-faint"> · </span>
-                <span className="text-text-faint">Paper guide, simulation surface, and public-note archive</span>
+                <span className="text-text-faint">Paper guide, exact-run surface, and public research notes</span>
               </motion.p>
             </motion.div>
 
@@ -104,7 +104,7 @@ export function Header() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs text-muted transition-all hover:border-accent/30 hover:text-accent hover:shadow-sm"
               >
-                <Code className="h-3 w-3" />
+                <GitBranch className="h-3 w-3" />
                 <span className="hidden sm:inline">GitHub</span>
               </a>
             </motion.div>
