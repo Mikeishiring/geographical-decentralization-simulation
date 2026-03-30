@@ -209,7 +209,7 @@ export function ExploreHistoryPage({
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="stagger-reveal grid gap-3 sm:grid-cols-3">
         <SummaryCard
           icon={<Users className="h-4 w-4 text-accent" />}
           label="Published reading notes"

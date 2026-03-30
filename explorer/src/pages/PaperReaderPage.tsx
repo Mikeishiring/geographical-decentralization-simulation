@@ -280,7 +280,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
     <div className="space-y-12">
       {/* Paper title hero */}
       <motion.section
-        initial={{ opacity: 0, y: 18 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={SPRING_SOFT}
         className="max-w-4xl"
@@ -676,7 +676,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
               <motion.section
                 key={section.id}
                 id={section.id}
-                initial={{ opacity: 0, y: 18 }}
+                initial={{ opacity: 0, y: 8 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.15 }}
                 transition={SPRING}
