@@ -20,7 +20,7 @@ export function TableBlock({ block }: TableBlockProps) {
   }
 
   return (
-    <div className="bg-white border border-border-subtle rounded-xl p-5 transition-shadow hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+    <div className="bg-white border border-border-subtle rounded-xl p-5 card-hover">
       <h3 className="text-sm font-medium text-text-primary mb-4">
         {block.title}
       </h3>
@@ -28,11 +28,11 @@ export function TableBlock({ block }: TableBlockProps) {
       <div className="overflow-x-auto -mx-5 px-5">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-[#F9F9F7]">
+            <tr>
               {block.headers.map((header, i) => (
                 <th
                   key={i}
-                  className="text-left text-muted font-medium px-3 py-2 first:rounded-tl-md last:rounded-tr-md"
+                  className="text-left text-[0.6875rem] text-text-faint font-normal uppercase tracking-[0.06em] px-3 py-2 border-b border-rule"
                 >
                   {header}
                 </th>
@@ -46,16 +46,16 @@ export function TableBlock({ block }: TableBlockProps) {
                 onMouseEnter={() => setHoveredRow(rowIdx)}
                 onMouseLeave={() => setHoveredRow(null)}
                 className={cn(
-                  'border-t border-border-subtle transition-all',
+                  'item-separator transition-all',
                   highlightSet.has(rowIdx) && 'border-l-2 border-l-accent-warm',
-                  hoveredRow === rowIdx && 'bg-accent/[0.03]',
-                  hoveredRow !== null && hoveredRow !== rowIdx && 'opacity-50',
+                  hoveredRow === rowIdx && 'bg-accent/[0.02]',
+                  hoveredRow !== null && hoveredRow !== rowIdx && 'opacity-40',
                 )}
               >
                 {row.map((cell, cellIdx) => (
                   <td
                     key={cellIdx}
-                    className="px-3 py-2 text-text-body tabular-nums"
+                    className="px-3 py-2.5 text-text-body tabular-nums"
                   >
                     {cell}
                   </td>
