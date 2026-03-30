@@ -11,6 +11,8 @@ import { QueryHistory, type HistoryEntry } from '../components/explore/QueryHist
 import { ShimmerLoading } from '../components/explore/ShimmerBlock'
 import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, publishExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
+import { NodeConstellation } from '../components/decorative/NodeConstellation'
+import { ModeBanner } from '../components/layout/ModeBanner'
 import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
@@ -38,19 +40,6 @@ function fallbackCuratedProvenance(label: string, detail: string): ExploreProven
   }
 }
 
-function summarizeTopicCard(card: TopicCard): readonly string[] {
-  const tags: string[] = []
-  const blockTypes = new Set(card.blocks.map(block => block.type))
-  if (blockTypes.has('chart') || blockTypes.has('timeseries')) tags.push('charts')
-  if (blockTypes.has('table')) tags.push('data table')
-  if (blockTypes.has('comparison')) tags.push('comparison')
-  if (card.blocks.some(block => block.type === 'insight' && block.emphasis === 'surprising')) {
-    tags.push('surprising')
-  }
-  if (card.blocks.some(block => block.type === 'caveat')) tags.push('caveat')
-  return tags.slice(0, 3)
-}
-
 export function FindingsPage({
   initialQuery = null,
   initialExplorationId = null,
@@ -69,11 +58,7 @@ export function FindingsPage({
   onTabChange?: (tab: TabId) => void
 }) {
   const queryClient = useQueryClient()
-  const [activeTopic, setActiveTopic] = useState<TopicCard | null>(() => {
-    const topicParam = new URLSearchParams(window.location.search).get('topic')
-    if (!topicParam) return null
-    return TOPIC_CARDS.find(card => card.id === topicParam) ?? null
-  })
+  const [activeTopic, setActiveTopic] = useState<TopicCard | null>(null)
 
   const [aiResponse, setAiResponse] = useState<ExploreResponse | null>(null)
   const [activeQuery, setActiveQuery] = useState<string | null>(null)
@@ -169,17 +154,9 @@ export function FindingsPage({
     setActiveQuery(null)
     setError(null)
     setLoading(false)
-    const nextTopic = activeTopic?.id === card.id ? null : card
-    setActiveTopic(nextTopic)
+    setActiveTopic(previous => (previous?.id === card.id ? null : card))
     onQueryChange?.(null)
     onExplorationIdChange?.(null)
-    const url = new URL(window.location.href)
-    if (nextTopic) {
-      url.searchParams.set('topic', nextTopic.id)
-    } else {
-      url.searchParams.delete('topic')
-    }
-    window.history.replaceState({}, '', url.toString())
   }
 
   const handleBackToOverview = () => {
@@ -194,9 +171,6 @@ export function FindingsPage({
     setLoading(false)
     onQueryChange?.(null)
     onExplorationIdChange?.(null)
-    const url = new URL(window.location.href)
-    url.searchParams.delete('topic')
-    window.history.replaceState({}, '', url.toString())
   }
 
   const handleQuery = useCallback(async (
@@ -327,16 +301,16 @@ export function FindingsPage({
   }, [initialExplorationId, isActive, onExplorationIdChange])
 
   const handleShare = useCallback(async () => {
-    const explorationId = publishedExplorationId
+    const explorationId = aiResponse?.provenance.explorationId
     if (!explorationId) return
     const url = new URL(window.location.href)
     url.searchParams.delete('q')
-    url.searchParams.set('tab', 'history')
+    url.searchParams.delete('tab')
     url.searchParams.set('eid', explorationId)
     await navigator.clipboard.writeText(url.toString())
     setShareState('copied')
     setTimeout(() => setShareState('idle'), 2000)
-  }, [publishedExplorationId])
+  }, [aiResponse])
 
   const handleExportMarkdown = useCallback(async () => {
     const response = aiResponse
@@ -376,7 +350,7 @@ export function FindingsPage({
     ? aiResponse.provenance.source === 'curated'
       ? 'Curated paper finding'
       : aiResponse.provenance.source === 'history'
-        ? 'Saved reading reuse'
+        ? 'Prior saved exploration'
         : aiResponse.cached
           ? 'Fresh interpretation with cached study context'
           : 'Fresh interpretation from current study context'
@@ -407,7 +381,6 @@ export function FindingsPage({
     ? 'Add your own title and takeaway before publishing. This turns a guided reading into an intentional community note instead of dumping raw model output into the feed.'
     : 'Publishing a curated lens still requires your own title and takeaway. Community notes should carry a human-authored framing layer, not just the default card.'
   const currentReadingPublished = readingPublishContextKey !== null && publishedContextKey === readingPublishContextKey
-  const canShareCommunityNote = Boolean(publishedExplorationId && currentReadingPublished)
   const interpretationBoundary = aiResponse
     ? aiResponse.provenance.canonical
       ? 'This reading is tied directly to a canonical or curated paper-backed source.'
@@ -418,13 +391,27 @@ export function FindingsPage({
 
   return (
     <div>
+      <div className="mb-5">
+        <ModeBanner
+          eyebrow="Mode"
+          title="Curated questions, implications, and guided readings"
+          detail="The responses synthesize and interpret, but the paper and published results remain the canonical sources."
+          tone="interpretation"
+        />
+      </div>
+
       {/* Page header */}
-      <div className="mb-6">
+      <div className="mb-6 relative">
+        <NodeConstellation className="absolute right-0 top-0 w-32 h-32 opacity-40 pointer-events-none hidden sm:block" />
+
+        <p className="text-[11px] text-text-faint mb-2 leading-relaxed max-w-xl">
+          Yang, Oz, Wu, Zhang (2025) · arXiv:2509.21475
+        </p>
         <h1 className="text-xl sm:text-2xl font-bold text-text-primary font-serif leading-tight max-w-lg">
           What did this paper find?
         </h1>
         <p className="mt-2 text-sm text-muted max-w-2xl leading-relaxed">
-          Ask a bounded question, open a curated lens, then move into published scenarios or community notes when you want to verify a claim beyond the summary layer.
+          Ethereum validator geography is shaped by latency and protocol timing rules. Both block-building paradigms push toward concentration, but through different mechanisms — and the same protocol change can help one while hurting the other.
         </p>
       </div>
 
@@ -485,17 +472,6 @@ export function FindingsPage({
                 <p className="text-xs text-muted leading-relaxed line-clamp-2 mb-2">
                   {card.description}
                 </p>
-                <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                  <span className="text-[10px] text-text-faint">{card.blocks.length} blocks</span>
-                  {summarizeTopicCard(card).map(tag => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-border-subtle px-1.5 py-0.5 text-[10px] text-text-faint"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
                 <span className={cn(
                   'flex items-center gap-1 text-xs',
                   isActive ? 'text-accent' : 'text-text-faint',
@@ -528,66 +504,41 @@ export function FindingsPage({
         )}
       </div>
 
-      {/* Navigation cards — cross-tab + canonical sources (default state only) */}
-      {!showAi && !showTopic && (
-        <div className="mb-8 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          {onTabChange && (
-            <button
-              onClick={() => onTabChange('paper')}
-              className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-            >
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Read the source</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Open the paper guide</div>
-              <div className="mt-1 text-xs leading-5 text-muted">
-                Editorial reading guide through the full paper, section by section.
-              </div>
-            </button>
-          )}
-
-          {onTabChange && (
-            <button
-              onClick={() => onTabChange('results')}
-              className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-            >
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Verify with data</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Browse published results</div>
-              <div className="mt-1 text-xs leading-5 text-muted">
-                Canonical scenarios and a simulation runner to test claims against the artifacts.
-              </div>
-            </button>
-          )}
-
-          <a
-            href="https://arxiv.org/abs/2509.21475"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-border-hover"
+      {/* Navigation cards — cross-tab wayfinding (default state only) */}
+      {!showAi && !showTopic && onTabChange && (
+        <div className="mb-8 grid gap-3 md:grid-cols-3">
+          <button
+            onClick={() => onTabChange('paper')}
+            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
           >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Canonical paper</div>
-            <div className="mt-2 flex items-center justify-between gap-3 text-sm font-medium text-text-primary">
-              <span>Open arXiv source</span>
-              <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
-            </div>
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Read the source</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">Open the paper guide</div>
             <div className="mt-1 text-xs leading-5 text-muted">
-              Yang, Oz, Wu, Zhang (2025) — the full paper this explorer is built on.
+              Editorial reading guide through the full paper, section by section.
             </div>
-          </a>
+          </button>
 
-          <a
-            href="https://github.com/syang-ng/geographical-decentralization-simulation"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-border-hover"
+          <button
+            onClick={() => onTabChange('results')}
+            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
           >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Implementation source</div>
-            <div className="mt-2 flex items-center justify-between gap-3 text-sm font-medium text-text-primary">
-              <span>Open repository</span>
-              <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
-            </div>
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Verify with data</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">Browse published results</div>
             <div className="mt-1 text-xs leading-5 text-muted">
-              Simulation code, data, and this explorer — all open source.
+              Canonical scenarios plus a fresh simulation runner to test claims against the actual artifacts.
             </div>
-          </a>
+          </button>
+
+          <button
+            onClick={() => onTabChange('history')}
+            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+          >
+            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">See what others found</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">Community notes</div>
+            <div className="mt-1 text-xs leading-5 text-muted">
+              Human-framed notes from paper readings and exact simulation runs.
+            </div>
+          </button>
         </div>
       )}
 
@@ -613,7 +564,39 @@ export function FindingsPage({
               </div>
             </div>
 
-            <p className="text-xs text-muted">{interpretationBoundary}</p>
+            <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-2xl">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Research integrity</div>
+                  <div className="mt-2 text-sm font-medium text-text-primary">{displayProvenance.label}</div>
+                  <div className="mt-1 text-sm text-muted">{displayProvenance.detail || interpretationBoundary}</div>
+                  <div className="mt-2 text-xs text-muted">
+                    Truth boundary: {interpretationBoundary}
+                  </div>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2 lg:w-[340px]">
+                  <a
+                    href="https://arxiv.org/abs/2509.21475"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    <span>Read canonical paper</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+                  </a>
+                  {onTabChange && (
+                    <button
+                      onClick={() => onTabChange('results')}
+                      className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                    >
+                      <span>Open simulation tab</span>
+                      <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </>
       )}
@@ -650,13 +633,13 @@ export function FindingsPage({
             <BlockCanvas blocks={aiResponse.blocks} />
 
             <div className="mt-4 flex items-center gap-3 text-xs">
-              {canShareCommunityNote && (
+              {aiResponse.provenance.explorationId && (
                 <button
                   onClick={handleShare}
                   className="inline-flex items-center gap-1.5 text-muted hover:text-accent transition-colors"
                 >
                   <Link2 className="w-3 h-3" />
-                  {shareState === 'copied' ? 'Link copied' : 'Copy community link'}
+                  {shareState === 'copied' ? 'Link copied' : 'Share exploration'}
                 </button>
               )}
               <button
@@ -683,20 +666,15 @@ export function FindingsPage({
                 error={(publishMutation.error as Error | null)?.message ?? null}
                 onViewPublished={publishedExplorationId && onOpenCommunityExploration
                   ? () => onOpenCommunityExploration(publishedExplorationId)
-                  : undefined}
+                  : onTabChange
+                    ? () => onTabChange('history')
+                    : undefined}
                 onPublish={payload => publishMutation.mutate({
                   contextKey: readingPublishContextKey,
                   ...payload,
                 })}
               />
             )}
-
-            <ReadingBridgePanel
-              currentReadingPublished={currentReadingPublished}
-              publishedExplorationId={publishedExplorationId}
-              onOpenCommunityExploration={onOpenCommunityExploration}
-              onTabChange={onTabChange}
-            />
 
             {aiResponse.followUps.length > 0 && (
               <div className="mt-6 pt-4 border-t border-rule">
@@ -735,26 +713,22 @@ export function FindingsPage({
                 defaultTakeaway={readingPublishTakeaway}
                 helperText={readingPublishHelper}
                 publishLabel="Publish human-authored note"
-                successLabel="Note published"
-                viewPublishedLabel="View published"
+                successLabel="Published human-authored note"
+                viewPublishedLabel="Open Community"
                 published={currentReadingPublished}
                 isPublishing={publishMutation.isPending}
                 error={(publishMutation.error as Error | null)?.message ?? null}
                 onViewPublished={publishedExplorationId && onOpenCommunityExploration
                   ? () => onOpenCommunityExploration(publishedExplorationId)
-                  : undefined}
+                  : onTabChange
+                    ? () => onTabChange('history')
+                    : undefined}
                 onPublish={payload => publishMutation.mutate({
                   contextKey: readingPublishContextKey,
                   ...payload,
                 })}
               />
             )}
-            <ReadingBridgePanel
-              currentReadingPublished={currentReadingPublished}
-              publishedExplorationId={publishedExplorationId}
-              onOpenCommunityExploration={onOpenCommunityExploration}
-              onTabChange={onTabChange}
-            />
             {promptOptions.length > 0 && (
               <div className="mt-6 pt-4 border-t border-rule">
                 <span className="text-xs text-muted mb-2 block">
@@ -814,79 +788,6 @@ export function FindingsPage({
           { label: 'Start a fresh question', hint: 'Reset the page and ask a sharper paper-backed prompt', onClick: handleBackToOverview },
         ]} />
       )}
-    </div>
-  )
-}
-
-function ReadingBridgePanel({
-  currentReadingPublished,
-  publishedExplorationId,
-  onOpenCommunityExploration,
-  onTabChange,
-}: {
-  readonly currentReadingPublished: boolean
-  readonly publishedExplorationId: string | null
-  readonly onOpenCommunityExploration?: (explorationId: string) => void
-  readonly onTabChange?: (tab: TabId) => void
-}) {
-  if (!onTabChange && !(currentReadingPublished && publishedExplorationId && onOpenCommunityExploration)) {
-    return null
-  }
-
-  const openCommunity = currentReadingPublished && publishedExplorationId && onOpenCommunityExploration
-    ? () => onOpenCommunityExploration(publishedExplorationId)
-    : undefined
-
-  const communityTitle = currentReadingPublished
-    ? 'Open community note'
-    : 'Keep it private or publish'
-  const communityDetail = currentReadingPublished
-    ? 'This reading now lives on the Community surface with your human title and takeaway.'
-    : 'Readings can stay private context. Publish only after you have added your own framing.'
-
-  return (
-    <div className="mt-5 rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,246,242,0.96))] px-4 py-4">
-      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Cross-check and handoff</div>
-      <div className="mt-1 text-sm font-medium text-text-primary">
-        Move this reading across the rest of the explorer without losing the thread.
-      </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <button
-          onClick={() => onTabChange?.('paper')}
-          disabled={!onTabChange}
-          className="rounded-lg border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:border-border-subtle"
-        >
-          <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Source text</div>
-          <div className="mt-2 text-sm font-medium text-text-primary">Read the paper guide</div>
-          <div className="mt-1 text-xs leading-5 text-muted">
-            Verify the claim against the paper’s section structure and caveats.
-          </div>
-        </button>
-
-        <button
-          onClick={() => onTabChange?.('results')}
-          disabled={!onTabChange}
-          className="rounded-lg border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:border-border-subtle"
-        >
-          <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Artifact check</div>
-          <div className="mt-2 text-sm font-medium text-text-primary">Open simulation</div>
-          <div className="mt-1 text-xs leading-5 text-muted">
-            Compare the reading against published scenarios or a fresh exact run.
-          </div>
-        </button>
-
-        <button
-          onClick={openCommunity}
-          disabled={!openCommunity}
-          className="rounded-lg border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:border-border-subtle"
-        >
-          <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Public framing</div>
-          <div className="mt-2 text-sm font-medium text-text-primary">{communityTitle}</div>
-          <div className="mt-1 text-xs leading-5 text-muted">
-            {communityDetail}
-          </div>
-        </button>
-      </div>
     </div>
   )
 }
