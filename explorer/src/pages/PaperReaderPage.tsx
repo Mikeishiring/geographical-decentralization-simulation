@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowUpRight, Eye, EyeOff, Link2, Quote } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
+import { ModeBanner } from '../components/layout/ModeBanner'
 import { Wayfinder } from '../components/layout/Wayfinder'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SOFT } from '../lib/theme'
@@ -197,6 +198,13 @@ export function PaperReaderPage({ onTabChange }: { onTabChange?: (tab: TabId) =>
 
   return (
     <div className="space-y-12">
+      <ModeBanner
+        eyebrow="Mode"
+        title="Editorial reading guide"
+        detail="This page stays anchored to the paper's claims, caveats, and section structure. It adds navigation and explanation, not new simulation results."
+        tone="editorial"
+      />
+
       {/* Paper title hero */}
       <motion.section
         initial={{ opacity: 0, y: 18 }}

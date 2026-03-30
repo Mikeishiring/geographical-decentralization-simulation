@@ -86,6 +86,12 @@ export const OVERVIEW_BUNDLES: ReadonlyArray<{
 export const COPY_RESET_DELAY_MS = 1600
 const PARSED_ARTIFACT_CACHE_PREFIX = 'simulation_lab_parsed_artifact:'
 
+interface PaperComparability {
+  readonly title: string
+  readonly detail: string
+  readonly tone: 'canonical' | 'editorial' | 'experimental'
+}
+
 export function formatNumber(value: number, digits = 2): string {
   return value.toLocaleString(undefined, {
     maximumFractionDigits: digits,
@@ -124,6 +130,73 @@ export function paperScenarioLabels(config: SimulationConfig): string[] {
 
   labels.push(config.paradigm === 'SSP' ? 'SSP exact mode' : 'MSP exact mode')
   return labels
+}
+
+function approximatelyEqual(left: number, right: number, epsilon = 0.0002): boolean {
+  return Math.abs(left - right) <= epsilon
+}
+
+function matchesPublishedResult(config: SimulationConfig): boolean {
+  if (config.validators !== 1000 || config.slots !== 10000) {
+    return false
+  }
+
+  if (config.slotTime === 6) {
+    return approximatelyEqual(config.migrationCost, 0.002)
+      && approximatelyEqual(config.attestationThreshold, 2 / 3)
+  }
+
+  if (!approximatelyEqual(config.slotTime, 12)) {
+    return false
+  }
+
+  if (!approximatelyEqual(config.attestationThreshold, 2 / 3)) {
+    const gammaValues = [1 / 3, 0.5, 2 / 3, 0.8]
+    return config.distribution === 'homogeneous'
+      && config.sourcePlacement === 'homogeneous'
+      && approximatelyEqual(config.migrationCost, 0.002)
+      && gammaValues.some(value => approximatelyEqual(config.attestationThreshold, value))
+  }
+
+  if (config.distribution === 'heterogeneous') {
+    return config.sourcePlacement === 'homogeneous'
+      && [0, 0.002].some(value => approximatelyEqual(config.migrationCost, value))
+  }
+
+  if (config.sourcePlacement === 'latency-aligned' || config.sourcePlacement === 'latency-misaligned') {
+    return config.distribution === 'homogeneous'
+      && approximatelyEqual(config.migrationCost, 0.002)
+  }
+
+  if (config.distribution === 'homogeneous' && config.sourcePlacement === 'homogeneous') {
+    return [0, 0.001, 0.002, 0.003].some(value => approximatelyEqual(config.migrationCost, value))
+  }
+
+  return false
+}
+
+export function describePaperComparability(config: SimulationConfig): PaperComparability {
+  if (matchesPublishedResult(config)) {
+    return {
+      title: 'Comparable to a published run',
+      detail: 'This configuration matches the paper-scale size and one of the checked-in researcher scenario families.',
+      tone: 'canonical',
+    }
+  }
+
+  if (config.validators === 1000 && config.slots === 10000) {
+    return {
+      title: 'Paper-scale, but off-catalog',
+      detail: 'This run matches the size of the published experiments, but the parameter combination is not one of the frozen researcher results.',
+      tone: 'editorial',
+    }
+  }
+
+  return {
+    title: 'Not directly comparable yet',
+    detail: 'This configuration is exact, but smaller or otherwise different from the paper-scale published runs. Use it for iteration, not one-to-one comparison.',
+    tone: 'experimental',
+  }
 }
 
 export function attestationCutoffMs(slotTime: number): number {

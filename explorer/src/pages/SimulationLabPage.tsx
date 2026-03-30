@@ -10,12 +10,14 @@ import {
   DEFAULT_CONFIG,
   OVERVIEW_BUNDLES,
   PRESETS,
+  describePaperComparability,
   paperScenarioLabels,
   readOrCreateClientId,
   readSessionArtifactBlocks,
   writeSessionArtifactBlocks,
 } from '../components/simulation/simulation-constants'
 import { getApiHealth } from '../lib/api'
+import { ModeBanner } from '../components/layout/ModeBanner'
 import { Wayfinder } from '../components/layout/Wayfinder'
 import type { TabId } from '../components/layout/TabNav'
 import {
@@ -344,13 +346,15 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
           'Load the real Ethereum validator start and explain what should change.',
         ]
 
+  const paperComparability = describePaperComparability(config)
+
   return (
     <div>
       <div className="flex items-center justify-between gap-4 mb-5">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="w-2 h-2 rounded-full bg-accent shrink-0" />
-          <h1 className="text-base font-semibold text-text-primary truncate">Simulation Lab</h1>
-          <span className="text-xs text-muted hidden sm:inline">Exact runs with bounded workflow</span>
+          <h1 className="text-base font-semibold text-text-primary truncate">Simulation</h1>
+          <span className="text-xs text-muted hidden sm:inline">Published results and exact experimental runs</span>
         </div>
 
         <div className="inline-flex rounded-full border border-border-subtle bg-white p-0.5 shrink-0">
@@ -358,15 +362,26 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
             onClick={() => setSurfaceMode('research')}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${surfaceMode === 'research' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
           >
-            Published
+            Published results
           </button>
           <button
             onClick={() => setSurfaceMode('lab')}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${surfaceMode === 'lab' ? 'bg-accent text-white' : 'text-text-primary hover:bg-surface-active'}`}
           >
-            Lab
+            Experimental run
           </button>
         </div>
+      </div>
+
+      <div className="mb-5">
+        <ModeBanner
+          eyebrow="Mode"
+          title={surfaceMode === 'research' ? 'Published research results' : 'Experimental exact run'}
+          detail={surfaceMode === 'research'
+            ? 'This side stays on the frozen researcher datasets and viewer contract. It is for reproducing the published scenarios, not inventing new ones.'
+            : 'This side runs fresh exact simulations with the same engine, but only some configurations map directly onto the published experiment catalog.'}
+          tone={surfaceMode === 'research' ? 'canonical' : 'experimental'}
+        />
       </div>
 
       {surfaceMode === 'research' ? (
@@ -377,7 +392,7 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
       ) : (
         <>
 
-      <div className="grid gap-3 mb-5 sm:grid-cols-3">
+      <div className="grid gap-3 mb-5 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-border-subtle bg-white px-4 py-3">
           <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Surface</div>
           <div className="mt-1 text-sm font-medium text-text-primary">Interactive exact run</div>
@@ -397,6 +412,13 @@ export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) 
           <div className="mt-1 text-sm font-medium text-text-primary">Reduced for speed</div>
           <div className="mt-1 text-xs text-muted">
             The lab opens at `1,000` validators, `1,000` slots, and `0.0001 ETH` migration cost so iteration stays faster.
+          </div>
+        </div>
+        <div className="rounded-xl border border-border-subtle bg-white px-4 py-3">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Comparability</div>
+          <div className="mt-1 text-sm font-medium text-text-primary">{paperComparability.title}</div>
+          <div className="mt-1 text-xs text-muted">
+            {paperComparability.detail}
           </div>
         </div>
       </div>

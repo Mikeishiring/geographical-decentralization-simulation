@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
+import { ModeBanner } from '../components/layout/ModeBanner'
 import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
@@ -75,6 +76,15 @@ export function DeepDivePage({ onTabChange }: { onTabChange?: (tab: TabId) => vo
 
   return (
     <div>
+      <div className="mb-4">
+        <ModeBanner
+          eyebrow="Mode"
+          title="Editorial argument map"
+          detail="This page reorganizes the paper into expandable claims, paradoxes, and caveats. It is still paper-backed, but it is a guided reading layer rather than a canonical dataset view."
+          tone="editorial"
+        />
+      </div>
+
       {/* Page header */}
       <div className="mb-6">
         <div className="flex items-center justify-between gap-4">

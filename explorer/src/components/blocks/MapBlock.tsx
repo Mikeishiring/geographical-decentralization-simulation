@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
 import { SPRING, SPRING_SOFT } from '../../lib/theme'
 import { cn } from '../../lib/cn'
-import { CONTINENT_OUTLINES } from '../../data/world-outlines'
+import { WORLD_PATHS } from '../../data/world-paths'
 import type { MapBlock as MapBlockType } from '../../types/blocks'
 
 interface MapBlockProps {
@@ -16,16 +16,6 @@ function latLonToMercator(lat: number, lon: number, width: number, height: numbe
   const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2))
   const y = height / 2 - (mercN / Math.PI) * (height / 2)
   return { x, y }
-}
-
-function continentPaths(width: number, height: number): string[] {
-  return CONTINENT_OUTLINES.map(continent => {
-    const segments = continent.points.map((point, index) => {
-      const { x, y } = latLonToMercator(point[0], point[1], width, height)
-      return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
-    })
-    return segments.join(' ') + ' Z'
-  })
 }
 
 function getDotRadius(value: number, maxValue: number): number {
@@ -41,13 +31,12 @@ function getDotColor(value: number, maxValue: number, colorScale?: string): stri
     return '#555'
   }
   const t = Math.min(value / Math.max(maxValue, 1), 1)
-  if (t < 0.2) return '#64748B'
-  if (t < 0.45) return '#2563EB'
-  if (t < 0.7) return '#C2553A'
+  if (t < 0.1) return '#64748B'
+  if (t < 0.3) return '#2563EB'
+  if (t < 0.6) return '#C2553A'
   return '#F59E0B'
 }
 
-/** Connection line opacity based on combined value of both endpoints */
 function getEdgeOpacity(va: number, vb: number, maxValue: number): number {
   const combined = (va + vb) / (2 * Math.max(maxValue, 1))
   return 0.06 + combined * 0.18
@@ -55,7 +44,6 @@ function getEdgeOpacity(va: number, vb: number, maxValue: number): number {
 
 export function MapBlock({ block }: MapBlockProps) {
   const bgId = useId()
-  const pulseGradientId = useId()
   const [tooltip, setTooltip] = useState<{ x: number; y: number; label: string; value: number } | null>(null)
   const maxValue = Math.max(...block.regions.map(r => r.value), 1)
 
@@ -67,16 +55,14 @@ export function MapBlock({ block }: MapBlockProps) {
 
   const svgW = 800
   const svgH = 420
-  const landPaths = useMemo(() => continentPaths(svgW, svgH), [])
 
-  // Build latency network edges — connect every region to its N nearest neighbours
   const edges = useMemo(() => {
     const pts = block.regions.map(r => ({
       ...r,
       ...latLonToMercator(r.lat, r.lon, svgW, svgH),
     }))
     const result: { x1: number; y1: number; x2: number; y2: number; va: number; vb: number }[] = []
-    const N = Math.min(3, pts.length - 1) // nearest-N connections
+    const N = Math.min(3, pts.length - 1)
     for (const p of pts) {
       const distances = pts
         .filter(q => q.name !== p.name)
@@ -84,7 +70,6 @@ export function MapBlock({ block }: MapBlockProps) {
         .toSorted((a, b) => a.d - b.d)
         .slice(0, N)
       for (const { q } of distances) {
-        // Deduplicate — only add if name1 < name2
         if (p.name < q.name) {
           result.push({ x1: p.x, y1: p.y, x2: q.x, y2: q.y, va: p.value, vb: q.value })
         }
@@ -92,6 +77,9 @@ export function MapBlock({ block }: MapBlockProps) {
     }
     return result
   }, [block.regions])
+
+  // Determine if data is meaningful (not all the same value)
+  const hasVariation = new Set(block.regions.map(r => r.value)).size > 1
 
   return (
     <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
@@ -102,14 +90,14 @@ export function MapBlock({ block }: MapBlockProps) {
             <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
           </div>
           <div className="flex items-center gap-3 text-xs text-muted">
-            <span>{block.regions.length} nodes</span>
+            <span>{block.regions.length} regions</span>
             <span className="font-mono text-[10px]">{edges.length} links</span>
           </div>
         </div>
       </div>
 
       <div className="grid gap-4 p-4 lg:grid-cols-[1.5fr_minmax(0,0.55fr)]">
-        {/* ── Network map ── */}
+        {/* ── Map ── */}
         <div className="relative overflow-hidden rounded-lg bg-[#0D1117]" style={{ minHeight: 300 }}>
           <svg
             viewBox={`0 0 ${svgW} ${svgH}`}
@@ -123,14 +111,8 @@ export function MapBlock({ block }: MapBlockProps) {
                 <stop offset="0%" stopColor="#131A24" />
                 <stop offset="100%" stopColor="#0D1117" />
               </radialGradient>
-              <linearGradient id={pulseGradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#2563EB" stopOpacity="0" />
-                <stop offset="50%" stopColor="#2563EB" stopOpacity="0.6" />
-                <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
-              </linearGradient>
             </defs>
 
-            {/* Dark background */}
             <rect x={0} y={0} width={svgW} height={svgH} fill={`url(#${bgId})`} />
 
             {/* Subtle graticule */}
@@ -143,19 +125,19 @@ export function MapBlock({ block }: MapBlockProps) {
                 stroke="#1E293B" strokeWidth={0.5} />
             ))}
 
-            {/* Faint continent silhouettes — geographic context only */}
-            {landPaths.map((d, i) => (
+            {/* Country outlines from real GeoJSON — faint geographic context */}
+            {WORLD_PATHS.map((d, i) => (
               <path
-                key={CONTINENT_OUTLINES[i]!.name}
+                key={i}
                 d={d}
                 fill="#1A2332"
                 stroke="#243044"
-                strokeWidth={0.5}
+                strokeWidth={0.3}
                 strokeLinejoin="round"
               />
             ))}
 
-            {/* Latency network edges */}
+            {/* Network edges */}
             {edges.map((e, i) => (
               <motion.line
                 key={`edge-${i}`}
@@ -169,7 +151,7 @@ export function MapBlock({ block }: MapBlockProps) {
               />
             ))}
 
-            {/* Region nodes — ordered back-to-front so large dots render on top */}
+            {/* Region nodes — sorted back-to-front so large dots render on top */}
             {[...block.regions]
               .toSorted((a, b) => a.value - b.value)
               .map((region, index) => {
@@ -180,7 +162,6 @@ export function MapBlock({ block }: MapBlockProps) {
 
                 return (
                   <g key={region.name}>
-                    {/* Breathing glow for top nodes */}
                     {isTop && (
                       <motion.circle
                         cx={x} cy={y} r={radius * 2.8}
@@ -189,7 +170,6 @@ export function MapBlock({ block }: MapBlockProps) {
                         transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: index * 0.2 }}
                       />
                     )}
-                    {/* Outer glow */}
                     <motion.circle
                       cx={x} cy={y} r={radius * 1.8}
                       fill={color} fillOpacity={0.08}
@@ -197,7 +177,6 @@ export function MapBlock({ block }: MapBlockProps) {
                       animate={{ scale: 1 }}
                       transition={{ ...SPRING_SOFT, delay: 0.2 + index * 0.015 }}
                     />
-                    {/* Core node */}
                     <motion.circle
                       cx={x} cy={y} r={radius}
                       fill={color}
@@ -212,7 +191,6 @@ export function MapBlock({ block }: MapBlockProps) {
                       onMouseLeave={() => setTooltip(null)}
                       whileHover={{ scale: 1.25 }}
                     />
-                    {/* Label for top regions */}
                     {isTop && (
                       <text
                         x={x} y={y - radius - 5}
@@ -228,7 +206,6 @@ export function MapBlock({ block }: MapBlockProps) {
                 )
               })}
 
-            {/* Corner coordinate labels */}
             <text x={6} y={12} fill="#334155" fontSize="7" fontFamily="var(--font-mono)">90°N</text>
             <text x={6} y={svgH - 4} fill="#334155" fontSize="7" fontFamily="var(--font-mono)">90°S</text>
             <text x={svgW - 30} y={svgH - 4} fill="#334155" fontSize="7" fontFamily="var(--font-mono)">180°E</text>
@@ -248,7 +225,9 @@ export function MapBlock({ block }: MapBlockProps) {
               }}
             >
               <div className="text-white font-medium">{tooltip.label}</div>
-              <div className="text-[#94A3B8] tabular-nums">{tooltip.value} validators</div>
+              <div className="text-[#94A3B8] tabular-nums">
+                {tooltip.value.toLocaleString()} validators
+              </div>
             </motion.div>
           )}
         </div>
@@ -257,7 +236,7 @@ export function MapBlock({ block }: MapBlockProps) {
         <div className="space-y-3">
           <div className="rounded-lg border border-border-subtle bg-white p-3">
             <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-2">
-              Top nodes
+              Top regions
             </div>
             <div className="space-y-1">
               {topRegions.map(region => {
@@ -273,10 +252,9 @@ export function MapBlock({ block }: MapBlockProps) {
                         </span>
                       </div>
                       <span className="text-xs font-semibold tabular-nums text-text-primary shrink-0">
-                        {region.value}
+                        {region.value.toLocaleString()}
                       </span>
                     </div>
-                    {/* Mini bar */}
                     <div className="h-0.5 rounded-full bg-surface-active mx-1 mb-0.5">
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
                     </div>
@@ -286,25 +264,31 @@ export function MapBlock({ block }: MapBlockProps) {
             </div>
           </div>
 
-          <div className="rounded-lg border border-border-subtle bg-white p-3 text-xs text-muted">
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-2">
-              Concentration
+          {/* Legend — grounded in paper metrics */}
+          {hasVariation && (
+            <div className="rounded-lg border border-border-subtle bg-white p-3 text-xs text-muted">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-2">
+                Stake concentration
+              </div>
+              <div className="space-y-1.5">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#64748B]" /> Low stake share (&lt;10%)
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#2563EB]" /> Moderate (10–30%)
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#C2553A]" /> High concentration (30–60%)
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-full bg-[#F59E0B]" /> Dominant (&gt;60%)
+                </span>
+              </div>
+              <p className="text-[10px] text-text-faint mt-2">
+                Node size and color reflect relative validator share. Paper metrics: Gini_g, HHI_g.
+              </p>
             </div>
-            <div className="space-y-1.5">
-              <span className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#64748B]" /> Low validator count
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#2563EB]" /> Moderate
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#C2553A]" /> High — latency advantage
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full bg-[#F59E0B]" /> Dominant MEV corridor
-              </span>
-            </div>
-          </div>
+          )}
 
           <a
             href="https://geo-decentralization.github.io/"

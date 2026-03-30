@@ -4,22 +4,18 @@ import { TabNav, type TabId } from './components/layout/TabNav'
 import { Footer } from './components/layout/Footer'
 import { FindingsPage } from './pages/FindingsPage'
 import { ExploreHistoryPage } from './pages/ExploreHistoryPage'
+import { PaperReaderPage } from './pages/PaperReaderPage'
+import { SimulationLabPage } from './pages/SimulationLabPage'
 import { cn } from './lib/cn'
 
-const DeepDivePage = lazy(async () => {
+const preloadDeepDivePage = async () => {
   const module = await import('./pages/DeepDivePage')
-  return { default: module.DeepDivePage }
-})
+  return module.DeepDivePage
+}
 
-const PaperReaderPage = lazy(async () => {
-  const module = await import('./pages/PaperReaderPage')
-  return { default: module.PaperReaderPage }
-})
-
-const SimulationLabPage = lazy(async () => {
-  const module = await import('./pages/SimulationLabPage')
-  return { default: module.SimulationLabPage }
-})
+const DeepDivePage = lazy(async () => ({
+  default: await preloadDeepDivePage(),
+}))
 
 const VALID_TABS: readonly TabId[] = ['findings', 'history', 'paper', 'deep-dive', 'simulation']
 
@@ -32,7 +28,9 @@ interface ExplorerRouteState {
 function getInitialTab(): TabId {
   const params = new URLSearchParams(window.location.search)
   const tab = params.get('tab') as TabId | null
-  return tab && VALID_TABS.includes(tab) ? tab : 'findings'
+  if (tab && VALID_TABS.includes(tab)) return tab
+  if (params.get('q') || params.get('eid')) return 'findings'
+  return 'paper'
 }
 
 function getInitialQuery(): string | null {
@@ -54,7 +52,7 @@ function readRouteState(): ExplorerRouteState {
 function writeRouteState(next: ExplorerRouteState, replace = false) {
   const url = new URL(window.location.href)
 
-  if (next.tab === 'findings') {
+  if (next.tab === 'paper') {
     url.searchParams.delete('tab')
   } else {
     url.searchParams.set('tab', next.tab)
@@ -115,6 +113,20 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [syncFromLocation])
 
+  useEffect(() => {
+    const prewarm = () => {
+      void preloadDeepDivePage()
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+      const idleId = window.requestIdleCallback(prewarm, { timeout: 1500 })
+      return () => window.cancelIdleCallback?.(idleId)
+    }
+
+    const timer = window.setTimeout(prewarm, 600)
+    return () => window.clearTimeout(timer)
+  }, [])
+
   const handleTabChange = useCallback((tab: TabId) => {
     applyRouteState({ tab, query: sharedQuery, explorationId: null }, false)
   }, [applyRouteState, sharedQuery])
@@ -165,13 +177,9 @@ function App() {
           />
         </div>
 
-        {shouldRenderLazyTab('paper') && (
-          <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
-            <Suspense fallback={<TabLoading title="Loading Paper Reader" description="Preparing the editorial reading view of the paper." />}>
-              <PaperReaderPage onTabChange={handleTabChange} />
-            </Suspense>
-          </div>
-        )}
+        <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
+          <PaperReaderPage onTabChange={handleTabChange} />
+        </div>
 
         {shouldRenderLazyTab('deep-dive') && (
           <div hidden={activeTab !== 'deep-dive'} aria-hidden={activeTab !== 'deep-dive'}>
@@ -181,13 +189,9 @@ function App() {
           </div>
         )}
 
-        {shouldRenderLazyTab('simulation') && (
-          <div hidden={activeTab !== 'simulation'} aria-hidden={activeTab !== 'simulation'}>
-            <Suspense fallback={<TabLoading title="Loading Simulation Lab" description="Preparing the exact-mode simulation controls." />}>
-              <SimulationLabPage onTabChange={handleTabChange} />
-            </Suspense>
-          </div>
-        )}
+        <div hidden={activeTab !== 'simulation'} aria-hidden={activeTab !== 'simulation'}>
+          <SimulationLabPage onTabChange={handleTabChange} />
+        </div>
       </main>
 
       <Footer />

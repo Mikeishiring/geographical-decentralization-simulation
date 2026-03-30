@@ -11,6 +11,7 @@ import { ShimmerLoading } from '../components/explore/ShimmerBlock'
 import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { explore, getApiHealth, getExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
 import { NodeConstellation } from '../components/decorative/NodeConstellation'
+import { ModeBanner } from '../components/layout/ModeBanner'
 import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
@@ -280,6 +281,15 @@ export function FindingsPage({
 
   return (
     <div>
+      <div className="mb-5">
+        <ModeBanner
+          eyebrow="Mode"
+          title="Curated questions plus AI interpretation"
+          detail="Use this page for bounded, paper-backed questions. The responses can synthesize and interpret, but the paper and published results remain the canonical sources."
+          tone="interpretation"
+        />
+      </div>
+
       {/* Page header with constellation decoration */}
       <div className="mb-6 relative">
         <NodeConstellation className="absolute right-0 top-0 w-32 h-32 opacity-40 pointer-events-none hidden sm:block" />
