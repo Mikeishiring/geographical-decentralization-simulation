@@ -62,6 +62,7 @@ type WorkspaceTheme = 'auto' | 'light' | 'dark'
 type WorkspaceStep = 1 | 10 | 50
 type PaperLens = 'evidence' | 'theory' | 'methods'
 type AudienceMode = 'reader' | 'reviewer' | 'researcher'
+type AnalyticsDeckView = 'concentration' | 'latency' | 'economics' | 'geography'
 
 interface ViewerLaunch {
   readonly dataset: ResearchDatasetEntry
@@ -87,6 +88,7 @@ interface InitialWorkspaceState {
   readonly paperSectionId?: string
   readonly focusSlot?: number
   readonly compareFocusSlot?: number
+  readonly analyticsView?: AnalyticsDeckView
 }
 
 interface CanvasAnnotation {
@@ -103,6 +105,39 @@ interface ResultSnapshotCard {
 interface PromptLauncher {
   readonly label: string
   readonly prompt: string
+}
+
+interface PublishedAnalyticsMetrics {
+  readonly clusters?: readonly number[]
+  readonly total_distance?: readonly number[]
+  readonly mev?: readonly number[]
+  readonly attestations?: readonly number[]
+  readonly proposal_times?: readonly number[]
+  readonly gini?: readonly number[]
+  readonly hhi?: readonly number[]
+  readonly liveness?: readonly number[]
+  readonly failed_block_proposals?: readonly number[]
+}
+
+interface PublishedAnalyticsPayload {
+  readonly v?: number
+  readonly description?: string
+  readonly n_slots?: number
+  readonly metrics?: PublishedAnalyticsMetrics
+  readonly sources?: ReadonlyArray<readonly [string, string]>
+  readonly slots?: Record<string, ReadonlyArray<readonly [string, number]>>
+}
+
+interface AnalyticsMetricCard {
+  readonly label: string
+  readonly value: string
+  readonly detail: string
+}
+
+function parseAnalyticsDeckView(value: string | null): AnalyticsDeckView | undefined {
+  return value === 'concentration' || value === 'latency' || value === 'economics' || value === 'geography'
+    ? value
+    : undefined
 }
 
 function readResearchCatalog(): ResearchCatalog | null {
@@ -189,7 +224,138 @@ function readInitialWorkspaceState(): InitialWorkspaceState {
     paperSectionId: params.get('paperSection') ?? undefined,
     focusSlot: parseSlotIndex(params.get('slot')),
     compareFocusSlot: parseSlotIndex(params.get('compareSlot')),
+    analyticsView: parseAnalyticsDeckView(params.get('analytics')),
   }
+}
+
+function totalSlotsFromPayload(payload: PublishedAnalyticsPayload | null): number {
+  return Math.max(
+    1,
+    payload?.n_slots ?? 0,
+    payload?.metrics?.gini?.length ?? 0,
+    payload?.metrics?.mev?.length ?? 0,
+    Object.keys(payload?.slots ?? {}).length,
+  )
+}
+
+function clampSlotIndex(slot: number | null | undefined, totalSlots: number): number {
+  if (typeof slot !== 'number' || !Number.isFinite(slot)) return 0
+  return Math.max(0, Math.min(Math.floor(slot), Math.max(0, totalSlots - 1)))
+}
+
+function readMetricValue(series: readonly number[] | undefined, slot: number): number | null {
+  if (!series?.length) return null
+  const index = Math.max(0, Math.min(slot, series.length - 1))
+  const value = series[index]
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function sampleSeries(
+  series: readonly number[] | undefined,
+  maxPoints = 240,
+): Array<{ x: number; y: number }> {
+  if (!series?.length) return []
+
+  const step = Math.max(1, Math.ceil(series.length / maxPoints))
+  const points: Array<{ x: number; y: number }> = []
+
+  for (let index = 0; index < series.length; index += step) {
+    const value = series[index]
+    if (typeof value !== 'number' || !Number.isFinite(value)) continue
+    points.push({ x: index + 1, y: value })
+  }
+
+  const lastIndex = series.length - 1
+  const lastValue = series[lastIndex]
+  if (
+    typeof lastValue === 'number'
+    && Number.isFinite(lastValue)
+    && points[points.length - 1]?.x !== lastIndex + 1
+  ) {
+    points.push({ x: lastIndex + 1, y: lastValue })
+  }
+
+  return points
+}
+
+function sampleActiveRegionsSeries(
+  payload: PublishedAnalyticsPayload | null,
+  maxPoints = 240,
+): Array<{ x: number; y: number }> {
+  if (!payload?.slots) return []
+
+  const totalSlots = totalSlotsFromPayload(payload)
+  const step = Math.max(1, Math.ceil(totalSlots / maxPoints))
+  const points: Array<{ x: number; y: number }> = []
+
+  for (let slotIndex = 0; slotIndex < totalSlots; slotIndex += step) {
+    const slotRegions = payload.slots[String(slotIndex)] ?? []
+    points.push({
+      x: slotIndex + 1,
+      y: slotRegions.filter(([, count]) => Number(count) > 0).length,
+    })
+  }
+
+  const finalSlotIndex = Math.max(0, totalSlots - 1)
+  if (points[points.length - 1]?.x !== finalSlotIndex + 1) {
+    const finalRegions = payload.slots[String(finalSlotIndex)] ?? []
+    points.push({
+      x: finalSlotIndex + 1,
+      y: finalRegions.filter(([, count]) => Number(count) > 0).length,
+    })
+  }
+
+  return points
+}
+
+function topRegionsForSlot(
+  payload: PublishedAnalyticsPayload | null,
+  slotIndex: number,
+  limit = 5,
+): Array<{ label: string; count: number; share: number }> {
+  if (!payload?.slots) return []
+
+  const rawRegions = payload.slots[String(slotIndex)] ?? []
+  const totalValidators = payload.v ?? rawRegions.reduce((sum, [, count]) => sum + Number(count || 0), 0)
+
+  return rawRegions
+    .map(([regionId, count]) => ({
+      label: regionId,
+      count: Number(count) || 0,
+      share: totalValidators > 0 ? ((Number(count) || 0) / totalValidators) * 100 : 0,
+    }))
+    .filter(region => region.count > 0)
+    .sort((left, right) => right.count - left.count)
+    .slice(0, limit)
+}
+
+function activeRegionCountAtSlot(
+  payload: PublishedAnalyticsPayload | null,
+  slotIndex: number,
+): number {
+  if (!payload?.slots) return 0
+  const rawRegions = payload.slots[String(slotIndex)] ?? []
+  return rawRegions.filter(([, count]) => Number(count) > 0).length
+}
+
+async function fetchPublishedAnalyticsPayload(
+  viewerBaseUrl: string,
+  datasetPath: string,
+): Promise<PublishedAnalyticsPayload> {
+  const normalizedBase = viewerBaseUrl.replace(/\/$/, '')
+  const response = await fetch(`${normalizedBase}/${datasetPath}`, { cache: 'force-cache' })
+  if (!response.ok) {
+    throw new Error(`Failed to load analytics payload for ${datasetPath}`)
+  }
+
+  const text = await response.text()
+  if (text.startsWith('version https://git-lfs')) {
+    throw new Error(
+      `${datasetPath} is a Git LFS pointer, not resolved analytics data. The deployment needs git-lfs installed to fetch the actual simulation files.`,
+    )
+  }
+
+  return JSON.parse(text) as PublishedAnalyticsPayload
 }
 
 function themeLabel(theme: WorkspaceTheme): string {
@@ -322,6 +488,7 @@ export function ResearchDemoSurface({
   const [assistantDraft, setAssistantDraft] = useState('')
   const [comparePath, setComparePath] = useState(initialWorkspaceState.comparePath ?? '')
   const [audienceMode, setAudienceMode] = useState<AudienceMode>(initialWorkspaceState.audienceMode ?? 'reader')
+  const [analyticsView, setAnalyticsView] = useState<AnalyticsDeckView>(initialWorkspaceState.analyticsView ?? 'concentration')
   const [paperSectionId, setPaperSectionId] = useState(initialWorkspaceState.paperSectionId ?? '')
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
   const viewerRef = useRef<HTMLElement | null>(null)
@@ -942,6 +1109,20 @@ export function ResearchDemoSurface({
     () => currentSlotNotes.filter(note => note.anchorKind === 'comparison'),
     [currentSlotNotes],
   )
+  const primaryAnalyticsQuery = useQuery({
+    enabled: Boolean(selectedDataset?.path),
+    queryKey: ['published-analytics-payload', selectedDataset?.path ?? ''],
+    queryFn: () => fetchPublishedAnalyticsPayload(viewerBaseUrl, selectedDataset!.path),
+    staleTime: Infinity,
+  })
+  const comparisonAnalyticsQuery = useQuery({
+    enabled: Boolean(comparisonDataset?.path),
+    queryKey: ['published-analytics-payload', comparisonDataset?.path ?? ''],
+    queryFn: () => fetchPublishedAnalyticsPayload(viewerBaseUrl, comparisonDataset!.path),
+    staleTime: Infinity,
+  })
+  const primaryAnalyticsPayload = primaryAnalyticsQuery.data ?? null
+  const comparisonAnalyticsPayload = comparisonAnalyticsQuery.data ?? null
 
   const buildWorkspaceUrl = (overrides?: Partial<{
     selectedEvaluation: string
@@ -958,6 +1139,7 @@ export function ResearchDemoSurface({
     paperSectionId: string
     focusSlot: number | null
     compareFocusSlot: number | null
+    analyticsView: AnalyticsDeckView
   }>) => {
     if (typeof window === 'undefined') return ''
 
@@ -981,6 +1163,7 @@ export function ResearchDemoSurface({
       compareFocusSlot: splitCompareActive
         ? comparisonViewerSnapshot?.slotIndex ?? initialWorkspaceState.compareFocusSlot ?? null
         : null,
+      analyticsView,
       ...overrides,
     }
 
@@ -1015,6 +1198,8 @@ export function ResearchDemoSurface({
       params.delete('paperSection')
     }
 
+    params.set('analytics', nextState.analyticsView)
+
     if (typeof nextState.focusSlot === 'number' && nextState.focusSlot > 0) {
       params.set('slot', String(nextState.focusSlot))
     } else {
@@ -1048,6 +1233,16 @@ export function ResearchDemoSurface({
   }
 
   const shareUrl = buildWorkspaceUrl()
+  const primaryAnalyticsTotalSlots = totalSlotsFromPayload(primaryAnalyticsPayload)
+  const comparisonAnalyticsTotalSlots = totalSlotsFromPayload(comparisonAnalyticsPayload)
+  const primaryAnalyticsSlot = clampSlotIndex(
+    viewerSnapshot?.slotIndex ?? initialWorkspaceState.focusSlot ?? 0,
+    primaryAnalyticsTotalSlots,
+  )
+  const comparisonAnalyticsSlot = clampSlotIndex(
+    comparisonViewerSnapshot?.slotIndex ?? initialWorkspaceState.compareFocusSlot ?? 0,
+    comparisonAnalyticsTotalSlots,
+  )
 
   const handleCopyShareUrl = async (targetUrl = shareUrl) => {
     if (!targetUrl || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
