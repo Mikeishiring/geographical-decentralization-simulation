@@ -170,46 +170,48 @@ export function ExploreHistoryPage({
       />
 
       {(onGoToFindings || onTabChange) && (
-        <div className="rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,246,242,0.96))] px-4 py-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Read, respond, share</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">Community notes work best when they start from a canonical reading or an exact run.</div>
-            </div>
-            <div className="max-w-2xl text-xs leading-5 text-muted">
-              Use Explore for a paper-backed reading, Results for a reproduced scenario, and Paper when you want to trace the original argument before responding publicly.
-            </div>
-          </div>
+        <div className="rounded-xl border border-rule bg-white px-5 py-5">
+          <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Read, respond, share</span>
+          <div className="mt-1 text-[0.8125rem] font-medium text-text-primary">Community notes work best when they start from a canonical reading or an exact run.</div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="mt-4 divide-y divide-rule">
             {onGoToFindings && (
               <button
                 onClick={onGoToFindings}
-                className="rounded-lg border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                className="group flex w-full items-baseline justify-between gap-4 py-3 text-left"
               >
-                <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Paper-backed reading</div>
-                <div className="mt-2 text-sm font-medium text-text-primary">Start in Explore</div>
-                <div className="mt-1 text-xs leading-5 text-muted">Use guided readings and curated findings before turning them into a public note.</div>
+                <div>
+                  <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper-backed reading</span>
+                  <div className="mt-0.5 text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">Start in Explore</div>
+                  <div className="mt-0.5 text-xs leading-5 text-muted">Use guided readings and curated findings before turning them into a public note.</div>
+                </div>
+                <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
               </button>
             )}
             {onTabChange && (
               <button
                 onClick={() => onTabChange('results')}
-                className="rounded-lg border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                className="group flex w-full items-baseline justify-between gap-4 py-3 text-left"
               >
-                <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Exact evidence</div>
-                <div className="mt-2 text-sm font-medium text-text-primary">Open Results</div>
-                <div className="mt-1 text-xs leading-5 text-muted">Inspect a published replay or run an exact scenario before publishing an interpretation.</div>
+                <div>
+                  <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Exact evidence</span>
+                  <div className="mt-0.5 text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">Open Results</div>
+                  <div className="mt-0.5 text-xs leading-5 text-muted">Inspect a published replay or run an exact scenario before publishing an interpretation.</div>
+                </div>
+                <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
               </button>
             )}
             {onTabChange && (
               <button
                 onClick={() => onTabChange('paper')}
-                className="rounded-lg border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                className="group flex w-full items-baseline justify-between gap-4 py-3 text-left"
               >
-                <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Canonical argument</div>
-                <div className="mt-2 text-sm font-medium text-text-primary">Read the paper</div>
-                <div className="mt-1 text-xs leading-5 text-muted">Go section by section through the paper when you want the exact claim, method, or caveat.</div>
+                <div>
+                  <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical argument</span>
+                  <div className="mt-0.5 text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">Read the paper</div>
+                  <div className="mt-0.5 text-xs leading-5 text-muted">Go section by section through the paper when you want the exact claim, method, or caveat.</div>
+                </div>
+                <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
               </button>
             )}
           </div>
@@ -237,9 +239,9 @@ export function ExploreHistoryPage({
         />
       </div>
 
-      <div className="rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,246,242,0.96))] px-4 py-4">
-        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Publishing standard</div>
-        <div className="mt-2 grid gap-3 md:grid-cols-3">
+      <div className="rounded-xl border border-rule bg-white px-5 py-4">
+        <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Publishing standard</span>
+        <div className="mt-3 divide-y divide-rule">
           {[
             {
               title: 'Lead with observation',
@@ -254,9 +256,9 @@ export function ExploreHistoryPage({
               detail: 'The public surface should contain notes with a real title and takeaway, not raw assistant exhaust.',
             },
           ].map(item => (
-            <div key={item.title} className="rounded-lg border border-border-subtle bg-white px-3 py-3">
-              <div className="text-sm font-medium text-text-primary">{item.title}</div>
-              <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
+            <div key={item.title} className="py-3">
+              <div className="text-[0.8125rem] font-medium text-text-primary">{item.title}</div>
+              <div className="mt-0.5 text-[0.75rem] leading-[1.6] text-muted">{item.detail}</div>
             </div>
           ))}
         </div>
@@ -362,13 +364,13 @@ function SummaryCard({
   readonly detail: string
 }) {
   return (
-    <div className="rounded-xl border border-border-subtle bg-white px-4 py-3">
-      <div className="flex items-center gap-2 text-xs text-text-faint">
+    <div className="rounded-xl border border-rule bg-white px-4 py-3">
+      <div className="flex items-center gap-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
         {icon}
         {label}
       </div>
-      <div className="mt-1 text-xl font-semibold text-text-primary">{value}</div>
-      <div className="mt-1 text-xs text-muted">{detail}</div>
+      <div className="mt-1 text-xl font-semibold tabular-nums text-text-primary">{value}</div>
+      <div className="mt-1 text-[0.75rem] text-muted">{detail}</div>
     </div>
   )
 }
@@ -405,9 +407,9 @@ function ContributionSection({
   return (
     <section className="space-y-3">
       <div>
-        <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{eyebrow}</div>
-        <div className="mt-1 text-base font-medium text-text-primary">{title}</div>
-        <p className="mt-1 max-w-3xl text-sm text-muted">{detail}</p>
+        <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{eyebrow}</span>
+        <div className="mt-1 text-[0.9375rem] font-medium text-text-primary">{title}</div>
+        <p className="mt-0.5 max-w-3xl text-[0.8125rem] leading-[1.6] text-muted">{detail}</p>
       </div>
 
       {explorations.length === 0 ? (
@@ -465,24 +467,21 @@ function HistoryHeader({
             onChange={event => onSearchChange(event.target.value)}
             placeholder="Search titles, takeaways, authors, paradigms, scenarios, or metrics..."
             className={cn(
-              'w-full rounded-lg border border-border-subtle bg-white py-2.5 pl-10 pr-4 text-sm',
-              'text-text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent',
+              'w-full rounded-lg border border-rule bg-white py-2.5 pl-10 pr-4 text-[0.8125rem]',
+              'text-text-primary placeholder:text-muted/70 focus:outline-none focus:border-accent/30 focus:ring-2 focus:ring-accent/10',
             )}
           />
         </div>
-        <p className="mt-2 text-xs text-muted">
-          Search published note titles, human takeaways, authors, paradigm tags, scenario tags, and note text.
+        <p className="mt-2 text-[0.6875rem] text-text-faint">
+          Search titles, takeaways, authors, paradigm tags, and note text.
         </p>
       </div>
 
       <button
         onClick={onToggleSort}
-        className={cn(
-          'flex items-center gap-2 rounded-lg border border-border-subtle bg-white px-4 py-2.5 text-sm',
-          'text-text-primary transition-colors hover:bg-surface-hover',
-        )}
+        className="flex items-center gap-2 text-[0.8125rem] font-medium text-muted transition-colors hover:text-text-primary"
         >
-        <ArrowUpDown className="h-4 w-4" />
+        <ArrowUpDown className="h-3.5 w-3.5" />
         <span>{sort === 'recent' ? 'Newest first' : 'Most supported'}</span>
       </button>
     </div>
@@ -522,9 +521,9 @@ function ExplorationCard({
         visible: { opacity: 1, y: 0, transition: SPRING },
       }}
       className={cn(
-        'overflow-hidden rounded-lg border border-border-subtle bg-white',
+        'overflow-hidden rounded-lg border border-rule bg-white',
         'transition-colors hover:border-border-hover',
-        isDeepLinked && 'border-accent shadow-[0_0_0_1px_rgba(37,99,235,0.08)]',
+        isDeepLinked && 'border-accent/20 shadow-[0_0_0_1px_rgba(37,99,235,0.06)]',
       )}
     >
       <div className="flex gap-3 p-4">
@@ -592,9 +591,9 @@ function ExplorationCard({
           </div>
 
           {allTags.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2 text-xs text-text-faint">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {allTags.map(tag => (
-                <span key={tag} className="inline-flex items-center gap-1">
+                <span key={tag} className="lab-chip">
                   <span className={cn(
                     'h-1.5 w-1.5 rounded-full',
                     tag === 'SSP' && 'bg-accent',

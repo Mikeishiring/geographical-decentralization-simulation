@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowUpRight, ArrowLeft, ArrowRight, Eye, Link2, Quote, ChevronDown, ChevronUp, LayoutList, FileText, BookOpen, Check } from 'lucide-react'
+import { Eye, Link2, Quote, ChevronDown, ChevronUp, LayoutList, FileText, BookOpen, Check } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { ModeBanner } from '../components/layout/ModeBanner'
 import { cn } from '../lib/cn'
-import { SPRING, SPRING_SOFT, SPRING_SNAPPY, HOVER_LIFT } from '../lib/theme'
+import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
 import type { TabId } from '../components/layout/TabNav'
 
@@ -306,7 +306,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
           {PAPER_METADATA.keyClaims.map(claim => (
             <span
               key={claim}
-              className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-text-primary"
+              className="lab-chip"
             >
               {claim}
             </span>
@@ -314,28 +314,31 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         </div>
       </motion.section>
 
-      <section className="rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,246,242,0.96))] px-4 py-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <section className="rounded-xl border border-rule bg-white px-5 py-5">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Best first stops</div>
-            <div className="mt-1 text-sm font-medium text-text-primary">Four strong entry points into the paper</div>
+            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Best first stops</span>
+            <div className="mt-1 text-[0.8125rem] font-medium text-text-primary">Four strong entry points into the paper</div>
           </div>
-          <div className="max-w-2xl text-xs leading-5 text-muted">
-            Start with the paradox, then check the realism question, the implications section, and the limitations so the paper’s confidence boundary stays visible.
+          <div className="max-w-2xl text-[0.8125rem] leading-[1.6] text-muted">
+            Start with the paradox, then check the realism question, the implications, and the limitations.
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 divide-y divide-rule">
           {bestFirstStops.map(section => (
             <a
               key={section.id}
               href={`#${section.id}`}
               onClick={() => setActiveSectionId(section.id)}
-              className="rounded-lg border border-border-subtle bg-white px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-border-hover"
+              className="group flex items-baseline justify-between gap-4 py-3 transition-colors"
             >
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">{section.number}</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">{section.title}</div>
-              <div className="mt-1 text-xs leading-5 text-muted">{sectionEntryLine(section)}</div>
+              <div className="min-w-0">
+                <span className="text-[0.625rem] font-mono text-accent uppercase">{section.number}</span>
+                <div className="mt-0.5 text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">{section.title}</div>
+                <div className="mt-0.5 text-xs leading-5 text-muted">{sectionEntryLine(section)}</div>
+              </div>
+              <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
             </a>
           ))}
         </div>
@@ -441,13 +444,13 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                   <div className="text-xs font-medium text-text-primary">References & artifacts</div>
                   <div className="mt-2 space-y-1.5">
                     {PAPER_METADATA.references.map(ref => (
-                      <a key={ref.label} href={ref.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted hover:text-accent transition-colors">
-                        {ref.label} <ArrowUpRight className="h-3 w-3" />
+                      <a key={ref.label} href={ref.url} target="_blank" rel="noopener noreferrer" className="arrow-link text-xs">
+                        {ref.label}
                       </a>
                     ))}
                     {_onTabChange && (
-                      <button onClick={() => _onTabChange('results')} className="flex items-center gap-1.5 text-sm text-muted hover:text-accent transition-colors">
-                        Simulation results <ArrowUpRight className="h-3 w-3" />
+                      <button onClick={() => _onTabChange('results')} className="arrow-link text-xs">
+                        Simulation results
                       </button>
                     )}
                   </div>
@@ -463,82 +466,70 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         <motion.div key="argument-map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}>
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-text-primary">
-                Argument, paradoxes, and caveats
+              <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Argument map</span>
+              <h2 className="mt-1 text-lg font-medium text-text-primary">
+                Claims, paradoxes, and caveats
               </h2>
-              <p className="mt-1 text-xs text-muted">
-                Expandable claims organized by paper section
-              </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
               <button
                 onClick={expandAll}
-                className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-muted transition-colors hover:border-border-hover hover:text-text-primary"
+                className="text-[0.8125rem] text-muted transition-colors hover:text-text-primary"
               >
                 Expand all
               </button>
+              <span className="text-rule">·</span>
               <button
                 onClick={collapseAll}
-                className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-muted transition-colors hover:border-border-hover hover:text-text-primary"
+                className="text-[0.8125rem] text-muted transition-colors hover:text-text-primary"
               >
                 Collapse all
               </button>
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="rounded-xl border border-rule bg-white divide-y divide-rule">
             {PAPER_SECTIONS.map(section => {
               const isExpanded = expandedIds.has(section.id)
               const summaryTags = summarizeSection(section)
               return (
-                <motion.div
-                  key={section.id}
-                  layout
-                  {...HOVER_LIFT}
-                  className={cn(
-                    'overflow-hidden rounded-lg border bg-white transition-colors',
-                    isExpanded ? 'border-accent/20' : 'border-border-subtle',
-                  )}
-                >
+                <div key={section.id}>
                   <button
                     onClick={() => toggleSection(section.id)}
-                    className="w-full px-4 py-4 text-left transition-colors hover:bg-surface-active"
+                    className="w-full px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
                   >
                     <div className="flex items-start gap-3">
-                      <span className="mt-0.5 w-8 shrink-0 text-xs font-mono text-accent">
+                      <span className="mt-0.5 w-8 shrink-0 text-[0.6875rem] font-mono text-accent">
                         {section.number}
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h3 className="truncate text-sm font-medium text-text-primary">
+                            <h3 className="text-[0.8125rem] font-medium text-text-primary">
                               {section.title}
                             </h3>
-                            <p className="mt-1 text-xs text-muted">
+                            <p className="mt-0.5 text-[0.75rem] leading-[1.5] text-muted">
                               {section.description}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted">
-                              {section.blocks.length} blocks
-                            </span>
+                            {summaryTags.length > 0 && (
+                              <div className="hidden sm:flex flex-wrap gap-1.5">
+                                {summaryTags.map(tag => (
+                                  <span key={`${section.id}-${tag}`} className="lab-chip">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                             <motion.div
                               animate={{ rotate: isExpanded ? 180 : 0 }}
                               transition={SPRING}
                             >
-                              <ChevronDown className="h-4 w-4 shrink-0 text-text-faint" />
+                              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-text-faint" />
                             </motion.div>
                           </div>
                         </div>
-                        {summaryTags.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {summaryTags.map(tag => (
-                              <span key={`${section.id}-${tag}`} className="rounded-full bg-[#F2F2F0] px-2 py-0.5 text-[11px] text-muted">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     </div>
                   </button>
@@ -551,8 +542,8 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                         transition={SPRING}
                         className="overflow-hidden"
                       >
-                        <div className="border-t border-border-subtle px-4 pb-4 pt-3">
-                          <div className="mb-4 rounded-md border border-border-subtle bg-[#FAFAF8] px-3 py-3 text-xs text-muted">
+                        <div className="border-t border-rule px-5 pb-5 pt-3">
+                          <div className="mb-4 rounded-lg border border-rule bg-canvas px-3 py-2.5 text-[0.8125rem] text-muted">
                             <span className="font-medium text-text-primary">Start here if:</span> {sectionEntryLine(section)}
                           </div>
                           <BlockCanvas blocks={section.blocks} />
@@ -560,7 +551,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </motion.div>
+                </div>
               )
             })}
           </div>
@@ -612,19 +603,18 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
           })}
 
           {/* References */}
-          <section className="border-t border-border-subtle pt-8">
-            <h2 className="text-lg font-semibold text-text-primary font-serif">References</h2>
-            <div className="mt-4 space-y-2">
+          <section className="border-t border-rule pt-8">
+            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">References</span>
+            <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
               {PAPER_METADATA.references.map(ref => (
                 <a
                   key={ref.label}
                   href={ref.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-sm text-accent hover:underline"
+                  className="arrow-link"
                 >
                   {ref.label}
-                  <ArrowUpRight className="h-3 w-3" />
                 </a>
               ))}
             </div>
@@ -766,14 +756,14 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                 </div>
 
                 {/* Section navigation */}
-                <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle pt-5">
+                <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-5">
                   {previousSection ? (
                     <a
                       href={`#${previousSection.id}`}
                       onClick={() => setActiveSectionId(previousSection.id)}
-                      className="group/nav inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted transition-colors hover:bg-surface-active hover:text-text-primary"
+                      className="group/nav inline-flex items-center gap-1.5 text-[0.8125rem] text-muted transition-colors hover:text-text-primary"
                     >
-                      <ArrowLeft className="h-3 w-3 transition-transform group-hover/nav:-translate-x-0.5" />
+                      <span className="transition-transform group-hover/nav:-translate-x-0.5">←</span>
                       {previousSection.number} {previousSection.title}
                     </a>
                   ) : (
@@ -784,10 +774,10 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                     <a
                       href={`#${nextSection.id}`}
                       onClick={() => setActiveSectionId(nextSection.id)}
-                      className="group/nav inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-accent transition-colors hover:bg-accent/5"
+                      className="group/nav inline-flex items-center gap-1.5 text-[0.8125rem] text-muted transition-colors hover:text-accent"
                     >
                       {nextSection.number} {nextSection.title}
-                      <ArrowRight className="h-3 w-3 transition-transform group-hover/nav:translate-x-0.5" />
+                      <span className="transition-transform group-hover/nav:translate-x-0.5">→</span>
                     </a>
                   ) : (
                     <span className="text-xs text-text-faint">End of paper</span>
@@ -798,22 +788,21 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
           })}
 
           {/* References footer */}
-          <section className="rounded-lg border border-border-subtle bg-white p-5 sm:p-6">
-            <span className="text-xs text-muted">References and intent</span>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-text-body font-serif">
+          <section className="rounded-lg border border-rule bg-white p-5 sm:p-6">
+            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">References and intent</span>
+            <p className="mt-3 max-w-2xl text-[0.8125rem] leading-[1.65] text-text-body font-serif">
               This reader view makes the paper easier to absorb without replacing the canonical study. The best first stops are the gamma paradox, the starting-geography section, and the limitations — they define the paper's surprise, realism, and confidence boundary.
             </p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
               {[...PAPER_METADATA.references, { label: 'Original published demo', url: 'https://geo-decentralization.github.io/' }].map(ref => (
                 <a
                   key={ref.label}
                   href={ref.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                  className="arrow-link"
                 >
                   {ref.label}
-                  <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
                 </a>
               ))}
             </div>
