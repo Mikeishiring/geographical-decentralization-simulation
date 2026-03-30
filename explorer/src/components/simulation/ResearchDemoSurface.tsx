@@ -107,6 +107,12 @@ interface PromptLauncher {
   readonly prompt: string
 }
 
+interface AnalyticsPromptLauncher {
+  readonly label: string
+  readonly prompt: string
+  readonly detail: string
+}
+
 interface PublishedAnalyticsMetrics {
   readonly clusters?: readonly number[]
   readonly total_distance?: readonly number[]
@@ -1579,6 +1585,47 @@ export function ResearchDemoSurface({
     : primaryAnalyticsQuery.isError
       ? (primaryAnalyticsQuery.error as Error).message
       : null
+  const analyticsPromptLaunchers = useMemo<readonly AnalyticsPromptLauncher[]>(() => {
+    if (!selectedDataset) return []
+
+    const viewLabel = analyticsViewOptions.find(view => view.id === analyticsView)?.label ?? 'Analytics'
+    const currentSlotLabel = `slot ${primaryAnalyticsSlot + 1}`
+    const prompts = [
+      {
+        label: 'Read this query',
+        prompt: `Using the ${viewLabel.toLowerCase()} analytics query for ${selectedDataset.evaluation} / ${selectedDataset.paradigm}, explain what the evidence shows at ${currentSlotLabel} and at the final slot. Start with exact metrics before interpretation.`,
+        detail: 'Replay evidence first',
+      },
+      comparisonDataset
+        ? {
+            label: 'Compare this query',
+            prompt: `Using the ${viewLabel.toLowerCase()} analytics query, compare ${selectedDataset.evaluation} / ${selectedDataset.paradigm} against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm}. Start with the exact metric differences, then explain what changes materially.`,
+            detail: 'Material delta only',
+          }
+        : null,
+      selectedPaperSection
+        ? {
+            label: `Bind ${selectedPaperSection.number}`,
+            prompt: `Use ${selectedPaperSection.number} ${selectedPaperSection.title} to interpret this ${viewLabel.toLowerCase()} analytics query. Start with the observed metrics, then explain what they mean for the paper's claim.`,
+            detail: 'Canonical paper anchor',
+          }
+        : null,
+      {
+        label: 'Surface implication',
+        prompt: `From this ${viewLabel.toLowerCase()} analytics query, what is the strongest protocol or infrastructure implication? Start with the observed metrics first, then give your interpretation and say what remains uncertain.`,
+        detail: 'Interpretive, not factual',
+      },
+    ].filter((entry): entry is AnalyticsPromptLauncher => Boolean(entry))
+
+    return prompts
+  }, [
+    analyticsView,
+    analyticsViewOptions,
+    comparisonDataset,
+    primaryAnalyticsSlot,
+    selectedDataset,
+    selectedPaperSection,
+  ])
 
   const handleCopyShareUrl = async (targetUrl = shareUrl) => {
     if (!targetUrl || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
@@ -3563,11 +3610,36 @@ export function ResearchDemoSurface({
                   <div className="mt-2 text-xs leading-5 text-muted">
                     {analyticsViewOptions.find(view => view.id === analyticsView)?.description ?? 'Exact metric query over the frozen replay.'}
                   </div>
+                  <div className="mt-3 text-[11px] leading-5 text-text-faint">
+                    Use the query to establish what the replay shows first. Only then ask for implications or interpretation.
+                  </div>
                 </div>
 
                 {analyticsStatusMessage ? (
                   <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4 text-sm text-muted">
                     {analyticsStatusMessage}
+                  </div>
+                ) : null}
+
+                {!analyticsStatusMessage && analyticsPromptLaunchers.length > 0 ? (
+                  <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Ask from this query</div>
+                    <div className="mt-2 text-xs leading-5 text-muted">
+                      These prompts open the replay inquiry flow against the current analytics view and slot posture.
+                    </div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {analyticsPromptLaunchers.map(item => (
+                        <button
+                          key={item.label}
+                          onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
+                          className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                        >
+                          <div className="text-sm font-medium text-text-primary">{item.label}</div>
+                          <div className="mt-1 text-[11px] uppercase tracking-[0.12em] text-text-faint">{item.detail}</div>
+                          <div className="mt-3 text-xs leading-5 text-muted">{item.prompt}</div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ) : null}
 
