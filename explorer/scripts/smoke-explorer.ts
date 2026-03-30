@@ -239,16 +239,21 @@ async function main() {
       const historyProvenance = historyPayload.provenance as Record<string, unknown> | undefined
       assert(historyProvenance?.source === 'history', 'Expected seeded history query to reuse public history')
       assert(typeof historyProvenance?.explorationId === 'string' && historyProvenance.explorationId.length > 0, 'Expected history query to reference a saved exploration')
+      const persistedExplorationId = historyProvenance.explorationId as string
 
       const listResponse = await fetch(`${BASE_URL}/api/explorations?search=relay latencies`)
       assert(listResponse.ok, 'Expected /api/explorations search to succeed')
       const listPayload = await listResponse.json() as Array<Record<string, unknown>>
-      assert(
-        listPayload.some(entry => entry.query === seededExploration.query || entry.id === seededExploration.id),
-        'Expected a matching saved exploration to appear in search results',
+      const matchingExploration = listPayload.find(entry =>
+        entry.id === persistedExplorationId
+        || entry.query === seededExploration.query,
       )
+      assert(matchingExploration, 'Expected a matching saved exploration to appear in search results')
 
-      const publishResponse = await fetch(`${BASE_URL}/api/explorations/${seededExploration.id}/publish`, {
+      const getExplorationResponse = await fetch(`${BASE_URL}/api/explorations/${persistedExplorationId}`)
+      await assertOk(getExplorationResponse, 'Expected /api/explorations/:id to succeed for the persisted history match')
+
+      const publishResponse = await fetch(`${BASE_URL}/api/explorations/${persistedExplorationId}/publish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -266,12 +271,12 @@ async function main() {
       const communityListResponse = await fetch(`${BASE_URL}/api/explorations?published=true`)
       assert(communityListResponse.ok, 'Expected published-only /api/explorations query to succeed')
       const communityList = await communityListResponse.json() as Array<Record<string, unknown>>
-      assert(communityList.some(entry => entry.id === seededExploration.id), 'Expected published exploration to appear in community results')
+      assert(communityList.some(entry => entry.id === persistedExplorationId), 'Expected published exploration to appear in community results')
 
       const archiveListResponse = await fetch(`${BASE_URL}/api/explorations?published=false`)
       assert(archiveListResponse.ok, 'Expected archive-only /api/explorations query to succeed')
       const archiveList = await archiveListResponse.json() as Array<Record<string, unknown>>
-      assert(!archiveList.some(entry => entry.id === seededExploration.id), 'Expected published exploration to be excluded from archive results')
+      assert(!archiveList.some(entry => entry.id === persistedExplorationId), 'Expected published exploration to be excluded from archive results')
 
       const createSimulationNoteResponse = await fetch(`${BASE_URL}/api/explorations`, {
         method: 'POST',

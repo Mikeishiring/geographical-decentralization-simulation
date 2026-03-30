@@ -110,54 +110,52 @@ export function PendingRunSurface({
   const createdLabel = formatJobTimestamp(jobData?.createdAt)
 
   return (
-    <div className="lab-stage-dark p-6 mb-6">
-      <div className="lab-loading-orb" />
-
-      <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+    <div className="lab-stage-soft p-5 mb-5">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-2xl">
-          <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-slate-300">
+          <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">
             {stage.eyebrow}
           </div>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-[1.9rem]">
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-text-primary sm:text-[1.9rem]">
             {stage.headline}
           </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
             {stage.detail}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[0.6875rem] font-medium text-slate-100">
-              <span className="h-1.5 w-1.5 rounded-full bg-sky-300" />
+            <span className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
               {config.paradigm} exact run
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[0.6875rem] font-medium text-slate-100">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+            <span className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
               {config.validators.toLocaleString()} validators
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[0.6875rem] font-medium text-slate-100">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+            <span className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               {config.slots.toLocaleString()} slots
             </span>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[420px]">
-          <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Queue</div>
-            <div className="mt-2 text-xl font-semibold text-white">
+          <div className="rounded-2xl border border-rule bg-white/88 px-4 py-4">
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Queue</div>
+            <div className="mt-2 text-xl font-semibold text-text-primary">
               {jobData?.queuePosition != null ? jobData.queuePosition.toLocaleString() : 'Live'}
             </div>
-            <div className="mt-1 text-xs text-slate-300">
+            <div className="mt-1 text-xs text-muted">
               {jobData?.queuePosition != null && jobData.queuePosition > 0
                 ? 'Jobs ahead before execution begins'
                 : 'No explicit backlog reported'}
             </div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Cache path</div>
-            <div className="mt-2 text-xl font-semibold text-white">
+          <div className="rounded-2xl border border-rule bg-white/88 px-4 py-4">
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Cache path</div>
+            <div className="mt-2 text-xl font-semibold text-text-primary">
               {jobData?.cacheHit == null ? 'Pending' : jobData.cacheHit ? 'Reused' : 'Fresh'}
             </div>
-            <div className="mt-1 text-xs text-slate-300">
+            <div className="mt-1 text-xs text-muted">
               {jobData?.cacheHit == null
                 ? 'Resolved after execution begins'
                 : jobData.cacheHit
@@ -165,24 +163,24 @@ export function PendingRunSurface({
                   : 'Engine is producing a new artifact set'}
             </div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Updated</div>
-            <div className="mt-2 text-base font-semibold text-white">
+          <div className="rounded-2xl border border-rule bg-white/88 px-4 py-4">
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Updated</div>
+            <div className="mt-2 text-base font-semibold text-text-primary">
               {updatedLabel ?? createdLabel ?? 'Waiting'}
             </div>
-            <div className="mt-1 text-xs text-slate-300">
+            <div className="mt-1 text-xs text-muted">
               {jobData?.id ? `Job ${jobData.id.slice(0, 8)}` : 'Ticket pending'}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-6">
-        <div className="mb-2 flex items-center justify-between gap-4 text-xs text-slate-300">
+      <div className="mt-5">
+        <div className="mb-2 flex items-center justify-between gap-4 text-xs text-muted">
           <span>Preparing the manifest, overview bundles, and default artifact render.</span>
           <span>{progress}%</span>
         </div>
-        <div className="lab-progress-track bg-white/10">
+        <div className="lab-progress-track bg-surface-active">
           <div
             className="lab-progress-fill"
             data-state="active"
@@ -221,21 +219,21 @@ export function PendingRunSurface({
               className={cn(
                 'rounded-2xl border px-4 py-4 transition-colors',
                 state === 'done' && 'border-emerald-300/22 bg-emerald-400/10',
-                state === 'active' && 'border-sky-300/26 bg-sky-400/10',
-                state === 'idle' && 'border-white/10 bg-white/5',
+                state === 'active' && 'border-sky-300/28 bg-sky-50',
+                state === 'idle' && 'border-rule bg-white/82',
               )}
             >
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">{step.label}</div>
-              <div className="mt-2 text-sm font-medium text-white">{step.title}</div>
-              <div className="mt-1 text-xs leading-5 text-slate-300">{step.detail}</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{step.label}</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{step.title}</div>
+              <div className="mt-1 text-xs leading-5 text-muted">{step.detail}</div>
             </div>
           )
         })}
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Incoming visuals</div>
+        <div className="rounded-xl border border-rule bg-white/82 p-4">
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Incoming visuals</div>
           <div className="mt-3 grid gap-3 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="lab-skeleton lab-skeleton-block h-[240px]" />
             <div className="space-y-3">
@@ -248,16 +246,16 @@ export function PendingRunSurface({
           </div>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Run snapshot</div>
+        <div className="rounded-xl border border-rule bg-white/82 p-4">
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Run snapshot</div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Source placement</div>
-              <div className="mt-2 text-sm font-medium text-white">{config.sourcePlacement}</div>
+            <div className="rounded-xl border border-rule bg-white px-4 py-3">
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Source placement</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{config.sourcePlacement}</div>
             </div>
-            <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Distribution</div>
-              <div className="mt-2 text-sm font-medium text-white">{config.distribution}</div>
+            <div className="rounded-xl border border-rule bg-white px-4 py-3">
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Distribution</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{config.distribution}</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-slate-400">Timing</div>

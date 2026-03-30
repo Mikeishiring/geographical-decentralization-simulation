@@ -274,6 +274,25 @@ function buildChartFigureNote(series: ExactChartSeries): {
   })
 }
 
+function buildInlineFigureBlocks(input: {
+  readonly title: string
+  readonly detail: string
+  readonly prompt: string
+}): readonly Block[] {
+  return [
+    {
+      type: 'insight',
+      title: input.title,
+      text: input.detail,
+      emphasis: 'key-finding',
+    },
+    {
+      type: 'caveat',
+      text: input.prompt,
+    },
+  ]
+}
+
 function ExactChartDeck({
   series,
   loading,
@@ -521,6 +540,26 @@ export function SimResultsPanel({
   const referenceArtifacts = manifest.artifacts.filter(artifact => !artifact.renderable)
   const selectedArtifactFigureNote = selectedArtifact ? buildArtifactFigureNote(selectedArtifact) : null
   const selectedOverviewBundleNote = buildOverviewBundleNote(selectedBundle)
+  const overviewFigureBlocks = overviewBlocks.length > 0
+    ? [
+        ...buildInlineFigureBlocks({
+          title: selectedOverviewBundleNote.title,
+          detail: selectedOverviewBundleNote.detail,
+          prompt: selectedOverviewBundleNote.prompt,
+        }),
+        ...overviewBlocks,
+      ]
+    : overviewBlocks
+  const renderedArtifactBlocks = parsedBlocks.length > 0 && selectedArtifactFigureNote
+    ? [
+        ...buildInlineFigureBlocks({
+          title: selectedArtifactFigureNote.title,
+          detail: selectedArtifactFigureNote.detail,
+          prompt: 'Read the figure shape first, then ask which assumption most plausibly drives it.',
+        }),
+        ...parsedBlocks,
+      ]
+    : parsedBlocks
   const exactMetricCards: readonly ExactMetricCard[] = [
     {
       key: 'finalAverageMev',
@@ -872,7 +911,7 @@ export function SimResultsPanel({
                   {selectedOverviewBundleNote.title}
                 </span>
               </div>
-              <BlockCanvas blocks={overviewBlocks} />
+              <BlockCanvas blocks={overviewFigureBlocks} showExport={false} />
             </div>
             <aside className="rounded-xl border border-rule bg-white/82 px-4 py-3.5">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
@@ -1084,7 +1123,7 @@ export function SimResultsPanel({
         {!isArtifactFetching && !isParsing && !parseError && parsedBlocks.length > 0 && (
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
             <div className="min-w-0">
-              <BlockCanvas blocks={parsedBlocks} />
+              <BlockCanvas blocks={renderedArtifactBlocks} showExport={false} />
             </div>
             <aside className="rounded-xl border border-rule bg-white/82 px-4 py-3.5">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">

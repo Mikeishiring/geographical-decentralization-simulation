@@ -252,7 +252,7 @@ export function SimulationLabPage({
           ) : null}
 
           <details open={!manifest} className="mb-5 overflow-hidden rounded-[24px] border border-rule bg-[linear-gradient(180deg,rgba(248,250,252,0.82),rgba(255,255,255,0.96))]">
-            <summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+            <summary className="flex cursor-pointer list-none flex-col gap-3 border-b border-rule/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="lab-section-title">Lab controls</div>
                 <div className="mt-1 text-sm font-medium text-text-primary">
@@ -269,7 +269,7 @@ export function SimulationLabPage({
               </div>
             </summary>
 
-            <div className="border-t border-rule px-4 py-4">
+            <div className="px-4 py-4">
               <ExactLabIntro
                 config={config}
                 comparabilityTitle={paperComparability.title}
