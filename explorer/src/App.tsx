@@ -4,9 +4,9 @@ import { TabNav, type TabId } from './components/layout/TabNav'
 import { Footer } from './components/layout/Footer'
 import { FindingsPage } from './pages/FindingsPage'
 import { cn } from './lib/cn'
+import { readRouteStateFromLocation, type ExplorerRouteState } from './lib/route-state'
 import { PAPER_SECTIONS } from './data/paper-sections'
 
-const VALID_TABS: readonly TabId[] = ['explore', 'paper', 'results', 'community']
 const DEFAULT_TAB: TabId = 'explore'
 const PAPER_TAB: TabId = 'paper'
 const RESULTS_TAB: TabId = 'results'
@@ -31,55 +31,6 @@ const ExploreHistoryPage = lazy(async () => {
   const module = await loadExploreHistoryPageModule()
   return { default: module.ExploreHistoryPage }
 })
-
-interface ExplorerRouteState {
-  readonly tab: TabId
-  readonly query: string | null
-  readonly explorationId: string | null
-}
-
-function hasPaperSectionHash(): boolean {
-  const hash = window.location.hash.replace(/^#/, '')
-  return hash.length > 0 && PAPER_SECTION_IDS.has(hash)
-}
-
-function getInitialTab(): TabId {
-  const params = new URLSearchParams(window.location.search)
-  const raw = params.get('tab')
-  // Support legacy tab IDs from old URLs
-  const migrated = raw === 'findings' ? 'explore'
-    : raw === 'deep-dive' ? 'paper'
-    : raw === 'simulation' ? 'results'
-    : raw === 'history' ? 'community'
-    : raw
-  const tab = migrated as TabId | null
-  const hasPaperHash = hasPaperSectionHash()
-  if (tab && VALID_TABS.includes(tab)) {
-    if (tab === 'explore' && hasPaperHash && !params.get('q') && !params.get('eid')) {
-      return 'paper'
-    }
-    return tab
-  }
-  if (params.get('q') || params.get('eid') || params.get('topic')) return 'explore'
-  if (hasPaperHash) return 'paper'
-  return DEFAULT_TAB
-}
-
-function getInitialQuery(): string | null {
-  return new URLSearchParams(window.location.search).get('q')
-}
-
-function getInitialExplorationId(): string | null {
-  return new URLSearchParams(window.location.search).get('eid')
-}
-
-function readRouteState(): ExplorerRouteState {
-  return {
-    tab: getInitialTab(),
-    query: getInitialQuery(),
-    explorationId: getInitialExplorationId(),
-  }
-}
 
 function writeRouteState(next: ExplorerRouteState, replace = false) {
   const url = new URL(window.location.href)
@@ -108,6 +59,10 @@ function writeRouteState(next: ExplorerRouteState, replace = false) {
   } else {
     window.history.pushState({}, '', url.toString())
   }
+}
+
+function readRouteState() {
+  return readRouteStateFromLocation(window.location.search, window.location.hash, PAPER_SECTION_IDS)
 }
 
 function preloadTab(tab: TabId) {

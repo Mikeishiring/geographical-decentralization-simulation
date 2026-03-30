@@ -130,6 +130,15 @@ ARTIFACT_SPECS = (
         "renderable": True,
     },
     {
+        "name": "published_analytics_payload.json",
+        "label": "Published Analytics Payload",
+        "kind": "raw",
+        "description": "Published-style analytics payload synthesized from the exact run outputs.",
+        "content_type": "application/json",
+        "lazy": False,
+        "renderable": False,
+    },
+    {
         "name": "top_regions_final.json",
         "label": "Final Top Regions",
         "kind": "map",
@@ -255,6 +264,27 @@ def to_continent(region_name: str | None) -> str:
         if normalized.startswith(prefix):
             return continent
     return "Other"
+
+
+def normalize_published_sources(source_entries: Any, paradigm: str) -> list[list[str]]:
+    suffix = "supplier" if paradigm == "SSP" else "signal"
+    normalized: list[list[str]] = []
+
+    if not isinstance(source_entries, list):
+        return normalized
+
+    for entry in source_entries:
+        if isinstance(entry, dict):
+            region = entry.get("gcp_region") or entry.get("region") or entry.get("location")
+        elif isinstance(entry, (list, tuple)) and len(entry) >= 2:
+            region = entry[1]
+        else:
+            region = entry
+
+        region_str = str(region)
+        normalized.append([f"{region_str}-{suffix}", region_str])
+
+    return normalized
 
 
 def gini_coefficient(values: list[float]) -> float:
@@ -832,6 +862,113 @@ def read_paper_geography_metrics(path: Path) -> dict[str, list[float]]:
     return parsed
 
 
+def load_json_if_exists(path: Path, fallback: Any) -> Any:
+    if not path.is_file():
+        return fallback
+    try:
+        return load_json(path)
+    except Exception:
+        return fallback
+
+
+def infer_validator_count_from_slots(region_counter_per_slot: Any) -> int:
+    if not isinstance(region_counter_per_slot, dict) or not region_counter_per_slot:
+        return 0
+
+    first_slot_key = min(
+        region_counter_per_slot.keys(),
+        key=lambda raw_key: int(raw_key) if str(raw_key).isdigit() else str(raw_key),
+    )
+    first_slot = region_counter_per_slot.get(first_slot_key, [])
+    if not isinstance(first_slot, list):
+        return 0
+    return sum(int(count) for _, count in first_slot)
+
+
+def build_exact_payload_description(config: dict[str, Any]) -> str:
+    paradigm_label = "External" if config["paradigm"] == "SSP" else "Local"
+    distribution_label = {
+        "homogeneous": "homogeneous validator",
+        "homogeneous-gcp": "equal per-GCP validator",
+        "heterogeneous": "heterogeneous validator",
+        "random": "random validator",
+    }.get(config["distribution"], str(config["distribution"]))
+    source_label = {
+        "homogeneous": "homogeneous information source",
+        "latency-aligned": "latency-aligned information source",
+        "latency-misaligned": "latency-misaligned information source",
+    }.get(config["sourcePlacement"], str(config["sourcePlacement"]))
+    return (
+        f"These are the exact simulation results for {distribution_label} and "
+        f"{source_label} distributions ({paradigm_label} Block Building)."
+    )
+
+
+def ensure_published_analytics_payload_output(
+    output_dir: Path,
+    config: dict[str, Any],
+    consensus_settings: ConsensusSettings,
+) -> None:
+    payload_path = output_dir / "published_analytics_payload.json"
+    source_paths = [
+        output_dir / "avg_mev.json",
+        output_dir / "failed_block_proposals.json",
+        output_dir / "proposal_time_avg.json",
+        output_dir / "attestation_sum.json",
+        output_dir / "paper_geography_metrics.json",
+        output_dir / "region_counter_per_slot.json",
+        output_dir / ("relay_names.json" if config["paradigm"] == "SSP" else "signal_names.json"),
+    ]
+    existing_sources = [path for path in source_paths if path.is_file()]
+    if existing_sources and is_up_to_date(payload_path, existing_sources):
+        return
+
+    region_counter_per_slot = load_json_if_exists(output_dir / "region_counter_per_slot.json", {})
+    source_entries = load_json_if_exists(
+        output_dir / ("relay_names.json" if config["paradigm"] == "SSP" else "signal_names.json"),
+        [],
+    )
+    paper_geography_metrics = read_paper_geography_metrics(output_dir / "paper_geography_metrics.json")
+
+    metrics = {
+        "mev": read_numeric_series(output_dir / "avg_mev.json"),
+        "attestations": read_numeric_series(output_dir / "attestation_sum.json"),
+        "proposal_times": read_numeric_series(output_dir / "proposal_time_avg.json"),
+        "gini": paper_geography_metrics.get("gini", []),
+        "hhi": paper_geography_metrics.get("hhi", []),
+        "liveness": paper_geography_metrics.get("liveness", []),
+        "failed_block_proposals": read_numeric_series(output_dir / "failed_block_proposals.json"),
+    }
+    filtered_metrics = {
+        key: value
+        for key, value in metrics.items()
+        if isinstance(value, list) and len(value) > 0
+    }
+    total_slots = max(
+        int(config.get("slots", 0)),
+        len(filtered_metrics.get("gini", [])),
+        len(filtered_metrics.get("mev", [])),
+        len(region_counter_per_slot) if isinstance(region_counter_per_slot, dict) else 0,
+    )
+    validator_count = infer_validator_count_from_slots(region_counter_per_slot) or int(config.get("validators", 0))
+
+    payload = {
+        "v": validator_count,
+        "delta": int(config.get("slotTime", 0)) * 1000,
+        "cutoff": int(consensus_settings.attestation_time_ms),
+        "cost": float(config.get("migrationCost", 0.0)),
+        "gamma": float(config.get("attestationThreshold", 0.0)),
+        "description": build_exact_payload_description(config),
+        "n_slots": total_slots,
+        "metrics": filtered_metrics,
+        "sources": normalize_published_sources(source_entries, str(config.get("paradigm", "SSP"))),
+        "slots": region_counter_per_slot if isinstance(region_counter_per_slot, dict) else {},
+    }
+
+    with payload_path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle)
+
+
 def last_numeric(series: list[Any]) -> float:
     if not series:
         return 0.0
@@ -854,9 +991,14 @@ def ensure_overview_bundle_outputs(output_dir: Path) -> None:
             json.dump(blocks, handle, separators=(",", ":"))
 
 
-def ensure_derived_outputs(output_dir: Path) -> None:
+def ensure_derived_outputs(
+    output_dir: Path,
+    config: dict[str, Any],
+    consensus_settings: ConsensusSettings,
+) -> None:
     ensure_summary_outputs(output_dir)
     ensure_overview_bundle_outputs(output_dir)
+    ensure_published_analytics_payload_output(output_dir, config, consensus_settings)
 
 
 def build_manifest(
@@ -1000,7 +1142,7 @@ def run_job(job_id: str, raw_config: dict[str, Any]) -> dict[str, Any]:
     cache_dir = CACHE_ROOT / cache_key
 
     if required_outputs_present(cache_dir):
-        ensure_derived_outputs(cache_dir)
+        ensure_derived_outputs(cache_dir, config, consensus_settings)
         return ensure_manifest(
             job_id=job_id,
             config=config,
@@ -1044,7 +1186,7 @@ def run_job(job_id: str, raw_config: dict[str, Any]) -> dict[str, Any]:
             )
         runtime_seconds = time.perf_counter() - start_time
 
-        ensure_derived_outputs(temp_output_dir)
+        ensure_derived_outputs(temp_output_dir, config, consensus_settings)
         build_manifest(
             job_id=job_id,
             config=config,
