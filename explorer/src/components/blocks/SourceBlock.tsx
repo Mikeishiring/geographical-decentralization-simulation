@@ -9,7 +9,7 @@ export function SourceBlock({ block }: SourceBlockProps) {
   if (block.refs.length === 0) return null
 
   return (
-    <div className="bg-white border border-border-subtle rounded-lg p-4">
+    <div className="bg-white border border-border-subtle rounded-xl p-4">
       <div className="space-y-1.5">
         {block.refs.map((ref, i) => {
           const isExternal = Boolean(ref.url)

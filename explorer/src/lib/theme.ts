@@ -4,6 +4,9 @@ export const SPRING = { type: 'spring' as const, stiffness: 220, damping: 28, ma
 export const SPRING_SOFT = { type: 'spring' as const, stiffness: 170, damping: 24, mass: 0.96 }
 export const SPRING_SNAPPY = { type: 'spring' as const, stiffness: 360, damping: 30, mass: 0.88 }
 
+/** Instant transition — used when prefers-reduced-motion is active */
+export const INSTANT = { duration: 0 } as const
+
 /** Hover lift preset — subtle card elevation on hover */
 export const HOVER_LIFT = {
   whileHover: { y: -1, scale: 1.002, boxShadow: '0 12px 28px rgba(26,26,26,0.08)' },
