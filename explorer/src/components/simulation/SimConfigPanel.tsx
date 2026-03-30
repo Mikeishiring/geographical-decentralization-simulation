@@ -22,26 +22,26 @@ const THRESHOLD_OPTIONS = [
 ] as const
 
 const VALIDATOR_ANCHORS: readonly NumericAnchor[] = [
-  { label: '1', value: 1, hint: 'debug' },
-  { label: '100', value: 100, hint: 'test' },
+  { label: '1', value: 1, hint: 'minimal' },
+  { label: '100', value: 100, hint: 'quick' },
   { label: '250', value: 250 },
   { label: '500', value: 500 },
-  { label: '1,000', value: 1000, hint: 'paper' },
+  { label: '1,000', value: 1000, hint: 'paper scale' },
 ]
 
 const SLOT_ANCHORS: readonly NumericAnchor[] = [
-  { label: '1', value: 1, hint: 'smoke' },
-  { label: '100', value: 100, hint: 'fast' },
-  { label: '1,000', value: 1000, hint: 'lab' },
+  { label: '1', value: 1, hint: 'minimal' },
+  { label: '100', value: 100, hint: 'quick' },
+  { label: '1,000', value: 1000, hint: 'moderate' },
   { label: '5,000', value: 5000 },
-  { label: '10,000', value: 10000, hint: 'paper' },
+  { label: '10,000', value: 10000, hint: 'paper scale' },
 ]
 
 const MIGRATION_COST_ANCHORS: readonly NumericAnchor[] = [
-  { label: '0', value: 0, hint: 'none' },
-  { label: '0.0001', value: 0.0001, hint: 'lab' },
+  { label: '0', value: 0, hint: 'free' },
+  { label: '0.0001', value: 0.0001, hint: 'low' },
   { label: '0.001', value: 0.001 },
-  { label: '0.002', value: 0.002, hint: 'paper' },
+  { label: '0.002', value: 0.002, hint: 'paper default' },
   { label: '0.003', value: 0.003 },
 ] as const
 
@@ -100,13 +100,13 @@ export function SimConfigPanel({
       <div className="lab-stage-hero mx-3 mt-3 p-5">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
-            <div className="lab-section-title">Run Design</div>
+            <div className="lab-section-title">Configuration</div>
             <div className="mt-3 text-xl font-semibold tracking-tight text-text-primary sm:text-[1.6rem]">
-              Shape the exact scenario before you spend the runtime.
+              Set up your simulation scenario.
             </div>
             <div className="mt-3 text-sm leading-6 text-muted">
-              The surface stays literal to the exact simulator, but the controls are grouped so you can read the scenario,
-              scale, and timing posture without scanning a flat form.
+              Choose a paradigm, network size, and timing parameters. Use the presets above for common paper scenarios,
+              or customize each value below.
             </div>
           </div>
 
@@ -387,9 +387,9 @@ export function SimConfigPanel({
         <div className="lab-stage-soft p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="lab-section-title">Timing And Research Alignment</div>
+              <div className="lab-section-title">Timing &amp; Paper Alignment</div>
               <div className="mt-2 text-sm font-medium text-text-primary">
-                Tune the consensus window and keep the research boundary explicit.
+                How closely does this configuration match the published paper scenarios?
               </div>
             </div>
             <div
@@ -437,24 +437,24 @@ export function SimConfigPanel({
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Best for parity</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Match a published scenario</div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Reproducing paper results</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Start from a preset</div>
               <div className="mt-1 text-xs leading-5 text-muted">
-                Start from a paper-aligned preset, keep the paper anchors, then compare against the published results surface.
+                Pick a paper-aligned preset above and compare your results against the published data.
               </div>
             </div>
             <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Best for iteration</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Use the fast default</div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Quick exploration</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Keep runs small first</div>
               <div className="mt-1 text-xs leading-5 text-muted">
-                Stay near `1,000` slots while probing ideas, then scale up only when the question is worth the runtime.
+                Use fewer slots for faster iteration, then scale up when you find something interesting.
               </div>
             </div>
             <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Best for sharing</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Publish only after review</div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Sharing findings</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Add your interpretation</div>
               <div className="mt-1 text-xs leading-5 text-muted">
-                Community notes should summarize what the artifacts show in your own words, not just mirror raw outputs.
+                When publishing, summarize what the results show in your own words rather than just the raw data.
               </div>
             </div>
           </div>
@@ -463,19 +463,19 @@ export function SimConfigPanel({
         <div className="lab-stage-dark p-5 xl:min-w-[320px]">
           <div className="lab-loading-orb" />
           <div className="text-[0.68rem] uppercase tracking-[0.16em] text-slate-400">Run controls</div>
-          <div className="mt-3 text-lg font-semibold text-white">Launch the exact engine when the scenario is locked.</div>
+          <div className="mt-3 text-lg font-semibold text-white">Ready to launch when your scenario is set.</div>
           <div className="mt-2 text-sm leading-6 text-slate-300">
-            Reset returns to the fast default posture. Cancel becomes active once the job reaches the queue or starts executing.
+            Reset restores default parameters. Cancel stops a running or queued simulation.
           </div>
 
           <div className="mt-4 rounded-xl border border-white/10 bg-white/6 px-4 py-4">
-            <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Recommended next move</div>
+            <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Suggested approach</div>
             <div className="mt-2 text-sm font-medium text-white">
               {paperComparability.tone === 'canonical'
-                ? 'Run this, then compare it against the published results surface.'
+                ? 'This matches a published scenario — compare your results directly.'
                 : paperComparability.tone === 'editorial'
-                  ? 'Run this as a paper-scale extension, not as a one-to-one published comparison.'
-                  : 'Use this to learn fast, then promote the question to paper scale if it matters.'}
+                  ? 'Similar to published scenarios but not an exact match — treat as an extension.'
+                  : 'Exploratory configuration — useful for quick iteration before scaling up.'}
             </div>
           </div>
 

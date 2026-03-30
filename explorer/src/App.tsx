@@ -139,18 +139,6 @@ function App() {
           />
         </div>
 
-<<<<<<< Updated upstream
-=======
-        <div hidden={activeTab !== 'history'} aria-hidden={activeTab !== 'history'}>
-          <ExploreHistoryPage
-            initialExplorationId={sharedExplorationId}
-            onGoToFindings={() => handleTabChange('findings')}
-            onOpenQuery={handleFindingsQueryChange}
-            onTabChange={handleTabChange}
-          />
-        </div>
-
->>>>>>> Stashed changes
         <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
           <PaperReaderPage onTabChange={handleTabChange} />
         </div>

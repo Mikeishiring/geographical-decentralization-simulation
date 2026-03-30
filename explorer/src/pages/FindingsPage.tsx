@@ -13,6 +13,7 @@ import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, publishExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
 import { NodeConstellation } from '../components/decorative/NodeConstellation'
 import { ModeBanner } from '../components/layout/ModeBanner'
+import { Wayfinder } from '../components/layout/Wayfinder'
 import { SPRING } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
 import type { TabId } from '../components/layout/TabNav'
@@ -45,7 +46,7 @@ export function FindingsPage({
   isActive = true,
   onQueryChange,
   onExplorationIdChange,
-  onTabChange: _onTabChange,
+  onTabChange,
 }: {
   initialQuery?: string | null
   initialExplorationId?: string | null
@@ -429,44 +430,6 @@ export function FindingsPage({
           />
         </div>
       </div>
-<<<<<<< Updated upstream
-=======
-
-      {!showAi && !showTopic && onTabChange && (
-        <div className="mb-8 grid gap-3 lg:grid-cols-3">
-          <button
-            onClick={() => onTabChange('paper')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-          >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Read first</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Open the paper guide</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Start here if you want the cleanest paper-backed overview before asking a question.
-            </div>
-          </button>
-
-          <button
-            onClick={() => onTabChange('simulation')}
-            className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
-          >
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Verify with data</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Open published results</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Use the frozen researcher datasets when you want the canonical scenarios rather than an interpretation.
-            </div>
-          </button>
-
-          <div className="rounded-xl border border-accent/20 bg-[linear-gradient(180deg,rgba(37,99,235,0.05),rgba(255,255,255,0.96))] px-4 py-4">
-            <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Ask here</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">Use Findings for bounded questions</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              Great questions compare paradigms, isolate a mechanism, or ask where confidence should stop.
-            </div>
-          </div>
-        </div>
-      )}
-
->>>>>>> Stashed changes
       <QueryHistory
         entries={history}
         onSelect={handleHistorySelect}
@@ -589,7 +552,7 @@ export function FindingsPage({
               </a>
               {onTabChange && (
                 <button
-                  onClick={() => onTabChange('simulation')}
+                  onClick={() => onTabChange('results')}
                   className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
                 >
                   <span>Open published results</span>
@@ -660,12 +623,12 @@ export function FindingsPage({
                 defaultTakeaway={readingPublishTakeaway}
                 helperText={readingPublishHelper}
               publishLabel="Publish human-authored note"
-              successLabel="Published human-authored note"
-              viewPublishedLabel="Open Community"
+              successLabel="Note published"
+              viewPublishedLabel="View published"
               published={currentReadingPublished}
               isPublishing={publishMutation.isPending}
               error={(publishMutation.error as Error | null)?.message ?? null}
-              onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
+              onViewPublished={onTabChange ? () => onTabChange('explore') : undefined}
               onPublish={payload => publishMutation.mutate({
                 contextKey: readingPublishContextKey,
                 ...payload,
@@ -710,12 +673,12 @@ export function FindingsPage({
                 defaultTakeaway={readingPublishTakeaway}
                 helperText={readingPublishHelper}
                 publishLabel="Publish human-authored note"
-                successLabel="Published human-authored note"
-                viewPublishedLabel="Open Community"
+                successLabel="Note published"
+                viewPublishedLabel="View published"
                 published={currentReadingPublished}
                 isPublishing={publishMutation.isPending}
                 error={(publishMutation.error as Error | null)?.message ?? null}
-                onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
+                onViewPublished={onTabChange ? () => onTabChange('explore') : undefined}
                 onPublish={payload => publishMutation.mutate({
                   contextKey: readingPublishContextKey,
                   ...payload,
@@ -777,9 +740,7 @@ export function FindingsPage({
       {onTabChange && (
         <Wayfinder links={[
           { label: 'Read the full paper', hint: 'Editorial reading guide with annotations', onClick: () => onTabChange('paper') },
-          { label: 'See community notes', hint: 'Published contributions and the reading archive', onClick: () => onTabChange('history') },
-          { label: 'Drill into sections', hint: 'Accordion view of every argument & block', onClick: () => onTabChange('deep-dive') },
-          { label: 'Run a simulation', hint: 'Test parameters with the exact model', onClick: () => onTabChange('simulation') },
+          { label: 'Run a simulation', hint: 'Test parameters with the exact model', onClick: () => onTabChange('results') },
         ]} />
       )}
     </div>
