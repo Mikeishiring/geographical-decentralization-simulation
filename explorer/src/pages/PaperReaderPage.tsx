@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, Link2, Quote, ChevronDown, ChevronUp, LayoutList, FileText, BookOpen, Check } from 'lucide-react'
+import { Eye, Link2, Quote, ChevronDown, ChevronUp, LayoutList, FileText, BookOpen, Check, ExternalLink } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../lib/theme'
@@ -107,7 +107,9 @@ const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   },
 }
 
-type ReaderMode = 'editorial' | 'focus' | 'argument-map' | 'paper'
+type ReaderMode = 'editorial' | 'focus' | 'argument-map' | 'paper' | 'pdf'
+
+const ARXIV_PDF_URL = 'https://arxiv.org/pdf/2509.21475'
 
 const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; detail: string }> = {
   editorial: {
@@ -129,6 +131,11 @@ const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; detail: s
     icon: FileText,
     label: 'Paper',
     detail: 'Traditional academic format — dense, single-column',
+  },
+  pdf: {
+    icon: ExternalLink,
+    label: 'PDF',
+    detail: 'Original arXiv PDF — exact published version',
   },
 }
 
@@ -170,7 +177,7 @@ function sectionEntryLine(section: PaperSection): string {
 export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
   const [readerMode, setReaderMode] = useState<ReaderMode>(() => {
     const stored = window.localStorage.getItem('paper-reader-mode')
-    if (stored === 'focus' || stored === 'argument-map' || stored === 'paper') return stored
+    if (stored === 'focus' || stored === 'argument-map' || stored === 'paper' || stored === 'pdf') return stored
     return 'editorial'
   })
   const [activeSectionId, setActiveSectionId] = useState<string>(() => {
@@ -184,6 +191,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
   const focusMode = readerMode === 'focus'
   const argumentMapMode = readerMode === 'argument-map'
   const paperMode = readerMode === 'paper'
+  const pdfMode = readerMode === 'pdf'
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     () => new Set(PAPER_SECTIONS.length > 0 ? [PAPER_SECTIONS[0].id] : []),
   )
@@ -373,7 +381,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
           </div>
 
           <div className="flex items-center gap-3">
-            {!argumentMapMode && !paperMode && (
+            {!argumentMapMode && !paperMode && !pdfMode && (
               <div className="hidden sm:flex items-center gap-2 text-xs text-muted">
                 <span>{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
                 <div className="h-1 w-20 overflow-hidden rounded-full bg-surface-active">
@@ -451,7 +459,51 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         </AnimatePresence>
       </div>
 
-      {argumentMapMode ? (
+      {pdfMode ? (
+        /* ── PDF Viewer ── */
+        <motion.div
+          key="pdf"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.18 }}
+          className="space-y-4"
+        >
+          <div className="rounded-xl border border-rule bg-white px-5 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                  Original publication
+                </span>
+                <h2 className="mt-1 text-base font-medium text-text-primary">
+                  arXiv:2509.21475
+                </h2>
+                <p className="mt-1 text-xs text-muted">
+                  Exact PDF as published — no editorial changes or annotation layers
+                </p>
+              </div>
+              <a
+                href={ARXIV_PDF_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md border border-rule px-3 py-1.5 text-xs text-muted hover:text-text-primary hover:border-border-hover transition-colors shrink-0"
+                aria-label="Open PDF in new tab"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Open in new tab
+              </a>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-rule bg-surface-active overflow-hidden" style={{ height: 'calc(100vh - 16rem)' }}>
+            <iframe
+              src={ARXIV_PDF_URL}
+              title="Paper PDF — Geographical Centralization Resilience in Ethereum's Block-Building Paradigms"
+              className="w-full h-full border-0"
+              loading="lazy"
+            />
+          </div>
+        </motion.div>
+      ) : argumentMapMode ? (
         /* ── Argument Map View ── */
         <motion.div key="argument-map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}>
           <div className="mb-6 flex items-center justify-between gap-4">
