@@ -1,10 +1,12 @@
 import { startTransition } from 'react'
-import { Check, Copy } from 'lucide-react'
+import { ArrowUpRight, Check, Copy, Download } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { cn } from '../../lib/cn'
 import {
   attestationCutoffMs,
   describeDistribution,
+  describePaperComparability,
+  describeParadigmWithAlias,
   describeSourcePlacement,
   formatBytes,
   formatNumber,
@@ -21,7 +23,7 @@ import type { Block } from '../../types/blocks'
 function buildRunSummary(manifest: SimulationManifest): string {
   return [
     `Exact simulation run`,
-    `Paradigm: ${manifest.config.paradigm}`,
+    `Paradigm: ${describeParadigmWithAlias(manifest.config.paradigm)}`,
     `Reference tags: ${paperScenarioLabels(manifest.config).join(' | ')}`,
     `Seed: ${manifest.config.seed}`,
     `Validators: ${manifest.config.validators}`,
@@ -62,7 +64,10 @@ interface SimResultsPanelProps {
   readonly parseError: string | null
   readonly parsedBlocks: readonly Block[]
   readonly copyState: 'config' | 'run' | null
+  readonly exportState: 'idle' | 'exporting' | 'done'
+  readonly exportError: string | null
   readonly onCopy: (text: string, kind: 'config' | 'run') => void
+  readonly onExportData: () => void
 }
 
 interface ExactMetricCard {
@@ -88,8 +93,12 @@ export function SimResultsPanel({
   parseError,
   parsedBlocks,
   copyState,
+  exportState,
+  exportError,
   onCopy,
+  onExportData,
 }: SimResultsPanelProps) {
+  const paperComparability = describePaperComparability(manifest.config)
   const exactMetricCards: readonly ExactMetricCard[] = [
     {
       key: 'finalAverageMev',
@@ -127,24 +136,46 @@ export function SimResultsPanel({
 
   return (
     <>
-      <div className="lab-stage p-5 mb-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <div className="text-xs text-muted mb-1">
-              Exact manifest summary
+      <div className="lab-stage-hero p-6 mb-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="lab-section-title">Exact Result Surface</div>
+            <div className="mt-3 text-2xl font-semibold tracking-tight text-text-primary sm:text-[1.9rem]">
+              The manifest landed. This view stays literal to what the exact run emitted.
             </div>
-            <div className="text-sm text-text-primary">
-              Primary fields emitted by the current exact run.
+            <div className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+              The explorer now upgrades itself into the results shell using the current manifest, overview bundles,
+              and renderable artifacts. No paper metrics are inferred unless the exact output explicitly exports them.
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {paperScenarioLabels(manifest.config).map(label => (
+                <span key={label} className="lab-chip bg-white/80">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                  {label}
+                </span>
+              ))}
             </div>
           </div>
-          <div className="max-w-xl text-xs text-muted">
-            This surface stays literal to the manifest and artifact metadata. It does not infer paper metrics the live exact run does not currently emit.
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px]">
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Execution mode</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">
+                {manifest.cacheHit ? 'Exact cache hit' : 'Fresh exact execution'}
+              </div>
+              <div className="mt-1 text-xs text-muted">{formatNumber(manifest.runtimeSeconds, 2)}s runtime</div>
+            </div>
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Scenario</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{describeParadigmWithAlias(manifest.config.paradigm)}</div>
+              <div className="mt-1 text-xs text-muted">{manifest.config.validators.toLocaleString()} validators · {manifest.config.slots.toLocaleString()} slots</div>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mt-4 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 mt-5 xl:grid-cols-6">
           {exactMetricCards.map(card => (
-            <div key={card.key} className="lab-metric-card">
+            <div key={card.key} className="lab-option-card px-4 py-4">
               <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{card.label}</div>
               <div className="mt-2 text-xl font-semibold text-text-primary tabular-nums">
                 {card.value}
@@ -171,6 +202,29 @@ export function SimResultsPanel({
                 ? 'Reused an identical exact run from the shared exact cache. Outputs are unchanged for the same inputs.'
                 : 'Executed the canonical exact simulator with the current configuration and seed.'}
             </div>
+            <div className="mt-3">
+              <span
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium',
+                  paperComparability.tone === 'canonical' && 'border-success/30 bg-success/8 text-text-primary',
+                  paperComparability.tone === 'editorial' && 'border-warning/30 bg-warning/8 text-text-primary',
+                  paperComparability.tone === 'experimental' && 'border-border-subtle bg-white text-text-primary',
+                )}
+              >
+                <span
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full',
+                    paperComparability.tone === 'canonical' && 'bg-success',
+                    paperComparability.tone === 'editorial' && 'bg-warning',
+                    paperComparability.tone === 'experimental' && 'bg-accent',
+                  )}
+                />
+                {paperComparability.title}
+              </span>
+              <div className="mt-1 max-w-2xl text-xs text-muted">
+                {paperComparability.detail}
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2 mt-3">
               {paperScenarioLabels(manifest.config).map(label => (
                 <span key={label} className="lab-chip">
@@ -184,25 +238,68 @@ export function SimResultsPanel({
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => onCopy(JSON.stringify(manifest.config, null, 2), 'config')}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary hover:border-border-hover transition-colors"
+              className="lab-option-card inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
             >
               {copyState === 'config' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
               {copyState === 'config' ? 'Copied config' : 'Copy config JSON'}
             </button>
             <button
               onClick={() => onCopy(buildRunSummary(manifest), 'run')}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary hover:border-border-hover transition-colors"
+              className="lab-option-card inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
             >
               {copyState === 'run' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
               {copyState === 'run' ? 'Copied summary' : 'Copy run summary'}
             </button>
+            <button
+              onClick={onExportData}
+              disabled={exportState === 'exporting'}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs transition-colors',
+                exportState === 'exporting'
+                  ? 'cursor-wait border-border-subtle bg-surface-active text-muted'
+                  : 'lab-option-card rounded-xl bg-white text-text-primary hover:border-border-hover',
+              )}
+            >
+              {exportState === 'done'
+                ? <Check className="w-3 h-3" />
+                : <Download className="w-3 h-3" />}
+              {exportState === 'exporting'
+                ? 'Preparing export…'
+                : exportState === 'done'
+                  ? 'Package downloaded'
+                  : 'Export run package'}
+            </button>
+            <a
+              href="https://geo-decentralization.github.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="lab-option-card inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+            >
+              Published demo
+              <ArrowUpRight className="w-3 h-3" />
+            </a>
+          </div>
+        </div>
+
+        {exportError && (
+          <div className="mt-3 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+            {exportError}
+          </div>
+        )}
+
+        <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Research integrity</div>
+          <div className="mt-2 text-sm font-medium text-text-primary">{paperComparability.title}</div>
+          <div className="mt-1 text-sm text-muted">{paperComparability.detail}</div>
+          <div className="mt-2 text-xs text-muted">
+            Truth boundary: this panel only reports values emitted by the exact manifest and derived artifact sidecars. It should not stand in for a published paper result unless the configuration is directly comparable.
           </div>
         </div>
 
         <div className="grid gap-3 mt-4 text-xs text-muted sm:grid-cols-2 xl:grid-cols-4">
           <div className="lab-metric-card">
             <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Configuration</div>
-            <div className="mt-2 text-sm font-medium text-text-primary">{manifest.config.paradigm} exact mode</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">{describeParadigmWithAlias(manifest.config.paradigm)} exact mode</div>
             <div className="mt-1 text-xs text-muted">{describeDistribution(manifest.config.distribution)}</div>
             <div className="mt-1 text-xs text-muted">{describeSourcePlacement(manifest.config.sourcePlacement)}</div>
           </div>
@@ -273,10 +370,10 @@ export function SimResultsPanel({
               key={option.bundle}
               onClick={() => startTransition(() => onSelectBundle(option.bundle))}
               className={cn(
-                'rounded-lg border px-3 py-2 text-left transition-colors',
+                'lab-option-card rounded-xl px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover',
                 selectedBundle === option.bundle
-                  ? 'border-accent bg-white'
-                  : 'border-border-subtle bg-white hover:border-border-hover',
+                  ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))]'
+                  : '',
               )}
             >
               <div className="text-xs font-medium text-text-primary">{option.label}</div>
@@ -295,8 +392,15 @@ export function SimResultsPanel({
         </div>
 
         {isOverviewLoading && overviewBlocks.length === 0 && (
-          <div className="py-12 text-sm text-muted text-center">
-            Preparing exact overview charts…
+          <div className="grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
+            <div className="lab-skeleton lab-skeleton-block h-[320px]" />
+            <div className="space-y-3 rounded-[1.15rem] border border-border-subtle bg-white/80 p-4">
+              <div className="lab-skeleton lab-skeleton-line w-1/3" />
+              <div className="lab-skeleton lab-skeleton-line w-full" />
+              <div className="lab-skeleton lab-skeleton-line w-4/5" />
+              <div className="lab-skeleton lab-skeleton-block h-[88px]" />
+              <div className="lab-skeleton lab-skeleton-block h-[88px]" />
+            </div>
           </div>
         )}
 
@@ -305,7 +409,7 @@ export function SimResultsPanel({
         )}
 
         {!isOverviewLoading && overviewBlocks.length === 0 && (
-          <div className="py-12 text-sm text-muted text-center">
+          <div className="rounded-[1.15rem] border border-dashed border-border-subtle bg-surface-active/70 px-5 py-12 text-center text-sm text-muted">
             This exact run does not have a ready overview sidecar for the selected bundle yet.
           </div>
         )}
@@ -333,10 +437,10 @@ export function SimResultsPanel({
               onClick={() => onSelectArtifact(artifact.name)}
               disabled={!artifact.renderable}
               className={cn(
-                'text-left rounded-lg border px-4 py-3 transition-all',
+                'lab-option-card text-left rounded-[1rem] px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-border-hover',
                 selectedArtifactName === artifact.name
-                  ? 'border-accent bg-white'
-                  : 'border-border-subtle bg-white hover:border-border-hover',
+                  ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))]'
+                  : '',
                 !artifact.renderable && 'opacity-60 cursor-not-allowed',
               )}
             >
@@ -384,8 +488,15 @@ export function SimResultsPanel({
         </div>
 
         {((isArtifactFetching && !parsedBlocks.length) || isParsing) && (
-          <div className="py-12 text-sm text-muted text-center">
-            Parsing artifact in a browser worker…
+          <div className="grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
+            <div className="lab-skeleton lab-skeleton-block h-[320px]" />
+            <div className="space-y-3 rounded-[1.15rem] border border-border-subtle bg-white/80 p-4">
+              <div className="lab-skeleton lab-skeleton-line w-1/3" />
+              <div className="lab-skeleton lab-skeleton-line w-full" />
+              <div className="lab-skeleton lab-skeleton-line w-5/6" />
+              <div className="lab-skeleton lab-skeleton-block h-[88px]" />
+              <div className="lab-skeleton lab-skeleton-block h-[88px]" />
+            </div>
           </div>
         )}
 
@@ -400,7 +511,7 @@ export function SimResultsPanel({
         )}
 
         {!isArtifactFetching && !isParsing && !parseError && parsedBlocks.length === 0 && (
-          <div className="py-12 text-sm text-muted text-center">
+          <div className="rounded-[1.15rem] border border-dashed border-border-subtle bg-surface-active/70 px-5 py-12 text-center text-sm text-muted">
             Pick a renderable artifact to inspect the exact run.
           </div>
         )}

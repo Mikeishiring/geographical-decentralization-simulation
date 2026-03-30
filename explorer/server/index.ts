@@ -154,6 +154,7 @@ const MAX_PUBLISHED_TITLE_LENGTH = Math.max(48, Number(process.env.MAX_PUBLISHED
 const MAX_PUBLISHED_TAKEAWAY_LENGTH = Math.max(80, Number(process.env.MAX_PUBLISHED_TAKEAWAY_LENGTH ?? 240))
 const MAX_PUBLISHED_AUTHOR_LENGTH = Math.max(24, Number(process.env.MAX_PUBLISHED_AUTHOR_LENGTH ?? 80))
 const MAX_EXPLORATION_MODEL_LENGTH = Math.max(32, Number(process.env.MAX_EXPLORATION_MODEL_LENGTH ?? 120))
+const MAX_EDITOR_NOTE_LENGTH = Math.max(40, Number(process.env.MAX_EDITOR_NOTE_LENGTH ?? 240))
 
 function getRequesterId(req: express.Request): string {
   const forwarded = req.headers['x-forwarded-for']
@@ -275,6 +276,12 @@ interface PublishExplorationRequest {
   title?: string
   takeaway?: string
   author?: string
+}
+
+interface EditorialExplorationRequest {
+  verified?: boolean
+  featured?: boolean
+  editorNote?: string
 }
 
 interface RateLimitBucket {
@@ -2271,6 +2278,28 @@ app.post('/api/explorations/:id/publish', (req, res) => {
     title: trimmedTitle,
     takeaway: trimmedTakeaway,
     author: trimmedAuthor,
+  })
+  if (!updated) {
+    res.status(404).json({ error: 'Exploration not found' })
+    return
+  }
+
+  res.json(updated)
+})
+
+app.post('/api/explorations/:id/editorial', (req, res) => {
+  const { verified, featured, editorNote } = req.body as EditorialExplorationRequest
+  const trimmedEditorNote = editorNote?.trim()
+
+  if (trimmedEditorNote && trimmedEditorNote.length > MAX_EDITOR_NOTE_LENGTH) {
+    res.status(400).json({ error: `editorNote is too long. Keep it under ${MAX_EDITOR_NOTE_LENGTH} characters.` })
+    return
+  }
+
+  const updated = explorationStore.applyEditorial(req.params.id, {
+    verified: typeof verified === 'boolean' ? verified : undefined,
+    featured: typeof featured === 'boolean' ? featured : undefined,
+    editorNote: trimmedEditorNote,
   })
   if (!updated) {
     res.status(404).json({ error: 'Exploration not found' })

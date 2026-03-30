@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, startTransition } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ContributionComposer } from '../components/community/ContributionComposer'
 import { SimConfigPanel } from '../components/simulation/SimConfigPanel'
 import { SimCopilotPanel } from '../components/simulation/SimCopilotPanel'
 import { SimJobStatus } from '../components/simulation/SimJobStatus'
@@ -16,9 +17,11 @@ import {
   readSessionArtifactBlocks,
   writeSessionArtifactBlocks,
 } from '../components/simulation/simulation-constants'
-import { getApiHealth } from '../lib/api'
+import { createExploration, getApiHealth, publishExploration } from '../lib/api'
+import { downloadSimulationExportArchive } from '../lib/simulation-export'
 import { ModeBanner } from '../components/layout/ModeBanner'
 import type { TabId } from '../components/layout/TabNav'
+import { cn } from '../lib/cn'
 import {
   cancelSimulationJob,
   getSimulationArtifact,
@@ -31,6 +34,7 @@ import {
   type SimulationCopilotResponse,
   type SimulationConfig,
   type SimulationJob,
+  type SimulationManifest,
   type SimulationOverviewBundle,
 } from '../lib/simulation-api'
 import type { Block } from '../types/blocks'
@@ -48,6 +52,8 @@ interface WorkerFailure {
   readonly error: string
 }
 
+type RunnerStatus = 'idle' | 'submitting' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
+
 function selectDefaultArtifact(artifacts: readonly SimulationArtifact[]): string | null {
   const preferred = artifacts.find(artifact => artifact.renderable && !artifact.lazy)
   if (preferred) return preferred.name
@@ -62,7 +68,336 @@ function isManifestOverviewBundle(
 
 const APP_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
 
+<<<<<<< Updated upstream
 export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
+=======
+function formatEthValue(value: number): string {
+  return `${value.toFixed(4)} ETH`
+}
+
+function defaultSimulationSummary(manifest: SimulationManifest): string {
+  return `Exact ${manifest.config.paradigm} run over ${manifest.summary.slotsRecorded.toLocaleString()} recorded slots with ${formatEthValue(manifest.summary.finalAverageMev)} average MEV and ${manifest.summary.finalSupermajoritySuccess.toFixed(0)}% supermajority success.`
+}
+
+function defaultSimulationContributionBlocks(
+  manifest: SimulationManifest,
+  guidanceBlocks: readonly Block[],
+): readonly Block[] {
+  if (guidanceBlocks.length > 0) return guidanceBlocks
+
+  return [
+    {
+      type: 'stat',
+      value: formatEthValue(manifest.summary.finalAverageMev),
+      label: 'Final average MEV',
+      sublabel: `${manifest.config.paradigm} exact run`,
+    },
+    {
+      type: 'stat',
+      value: `${manifest.summary.finalSupermajoritySuccess.toFixed(0)}%`,
+      label: 'Supermajority success',
+      sublabel: `${manifest.summary.slotsRecorded.toLocaleString()} slots recorded`,
+    },
+    {
+      type: 'table',
+      title: 'Exact run setup',
+      headers: ['Parameter', 'Value'],
+      rows: [
+        ['Paradigm', manifest.config.paradigm],
+        ['Validators', manifest.config.validators.toLocaleString()],
+        ['Slots', manifest.config.slots.toLocaleString()],
+        ['Distribution', manifest.config.distribution],
+        ['Source placement', manifest.config.sourcePlacement],
+        ['Attestation threshold', manifest.config.attestationThreshold.toFixed(2)],
+        ['Slot time', `${manifest.config.slotTime}s`],
+      ],
+    },
+    {
+      type: 'caveat',
+      text: 'This community note is tied to one bounded exact run. Treat it as evidence about this configuration, not as a universal recommendation.',
+    },
+  ]
+}
+
+function estimateRunProgress(status: RunnerStatus, queuePosition: number | null): number {
+  if (status === 'idle') return 0
+  if (status === 'submitting') return 12
+  if (status === 'queued') {
+    if (queuePosition == null) return 26
+    return Math.max(24, Math.min(46, 44 - Math.min(queuePosition, 6) * 3))
+  }
+  if (status === 'running') return 74
+  return 100
+}
+
+function describeRunStage(status: RunnerStatus, queuePosition: number | null): {
+  readonly eyebrow: string
+  readonly headline: string
+  readonly detail: string
+} {
+  if (status === 'submitting') {
+    return {
+      eyebrow: 'Submitting exact run',
+      headline: 'Packaging the configuration and opening a worker slot.',
+      detail: 'The runner is validating the bounded config and creating the exact job ticket.',
+    }
+  }
+
+  if (status === 'queued') {
+    return {
+      eyebrow: queuePosition != null && queuePosition > 0 ? `Queued at position ${queuePosition}` : 'Queued for execution',
+      headline: 'The exact engine is waiting for a clean execution slot.',
+      detail: queuePosition != null && queuePosition > 0
+        ? `There ${queuePosition === 1 ? 'is' : 'are'} ${queuePosition.toLocaleString()} ${queuePosition === 1 ? 'job' : 'jobs'} ahead of this run in the queue.`
+        : 'The job is staged and should begin as soon as the next exact worker is free.',
+    }
+  }
+
+  if (status === 'running') {
+    return {
+      eyebrow: 'Running exact simulation',
+      headline: 'Computing the manifest, sidecars, and renderable outputs.',
+      detail: 'The canonical engine is executing now. This surface will upgrade itself into the results view as soon as the manifest arrives.',
+    }
+  }
+
+  if (status === 'completed') {
+    return {
+      eyebrow: 'Finalizing results',
+      headline: 'The run finished and the explorer is wiring in the result surface.',
+      detail: 'The engine is done. The client is loading the manifest, overview bundles, and default renderable artifact.',
+    }
+  }
+
+  if (status === 'failed') {
+    return {
+      eyebrow: 'Run failed',
+      headline: 'The exact job did not complete successfully.',
+      detail: 'Inspect the status panel for the emitted error before retrying the configuration.',
+    }
+  }
+
+  if (status === 'cancelled') {
+    return {
+      eyebrow: 'Run cancelled',
+      headline: 'The exact job stopped before artifacts were finalized.',
+      detail: 'You can adjust the config and submit again without leaving the runner surface.',
+    }
+  }
+
+  return {
+    eyebrow: 'Runner ready',
+    headline: 'Configure an exact simulation and launch it from here.',
+    detail: 'The lab keeps the simulator, manifest summary, artifacts, and publishing flow inside the explorer shell.',
+  }
+}
+
+function formatJobTimestamp(value: string | undefined): string | null {
+  if (!value) return null
+  const timestamp = new Date(value)
+  if (Number.isNaN(timestamp.getTime())) return null
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(timestamp)
+}
+
+function PendingRunSurface({
+  status,
+  jobData,
+  config,
+}: {
+  readonly status: RunnerStatus
+  readonly jobData: SimulationJob | null
+  readonly config: SimulationConfig
+}) {
+  const stage = describeRunStage(status, jobData?.queuePosition ?? null)
+  const progress = estimateRunProgress(status, jobData?.queuePosition ?? null)
+  const stepIndex = status === 'submitting'
+    ? 0
+    : status === 'queued'
+      ? 1
+      : status === 'running' || status === 'completed'
+        ? 2
+        : -1
+  const updatedLabel = formatJobTimestamp(jobData?.updatedAt)
+  const createdLabel = formatJobTimestamp(jobData?.createdAt)
+
+  return (
+    <div className="lab-stage-dark p-6 mb-6">
+      <div className="lab-loading-orb" />
+
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+        <div className="max-w-2xl">
+          <div className="text-[0.68rem] uppercase tracking-[0.18em] text-slate-300">
+            {stage.eyebrow}
+          </div>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-[1.9rem]">
+            {stage.headline}
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+            {stage.detail}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-medium text-slate-100">
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-300" />
+              {config.paradigm} exact run
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-medium text-slate-100">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+              {config.validators.toLocaleString()} validators
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-medium text-slate-100">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+              {config.slots.toLocaleString()} slots
+            </span>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[420px]">
+          <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Queue</div>
+            <div className="mt-2 text-xl font-semibold text-white">
+              {jobData?.queuePosition != null ? jobData.queuePosition.toLocaleString() : 'Live'}
+            </div>
+            <div className="mt-1 text-xs text-slate-300">
+              {jobData?.queuePosition != null && jobData.queuePosition > 0
+                ? 'Jobs ahead before execution begins'
+                : 'No explicit backlog reported'}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Cache path</div>
+            <div className="mt-2 text-xl font-semibold text-white">
+              {jobData?.cacheHit == null ? 'Pending' : jobData.cacheHit ? 'Reused' : 'Fresh'}
+            </div>
+            <div className="mt-1 text-xs text-slate-300">
+              {jobData?.cacheHit == null
+                ? 'Resolved after execution begins'
+                : jobData.cacheHit
+                  ? 'Shared exact result already existed'
+                  : 'Engine is producing a new artifact set'}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Updated</div>
+            <div className="mt-2 text-base font-semibold text-white">
+              {updatedLabel ?? createdLabel ?? 'Waiting'}
+            </div>
+            <div className="mt-1 text-xs text-slate-300">
+              {jobData?.id ? `Job ${jobData.id.slice(0, 8)}` : 'Ticket pending'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <div className="mb-2 flex items-center justify-between gap-4 text-xs text-slate-300">
+          <span>Preparing the manifest, overview bundles, and default artifact render.</span>
+          <span>{progress}%</span>
+        </div>
+        <div className="lab-progress-track bg-white/10">
+          <div
+            className="lab-progress-fill"
+            data-state="active"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        {[
+          {
+            label: '1. Ticket',
+            title: 'Config locked',
+            detail: 'Submit the exact config and open the job stream.',
+          },
+          {
+            label: '2. Engine',
+            title: 'Canonical execution',
+            detail: 'Run the simulation engine or resolve the exact cache hit.',
+          },
+          {
+            label: '3. Surface',
+            title: 'Explorer render',
+            detail: 'Load the manifest, charts, artifact cards, and parsed blocks.',
+          },
+        ].map((step, index) => {
+          const state = stepIndex > index
+            ? 'done'
+            : stepIndex === index
+              ? 'active'
+              : 'idle'
+
+          return (
+            <div
+              key={step.label}
+              className={cn(
+                'rounded-2xl border px-4 py-4 transition-colors',
+                state === 'done' && 'border-emerald-300/22 bg-emerald-400/10',
+                state === 'active' && 'border-sky-300/26 bg-sky-400/10',
+                state === 'idle' && 'border-white/10 bg-white/5',
+              )}
+            >
+              <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{step.label}</div>
+              <div className="mt-2 text-sm font-medium text-white">{step.title}</div>
+              <div className="mt-1 text-xs leading-5 text-slate-300">{step.detail}</div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="mt-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Incoming visuals</div>
+          <div className="mt-3 grid gap-3 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="lab-skeleton lab-skeleton-block h-[240px]" />
+            <div className="space-y-3">
+              <div className="lab-skeleton lab-skeleton-line w-2/5" />
+              <div className="lab-skeleton lab-skeleton-line w-full" />
+              <div className="lab-skeleton lab-skeleton-line w-4/5" />
+              <div className="lab-skeleton lab-skeleton-block h-[84px]" />
+              <div className="lab-skeleton lab-skeleton-block h-[84px]" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Run snapshot</div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Source placement</div>
+              <div className="mt-2 text-sm font-medium text-white">{config.sourcePlacement}</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Distribution</div>
+              <div className="mt-2 text-sm font-medium text-white">{config.distribution}</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Timing</div>
+              <div className="mt-2 text-sm font-medium text-white">
+                {config.slotTime}s slots
+              </div>
+              <div className="mt-1 text-xs text-slate-300">gamma {config.attestationThreshold.toFixed(2)}</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Migration cost</div>
+              <div className="mt-2 text-sm font-medium text-white">{formatEthValue(config.migrationCost)}</div>
+            </div>
+          </div>
+          <div className="mt-4 rounded-xl border border-white/10 bg-black/10 px-4 py-3 text-xs leading-5 text-slate-300">
+            The runner stays on this surface while data arrives. No redirect, no tab handoff, and no empty result frame.
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function SimulationLabPage({ onTabChange }: { onTabChange?: (tab: TabId) => void } = {}) {
+>>>>>>> Stashed changes
   const queryClient = useQueryClient()
   const [surfaceMode, setSurfaceMode] = useState<'research' | 'lab'>('research')
   const [config, setConfig] = useState<SimulationConfig>({ ...DEFAULT_CONFIG })
@@ -75,16 +410,23 @@ export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?:
   const [parseError, setParseError] = useState<string | null>(null)
   const [isParsing, setIsParsing] = useState(false)
   const [copyState, setCopyState] = useState<'config' | 'run' | null>(null)
+  const [exportState, setExportState] = useState<'idle' | 'exporting' | 'done'>('idle')
+  const [exportError, setExportError] = useState<string | null>(null)
   const [copilotQuestion, setCopilotQuestion] = useState('')
   const [copilotResponse, setCopilotResponse] = useState<SimulationCopilotResponse | null>(null)
+  const [publishedSimulationKey, setPublishedSimulationKey] = useState<string | null>(null)
 
   const workerRef = useRef<Worker | null>(null)
   const workerRequestIdRef = useRef(0)
+  const exportResetTimeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
     const worker = new Worker(new URL('../workers/simulationArtifactWorker.ts', import.meta.url), { type: 'module' })
     workerRef.current = worker
     return () => {
+      if (exportResetTimeoutRef.current != null) {
+        window.clearTimeout(exportResetTimeoutRef.current)
+      }
       worker.terminate()
       workerRef.current = null
     }
@@ -133,12 +475,18 @@ export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?:
       if (job.manifest) {
         queryClient.setQueryData(['simulation-manifest', job.id], job.manifest)
       }
+      if (exportResetTimeoutRef.current != null) {
+        window.clearTimeout(exportResetTimeoutRef.current)
+        exportResetTimeoutRef.current = null
+      }
       setCurrentJobId(job.id)
       setSelectedBundle('core-outcomes')
       setSelectedArtifactName(null)
       setParsedBlocks([])
       setParsedArtifactCache({})
       setParseError(null)
+      setExportState('idle')
+      setExportError(null)
     },
   })
 
@@ -157,6 +505,46 @@ export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?:
     }),
     onSuccess: response => {
       setCopilotResponse(response)
+    },
+  })
+
+  const publishMutation = useMutation({
+    mutationFn: async (input: {
+      contextKey: string
+      title: string
+      takeaway: string
+      author: string
+    }) => {
+      if (!manifest) {
+        throw new Error('Run an exact simulation before publishing a community note.')
+      }
+
+      const created = await createExploration({
+        query: copilotQuestion.trim() || `What stands out in this exact ${manifest.config.paradigm} run?`,
+        summary: copilotResponse?.summary ?? defaultSimulationSummary(manifest),
+        blocks: defaultSimulationContributionBlocks(
+          manifest,
+          copilotResponse?.blocks?.length
+            ? copilotResponse.blocks
+            : overviewBlocks.length > 0
+              ? overviewBlocks
+              : parsedBlocks,
+        ),
+        followUps: copilotResponse?.suggestedPrompts ?? [],
+        model: copilotResponse?.model ?? 'exact-simulation',
+        cached: copilotResponse?.cached ?? manifest.cacheHit,
+        surface: 'simulation',
+      })
+
+      return await publishExploration(created.id, {
+        title: input.title,
+        takeaway: input.takeaway,
+        author: input.author || undefined,
+      })
+    },
+    onSuccess: (_published, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ['explorations'] })
+      setPublishedSimulationKey(variables.contextKey)
     },
   })
 
@@ -179,14 +567,8 @@ export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?:
   })
 
   const manifest = jobQuery.data?.manifest ?? manifestQuery.data ?? null
-  const availableOverviewBundles = useMemo(
-    () => manifest?.overviewBundles ?? [],
-    [manifest],
-  )
-  const overviewBundleOptions = useMemo(
-    () => availableOverviewBundles.length > 0 ? availableOverviewBundles : OVERVIEW_BUNDLES,
-    [availableOverviewBundles],
-  )
+  const availableOverviewBundles = manifest?.overviewBundles ?? []
+  const overviewBundleOptions = availableOverviewBundles.length > 0 ? availableOverviewBundles : OVERVIEW_BUNDLES
 
   const overviewBundleQueries = useQueries({
     queries: availableOverviewBundles.map(bundle => ({
@@ -299,11 +681,13 @@ export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?:
     }
   }, [parsedArtifactCache, selectedArtifact, selectedArtifactRawText])
 
-  const status = submitMutation.isPending
+  const status: RunnerStatus = submitMutation.isPending
     ? 'submitting'
     : jobQuery.data?.status ?? 'idle'
 
   const onSubmit = () => {
+    publishMutation.reset()
+    setPublishedSimulationKey(null)
     submitMutation.mutate(config)
   }
 
@@ -328,6 +712,49 @@ export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?:
     }, COPY_RESET_DELAY_MS)
   }
 
+  const onExportData = async () => {
+    if (!manifest) return
+
+    if (exportResetTimeoutRef.current != null) {
+      window.clearTimeout(exportResetTimeoutRef.current)
+      exportResetTimeoutRef.current = null
+    }
+
+    setExportState('exporting')
+    setExportError(null)
+
+    try {
+      const loadedArtifacts = await Promise.all(
+        manifest.artifacts.map(async artifact => ({
+          artifact,
+          content: await getSimulationArtifact(manifest.jobId, artifact.name),
+        })),
+      )
+
+      const filename = [
+        'simulation',
+        manifest.config.paradigm.toLowerCase(),
+        `${manifest.config.validators}v`,
+        `${manifest.config.slots}s`,
+        manifest.jobId,
+      ].join('-') + '.zip'
+
+      await downloadSimulationExportArchive(filename, manifest, loadedArtifacts)
+      setExportState('done')
+      exportResetTimeoutRef.current = window.setTimeout(() => {
+        setExportState('idle')
+        exportResetTimeoutRef.current = null
+      }, COPY_RESET_DELAY_MS)
+    } catch (error) {
+      setExportState('idle')
+      setExportError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to prepare the export package for this exact run.',
+      )
+    }
+  }
+
   const canCancel = jobQuery.data?.status === 'queued' || jobQuery.data?.status === 'running'
   const copilotAvailable = apiHealthQuery.data?.anthropicEnabled ?? false
   const copilotPromptSuggestions = copilotResponse?.suggestedPrompts?.length
@@ -346,6 +773,16 @@ export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?:
         ]
 
   const paperComparability = describePaperComparability(config)
+  const simulationPublishContextKey = manifest ? `simulation:${currentJobId ?? manifest.jobId}` : null
+  const simulationPublishTitle = manifest
+    ? `${manifest.config.paradigm} exact run: ${paperScenarioLabels(manifest.config)[0] ?? 'custom scenario'}`
+    : ''
+  const simulationPublishTakeaway = manifest
+    ? copilotResponse?.summary ?? defaultSimulationSummary(manifest)
+    : ''
+  const showPendingRunSurface = Boolean(currentJobId)
+    && !manifest
+    && (status === 'submitting' || status === 'queued' || status === 'running' || status === 'completed')
 
   return (
     <div>
@@ -390,54 +827,93 @@ export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?:
         />
       ) : (
         <>
+      <div className="lab-stage-hero p-6 mb-6">
+        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.9fr]">
+          <div>
+            <div className="lab-section-title">Experimental Runner</div>
+            <h2 className="mt-3 max-w-3xl text-2xl font-semibold tracking-tight text-text-primary sm:text-[2rem]">
+              Run fresh exact simulations inside our shell and let the explorer grow into the result surface.
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+              The lab stays on the canonical engine, but the experience now behaves like a premium instrument panel:
+              configure the run, watch the queue and execution state, and inspect the manifest and artifacts without any hard context switch.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {paperScenarioLabels(config).map(label => (
+                <span key={label} className="lab-chip bg-white/80">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
 
-      <div className="grid gap-3 mb-5 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-border-subtle bg-white px-4 py-3">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Surface</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">Interactive exact run</div>
-          <div className="mt-1 text-xs text-muted">
-            This side runs fresh exact simulations instead of switching among frozen published outputs.
-          </div>
-        </div>
-        <div className="rounded-xl border border-border-subtle bg-white px-4 py-3">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Paper-scale max</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">1,000 validators · 10,000 slots</div>
-          <div className="mt-1 text-xs text-muted">
-            That matches the top-end scale of the main researcher precomputed runs.
-          </div>
-        </div>
-        <div className="rounded-xl border border-border-subtle bg-white px-4 py-3">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Current default</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">Reduced for speed</div>
-          <div className="mt-1 text-xs text-muted">
-            The lab opens at `1,000` validators, `1,000` slots, and `0.0001 ETH` migration cost so iteration stays faster.
-          </div>
-        </div>
-        <div className="rounded-xl border border-border-subtle bg-white px-4 py-3">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Comparability</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">{paperComparability.title}</div>
-          <div className="mt-1 text-xs text-muted">
-            {paperComparability.detail}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Default posture</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Fast iteration first</div>
+              <div className="mt-2 text-xs leading-5 text-muted">
+                Starts smaller than the paper catalog so the exact loop stays responsive while you tune the scenario.
+              </div>
+            </div>
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Paper-scale ceiling</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">1,000 validators · 10,000 slots</div>
+              <div className="mt-2 text-xs leading-5 text-muted">
+                Matches the upper scale of the published frozen runs when you want closer comparability.
+              </div>
+            </div>
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Current config</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">
+                {config.paradigm} · {config.validators.toLocaleString()} validators
+              </div>
+              <div className="mt-2 text-xs leading-5 text-muted">
+                {config.slots.toLocaleString()} slots, {formatEthValue(config.migrationCost)} migration cost, {config.slotTime}s slot time.
+              </div>
+            </div>
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Comparability</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{paperComparability.title}</div>
+              <div className="mt-2 text-xs leading-5 text-muted">
+                {paperComparability.detail}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="mb-4">
-        <span className="text-xs text-muted mb-1.5 block">Quick presets</span>
-        <div className="flex flex-wrap gap-2">
+      <div className="lab-stage-soft p-5 mb-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="lab-section-title">Quick Presets</div>
+            <div className="mt-2 text-sm font-medium text-text-primary">
+              Load a reference scenario, then tune from there.
+            </div>
+          </div>
+          <div className="max-w-2xl text-xs leading-5 text-muted">
+            Presets jump to the paper-style scenario family. The default surface still opens smaller than the frozen 10,000-slot baseline so iteration remains fast.
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {PRESETS.map(preset => (
             <button
               key={preset.label}
               onClick={() => applyPreset(preset.config)}
-              className="text-left bg-white border border-border-subtle rounded-lg px-3 py-2 hover:border-border-hover transition-colors"
+              className="lab-option-card text-left px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-border-hover hover:shadow-[0_14px_34px_rgba(15,23,42,0.08)]"
             >
-              <div className="text-xs font-medium text-text-primary">{preset.label}</div>
-              <div className="text-[11px] text-muted">{preset.description}</div>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-medium text-text-primary">{preset.label}</div>
+                  <div className="mt-2 text-xs leading-5 text-muted">{preset.description}</div>
+                </div>
+                <span className="rounded-full border border-border-subtle bg-white/80 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-text-faint">
+                  Load
+                </span>
+              </div>
             </button>
           ))}
-        </div>
-        <div className="mt-2 text-xs text-muted">
-          Presets jump to the paper-style scenario family. The default surface is intentionally smaller than the frozen `10,000`-slot baseline for faster exact iteration.
         </div>
       </div>
 
@@ -450,6 +926,7 @@ export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?:
         canCancel={canCancel}
         onCancel={onCancel}
         paperScenarioLabels={paperScenarioLabels(config)}
+        paperComparability={paperComparability}
       />
 
       {(currentJobId || submitMutation.isError) && (
@@ -458,6 +935,14 @@ export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?:
           jobData={jobQuery.data ?? null}
           submitError={(submitMutation.error as Error | null) ?? null}
           cancelError={(cancelMutation.error as Error | null) ?? null}
+        />
+      )}
+
+      {showPendingRunSurface && (
+        <PendingRunSurface
+          status={status}
+          jobData={jobQuery.data ?? null}
+          config={config}
         />
       )}
 
@@ -476,28 +961,64 @@ export function SimulationLabPage({ onTabChange: _onTabChange }: { onTabChange?:
       />
 
       {manifest && (
-        <SimResultsPanel
-          manifest={manifest}
-          overviewBundleOptions={overviewBundleOptions}
-          selectedBundle={selectedBundle}
-          onSelectBundle={setSelectedBundle}
-          selectedOverviewBundleMetrics={selectedOverviewBundleMetrics}
-          overviewBlocks={overviewBlocks}
-          isOverviewLoading={isOverviewLoading}
-          selectedArtifact={selectedArtifact}
-          selectedArtifactName={selectedArtifactName}
-          onSelectArtifact={onSelectArtifact}
-          isArtifactFetching={artifactQuery.isFetching}
-          isParsing={isParsing}
-          parseError={parseError}
-          parsedBlocks={parsedBlocks}
-          copyState={copyState}
-          onCopy={copyToClipboard}
-        />
+        <>
+          <SimResultsPanel
+            manifest={manifest}
+            overviewBundleOptions={overviewBundleOptions}
+            selectedBundle={selectedBundle}
+            onSelectBundle={setSelectedBundle}
+            selectedOverviewBundleMetrics={selectedOverviewBundleMetrics}
+            overviewBlocks={overviewBlocks}
+            isOverviewLoading={isOverviewLoading}
+            selectedArtifact={selectedArtifact}
+            selectedArtifactName={selectedArtifactName}
+            onSelectArtifact={onSelectArtifact}
+            isArtifactFetching={artifactQuery.isFetching}
+            isParsing={isParsing}
+            parseError={parseError}
+            parsedBlocks={parsedBlocks}
+            copyState={copyState}
+            exportState={exportState}
+            exportError={exportError}
+            onCopy={copyToClipboard}
+            onExportData={onExportData}
+          />
+
+          {simulationPublishContextKey && (
+            <ContributionComposer
+              key={simulationPublishContextKey}
+              sourceLabel="Publish this exact run as a community note"
+              defaultTitle={simulationPublishTitle}
+              defaultTakeaway={simulationPublishTakeaway}
+              helperText="Only intentionally published exact-run notes appear on the community surface. Add your own title and takeaway so the public note reflects what you saw in the artifacts, not just raw assistant phrasing."
+              publishLabel="Publish human-authored note"
+              successLabel="Published human-authored note"
+              viewPublishedLabel="Open Community"
+              published={publishedSimulationKey === simulationPublishContextKey}
+              isPublishing={publishMutation.isPending}
+              error={(publishMutation.error as Error | null)?.message ?? null}
+              onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
+              onPublish={payload => publishMutation.mutate({
+                contextKey: simulationPublishContextKey,
+                ...payload,
+              })}
+            />
+          )}
+        </>
       )}
         </>
       )}
 
+<<<<<<< Updated upstream
+=======
+      {onTabChange && (
+        <Wayfinder links={[
+          { label: 'Explore findings', hint: 'Curated lenses & AI interpretation', onClick: () => onTabChange('findings') },
+          { label: 'See community notes', hint: 'Published readings and exact-run notes', onClick: () => onTabChange('history') },
+          { label: 'Read the paper', hint: 'Full editorial reading guide', onClick: () => onTabChange('paper') },
+        ]} />
+      )}
+>>>>>>> Stashed changes
     </div>
   )
 }

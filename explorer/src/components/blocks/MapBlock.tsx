@@ -45,31 +45,19 @@ function getEdgeOpacity(va: number, vb: number, maxValue: number): number {
 export function MapBlock({ block }: MapBlockProps) {
   const bgId = useId()
   const [tooltip, setTooltip] = useState<{ x: number; y: number; label: string; value: number } | null>(null)
-
-  if (block.regions.length === 0) {
-    return (
-      <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
-        <div className="border-b border-border-subtle px-5 py-3">
-          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
-        </div>
-        <div className="px-5 py-8 text-center text-xs text-muted">No region data available</div>
-      </div>
-    )
-  }
-
-  const maxValue = Math.max(...block.regions.map(r => r.value), 1)
-
-  const sorted = useMemo(
-    () => [...block.regions].toSorted((a, b) => b.value - a.value),
-    [block.regions],
-  )
-  const topRegions = sorted.slice(0, 6)
-
+  const regions = block.regions
+  const maxValue = Math.max(...regions.map(r => r.value), 1)
   const svgW = 800
   const svgH = 420
 
+  const sorted = useMemo(
+    () => [...regions].toSorted((a, b) => b.value - a.value),
+    [regions],
+  )
+  const topRegions = sorted.slice(0, 6)
+
   const edges = useMemo(() => {
-    const pts = block.regions.map(r => ({
+    const pts = regions.map(r => ({
       ...r,
       ...latLonToMercator(r.lat, r.lon, svgW, svgH),
     }))
@@ -88,10 +76,21 @@ export function MapBlock({ block }: MapBlockProps) {
       }
     }
     return result
-  }, [block.regions])
+  }, [regions])
+
+  if (regions.length === 0) {
+    return (
+      <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
+        <div className="border-b border-border-subtle px-5 py-3">
+          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
+        </div>
+        <div className="px-5 py-8 text-center text-xs text-muted">No region data available</div>
+      </div>
+    )
+  }
 
   // Determine if data is meaningful (not all the same value)
-  const hasVariation = new Set(block.regions.map(r => r.value)).size > 1
+  const hasVariation = new Set(regions.map(r => r.value)).size > 1
 
   return (
     <div className="overflow-hidden rounded-xl border border-border-subtle bg-white">
@@ -102,7 +101,7 @@ export function MapBlock({ block }: MapBlockProps) {
             <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
           </div>
           <div className="flex items-center gap-3 text-xs text-muted">
-            <span>{block.regions.length} regions</span>
+            <span>{regions.length} regions</span>
             <span className="font-mono text-[10px]">{edges.length} links</span>
           </div>
         </div>
@@ -164,7 +163,7 @@ export function MapBlock({ block }: MapBlockProps) {
             ))}
 
             {/* Region nodes — sorted back-to-front so large dots render on top */}
-            {[...block.regions]
+            {[...regions]
               .toSorted((a, b) => a.value - b.value)
               .map((region, index) => {
                 const { x, y } = latLonToMercator(region.lat, region.lon, svgW, svgH)

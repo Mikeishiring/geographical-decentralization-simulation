@@ -9,9 +9,11 @@ interface ContributionComposerProps {
   readonly helperText: string
   readonly publishLabel?: string
   readonly successLabel?: string
+  readonly viewPublishedLabel?: string
   readonly isPublishing?: boolean
   readonly published?: boolean
   readonly error?: string | null
+  readonly onViewPublished?: () => void
   readonly onPublish: (payload: {
     title: string
     takeaway: string
@@ -26,9 +28,11 @@ export function ContributionComposer({
   helperText,
   publishLabel = 'Publish to community',
   successLabel = 'Published to Community',
+  viewPublishedLabel = 'View on Community',
   isPublishing = false,
   published = false,
   error,
+  onViewPublished,
   onPublish,
 }: ContributionComposerProps) {
   const [open, setOpen] = useState(false)
@@ -63,12 +67,39 @@ export function ContributionComposer({
           <p className="mt-1 max-w-2xl text-xs text-muted">
             {helperText}
           </p>
+          <p className="mt-2 max-w-2xl text-[11px] text-text-faint">
+            Published notes are human-authored framing layers over paper-backed readings or exact-run artifacts. They are not raw model output dumps.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[
+              'Observation first',
+              'Interpretation labeled',
+              'Human title + takeaway',
+            ].map(item => (
+              <span
+                key={item}
+                className="inline-flex items-center rounded-full border border-border-subtle bg-white px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-text-faint"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
         </div>
 
         {published ? (
-          <div className="inline-flex items-center gap-2 rounded-full border border-success/30 bg-success/8 px-3 py-1.5 text-xs text-text-primary">
-            <span className="h-1.5 w-1.5 rounded-full bg-success" />
-            {successLabel}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-success/30 bg-success/8 px-3 py-1.5 text-xs text-text-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-success" />
+              {successLabel}
+            </div>
+            {onViewPublished && (
+              <button
+                onClick={onViewPublished}
+                className="inline-flex items-center rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs text-text-primary transition-colors hover:border-border-hover"
+              >
+                {viewPublishedLabel}
+              </button>
+            )}
           </div>
         ) : (
           <button
@@ -107,6 +138,9 @@ export function ContributionComposer({
                 rows={3}
                 className="min-h-[88px] w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
               />
+              <div className="mt-1 text-[11px] text-text-faint">
+                Write this in your own words. Summarize what the source shows, not what an assistant guessed.
+              </div>
             </div>
           </div>
 

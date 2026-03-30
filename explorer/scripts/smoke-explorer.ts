@@ -28,6 +28,16 @@ interface ExplorationSeed {
   readonly paradigmTags: string[]
   readonly experimentTags: string[]
   readonly verified: boolean
+  readonly surface: 'reading' | 'simulation'
+  readonly publication: {
+    readonly published: boolean
+    readonly title: string
+    readonly takeaway: string
+    readonly author: string
+    readonly publishedAt: string | null
+    readonly featured: boolean
+    readonly editorNote: string
+  }
 }
 
 function normalizeQuery(query: string): string {
@@ -167,6 +177,16 @@ async function main() {
     paradigmTags: ['SSP', 'MSP'],
     experimentTags: ['SE4'],
     verified: true,
+    surface: 'reading',
+    publication: {
+      published: false,
+      title: '',
+      takeaway: '',
+      author: '',
+      publishedAt: null,
+      featured: false,
+      editorNote: '',
+    },
   }
 
   await withSeededHistory(seededExploration, async () => {
@@ -213,6 +233,53 @@ async function main() {
       assert(listResponse.ok, 'Expected /api/explorations search to succeed')
       const listPayload = await listResponse.json() as Array<Record<string, unknown>>
       assert(listPayload.some(entry => entry.id === seededExploration.id), 'Expected seeded exploration to appear in search results')
+
+      const publishResponse = await fetch(`${BASE_URL}/api/explorations/${seededExploration.id}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Relay corridor note',
+          takeaway: 'Human-framed note about asymmetric relay paths after convergence.',
+          author: 'smoke',
+        }),
+      })
+      assert(publishResponse.ok, 'Expected /api/explorations/:id/publish to succeed')
+      const publishedPayload = await publishResponse.json() as Record<string, unknown>
+      const publication = publishedPayload.publication as Record<string, unknown> | undefined
+      assert(publication?.published === true, 'Expected publish endpoint to mark the exploration as published')
+      assert(publication?.title === 'Relay corridor note', 'Expected publish endpoint to persist the human-authored title')
+
+      const communityListResponse = await fetch(`${BASE_URL}/api/explorations?published=true`)
+      assert(communityListResponse.ok, 'Expected published-only /api/explorations query to succeed')
+      const communityList = await communityListResponse.json() as Array<Record<string, unknown>>
+      assert(communityList.some(entry => entry.id === seededExploration.id), 'Expected published exploration to appear in community results')
+
+      const archiveListResponse = await fetch(`${BASE_URL}/api/explorations?published=false`)
+      assert(archiveListResponse.ok, 'Expected archive-only /api/explorations query to succeed')
+      const archiveList = await archiveListResponse.json() as Array<Record<string, unknown>>
+      assert(!archiveList.some(entry => entry.id === seededExploration.id), 'Expected published exploration to be excluded from archive results')
+
+      const createSimulationNoteResponse = await fetch(`${BASE_URL}/api/explorations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: 'What stands out in this exact MSP run?',
+          summary: 'Exact MSP run note for the smoke suite.',
+          blocks: [
+            {
+              type: 'caveat',
+              text: 'Smoke-created exact-run note.',
+            },
+          ],
+          followUps: ['How does this compare to SSP under the same setup?'],
+          model: 'exact-simulation',
+          cached: false,
+          surface: 'simulation',
+        }),
+      })
+      assert(createSimulationNoteResponse.ok, 'Expected /api/explorations creation endpoint to succeed')
+      const createdSimulationNote = await createSimulationNoteResponse.json() as Record<string, unknown>
+      assert(createdSimulationNote.surface === 'simulation', 'Expected created exploration to preserve the simulation surface')
 
       const simulationResponse = await fetch(`${BASE_URL}/api/simulations`, {
         method: 'POST',
