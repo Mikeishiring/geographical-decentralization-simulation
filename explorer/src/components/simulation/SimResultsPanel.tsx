@@ -1,5 +1,5 @@
 import { startTransition, useEffect, useState } from 'react'
-import { ArrowUpRight, Check, Copy, Download } from 'lucide-react'
+import { Check, Copy, Download } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { TimeSeriesBlock } from '../blocks/TimeSeriesBlock'
 import { cn } from '../../lib/cn'
@@ -233,7 +233,7 @@ function ExactChartDeck({
           <div className="overflow-hidden rounded-[1.4rem] border border-border-subtle bg-[radial-gradient(circle_at_12%_0%,rgba(37,99,235,0.08),transparent_28%),radial-gradient(circle_at_100%_10%,rgba(194,85,58,0.08),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,243,239,0.92))] p-4 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Focused measurement</div>
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Focused measurement</div>
                 <div className="mt-2 text-lg font-semibold text-text-primary">{focusedVisual.title}</div>
                 <div className="mt-1 max-w-2xl text-sm leading-6 text-muted">{focusedSeries.description}</div>
               </div>
@@ -247,7 +247,7 @@ function ExactChartDeck({
                     key={metric.label}
                     className="rounded-2xl border border-border-subtle bg-white/88 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]"
                   >
-                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{metric.label}</div>
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
                     <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
                       {metric.value == null ? '—' : formatExactChartValue(metric.value)}
                     </div>
@@ -278,7 +278,7 @@ function ExactChartDeck({
                   onMouseEnter={() => setHoveredArtifactName(entry.artifactName)}
                   onMouseLeave={() => setHoveredArtifactName(null)}
                   className={cn(
-                    'group relative overflow-hidden rounded-[1.25rem] border px-4 py-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-border-hover',
+                    'group relative overflow-hidden rounded-[1.25rem] border px-4 py-4 text-left transition-all duration-200 hover:border-border-hover',
                     isFocused
                       ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.08),rgba(255,255,255,0.98))] shadow-[0_16px_36px_rgba(37,99,235,0.12)]'
                       : 'border-border-subtle bg-white/92',
@@ -287,14 +287,14 @@ function ExactChartDeck({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                         {isPinned ? 'Pinned chart' : isFocused ? 'Previewing now' : 'Hover to preview'}
                       </div>
                       <div className="mt-2 text-sm font-medium text-text-primary">{visual?.title ?? entry.label}</div>
                       <div className="mt-1 text-xs leading-5 text-muted line-clamp-2">{entry.description}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Latest</div>
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Latest</div>
                       <div className="mt-2 text-sm font-semibold tabular-nums text-text-primary">
                         {formatExactChartValue(latest)}
                       </div>
@@ -314,7 +314,7 @@ function ExactChartDeck({
                       { label: 'Delta', value: delta },
                     ].map(metric => (
                       <div key={metric.label} className="rounded-lg border border-border-subtle bg-white/82 px-2.5 py-2">
-                        <div className="uppercase tracking-[0.12em] text-text-faint">{metric.label}</div>
+                        <div className="font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
                         <div className="mt-1 font-medium tabular-nums text-text-primary">
                           {formatExactChartValue(metric.value)}
                         </div>
@@ -427,14 +427,14 @@ export function SimResultsPanel({
 
           <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px]">
             <div className="lab-option-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Execution mode</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Execution mode</div>
               <div className="mt-2 text-sm font-medium text-text-primary">
                 {manifest.cacheHit ? 'Exact cache hit' : 'Fresh exact execution'}
               </div>
               <div className="mt-1 text-xs text-muted">{formatNumber(manifest.runtimeSeconds, 2)}s runtime</div>
             </div>
             <div className="lab-option-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Scenario</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Scenario</div>
               <div className="mt-2 text-sm font-medium text-text-primary">{describeParadigmWithAlias(manifest.config.paradigm)}</div>
               <div className="mt-1 text-xs text-muted">{manifest.config.validators.toLocaleString()} validators · {manifest.config.slots.toLocaleString()} slots</div>
             </div>
@@ -444,7 +444,7 @@ export function SimResultsPanel({
         <div className="grid grid-cols-2 gap-3 mt-5 xl:grid-cols-6">
           {exactMetricCards.map(card => (
             <div key={card.key} className="lab-option-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">{card.label}</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
               <div className="mt-2 text-xl font-semibold text-text-primary tabular-nums">
                 {card.value}
               </div>
@@ -461,21 +461,21 @@ export function SimResultsPanel({
 
       <div className="grid gap-3 mb-6 md:grid-cols-3">
         <div className="lab-lens-card px-4 py-4">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Reading mode</div>
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Reading mode</div>
           <div className="mt-2 text-sm font-medium text-text-primary">Live exact experiment</div>
           <div className="mt-1 text-xs leading-5 text-muted">
             This view is assembled from the current manifest and emitted artifact sidecars for one exact run.
           </div>
         </div>
         <div className="lab-lens-card px-4 py-4">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Chart integrity</div>
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Chart integrity</div>
           <div className="mt-2 text-sm font-medium text-text-primary">Raw slot ordering preserved</div>
           <div className="mt-1 text-xs leading-5 text-muted">
             Hover, preview, and pinning only change the reading posture. They do not smooth or reinterpret the emitted series.
           </div>
         </div>
         <div className="lab-lens-card px-4 py-4">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Comparability</div>
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparability</div>
           <div className="mt-2 text-sm font-medium text-text-primary">{paperComparability.title}</div>
           <div className="mt-1 text-xs leading-5 text-muted">{paperComparability.detail}</div>
         </div>
@@ -571,10 +571,9 @@ export function SimResultsPanel({
               href="https://geo-decentralization.github.io/"
               target="_blank"
               rel="noopener noreferrer"
-              className="lab-option-card inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+              className="arrow-link"
             >
               Published demo
-              <ArrowUpRight className="w-3 h-3" />
             </a>
           </div>
         </div>
@@ -585,8 +584,8 @@ export function SimResultsPanel({
           </div>
         )}
 
-        <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Research integrity</div>
+        <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
+          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Research integrity</div>
           <div className="mt-2 text-sm font-medium text-text-primary">{paperComparability.title}</div>
           <div className="mt-1 text-sm text-muted">{paperComparability.detail}</div>
           <div className="mt-2 text-xs text-muted">
@@ -596,13 +595,13 @@ export function SimResultsPanel({
 
         <div className="grid gap-3 mt-4 text-xs text-muted sm:grid-cols-2 xl:grid-cols-4">
           <div className="lab-metric-card">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Configuration</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Configuration</div>
             <div className="mt-2 text-sm font-medium text-text-primary">{describeParadigmWithAlias(manifest.config.paradigm)} exact mode</div>
             <div className="mt-1 text-xs text-muted">{describeDistribution(manifest.config.distribution)}</div>
             <div className="mt-1 text-xs text-muted">{describeSourcePlacement(manifest.config.sourcePlacement)}</div>
           </div>
           <div className="lab-metric-card">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Consensus timing</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Consensus timing</div>
             <div className="mt-2 text-sm font-medium text-text-primary">
               gamma {formatNumber(manifest.config.attestationThreshold, 4)}
             </div>
@@ -614,7 +613,7 @@ export function SimResultsPanel({
             </div>
           </div>
           <div className="lab-metric-card">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Run identity</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Run identity</div>
             <div className="mt-2 text-sm font-medium text-text-primary">
               seed {manifest.config.seed}
             </div>
@@ -626,7 +625,7 @@ export function SimResultsPanel({
             </div>
           </div>
           <div className="lab-metric-card">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Paper metric availability</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper metric availability</div>
             <div className="mt-2 text-sm font-medium text-text-primary">
               Published surface: Gini_g / HHI_g / CV_g / LC_g
             </div>
@@ -668,7 +667,7 @@ export function SimResultsPanel({
               key={option.bundle}
               onClick={() => startTransition(() => onSelectBundle(option.bundle))}
               className={cn(
-                'lab-option-card rounded-xl px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover',
+                'lab-option-card rounded-xl px-4 py-3 text-left transition-all hover:border-border-hover',
                 selectedBundle === option.bundle
                   ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))]'
                   : '',
@@ -735,7 +734,7 @@ export function SimResultsPanel({
               onClick={() => onSelectArtifact(artifact.name)}
               disabled={!artifact.renderable}
               className={cn(
-                'lab-option-card text-left rounded-[1rem] px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-border-hover',
+                'lab-option-card text-left rounded-[1rem] px-4 py-4 transition-all hover:border-border-hover',
                 selectedArtifactName === artifact.name
                   ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))]'
                   : '',

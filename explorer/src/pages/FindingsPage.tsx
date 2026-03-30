@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, ArrowLeft, ArrowUpRight, Link2, FileText } from 'lucide-react'
+import { Link2, FileText } from 'lucide-react'
 import { cn } from '../lib/cn'
 import { DEFAULT_BLOCKS, OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../data/default-blocks'
 import { PAPER_SECTIONS } from '../data/paper-sections'
@@ -474,13 +474,25 @@ export function FindingsPage({
           Ethereum validators cluster in low-latency regions regardless of whether block-building uses SSP or MSP.
           The paper simulates 10,000+ validators across 40 GCP regions to measure exactly where and why.
         </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[
+            'Canonical claims first',
+            'Ask sharper paper questions',
+            'Inspect or reproduce scenarios',
+            'Publish human-authored notes',
+          ].map(item => (
+            <span key={item} className="lab-chip">
+              {item}
+            </span>
+          ))}
+        </div>
       </div>
 
       {!showAi && !showTopic && (
         <div className="mb-6">
           {paperSectionHint && onTabChange && (
             <div className="mb-4 rounded-xl border border-accent/20 bg-accent/[0.04] px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Canonical section available</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical section available</div>
               <div className="mt-1 text-sm font-medium text-text-primary">
                 This link points to {paperSectionHint} in the paper guide.
               </div>
@@ -489,44 +501,42 @@ export function FindingsPage({
               </p>
               <button
                 onClick={() => onTabChange('paper')}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+                className="arrow-link mt-3"
               >
                 Open paper section
-                <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
               </button>
             </div>
           )}
 
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Start here</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Start here</div>
               <div className="mt-1 text-sm font-medium text-text-primary">Canonical claims from the paper</div>
             </div>
             <span className="text-xs text-muted">Open a claim to read, question, or publish a note later.</span>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-rule bg-white divide-y divide-rule">
             {canonicalClaimCards.map(card => (
               <button
                 key={card.id}
                 onClick={() => handleTopicClick(card)}
-                className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
               >
-                <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Canonical claim</div>
-                <div className="mt-2 text-sm font-medium leading-6 text-text-primary">{card.title}</div>
-                <div className="mt-1 text-xs leading-5 text-muted">{card.description}</div>
-                <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent">
-                  Open this lens
-                  <ArrowRight className="h-3 w-3" />
+                <div className="min-w-0">
+                  <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical claim</span>
+                  <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">{card.title}</div>
+                  <div className="mt-0.5 text-xs leading-5 text-muted">{card.description}</div>
                 </div>
+                <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
               </button>
             ))}
           </div>
 
-          <div className="mt-5 rounded-xl border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,246,242,0.96))] px-4 py-4">
+          <div className="mt-5 rounded-xl border border-rule bg-white px-4 py-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Why it matters</div>
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Why it matters</div>
                 <div className="mt-1 text-sm font-medium text-text-primary">Implications and design posture</div>
               </div>
               <div className="max-w-2xl text-xs leading-5 text-muted">
@@ -534,11 +544,11 @@ export function FindingsPage({
               </div>
             </div>
 
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="mt-4 divide-y divide-rule">
               {IMPLICATION_STRIPS.map(item => (
-                <div key={item.title} className="rounded-lg border border-border-subtle bg-white px-3 py-3">
-                  <div className="text-sm font-medium text-text-primary">{item.title}</div>
-                  <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
+                <div key={item.title} className="py-3 first:pt-0 last:pb-0">
+                  <div className="text-[0.8125rem] font-medium text-text-primary">{item.title}</div>
+                  <div className="mt-0.5 text-xs leading-5 text-muted">{item.detail}</div>
                 </div>
               ))}
             </div>
@@ -601,8 +611,7 @@ export function FindingsPage({
               onClick={handleBackToOverview}
               className="flex items-center gap-1 text-xs text-muted hover:text-text-primary transition-colors"
             >
-              <ArrowLeft className="w-3 h-3" />
-              Back to overview
+              ← Back to overview
             </button>
           )}
         </div>
@@ -617,18 +626,17 @@ export function FindingsPage({
                 key={card.id}
                 onClick={() => handleTopicClick(card)}
                 layout
-                whileHover={{ y: -2, boxShadow: "0 4px 12px rgba(0,0,0,0.06)" }}
                 whileTap={{ scale: 0.985 }}
                 transition={SPRING}
                 aria-label={card.title}
                 aria-pressed={isActive}
                 className={cn(
-                  'text-left rounded-lg border p-4 transition-all topo-bg group',
+                  'text-left rounded-lg border p-4 transition-colors topo-bg group',
                   isActive
                     ? 'border-accent bg-white'
                     : isDimmed
-                      ? 'border-border-subtle bg-white opacity-40'
-                      : 'border-border-subtle bg-white hover:border-border-hover',
+                      ? 'border-rule bg-white opacity-40'
+                      : 'border-rule bg-white hover:border-border-hover',
                 )}
               >
                 <h4 className="text-xs font-medium text-text-primary leading-snug mb-1 line-clamp-2">
@@ -640,20 +648,14 @@ export function FindingsPage({
                 <div className="flex flex-wrap items-center gap-1.5 mb-2">
                   <span className="text-[10px] text-text-faint">{card.blocks.length} blocks</span>
                   {summarizeTopicCard(card).map(tag => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-border-subtle px-1.5 py-0.5 text-[10px] text-text-faint"
-                    >
-                      {tag}
-                    </span>
+                    <span key={tag} className="lab-chip">{tag}</span>
                   ))}
                 </div>
                 <span className={cn(
                   'flex items-center gap-1 text-xs',
                   isActive ? 'text-accent' : 'text-text-faint',
                 )}>
-                  {isActive ? 'Viewing' : 'Explore'}
-                  {!isActive && <ArrowRight className="w-2.5 h-2.5" />}
+                  {isActive ? 'Viewing' : 'Explore →'}
                 </span>
               </motion.button>
             )
@@ -662,11 +664,35 @@ export function FindingsPage({
 
       </div>
 
+      {/* Navigation cards — cross-tab wayfinding (default state only) */}
+      {!showAi && !showTopic && onTabChange && (
+        <div className="mb-8 rounded-xl border border-rule bg-white divide-y divide-rule">
+          {([
+            { tab: 'paper' as TabId, eyebrow: 'Read the canonical source', title: 'Open the paper guide', detail: 'Editorial reading guide through the full paper, section by section.' },
+            { tab: 'results' as TabId, eyebrow: 'Inspect or reproduce', title: 'Browse results or run exact scenarios', detail: 'Canonical scenarios plus a fresh simulation runner to test claims against the actual artifacts.' },
+            { tab: 'community' as TabId, eyebrow: 'Respond publicly', title: 'Browse community notes', detail: 'Human-framed notes from paper readings and exact simulation runs.' },
+          ] as const).map(item => (
+            <button
+              key={item.tab}
+              onClick={() => onTabChange(item.tab)}
+              className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
+            >
+              <div className="min-w-0">
+                <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{item.eyebrow}</span>
+                <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">{item.title}</div>
+                <div className="mt-0.5 text-xs leading-5 text-muted">{item.detail}</div>
+              </div>
+              <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {!showAi && !showTopic && communityPreviewNotes.length > 0 && (
         <div className="mb-8">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Public responses</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Public responses</div>
               <div className="mt-1 text-sm font-medium text-text-primary">How other readers framed the evidence</div>
             </div>
             {onTabChange && (
@@ -684,18 +710,18 @@ export function FindingsPage({
               <button
                 key={exploration.id}
                 onClick={() => openCommunityNote(exploration.id)}
-                className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                className="rounded-xl border border-rule bg-white px-4 py-4 text-left transition-colors hover:border-border-hover"
               >
-                <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                   {communityPreviewLabel(exploration)}
                 </div>
-                <div className="mt-2 text-sm font-medium text-text-primary">
+                <div className="mt-2 text-[0.8125rem] font-medium text-text-primary">
                   {exploration.publication.title}
                 </div>
                 <div className="mt-1 text-xs leading-5 text-muted line-clamp-4">
                   {exploration.publication.takeaway}
                 </div>
-                <div className="mt-3 flex items-center justify-between gap-3 text-[11px] text-text-faint">
+                <div className="mt-3 flex items-center justify-between gap-3 text-[0.6875rem] text-text-faint">
                   <span>{exploration.surface === 'simulation' ? 'Exact-run backed' : 'Paper-reading backed'}</span>
                   <span>{exploration.publication.author || 'Anonymous'}</span>
                 </div>
@@ -727,10 +753,10 @@ export function FindingsPage({
               </div>
             </div>
 
-            <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+            <div className="rounded-xl border border-rule bg-white px-4 py-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="max-w-2xl">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Research integrity</div>
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Research integrity</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">{displayProvenance.label}</div>
                   <div className="mt-1 text-sm text-muted">{displayProvenance.detail || interpretationBoundary}</div>
                   <div className="mt-2 text-xs text-muted">
@@ -738,23 +764,21 @@ export function FindingsPage({
                   </div>
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2 lg:w-[340px]">
+                <div className="flex flex-col gap-2 lg:w-auto">
                   <a
                     href="https://arxiv.org/abs/2509.21475"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                    className="arrow-link"
                   >
-                    <span>Read canonical paper</span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+                    Read canonical paper
                   </a>
                   {onTabChange && (
                     <button
                       onClick={() => onTabChange('results')}
-                      className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                      className="arrow-link"
                     >
-                      <span>Open simulation tab</span>
-                      <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
+                      Open simulation tab
                     </button>
                   )}
                 </div>

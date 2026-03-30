@@ -631,7 +631,7 @@ function PublishedGeoCard({
 
         <div className="space-y-3">
           <div className="rounded-xl border border-border-subtle bg-[#FAFAF8] p-4">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Top regions</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Top regions</div>
             <div className="mt-3 space-y-2.5">
               {topRegions.map(region => {
                 const regionLabel = region.region ? region.region.city : region.regionId
@@ -679,7 +679,7 @@ function PublishedGeoCard({
           </div>
 
           <div className="rounded-xl border border-border-subtle bg-white p-4">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Macro regions</div>
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Macro regions</div>
             <div className="mt-3 space-y-2">
               {macroRegionCounts.map(entry => {
                 const share = totalValidators > 0 ? (entry.count / totalValidators) * 100 : 0
@@ -1156,22 +1156,22 @@ export function PublishedDatasetViewer({
         <div className="px-5 py-5">
           <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="lab-lens-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Playback</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Playback</div>
               <div className="mt-2 text-sm font-medium text-text-primary">{slotLocked ? 'Slot locked' : playing ? 'Autoplay active' : 'Manual review'}</div>
               <div className="mt-1 text-xs text-muted">Step {stepSize} · slot {countLabel(slot + 1)} of {countLabel(totalSlots)}</div>
             </div>
             <div className="lab-lens-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Top region</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Top region</div>
               <div className="mt-2 text-sm font-medium text-text-primary">{topRegion?.region?.city ?? 'No active region'}</div>
               <div className="mt-1 text-xs text-muted">{regionShareLabel(topRegion, totalValidators)} of visible validators</div>
             </div>
             <div className="lab-lens-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Source footprint</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Source footprint</div>
               <div className="mt-2 text-sm font-medium text-text-primary">{sourceRoleLabel(dataset.sourceRole)}</div>
               <div className="mt-1 text-xs text-muted">{sourceFootprint.length} macro regions represented</div>
             </div>
             <div className="lab-lens-card px-4 py-4">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Truth boundary</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Truth boundary</div>
               <div className="mt-2 text-sm font-medium text-text-primary">Frozen published payload</div>
               <div className="mt-1 text-xs text-muted">Viewer controls change playback only. They do not alter the dataset.</div>
             </div>
@@ -1277,7 +1277,7 @@ export function PublishedDatasetViewer({
               <Lock className="h-3.5 w-3.5" />
               {slotLocked ? 'Unlock slot' : 'Lock slot'}
             </button>
-            <button onClick={() => { setPlaying(false); setSlotLocked(false); setSlot(0) }} className="inline-flex items-center gap-1.5 rounded-xl border border-border-subtle bg-white px-3.5 py-2.5 text-xs text-text-primary transition-all hover:-translate-y-0.5 hover:border-border-hover">
+            <button onClick={() => { setPlaying(false); setSlotLocked(false); setSlot(0) }} className="inline-flex items-center gap-1.5 rounded-xl border border-border-subtle bg-white px-3.5 py-2.5 text-xs text-text-primary transition-all hover:border-border-hover">
               <RotateCcw className="h-3.5 w-3.5" />
               Reset
             </button>
@@ -1293,7 +1293,7 @@ export function PublishedDatasetViewer({
           <div className="mt-4 rounded-[1.15rem] border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,244,240,0.88))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Slot note filters</div>
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Slot note filters</div>
                 <div className="mt-2 text-sm text-text-primary">
                   Filter authored notes by intent and click one to focus the relevant canvas area.
                 </div>
@@ -1301,7 +1301,7 @@ export function PublishedDatasetViewer({
               <div className="flex flex-col gap-3 lg:items-end">
                 {focusedNote ? (
                   <div className="max-w-md rounded-2xl border border-border-subtle bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.05)]">
-                    <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-text-faint">
+                    <div className="flex flex-wrap items-center gap-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                       <span>{noteIntentLabel(focusedNote.intent)}</span>
                       <span>Focuses {focusAreaLabel(focusedArea ?? 'geography')}</span>
                       {focusedNote.anchorLabel ? <span>{focusedNote.anchorLabel}</span> : null}
@@ -1407,7 +1407,7 @@ export function PublishedDatasetViewer({
             focusedArea === 'config' ? 'ring-2 ring-accent/35 shadow-[0_18px_36px_rgba(37,99,235,0.1)]' : '',
           )}>
             <div className="flex items-center justify-between gap-3">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Frozen configuration</div>
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Frozen configuration</div>
               {metricNoteCounts.methods > 0 ? (
                 <span className="rounded-full border border-[#0F766E]/18 bg-[#ECFDF5] px-2 py-0.5 text-[10px] font-medium text-[#0F766E]">
                   {metricNoteCounts.methods} note{metricNoteCounts.methods === 1 ? '' : 's'}
