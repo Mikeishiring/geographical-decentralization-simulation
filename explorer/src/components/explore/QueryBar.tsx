@@ -106,8 +106,8 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
   return (
     <div className="rounded-xl border border-border-subtle bg-[#F4F4F2] px-5 py-6 sm:px-8 sm:py-8 shadow-sm">
       <div className={cn(
-        'bg-white border border-border-subtle rounded-lg transition-all shadow-sm',
-        isEnabled && 'focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 focus-within:shadow-md',
+        'bg-white border border-border-subtle rounded-xl transition-all',
+        isEnabled && 'focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 focus-within:shadow-[0_2px_12px_rgba(37,99,235,0.06)]',
       )}>
         <div className="flex items-center gap-3 px-4 py-3.5">
           {loading ? (
@@ -129,7 +129,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
           {query.trim() && isEnabled && (
             <button
               onClick={handleSubmit}
-              className="px-3 py-1.5 rounded-md bg-accent text-white text-xs font-medium hover:bg-accent/90 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-medium hover:bg-accent/90 transition-colors"
             >
               Ask
             </button>
