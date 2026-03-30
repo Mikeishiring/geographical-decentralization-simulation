@@ -2013,7 +2013,7 @@ export function ResearchDemoSurface({
       <div className="lab-stage overflow-hidden p-0">
         <div className="grid xl:grid-cols-[minmax(0,1.25fr)_360px]">
           <div className="p-6 md:p-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-text-primary">
               Published Research Demo
             </div>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight text-text-primary">
@@ -2286,7 +2286,7 @@ export function ResearchDemoSurface({
                     <div
                       key={card.label}
                       className={cn(
-                        'rounded-[1.15rem] border px-4 py-4 shadow-[0_12px_26px_rgba(15,23,42,0.04)]',
+                        'rounded-xl border px-4 py-4 shadow-[0_12px_26px_rgba(15,23,42,0.04)]',
                         index === 0
                           ? 'border-accent/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.88))]'
                           : 'border-rule bg-white',
@@ -2361,7 +2361,7 @@ export function ResearchDemoSurface({
                       )}
                     >
                       <div className="text-xs font-medium text-text-primary">{profile.label}</div>
-                      <div className="mt-1 text-[11px] leading-5 text-muted">{profile.description}</div>
+                      <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{profile.description}</div>
                     </button>
                   ))}
                 </div>
@@ -2382,7 +2382,7 @@ export function ResearchDemoSurface({
                       )}
                     >
                       <div className="text-xs font-medium text-text-primary">{preset.label}</div>
-                      <div className="mt-1 text-[11px] leading-5 text-muted">{preset.description}</div>
+                      <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{preset.description}</div>
                     </button>
                   ))}
                 </div>
@@ -2561,7 +2561,7 @@ export function ResearchDemoSurface({
                     )}
                   >
                     <div className="text-xs font-medium text-text-primary">{profile.label}</div>
-                    <div className="mt-1 text-[11px] leading-5 text-muted">{profile.description}</div>
+                    <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{profile.description}</div>
                   </button>
                 ))}
               </div>
@@ -2582,7 +2582,7 @@ export function ResearchDemoSurface({
                     )}
                   >
                     <div className="text-xs font-medium text-text-primary">{preset.label}</div>
-                    <div className="mt-1 text-[11px] leading-5 text-muted">{preset.description}</div>
+                    <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{preset.description}</div>
                   </button>
                 ))}
               </div>
@@ -2715,7 +2715,7 @@ export function ResearchDemoSurface({
                   Open linked view
                 </a>
               </div>
-              <div className="mt-3 break-all text-[11px] leading-5 text-muted">
+              <div className="mt-3 break-all text-[0.6875rem] leading-5 text-muted">
                 {shareUrl || 'Share link will appear once the workspace state is hydrated.'}
               </div>
               {shareStatus !== 'idle' ? (
@@ -2924,7 +2924,7 @@ export function ResearchDemoSurface({
                       ))}
                     </div>
 
-                    <div className="rounded-[1.25rem] border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.78))] px-4 py-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)]">
+                    <div className="rounded-xl border border-rule bg-white px-4 py-4">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div>
                           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Draft question</div>
@@ -2932,7 +2932,7 @@ export function ResearchDemoSurface({
                             Write against what the replay is doing right now, then ask for explanation, challenge, or synthesis.
                           </div>
                         </div>
-                        <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                        <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[0.6875rem] font-medium text-text-primary">
                           {assistantDraft.trim() ? 'Draft ready' : 'Pick a prompt starter'}
                         </div>
                       </div>
@@ -2994,7 +2994,7 @@ export function ResearchDemoSurface({
                               Keep theory and methods questions grounded in the same canonical paper section the replay companion receives.
                             </div>
                           </div>
-                          <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                          <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[0.6875rem] font-medium text-text-primary">
                             {paperSectionContext ? 'Paper context attached' : 'Paper context unavailable'}
                           </div>
                         </div>
@@ -3175,7 +3175,7 @@ export function ResearchDemoSurface({
               >
                 {analyticsPromptLaunchers.length > 0 ? (
                   <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Ask from this query</div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Ask from this query</div>
                     <div className="mt-2 text-xs leading-5 text-muted">
                       These prompts open the replay inquiry flow against the current analytics view and slot posture.
                     </div>
@@ -3184,10 +3184,10 @@ export function ResearchDemoSurface({
                         <button
                           key={item.label}
                           onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
-                          className="rounded-xl border border-rule bg-[#FAFAF8] px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                          className="rounded-xl border border-rule bg-surface-active px-4 py-4 text-left transition-all hover:border-border-hover"
                         >
                           <div className="text-sm font-medium text-text-primary">{item.label}</div>
-                          <div className="mt-1 text-[11px] uppercase tracking-[0.12em] text-text-faint">{item.detail}</div>
+                          <div className="mt-1 text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">{item.detail}</div>
                           <div className="mt-3 text-xs leading-5 text-muted">{item.prompt}</div>
                         </button>
                       ))}
