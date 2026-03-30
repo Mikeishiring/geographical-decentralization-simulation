@@ -27,6 +27,30 @@ const EXAMPLE_GROUPS = [
   },
 ] as const
 
+const QUERY_DRAFT_STORAGE_KEY = 'findings-query-draft'
+
+function readDraftQuery() {
+  if (typeof window === 'undefined') return ''
+  try {
+    return window.localStorage.getItem(QUERY_DRAFT_STORAGE_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function writeDraftQuery(query: string) {
+  if (typeof window === 'undefined') return
+  try {
+    if (query.length === 0) {
+      window.localStorage.removeItem(QUERY_DRAFT_STORAGE_KEY)
+      return
+    }
+    window.localStorage.setItem(QUERY_DRAFT_STORAGE_KEY, query)
+  } catch {
+    // Ignore storage failures and keep the prompt box usable.
+  }
+}
+
 interface QueryBarProps {
   onSubmit?: (query: string) => void
   disabled?: boolean
@@ -36,7 +60,7 @@ interface QueryBarProps {
 }
 
 export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperText }: QueryBarProps) {
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(readDraftQuery)
   const [loadingPhase, setLoadingPhase] = useState<'idle' | 'sending' | 'receiving'>('idle')
   const inputRef = useRef<HTMLInputElement | null>(null)
   const isEnabled = !disabled && !loading
@@ -57,6 +81,10 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
 
     return () => window.clearTimeout(timeoutId)
   }, [loading])
+
+  useEffect(() => {
+    writeDraftQuery(query)
+  }, [query])
 
   const handleSubmit = () => {
     const trimmed = query.trim()
