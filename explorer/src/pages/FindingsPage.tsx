@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, ArrowLeft, ArrowUpRight, Link2, FileText } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Link2, FileText } from 'lucide-react'
 import { cn } from '../lib/cn'
 import { DEFAULT_BLOCKS, OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../data/default-blocks'
 import { ContributionComposer } from '../components/community/ContributionComposer'
@@ -13,6 +13,39 @@ import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, publishExploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
 import { NodeConstellation } from '../components/decorative/NodeConstellation'
 import { ModeBanner } from '../components/layout/ModeBanner'
+import { Wayfinder } from '../components/layout/Wayfinder'
+import { SPRING } from '../lib/theme'
+import { blocksToMarkdown } from '../lib/export'
+import type { TabId } from '../components/layout/TabNav'
+
+function upsertHistory(previous: HistoryEntry[], next: HistoryEntry): HistoryEntry[] {
+  return [
+    next,
+    ...previous.filter(entry => entry.query !== next.query),
+  ].slice(0, 8)
+}
+
+const dotColor: Record<string, string> = {
+  curated: 'bg-success',
+  history: 'bg-warning',
+  generated: 'bg-accent',
+}
+
+function fallbackCuratedProvenance(label: string, detail: string): ExploreProvenance {
+  return {
+    source: 'curated',
+    label,
+    detail,
+    canonical: true,
+  }
+}
+
+export function FindingsPage({
+  initialQuery,
+  initialExplorationId,
+  isActive,
+  onQueryChange,
+  onExplorationIdChange,
   onTabChange,
 }: {
   initialQuery?: string | null
@@ -412,7 +445,7 @@ import { ModeBanner } from '../components/layout/ModeBanner'
           </button>
 
           <button
-            onClick={() => onTabChange('simulation')}
+            onClick={() => onTabChange('results')}
             className="rounded-xl border border-border-subtle bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
           >
             <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Verify with data</div>
@@ -431,12 +464,6 @@ import { ModeBanner } from '../components/layout/ModeBanner'
           </div>
         </div>
       )}
-
-      <QueryHistory
-        entries={history}
-        onSelect={handleHistorySelect}
-        activeQuery={activeQuery ?? undefined}
-      />
 
       {/* Topic cards */}
       <div className="mb-8">
@@ -536,55 +563,6 @@ import { ModeBanner } from '../components/layout/ModeBanner'
         )}
       </div>
 
-      <div className="topo-divider mb-6" />
-
-      {/* Active lens */}
-      <div className="mb-5">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <h2 className="text-base font-semibold text-text-primary font-serif truncate">
-            {heading}
-          </h2>
-          <div className="flex items-center gap-1.5 text-xs text-muted shrink-0">
-            <span className={cn('w-1.5 h-1.5 rounded-full', dotColor[displayProvenance.source] ?? 'bg-accent')} />
-            {evidencePath}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Research integrity</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">{displayProvenance.label}</div>
-              <div className="mt-1 text-sm text-muted">{displayProvenance.detail || interpretationBoundary}</div>
-              <div className="mt-2 text-xs text-muted">
-                Truth boundary: {interpretationBoundary}
-              </div>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-2 lg:w-[340px]">
-              <a
-                href="https://arxiv.org/abs/2509.21475"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
-              >
-                <span>Read canonical paper</span>
-                <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
-              </a>
-              {onTabChange && (
-                <button
-                  onClick={() => onTabChange('simulation')}
-                  className="inline-flex items-center justify-between rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
-                >
-                  <span>Open published results</span>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-muted" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       <QueryHistory
         entries={history}
         onSelect={handleHistorySelect}
@@ -676,7 +654,7 @@ import { ModeBanner } from '../components/layout/ModeBanner'
               published={currentReadingPublished}
               isPublishing={publishMutation.isPending}
               error={(publishMutation.error as Error | null)?.message ?? null}
-              onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
+              onViewPublished={onTabChange ? () => onTabChange('explore') : undefined}
               onPublish={payload => publishMutation.mutate({
                 contextKey: readingPublishContextKey,
                 ...payload,
@@ -726,7 +704,7 @@ import { ModeBanner } from '../components/layout/ModeBanner'
                 published={currentReadingPublished}
                 isPublishing={publishMutation.isPending}
                 error={(publishMutation.error as Error | null)?.message ?? null}
-                onViewPublished={onTabChange ? () => onTabChange('history') : undefined}
+                onViewPublished={onTabChange ? () => onTabChange('explore') : undefined}
                 onPublish={payload => publishMutation.mutate({
                   contextKey: readingPublishContextKey,
                   ...payload,
@@ -788,9 +766,7 @@ import { ModeBanner } from '../components/layout/ModeBanner'
       {onTabChange && (
         <Wayfinder links={[
           { label: 'Read the full paper', hint: 'Editorial reading guide with annotations', onClick: () => onTabChange('paper') },
-          { label: 'See community notes', hint: 'Published contributions and the reading archive', onClick: () => onTabChange('history') },
-          { label: 'Drill into sections', hint: 'Accordion view of every argument & block', onClick: () => onTabChange('deep-dive') },
-          { label: 'Run a simulation', hint: 'Test parameters with the exact model', onClick: () => onTabChange('simulation') },
+          { label: 'Run a simulation', hint: 'Test parameters with the exact model', onClick: () => onTabChange('results') },
         ]} />
       )}
     </div>
