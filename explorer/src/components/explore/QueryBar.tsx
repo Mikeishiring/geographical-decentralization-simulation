@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Search, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
@@ -37,15 +37,31 @@ interface QueryBarProps {
 
 export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperText }: QueryBarProps) {
   const [query, setQuery] = useState('')
+  const [loadingPhase, setLoadingPhase] = useState<'idle' | 'sending' | 'receiving'>('idle')
   const inputRef = useRef<HTMLInputElement | null>(null)
   const isEnabled = !disabled && !loading
   const placeholder = disabled
     ? disabledReason ?? 'The reading guide is unavailable right now.'
     : 'Ask a sharp paper-backed question about a mechanism, paradox, or comparison...'
 
+  useEffect(() => {
+    if (!loading) {
+      setLoadingPhase('idle')
+      return
+    }
+
+    setLoadingPhase('sending')
+    const timeoutId = window.setTimeout(() => {
+      setLoadingPhase('receiving')
+    }, 900)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [loading])
+
   const handleSubmit = () => {
     const trimmed = query.trim()
     if (!trimmed || !isEnabled) return
+    setLoadingPhase('sending')
     onSubmit?.(trimmed)
   }
 
@@ -134,9 +150,25 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
         </AnimatePresence>
       )}
 
-      <p className="text-[11px] text-text-faint text-center mt-2">
-        {helperText ?? 'Ask about a mechanism, paradox, or comparison. The guide stays tied to the paper.'}
-      </p>
+      <div className="mt-2 min-h-[1.25rem]">
+        {loading ? (
+          <div
+            aria-live="polite"
+            className="flex items-center justify-center gap-1.5 text-[11px] text-text-faint"
+          >
+            <Loader2 className="h-3 w-3 animate-spin text-accent" />
+            <span>
+              {loadingPhase === 'sending'
+                ? 'Sending question...'
+                : 'Receiving answer...'}
+            </span>
+          </div>
+        ) : (
+          <p className="text-[11px] text-text-faint text-center">
+            {helperText ?? 'Ask about a mechanism, paradox, or comparison. The guide stays tied to the paper.'}
+          </p>
+        )}
+      </div>
 
       {disabled && disabledReason && (
         <p className="text-[11px] text-text-faint text-center mt-1.5">
