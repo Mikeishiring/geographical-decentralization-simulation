@@ -24,10 +24,10 @@ function formatSeriesNumber(value: number): string {
 }
 
 function notePinColor(intent: 'observation' | 'question' | 'theory' | 'methods'): string {
-  if (intent === 'question') return '#C2410C'
-  if (intent === 'theory') return '#1D4ED8'
-  if (intent === 'methods') return '#0F766E'
-  return '#7C3AED'
+  if (intent === 'question') return 'var(--color-accent-warm)'
+  if (intent === 'theory') return 'var(--color-accent)'
+  if (intent === 'methods') return 'var(--color-success)'
+  return 'var(--color-warning)'
 }
 
 export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) {
@@ -331,7 +331,8 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 y1={padding.top}
                 x2={hover.svgX}
                 y2={padding.top + chartH}
-                stroke="rgba(37,99,235,0.28)"
+                stroke="var(--color-accent)"
+                strokeOpacity={0.28}
                 strokeDasharray="4 4"
                 strokeWidth={1}
               />
@@ -416,7 +417,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                     y1={padding.top}
                     x2={sx}
                     y2={padding.top + chartH}
-                    stroke="#C2553A"
+                    stroke="var(--color-accent-warm)"
                     strokeWidth={1}
                     strokeDasharray="3 3"
                   />
@@ -481,7 +482,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 y1={padding.top}
                 x2={hover.svgX}
                 y2={padding.top + chartH}
-                stroke="#9CA3AF"
+                stroke="var(--color-muted)"
                 strokeWidth={0.5}
                 strokeDasharray="2 2"
               />
