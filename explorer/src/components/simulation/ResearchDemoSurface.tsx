@@ -2486,126 +2486,9 @@ export function ResearchDemoSurface({
       <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
           <div className="lab-stage p-5">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <div>
-                <div className="text-xs text-muted mb-1">Scenario selector</div>
-                <div className="text-sm text-text-primary">
-                  Switch among frozen published scenarios without leaving the main canvas.
-                </div>
-              </div>
-              <button
-                onClick={handleFillDemoValues}
-                className="text-xs text-muted transition-colors hover:text-text-primary"
-              >
-                Load reference view
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-muted mb-1.5 block">Dataset</label>
-                <select
-                  value={selectedEvaluation}
-                  onChange={event => setSelectedEvaluation(event.target.value)}
-                  className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
-                >
-                  {evaluationOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs text-muted mb-1.5 block">Block building</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {paradigmOptions.map(option => (
-                    <button
-                      key={option}
-                      onClick={() => setSelectedParadigm(option)}
-                      className={cn(
-                        'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
-                        selectedParadigm === option
-                          ? 'border-accent bg-white text-accent'
-                          : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
-                      )}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-muted mb-1.5 block">Result</label>
-                <select
-                  value={selectedResult}
-                  onChange={event => setSelectedResult(event.target.value)}
-                  className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
-                >
-                  {resultOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-3">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Dataset path</div>
-              <div className="mt-2 break-all text-sm font-medium text-text-primary">
-                {selectedDataset?.path ?? 'Choose a dataset'}
-              </div>
-              <div className="mt-2 text-xs text-muted">
-                Switching Local versus External changes which published scenario you are reading. It does not change the exact-run engine.
-              </div>
-            </div>
-          </div>
-
-          <div className="lab-stage p-5">
-            <div className="text-xs text-muted mb-1">View settings</div>
+            <div className="text-xs text-muted mb-1">Playback controls</div>
             <div className="text-sm text-text-primary mb-4">
-              These settings keep the replay, reading lens, question drafting, and comparison posture aligned.
-            </div>
-
-            <div className="mb-4">
-              <label className="text-xs text-muted mb-1.5 block">Audience mode</label>
-              <div className="grid gap-2 sm:grid-cols-3">
-                {audienceProfiles.map(profile => (
-                  <button
-                    key={profile.id}
-                    onClick={() => applyAudienceMode(profile.id)}
-                    className={cn(
-                      'rounded-xl border px-3 py-3 text-left transition-colors',
-                      audienceMode === profile.id
-                        ? 'border-accent bg-white'
-                        : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
-                    )}
-                  >
-                    <div className="text-xs font-medium text-text-primary">{profile.label}</div>
-                    <div className="mt-1 text-[11px] leading-5 text-muted">{profile.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="text-xs text-muted mb-1.5 block">Presets</label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {viewPresets.map(preset => (
-                  <button
-                    key={preset.id}
-                    onClick={() => applyViewPreset(preset.id)}
-                    className={cn(
-                      'rounded-xl border px-3 py-3 text-left transition-colors',
-                      matchedViewPreset?.id === preset.id
-                        ? 'border-accent bg-white'
-                        : 'border-border-subtle bg-[#FAFAF8] hover:border-border-hover hover:bg-white',
-                    )}
-                  >
-                    <div className="text-xs font-medium text-text-primary">{preset.label}</div>
-                    <div className="mt-1 text-[11px] leading-5 text-muted">{preset.description}</div>
-                  </button>
-                ))}
-              </div>
+              Fine-tune the replay presentation. Audience, presets, and lens are in the compact rail above.
             </div>
 
             <div className="space-y-4">
@@ -2658,95 +2541,11 @@ export function ResearchDemoSurface({
               </div>
             </div>
 
-              <div>
-                <label className="text-xs text-muted mb-1.5 block">Reading lens</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {paperLenses.map(lens => (
-                    <button
-                      key={lens.id}
-                      onClick={() => setPaperLens(lens.id)}
-                      className={cn(
-                        'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
-                        paperLens === lens.id
-                          ? 'border-accent bg-white text-accent'
-                          : 'border-border-subtle bg-white text-text-primary hover:border-border-hover',
-                      )}
-                    >
-                      {lens.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
+          </div>
 
-            <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-3">
-              <div className="text-xs text-text-faint">Current view stack</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">
-                {matchedViewPreset?.label ?? 'Custom'} preset
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted">
-                <span className="lab-chip">{audienceProfiles.find(profile => profile.id === audienceMode)?.label ?? 'Reader'} mode</span>
-                {activeChapterRoute ? (
-                  <span className="lab-chip">{activeChapterRoute.label}</span>
-                ) : null}
-                <span className="lab-chip">{themeLabel(theme)} theme</span>
-                <span className="lab-chip">step {step}</span>
-                <span className="lab-chip">{autoplay ? 'Autoplay on' : 'Manual scrub'}</span>
-                <span className="lab-chip">{paperLens} lens</span>
-                {selectedPaperSection ? (
-                  <span className="lab-chip">{selectedPaperSection.number}</span>
-                ) : null}
-                {comparisonDataset ? (
-                  <span className="lab-chip">vs {comparisonDataset.evaluation}</span>
-                ) : null}
-              </div>
-              <div className="mt-3 text-xs leading-5 text-muted">
-                {currentViewSummary}
-              </div>
-              <div className="mt-3 break-all text-sm font-medium text-text-primary">
-                {selectedDataset?.path ?? 'Choose a dataset'}
-              </div>
-              <div className="mt-2 text-xs text-muted">
-                Primary path: stay in-app. Standalone exists only for parity with the frozen legacy panel set.
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
-              <div className="text-xs text-text-faint">Share this reading view</div>
-              <div className="mt-2 text-xs leading-5 text-muted">
-                The link preserves the scenario, audience mode, reading lens, replay question, paper anchor, and current slot posture.
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  onClick={() => void handleCopyShareUrl()}
-                  className="rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                >
-                  {assistantDraft.trim() ? 'Copy replay query link' : 'Copy share link'}
-                </button>
-                <a
-                  href={shareUrl || undefined}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={cn(
-                    'rounded-full border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
-                    !shareUrl && 'pointer-events-none opacity-60',
-                  )}
-                >
-                  Open linked view
-                </a>
-              </div>
-              <div className="mt-3 break-all text-[11px] leading-5 text-muted">
-                {shareUrl || 'Share link will appear once the workspace state is hydrated.'}
-              </div>
-              {shareStatus !== 'idle' ? (
-                <div className="mt-2 text-xs text-text-primary">
-                  {shareStatus === 'copied' ? 'Share link copied.' : 'Clipboard copy failed in this environment.'}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
-              <div className="text-xs text-text-faint">Saved views</div>
+          <div className="lab-stage p-5">
+            <div className="text-xs text-text-faint">Saved views</div>
               <div className="mt-3 grid gap-3">
                 {savedWorkspaceViews.map(view => (
                   <div key={view.id} className="rounded-xl border border-border-subtle bg-[#FAFAF8] px-4 py-4">
@@ -2782,31 +2581,10 @@ export function ResearchDemoSurface({
                 ))}
               </div>
 
-              <div className="mt-4 border-t border-border-subtle pt-4">
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Entry point chips</div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    onClick={() => void handleCopyShareUrl()}
-                    className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                  >
-                    Export current state
-                  </button>
-                  {savedWorkspaceViews.map(view => (
-                    <a
-                      key={`${view.id}-chip`}
-                      href={view.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full border border-border-subtle bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                    >
-                      {view.label}
-                    </a>
-                  ))}
-                </div>
-              </div>
             </div>
+          </div>
 
-            <div className="mt-4 rounded-xl border border-border-subtle bg-white px-4 py-4">
+          <div className="lab-stage p-5">
               <div className="text-xs text-text-faint">Paper chapters</div>
               <div className="mt-2 text-xs leading-5 text-muted">
                 These are authored reading routes. They should feel closer to paper sections than to generic dashboard presets.
