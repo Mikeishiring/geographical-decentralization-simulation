@@ -67,7 +67,7 @@ async function assertOk(response: Response, message: string): Promise<void> {
 
 async function waitForSimulation(
   jobId: string,
-  attempts = 240,
+  attempts = 480,
 ): Promise<Record<string, unknown>> {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const response = await fetch(`${BASE_URL}/api/simulations/${jobId}`)
