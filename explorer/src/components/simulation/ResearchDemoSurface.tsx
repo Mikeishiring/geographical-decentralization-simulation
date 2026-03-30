@@ -2209,7 +2209,7 @@ export function ResearchDemoSurface({
       <div className="lab-stage overflow-hidden p-0">
         <div className="grid">
           <div className="p-7 md:p-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-text-primary">
               Published Paper Replay
             </div>
             <h2 className="mt-4 max-w-5xl text-4xl font-semibold tracking-tight text-text-primary md:text-[2.8rem] md:leading-[1.05]">
@@ -2557,7 +2557,7 @@ export function ResearchDemoSurface({
                       )}
                     >
                       <div className="text-xs font-medium text-text-primary">{profile.label}</div>
-                      <div className="mt-1 text-[11px] leading-5 text-muted">{profile.description}</div>
+                      <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{profile.description}</div>
                     </button>
                   ))}
                 </div>
@@ -2578,7 +2578,7 @@ export function ResearchDemoSurface({
                       )}
                     >
                       <div className="text-xs font-medium text-text-primary">{preset.label}</div>
-                      <div className="mt-1 text-[11px] leading-5 text-muted">{preset.description}</div>
+                      <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{preset.description}</div>
                     </button>
                   ))}
                 </div>
@@ -2771,7 +2771,7 @@ export function ResearchDemoSurface({
                     )}
                   >
                     <div className="text-xs font-medium text-text-primary">{profile.label}</div>
-                    <div className="mt-1 text-[11px] leading-5 text-muted">{profile.description}</div>
+                    <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{profile.description}</div>
                   </button>
                 ))}
               </div>
@@ -2792,7 +2792,7 @@ export function ResearchDemoSurface({
                     )}
                   >
                     <div className="text-xs font-medium text-text-primary">{preset.label}</div>
-                    <div className="mt-1 text-[11px] leading-5 text-muted">{preset.description}</div>
+                    <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{preset.description}</div>
                   </button>
                 ))}
               </div>
@@ -2925,7 +2925,7 @@ export function ResearchDemoSurface({
                   Open linked view
                 </a>
               </div>
-              <div className="mt-3 break-all text-[11px] leading-5 text-muted">
+              <div className="mt-3 break-all text-[0.6875rem] leading-5 text-muted">
                 {shareUrl || 'Share link will appear once the workspace state is hydrated.'}
               </div>
               {shareStatus !== 'idle' ? (
@@ -3144,7 +3144,7 @@ export function ResearchDemoSurface({
                             Write against what the replay is doing right now, then ask for explanation, challenge, or synthesis.
                           </div>
                         </div>
-                        <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                        <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[0.6875rem] font-medium text-text-primary">
                           {assistantDraft.trim() ? 'Draft ready' : 'Pick a prompt starter'}
                         </div>
                       </div>
@@ -3206,7 +3206,7 @@ export function ResearchDemoSurface({
                               Keep theory and methods questions grounded in the same canonical paper section the replay companion receives.
                             </div>
                           </div>
-                          <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary">
+                          <div className="rounded-full border border-rule bg-white px-3 py-1.5 text-[0.6875rem] font-medium text-text-primary">
                             {paperSectionContext ? 'Paper context attached' : 'Paper context unavailable'}
                           </div>
                         </div>
@@ -3395,7 +3395,7 @@ export function ResearchDemoSurface({
                 blocks={analyticsBlocks}
               >
                 <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Named dashboards</div>
+                  <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Named dashboards</div>
                   <div className="mt-2 text-xs leading-5 text-muted">
                     These dashboard links hold an authored analytics posture inside the paper workspace, so a reader can reopen the same query instead of reconstructing it from scratch.
                   </div>
@@ -3406,7 +3406,7 @@ export function ResearchDemoSurface({
                         className={cn(
                           'rounded-xl border px-4 py-4 transition-colors',
                           preset.active
-                            ? 'border-accent bg-[#FAFAF8]'
+                            ? 'border-accent bg-surface-active'
                             : 'border-rule bg-surface-active',
                         )}
                       >
@@ -3416,7 +3416,7 @@ export function ResearchDemoSurface({
                             <div className="mt-1 text-xs leading-5 text-muted">{preset.note}</div>
                           </div>
                           {preset.active ? (
-                            <span className="rounded-full bg-accent px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white">
+                            <span className="rounded-full bg-accent px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-white">
                               Live
                             </span>
                           ) : null}
@@ -3442,7 +3442,7 @@ export function ResearchDemoSurface({
 
                 {analyticsPromptLaunchers.length > 0 ? (
                   <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-                    <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Ask from this query</div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Ask from this query</div>
                     <div className="mt-2 text-xs leading-5 text-muted">
                       These prompts open the replay inquiry flow against the current analytics view and slot posture.
                     </div>
@@ -3451,10 +3451,10 @@ export function ResearchDemoSurface({
                         <button
                           key={item.label}
                           onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
-                          className="rounded-xl border border-rule bg-[#FAFAF8] px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                          className="rounded-xl border border-rule bg-surface-active px-4 py-4 text-left transition-colors hover:border-border-hover"
                         >
                           <div className="text-sm font-medium text-text-primary">{item.label}</div>
-                          <div className="mt-1 text-[11px] uppercase tracking-[0.12em] text-text-faint">{item.detail}</div>
+                          <div className="mt-1 text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">{item.detail}</div>
                           <div className="mt-3 text-xs leading-5 text-muted">{item.prompt}</div>
                         </button>
                       ))}

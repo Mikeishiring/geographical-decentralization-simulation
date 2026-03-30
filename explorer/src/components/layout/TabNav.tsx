@@ -109,7 +109,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                       transition={SPRING_SNAPPY}
                       className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-30 whitespace-nowrap pointer-events-none"
                     >
-                      <div className="relative rounded-md bg-[#111]/92 px-2.5 py-1.5 text-[0.6875rem] text-white/85 shadow-lg">
+                      <div className="relative rounded-md bg-text-primary/90 px-2.5 py-1.5 text-[0.6875rem] text-white/85 shadow-lg">
                         {tab.hint}
                       </div>
                     </motion.div>
