@@ -86,7 +86,7 @@ export const OVERVIEW_BUNDLES: ReadonlyArray<{
 export const COPY_RESET_DELAY_MS = 1600
 const PARSED_ARTIFACT_CACHE_PREFIX = 'simulation_lab_parsed_artifact:'
 
-interface PaperComparability {
+export interface PaperComparability {
   readonly title: string
   readonly detail: string
   readonly tone: 'canonical' | 'editorial' | 'experimental'
@@ -130,6 +130,14 @@ export function paperScenarioLabels(config: SimulationConfig): string[] {
 
   labels.push(config.paradigm === 'SSP' ? 'SSP exact mode' : 'MSP exact mode')
   return labels
+}
+
+export function describeParadigm(paradigm: SimulationConfig['paradigm']): string {
+  return paradigm === 'SSP' ? 'External' : 'Local'
+}
+
+export function describeParadigmWithAlias(paradigm: SimulationConfig['paradigm']): string {
+  return `${describeParadigm(paradigm)} (${paradigm})`
 }
 
 function approximatelyEqual(left: number, right: number, epsilon = 0.0002): boolean {

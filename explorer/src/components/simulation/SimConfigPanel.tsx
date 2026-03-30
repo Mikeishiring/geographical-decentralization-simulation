@@ -3,6 +3,10 @@ import { Ban, Play, RotateCcw, Sparkles } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING } from '../../lib/theme'
 import type { SimulationConfig } from '../../lib/simulation-api'
+import {
+  describeParadigm,
+  type PaperComparability,
+} from './simulation-constants'
 
 interface NumericAnchor {
   readonly label: string
@@ -70,6 +74,7 @@ interface SimConfigPanelProps {
   readonly canCancel: boolean
   readonly onCancel: () => void
   readonly paperScenarioLabels: readonly string[]
+  readonly paperComparability: PaperComparability
 }
 
 export function SimConfigPanel({
@@ -81,33 +86,71 @@ export function SimConfigPanel({
   canCancel,
   onCancel,
   paperScenarioLabels,
+  paperComparability,
 }: SimConfigPanelProps) {
   const validatorsOnAnchor = isAnchorValue(config.validators, VALIDATOR_ANCHORS)
   const slotsOnAnchor = isAnchorValue(config.slots, SLOT_ANCHORS)
   const migrationCostOnAnchor = isAnchorValue(config.migrationCost, MIGRATION_COST_ANCHORS)
+  const inputClassName = 'lab-input-shell w-full rounded-xl px-3 py-2.5 text-sm text-text-primary outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/10'
+  const anchorButtonClassName = 'lab-option-card rounded-xl px-2.5 py-2 text-center transition-all hover:-translate-y-0.5 hover:border-border-hover'
+  const segmentButtonClassName = 'lab-option-card flex-1 rounded-xl px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover'
 
   return (
-    <div className="lab-stage p-5 mb-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="lab-stage p-0 mb-6">
+      <div className="lab-stage-hero mx-3 mt-3 p-5">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl">
+            <div className="lab-section-title">Run Design</div>
+            <div className="mt-3 text-xl font-semibold tracking-tight text-text-primary sm:text-[1.6rem]">
+              Shape the exact scenario before you spend the runtime.
+            </div>
+            <div className="mt-3 text-sm leading-6 text-muted">
+              The surface stays literal to the exact simulator, but the controls are grouped so you can read the scenario,
+              scale, and timing posture without scanning a flat form.
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[540px]">
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Mode</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{describeParadigm(config.paradigm)}</div>
+              <div className="mt-1 text-xs text-muted">{config.paradigm} exact</div>
+            </div>
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Scale</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{config.validators.toLocaleString()} validators</div>
+              <div className="mt-1 text-xs text-muted">{config.slots.toLocaleString()} slots</div>
+            </div>
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Timing</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">gamma {config.attestationThreshold.toFixed(2)}</div>
+              <div className="mt-1 text-xs text-muted">{config.slotTime}s slots · cutoff {attestationCutoffMs(config.slotTime)} ms</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 px-3 pb-3 sm:grid-cols-2">
         <div>
           <label className="text-xs text-muted mb-1.5 block">
             Paradigm
           </label>
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             {(['SSP', 'MSP'] as const).map(paradigm => (
               <button
                 key={paradigm}
                 onClick={() => onConfigChange('paradigm', paradigm)}
                 className={cn(
-                  'flex-1 py-1.5 rounded-lg text-xs font-medium transition-all',
+                  segmentButtonClassName,
                   config.paradigm === paradigm
                     ? paradigm === 'SSP'
-                      ? 'bg-white text-accent border border-accent'
-                      : 'bg-white text-accent-warm border border-accent-warm'
-                    : 'bg-white text-muted border border-border-subtle hover:border-border-hover',
+                      ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent shadow-[0_16px_32px_rgba(37,99,235,0.1)]'
+                      : 'border-accent-warm bg-[linear-gradient(180deg,rgba(194,85,58,0.1),rgba(255,255,255,0.98))] text-accent-warm shadow-[0_16px_32px_rgba(194,85,58,0.12)]'
+                    : 'text-muted',
                 )}
               >
-                {paradigm}
+                <div className="text-sm font-medium">{describeParadigm(paradigm)}</div>
+                <div className="mt-1 text-[10px] uppercase tracking-[0.12em] opacity-75">{paradigm}</div>
               </button>
             ))}
           </div>
@@ -120,7 +163,7 @@ export function SimConfigPanel({
           <select
             value={config.distribution}
             onChange={event => onConfigChange('distribution', event.target.value as SimulationConfig['distribution'])}
-            className="w-full bg-white border border-border-subtle rounded-lg px-3 py-1.5 text-xs text-text-primary outline-none focus:ring-1 focus:ring-accent"
+            className={inputClassName}
           >
             <option value="homogeneous">Homogeneous (upstream baseline default)</option>
             <option value="homogeneous-gcp">Homogeneous per GCP region</option>
@@ -136,7 +179,7 @@ export function SimConfigPanel({
           <select
             value={config.sourcePlacement}
             onChange={event => onConfigChange('sourcePlacement', event.target.value as SimulationConfig['sourcePlacement'])}
-            className="w-full bg-white border border-border-subtle rounded-lg px-3 py-1.5 text-xs text-text-primary outline-none focus:ring-1 focus:ring-accent"
+            className={inputClassName}
           >
             <option value="homogeneous">Homogeneous</option>
             <option value="latency-aligned">Latency-aligned</option>
@@ -154,7 +197,7 @@ export function SimConfigPanel({
             min={0}
             max={2147483647}
             onChange={event => onConfigChange('seed', Number(event.target.value))}
-            className="w-full bg-white border border-border-subtle rounded-lg px-3 py-1.5 text-xs text-text-primary outline-none focus:ring-1 focus:ring-accent"
+            className={inputClassName}
           />
         </div>
 
@@ -167,26 +210,26 @@ export function SimConfigPanel({
               {config.validators.toLocaleString()}
             </div>
           </div>
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-5 gap-2">
             {VALIDATOR_ANCHORS.map(option => (
               <button
                 key={option.value}
                 onClick={() => onConfigChange('validators', option.value)}
                 className={cn(
-                  'rounded-lg border px-2 py-1.5 text-center transition-colors',
+                  anchorButtonClassName,
                   approximatelyEqual(config.validators, option.value)
-                    ? 'border-accent bg-white text-accent'
-                    : 'border-border-subtle bg-white text-muted hover:border-border-hover hover:text-text-primary',
+                    ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                    : 'text-muted',
                 )}
               >
                 <div className="text-xs font-medium">{option.label}</div>
                 {option.hint && (
-                  <div className="text-[10px] uppercase tracking-[0.12em]">{option.hint}</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-[0.12em]">{option.hint}</div>
                 )}
               </button>
             ))}
           </div>
-          <details open={!validatorsOnAnchor} className="mt-2 rounded-lg border border-border-subtle bg-white px-3 py-2">
+          <details open={!validatorsOnAnchor} className="lab-option-card mt-3 rounded-xl px-3 py-3">
             <summary className="cursor-pointer list-none text-[11px] text-muted hover:text-text-primary">
               Fine edit exact validator count
             </summary>
@@ -197,7 +240,7 @@ export function SimConfigPanel({
               step={1}
               value={config.validators}
               onChange={event => onConfigChange('validators', Number(event.target.value))}
-              className="mt-2 w-full bg-white border border-border-subtle rounded-lg px-3 py-1.5 text-xs text-text-primary outline-none focus:ring-1 focus:ring-accent"
+              className={`${inputClassName} mt-3`}
             />
           </details>
           <div className="mt-1 text-xs text-muted">Anchor values favor the checked-in scales. Exact edits stay available for off-catalog runs.</div>
@@ -212,26 +255,26 @@ export function SimConfigPanel({
               {config.slots.toLocaleString()}
             </div>
           </div>
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-5 gap-2">
             {SLOT_ANCHORS.map(option => (
               <button
                 key={option.value}
                 onClick={() => onConfigChange('slots', option.value)}
                 className={cn(
-                  'rounded-lg border px-2 py-1.5 text-center transition-colors',
+                  anchorButtonClassName,
                   approximatelyEqual(config.slots, option.value)
-                    ? 'border-accent bg-white text-accent'
-                    : 'border-border-subtle bg-white text-muted hover:border-border-hover hover:text-text-primary',
+                    ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                    : 'text-muted',
                 )}
               >
                 <div className="text-xs font-medium">{option.label}</div>
                 {option.hint && (
-                  <div className="text-[10px] uppercase tracking-[0.12em]">{option.hint}</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-[0.12em]">{option.hint}</div>
                 )}
               </button>
             ))}
           </div>
-          <details open={!slotsOnAnchor} className="mt-2 rounded-lg border border-border-subtle bg-white px-3 py-2">
+          <details open={!slotsOnAnchor} className="lab-option-card mt-3 rounded-xl px-3 py-3">
             <summary className="cursor-pointer list-none text-[11px] text-muted hover:text-text-primary">
               Fine edit exact slot count
             </summary>
@@ -242,7 +285,7 @@ export function SimConfigPanel({
               step={1}
               value={config.slots}
               onChange={event => onConfigChange('slots', Number(event.target.value))}
-              className="mt-2 w-full bg-white border border-border-subtle rounded-lg px-3 py-1.5 text-xs text-text-primary outline-none focus:ring-1 focus:ring-accent"
+              className={`${inputClassName} mt-3`}
             />
           </details>
           <div className="mt-1 text-xs text-muted">Paper-scale published runs use 10,000 slots. The default exact surface stays at 1,000 for faster iteration.</div>
@@ -252,34 +295,36 @@ export function SimConfigPanel({
           <label className="text-xs text-muted mb-1.5 block">
             Migration Cost: {config.migrationCost.toFixed(4)} ETH
           </label>
-          <input
-            type="range"
-            min={0}
-            max={0.005}
-            step={0.0001}
-            value={config.migrationCost}
-            onChange={event => onConfigChange('migrationCost', Number(event.target.value))}
-            className="w-full accent-accent"
-          />
-          <div className="flex justify-between text-xs text-text-faint">
-            <span>0</span>
-            <span>0.005</span>
+          <div className="lab-input-shell rounded-[1rem] px-4 py-4">
+            <input
+              type="range"
+              min={0}
+              max={0.005}
+              step={0.0001}
+              value={config.migrationCost}
+              onChange={event => onConfigChange('migrationCost', Number(event.target.value))}
+              className="w-full accent-accent"
+            />
+            <div className="mt-1 flex justify-between text-xs text-text-faint">
+              <span>0</span>
+              <span>0.005</span>
+            </div>
           </div>
-          <div className="mt-2 grid grid-cols-5 gap-1.5">
+          <div className="mt-3 grid grid-cols-5 gap-2">
             {MIGRATION_COST_ANCHORS.map(option => (
               <button
                 key={option.value}
                 onClick={() => onConfigChange('migrationCost', option.value)}
                 className={cn(
-                  'rounded-lg border px-2 py-1.5 text-center transition-colors',
+                  anchorButtonClassName,
                   approximatelyEqual(config.migrationCost, option.value)
-                    ? 'border-accent bg-white text-accent'
-                    : 'border-border-subtle bg-white text-muted hover:border-border-hover hover:text-text-primary',
+                    ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                    : 'text-muted',
                 )}
               >
                 <div className="text-xs font-medium">{option.label}</div>
                 {option.hint && (
-                  <div className="text-[10px] uppercase tracking-[0.12em]">{option.hint}</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-[0.12em]">{option.hint}</div>
                 )}
               </button>
             ))}
@@ -295,19 +340,20 @@ export function SimConfigPanel({
           <label className="text-xs text-muted mb-1.5 block">
             Attestation Threshold (γ)
           </label>
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             {THRESHOLD_OPTIONS.map(option => (
               <button
                 key={option.label}
                 onClick={() => onConfigChange('attestationThreshold', option.value)}
                 className={cn(
-                  'flex-1 py-1.5 rounded-lg text-xs font-medium transition-all',
+                  segmentButtonClassName,
                   Math.abs(config.attestationThreshold - option.value) < 0.01
-                    ? 'bg-white text-accent border border-accent'
-                    : 'bg-white text-muted border border-border-subtle hover:border-border-hover',
+                    ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                    : 'text-muted',
                 )}
               >
-                {option.label}
+                <div className="text-sm font-medium">{option.label}</div>
+                <div className="mt-1 text-[10px] uppercase tracking-[0.12em] opacity-70">threshold</div>
               </button>
             ))}
           </div>
@@ -317,67 +363,161 @@ export function SimConfigPanel({
           <label className="text-xs text-muted mb-1.5 block">
             Slot Time (Δ)
           </label>
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             {SLOT_OPTIONS.map(option => (
               <button
                 key={option.label}
                 onClick={() => onConfigChange('slotTime', option.value)}
                 className={cn(
-                  'flex-1 py-1.5 rounded-lg text-xs font-medium transition-all',
+                  segmentButtonClassName,
                   config.slotTime === option.value
-                    ? 'bg-white text-accent border border-accent'
-                    : 'bg-white text-muted border border-border-subtle hover:border-border-hover',
+                    ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                    : 'text-muted',
                 )}
               >
-                {option.label}
+                <div className="text-sm font-medium">{option.label}</div>
+                <div className="mt-1 text-[10px] uppercase tracking-[0.12em] opacity-70">slot time</div>
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 mt-5 pt-4 border-t border-border-subtle/50">
-        <motion.button
-          onClick={onSubmit}
-          whileTap={{ scale: 0.98 }}
-          transition={SPRING}
-          disabled={isSubmitting}
-          className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all',
-            'bg-accent text-white hover:bg-accent/80 disabled:opacity-60 disabled:cursor-not-allowed',
-          )}
-        >
-          <Play className="w-3 h-3" />
-          {isSubmitting ? 'Submitting…' : 'Run Exact Simulation'}
-        </motion.button>
-
-        <button
-          onClick={onReset}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs text-muted hover:text-text-primary transition-colors"
-        >
-          <RotateCcw className="w-3 h-3" />
-          Reset
-        </button>
-
-        {canCancel && (
-          <button
-            onClick={onCancel}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs text-danger hover:text-danger transition-colors"
-          >
-            <Ban className="w-3 h-3" />
-            Cancel
-          </button>
-        )}
-
-        <div className="flex-1" />
-
-        <div className="text-xs text-text-faint text-right">
-          <div className="flex items-center gap-1 justify-end">
-            <Sparkles className="w-3 h-3" />
-            Exact mode only
+      <div className="mx-3 mb-3 grid gap-4 xl:grid-cols-[1fr_auto]">
+        <div className="lab-stage-soft p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="lab-section-title">Timing And Research Alignment</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">
+                Tune the consensus window and keep the research boundary explicit.
+              </div>
+            </div>
+            <div
+              className={cn(
+                'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium',
+                paperComparability.tone === 'canonical' && 'border-success/30 bg-success/8 text-text-primary',
+                paperComparability.tone === 'editorial' && 'border-warning/30 bg-warning/8 text-text-primary',
+                paperComparability.tone === 'experimental' && 'border-border-subtle bg-white text-text-primary',
+              )}
+            >
+              <span
+                className={cn(
+                  'h-1.5 w-1.5 rounded-full',
+                  paperComparability.tone === 'canonical' && 'bg-success',
+                  paperComparability.tone === 'editorial' && 'bg-warning',
+                  paperComparability.tone === 'experimental' && 'bg-accent',
+                )}
+              />
+              {paperComparability.title}
+            </div>
           </div>
-          <div>Slot cutoff: {attestationCutoffMs(config.slotTime)} ms</div>
-          <div>{paperScenarioLabels.join(' · ')}</div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Exact-only note</div>
+              <div className="mt-2 flex items-center gap-1.5 text-sm font-medium text-text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                Exact mode only
+              </div>
+            </div>
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Slot cutoff</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{attestationCutoffMs(config.slotTime)} ms</div>
+            </div>
+            <div className="lab-option-card px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-faint">Reference tags</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">{paperScenarioLabels[0] ?? 'Custom exact run'}</div>
+              <div className="mt-1 text-xs text-muted">{paperScenarioLabels.join(' · ')}</div>
+            </div>
+          </div>
+
+          <div className="mt-4 max-w-3xl text-[11px] leading-5 text-muted">
+            {paperComparability.detail}
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Best for parity</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Match a published scenario</div>
+              <div className="mt-1 text-xs leading-5 text-muted">
+                Start from a paper-aligned preset, keep the paper anchors, then compare against the published results surface.
+              </div>
+            </div>
+            <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Best for iteration</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Use the fast default</div>
+              <div className="mt-1 text-xs leading-5 text-muted">
+                Stay near `1,000` slots while probing ideas, then scale up only when the question is worth the runtime.
+              </div>
+            </div>
+            <div className="rounded-xl border border-border-subtle bg-white px-4 py-4">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">Best for sharing</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">Publish only after review</div>
+              <div className="mt-1 text-xs leading-5 text-muted">
+                Community notes should summarize what the artifacts show in your own words, not just mirror raw outputs.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="lab-stage-dark p-5 xl:min-w-[320px]">
+          <div className="lab-loading-orb" />
+          <div className="text-[0.68rem] uppercase tracking-[0.16em] text-slate-400">Run controls</div>
+          <div className="mt-3 text-lg font-semibold text-white">Launch the exact engine when the scenario is locked.</div>
+          <div className="mt-2 text-sm leading-6 text-slate-300">
+            Reset returns to the fast default posture. Cancel becomes active once the job reaches the queue or starts executing.
+          </div>
+
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/6 px-4 py-4">
+            <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Recommended next move</div>
+            <div className="mt-2 text-sm font-medium text-white">
+              {paperComparability.tone === 'canonical'
+                ? 'Run this, then compare it against the published results surface.'
+                : paperComparability.tone === 'editorial'
+                  ? 'Run this as a paper-scale extension, not as a one-to-one published comparison.'
+                  : 'Use this to learn fast, then promote the question to paper scale if it matters.'}
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3">
+            <motion.button
+              onClick={onSubmit}
+              whileTap={{ scale: 0.98 }}
+              transition={SPRING}
+              disabled={isSubmitting}
+              className={cn(
+                'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
+                'bg-white text-slate-950 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60',
+              )}
+            >
+              <Play className="h-4 w-4" />
+              {isSubmitting ? 'Submitting…' : 'Run Exact Simulation'}
+            </motion.button>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                onClick={onReset}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/8 px-4 py-3 text-sm text-slate-100 transition-colors hover:bg-white/12"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset
+              </button>
+
+              <button
+                onClick={onCancel}
+                disabled={!canCancel}
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm transition-colors',
+                  canCancel
+                    ? 'border-red-300/24 bg-red-400/10 text-red-100 hover:bg-red-400/14'
+                    : 'cursor-not-allowed border-white/10 bg-white/5 text-slate-500',
+                )}
+              >
+                <Ban className="h-4 w-4" />
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

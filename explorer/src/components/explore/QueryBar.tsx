@@ -4,12 +4,27 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING } from '../../lib/theme'
 
-const EXAMPLE_CHIPS = [
-  'Why does a higher gamma centralize SSP more but MSP less?',
-  'Does starting geography matter more than paradigm choice?',
-  'Why do the same low-latency regions keep winning?',
-  'What does this imply for protocol design and relay policy?',
-  'What changes under shorter slots: geography or fairness?',
+const EXAMPLE_GROUPS = [
+  {
+    label: 'Mechanism',
+    prompt: 'Why does a higher gamma centralize SSP more but MSP less?',
+  },
+  {
+    label: 'Comparison',
+    prompt: 'Does starting geography matter more than paradigm choice?',
+  },
+  {
+    label: 'Geography',
+    prompt: 'Why do the same low-latency regions keep winning?',
+  },
+  {
+    label: 'Design',
+    prompt: 'What does this imply for protocol design and relay policy?',
+  },
+  {
+    label: 'Timing',
+    prompt: 'What changes under shorter slots: geography or fairness?',
+  },
 ] as const
 
 interface QueryBarProps {
@@ -72,31 +87,51 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
         </div>
       </div>
 
+<<<<<<< Updated upstream
       {/* Example chips */}
+=======
+      {/* Suggested prompts */}
+>>>>>>> Stashed changes
       {!disabled && !loading && (
         <AnimatePresence>
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={SPRING}
+<<<<<<< Updated upstream
             className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mt-3 justify-center text-xs text-muted"
+=======
+            className="mt-3"
+>>>>>>> Stashed changes
           >
-            {EXAMPLE_CHIPS.map((chip, i) => (
-              <motion.button
-                key={chip}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ ...SPRING, delay: i * 0.04 }}
-                onClick={() => handleChip(chip)}
-                className="hover:text-accent transition-colors"
-              >
-                {chip}
-              </motion.button>
-            )).flatMap((el, i) =>
-              i < EXAMPLE_CHIPS.length - 1
-                ? [el, <span key={`sep-${i}`} className="text-text-faint">·</span>]
-                : [el]
-            )}
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <span className="text-[11px] uppercase tracking-[0.12em] text-text-faint">
+                Best first prompts
+              </span>
+              <span className="text-[11px] text-text-faint">
+                Click to ask directly
+              </span>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+              {EXAMPLE_GROUPS.map((group, i) => (
+                <motion.button
+                  key={group.prompt}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ ...SPRING, delay: i * 0.04 }}
+                  onClick={() => handleChip(group.prompt)}
+                  className="rounded-xl border border-border-subtle bg-white px-3 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
+                >
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-text-faint">
+                    {group.label}
+                  </div>
+                  <div className="mt-1 text-xs leading-5 text-text-primary">
+                    {group.prompt}
+                  </div>
+                </motion.button>
+              ))}
+            </div>
           </motion.div>
         </AnimatePresence>
       )}

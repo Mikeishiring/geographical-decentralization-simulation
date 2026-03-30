@@ -16,28 +16,38 @@ export function Wayfinder({ links }: WayfinderProps) {
   if (links.length === 0) return null
 
   return (
-    <div className="mt-10 pt-6 border-t border-rule">
-      <span className="text-[10px] uppercase tracking-[0.12em] text-text-faint mb-3 block">
-        Continue exploring
-      </span>
-      <div className="flex flex-wrap gap-3">
-        {links.map(link => (
+    <div className="mt-10 border-t border-rule pt-6">
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <div>
+          <span className="mb-1 block text-[10px] uppercase tracking-[0.12em] text-text-faint">
+            Continue exploring
+          </span>
+          <div className="text-sm text-text-primary">
+            The next best move should feel obvious from here.
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {links.map((link, index) => (
           <motion.button
             key={link.label}
             onClick={link.onClick}
             whileHover={{ y: -1 }}
             transition={SPRING}
-            className="group flex items-center gap-2 rounded-lg border border-border-subtle bg-white px-4 py-2.5 text-left transition-colors hover:border-border-hover"
+            className="group flex items-start gap-3 rounded-xl border border-border-subtle bg-white px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-border-hover"
           >
-            <div className="min-w-0">
-              <span className="text-xs font-medium text-text-primary">
+            <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border-subtle text-[11px] text-text-faint">
+              {index + 1}
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-sm font-medium text-text-primary">
                 {link.label}
               </span>
-              <span className="block text-[11px] text-muted mt-0.5">
+              <span className="mt-1 block text-[12px] leading-5 text-muted">
                 {link.hint}
               </span>
             </div>
-            <ArrowRight className="w-3.5 h-3.5 shrink-0 text-text-faint transition-colors group-hover:text-accent" />
+            <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0 text-text-faint transition-colors group-hover:text-accent" />
           </motion.button>
         ))}
       </div>
