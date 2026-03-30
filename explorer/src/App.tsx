@@ -38,9 +38,31 @@ interface ExplorerRouteState {
   readonly explorationId: string | null
 }
 
+const RESULTS_ROUTE_PARAM_KEYS = [
+  'evaluation',
+  'paradigm',
+  'result',
+  'dataset',
+  'theme',
+  'step',
+  'autoplay',
+  'lens',
+  'compare',
+  'audience',
+  'replayQuestion',
+  'paperSection',
+  'slot',
+  'compareSlot',
+  'analytics',
+] as const
+
 function hasPaperSectionHash(): boolean {
   const hash = window.location.hash.replace(/^#/, '')
   return hash.length > 0 && PAPER_SECTION_IDS.has(hash)
+}
+
+function hasResultsRouteParams(params: URLSearchParams): boolean {
+  return RESULTS_ROUTE_PARAM_KEYS.some(key => params.has(key))
 }
 
 function getInitialTab(): TabId {
@@ -54,12 +76,17 @@ function getInitialTab(): TabId {
     : raw
   const tab = migrated as TabId | null
   const hasPaperHash = hasPaperSectionHash()
+  const hasResultsParams = hasResultsRouteParams(params)
   if (tab && VALID_TABS.includes(tab)) {
+    if (tab === 'explore' && hasResultsParams) {
+      return 'results'
+    }
     if (tab === 'explore' && hasPaperHash && !params.get('q') && !params.get('eid')) {
       return 'paper'
     }
     return tab
   }
+  if (hasResultsParams) return 'results'
   if (params.get('q') || params.get('eid') || params.get('topic')) return 'explore'
   if (hasPaperHash) return 'paper'
   return DEFAULT_TAB
@@ -74,10 +101,14 @@ function getInitialExplorationId(): string | null {
 }
 
 function readRouteState(): ExplorerRouteState {
+  const params = new URLSearchParams(window.location.search)
+  const tab = getInitialTab()
+  const resultsRoute = tab === RESULTS_TAB && hasResultsRouteParams(params)
+
   return {
-    tab: getInitialTab(),
-    query: getInitialQuery(),
-    explorationId: getInitialExplorationId(),
+    tab,
+    query: resultsRoute ? null : getInitialQuery(),
+    explorationId: resultsRoute ? null : getInitialExplorationId(),
   }
 }
 
@@ -126,7 +157,7 @@ function preloadTab(tab: TabId) {
 
 function PageFallback({ label }: { readonly label: string }) {
   return (
-    <div className="rounded-2xl border border-rule bg-white/92 px-5 py-8 shadow-sm">
+    <div className="rounded-2xl border border-border-subtle bg-white/92 px-5 py-8 shadow-sm">
       <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Loading</div>
       <div className="mt-2 text-lg font-medium text-text-primary">{label}</div>
       <div className="mt-4 space-y-3">
