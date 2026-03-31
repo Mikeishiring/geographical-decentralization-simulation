@@ -58,6 +58,10 @@ export interface PublishedAnalyticsMetrics {
   readonly hhi?: readonly number[]
   readonly liveness?: readonly number[]
   readonly failed_block_proposals?: readonly number[]
+  readonly profit_variance?: readonly number[]
+  readonly avg_nnd?: readonly number[]
+  readonly nni?: readonly number[]
+  readonly info_avg_distance?: readonly number[]
 }
 
 export interface PublishedAnalyticsPayload {
