@@ -475,7 +475,10 @@ const PUBLISHED_REPLAY_NOTE_ANCHOR_KINDS = new Set([
   'comparison',
 ])
 const publishedReplayNotesStore = new Map<string, PublishedReplayNote[]>()
-const PUBLISHED_REPLAY_NOTES_FILE = path.join(__dirname, 'data', 'published-replay-notes.json')
+const PERSISTENT_DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(__dirname, 'data')
+const PUBLISHED_REPLAY_NOTES_FILE = path.join(PERSISTENT_DATA_DIR, 'published-replay-notes.json')
 let publishedReplayNotesPersistPromise: Promise<void> = Promise.resolve()
 
 function defaultPublishedReplayNoteStatus(
