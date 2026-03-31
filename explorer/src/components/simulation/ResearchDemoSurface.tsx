@@ -1048,7 +1048,7 @@ export function ResearchDemoSurface({
       ...overrides,
     }
 
-    params.set('tab', 'agent')
+    // Don't override 'tab' — App.tsx owns top-level tab routing
     params.delete('q')
     params.delete('eid')
     if (nextState.selectedEvaluation) params.set('evaluation', nextState.selectedEvaluation)
@@ -1894,7 +1894,7 @@ export function ResearchDemoSurface({
     const url = new URL(window.location.href)
     const params = url.searchParams
 
-    params.set('tab', 'agent')
+    // Don't override 'tab' — App.tsx owns top-level tab routing
     params.delete('q')
     params.delete('eid')
     if (selectedEvaluation) params.set('evaluation', selectedEvaluation)
@@ -2832,101 +2832,110 @@ export function ResearchDemoSurface({
             </div>
           </details>
 
-              <SimulationAnalyticsDesk
-                description="Analytics over published replay metrics."
-                copyLabel="Copy analytics view"
-                onCopyShareUrl={() => void handleCopyShareUrl()}
-                onCopyQueryJson={() => void handleCopyAnalyticsJson()}
-                onDownloadQueryJson={() => handleDownloadAnalyticsExport('json')}
-                onDownloadQueryCsv={() => handleDownloadAnalyticsExport('csv')}
-                analyticsView={analyticsView}
-                onAnalyticsViewChange={setAnalyticsView}
-                analyticsViewOptions={analyticsViewOptions}
-                analyticsMetric={activeAnalyticsMetric?.id ?? defaultAnalyticsQueryMetricForView(analyticsView)}
-                onAnalyticsMetricChange={setAnalyticsMetric}
-                analyticsMetricOptions={analyticsMetricOptions}
-                compareMode={activeCompareMode?.id ?? 'absolute'}
-                onCompareModeChange={setAnalyticsCompareMode}
-                compareModeOptions={availableAnalyticsCompareModeOptions}
-                statusMessage={analyticsStatusMessage}
-                metricCards={analyticsMetricCards}
-                blocks={analyticsBlocks}
-              >
-                <details className="mt-4 overflow-hidden rounded-xl border border-rule bg-white">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
-                    <span className="text-sm font-medium text-text-primary">Dashboards & prompts</span>
-                    <span className="text-xs text-muted">{analyticsDashboardPresetCards.length} saved</span>
-                  </summary>
+              <details className="lab-stage overflow-hidden" open={analyticsBlocks.length > 0}>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
+                  <span className="text-sm font-medium text-text-primary">Analytics desk</span>
+                  <span className="text-xs text-muted">Dashboards, metrics, export</span>
+                </summary>
 
-                  <div className="grid gap-4 border-t border-rule px-4 py-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-                    <div>
-                      <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Dashboards</div>
-                      <div className="mt-4 grid gap-3 md:grid-cols-2">
-                        {analyticsDashboardPresetCards.map(preset => (
-                          <div
-                            key={preset.id}
-                            className={cn(
-                              'rounded-xl border px-4 py-4 transition-colors',
-                              preset.active
-                                ? 'border-accent bg-surface-active'
-                                : 'border-rule bg-surface-active',
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <div className="text-sm font-medium text-text-primary">{preset.label}</div>
-                                <div className="mt-1 text-xs leading-5 text-muted">{preset.note}</div>
+                <div className="border-t border-rule">
+                  <SimulationAnalyticsDesk
+                    description="Analytics over published replay metrics."
+                    copyLabel="Copy analytics view"
+                    onCopyShareUrl={() => void handleCopyShareUrl()}
+                    onCopyQueryJson={() => void handleCopyAnalyticsJson()}
+                    onDownloadQueryJson={() => handleDownloadAnalyticsExport('json')}
+                    onDownloadQueryCsv={() => handleDownloadAnalyticsExport('csv')}
+                    analyticsView={analyticsView}
+                    onAnalyticsViewChange={setAnalyticsView}
+                    analyticsViewOptions={analyticsViewOptions}
+                    analyticsMetric={activeAnalyticsMetric?.id ?? defaultAnalyticsQueryMetricForView(analyticsView)}
+                    onAnalyticsMetricChange={setAnalyticsMetric}
+                    analyticsMetricOptions={analyticsMetricOptions}
+                    compareMode={activeCompareMode?.id ?? 'absolute'}
+                    onCompareModeChange={setAnalyticsCompareMode}
+                    compareModeOptions={availableAnalyticsCompareModeOptions}
+                    statusMessage={analyticsStatusMessage}
+                    metricCards={analyticsMetricCards}
+                    blocks={analyticsBlocks}
+                  >
+                    <details className="mt-4 overflow-hidden rounded-xl border border-rule bg-white">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+                        <span className="text-sm font-medium text-text-primary">Dashboards & prompts</span>
+                        <span className="text-xs text-muted">{analyticsDashboardPresetCards.length} saved</span>
+                      </summary>
+
+                      <div className="grid gap-4 border-t border-rule px-4 py-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                        <div>
+                          <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Dashboards</div>
+                          <div className="mt-4 grid gap-3 md:grid-cols-2">
+                            {analyticsDashboardPresetCards.map(preset => (
+                              <div
+                                key={preset.id}
+                                className={cn(
+                                  'rounded-xl border px-4 py-4 transition-colors',
+                                  preset.active
+                                    ? 'border-accent bg-surface-active'
+                                    : 'border-rule bg-surface-active',
+                                )}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <div className="text-sm font-medium text-text-primary">{preset.label}</div>
+                                    <div className="mt-1 text-xs leading-5 text-muted">{preset.note}</div>
+                                  </div>
+                                  {preset.active ? (
+                                    <span className="rounded-full bg-accent px-2 py-1 text-2xs font-medium uppercase tracking-[0.1em] text-white">
+                                      Live
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  <button
+                                    onClick={() => applyAnalyticsDashboardPreset(preset)}
+                                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                                  >
+                                    Open dashboard
+                                  </button>
+                                  <button
+                                    onClick={() => void handleCopyShareUrl(preset.url)}
+                                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                                  >
+                                    Copy link
+                                  </button>
+                                </div>
                               </div>
-                              {preset.active ? (
-                                <span className="rounded-full bg-accent px-2 py-1 text-2xs font-medium uppercase tracking-[0.1em] text-white">
-                                  Live
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <button
-                                onClick={() => applyAnalyticsDashboardPreset(preset)}
-                                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                              >
-                                Open dashboard
-                              </button>
-                              <button
-                                onClick={() => void handleCopyShareUrl(preset.url)}
-                                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                              >
-                                Copy link
-                              </button>
-                            </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
 
-                    <div>
-                      <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Ask from this query</div>
-                      {analyticsPromptLaunchers.length > 0 ? (
-                        <div className="mt-4 grid gap-3">
-                          {analyticsPromptLaunchers.map(item => (
-                            <button
-                              key={item.label}
-                              onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
-                              className="rounded-xl border border-rule bg-surface-active px-4 py-4 text-left transition-colors hover:border-border-hover"
-                            >
-                              <div className="text-sm font-medium text-text-primary">{item.label}</div>
-                              <div className="mt-1 text-11 uppercase tracking-[0.1em] text-text-faint">{item.detail}</div>
-                              <div className="mt-3 text-xs leading-5 text-muted">{item.prompt}</div>
-                            </button>
-                          ))}
+                        <div>
+                          <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Ask from this query</div>
+                          {analyticsPromptLaunchers.length > 0 ? (
+                            <div className="mt-4 grid gap-3">
+                              {analyticsPromptLaunchers.map(item => (
+                                <button
+                                  key={item.label}
+                                  onClick={() => handlePrimeReplayQuestion(item.prompt, true)}
+                                  className="rounded-xl border border-rule bg-surface-active px-4 py-4 text-left transition-colors hover:border-border-hover"
+                                >
+                                  <div className="text-sm font-medium text-text-primary">{item.label}</div>
+                                  <div className="mt-1 text-11 uppercase tracking-[0.1em] text-text-faint">{item.detail}</div>
+                                  <div className="mt-3 text-xs leading-5 text-muted">{item.prompt}</div>
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4 text-sm leading-6 text-text-primary">
+                              Pick a dashboard posture first, then launch a replay question from that frozen query state.
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4 text-sm leading-6 text-text-primary">
-                          Pick a dashboard posture first, then launch a replay question from that frozen query state.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </details>
-              </SimulationAnalyticsDesk>
+                      </div>
+                    </details>
+                  </SimulationAnalyticsDesk>
+                </div>
+              </details>
 
               <details className="lab-stage overflow-hidden">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
