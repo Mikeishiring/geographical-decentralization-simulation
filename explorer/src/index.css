@@ -576,6 +576,71 @@ button, a, [role="tab"], [role="button"] {
   100% { background-position: -100% 0; }
 }
 
+/* ── Monospace type scale — tabular nums for metrics ── */
+.mono-xs {
+  font-family: 'SF Mono', var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.04em;
+  font-feature-settings: 'tnum';
+}
+.mono-sm {
+  font-family: 'SF Mono', var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  font-feature-settings: 'tnum';
+}
+.mono-md {
+  font-family: 'SF Mono', var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.01em;
+  font-feature-settings: 'tnum';
+}
+
+/* ── Stripe-style section divider with faint constellation dots ── */
+.section-divider {
+  position: relative;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-rule) 15%,
+    var(--color-rule) 85%,
+    transparent 100%
+  );
+}
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-meridian);
+  opacity: 0.5;
+}
+.section-divider::before { left: 15%; }
+.section-divider::after { right: 15%; }
+
+/* ── Gradient top stripe — Stripe-style 1px accent line ── */
+.stripe-top-accent {
+  position: relative;
+}
+.stripe-top-accent::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    var(--color-accent) 0%,
+    var(--color-accent-warm) 40%,
+    var(--color-success) 70%,
+    transparent 100%
+  );
+  opacity: 0.35;
+}
+
 /* ── Skip-to-content link ── */
 .skip-to-content {
   position: absolute;
