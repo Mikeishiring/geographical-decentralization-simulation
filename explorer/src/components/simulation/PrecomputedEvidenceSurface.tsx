@@ -274,7 +274,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
         </div>
       )}
 
-      {/* Migration cost — dedicated control when cost variants exist */}
+      {/* Migration cost — compact chip row when cost variants exist */}
       {hasCostDimension && (
         <div>
           <div className="flex items-center justify-between mb-1.5">
@@ -283,23 +283,19 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
               <span className="text-11 text-text-faint tabular-nums">{selectedCost.toFixed(4)} ETH</span>
             )}
           </div>
-          <div className={cn('grid gap-1.5', costResults.length <= 5 ? ({ 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5' } as Record<number, string>)[costResults.length] ?? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-5')}>
-            {costResults.map(({ result, cost }) => (
-              <button
-                key={result}
-                onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
-                className={cn(
-                  'lab-option-card rounded-xl px-2.5 py-1.5 text-center transition-all hover:border-border-hover',
-                  selectedResult === result
-                    ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
-                    : 'text-muted',
-                )}
-              >
-                <div className="text-xs font-medium tabular-nums">{formatCostLabel(cost)}</div>
-                {cost === 0.002 && <div className="mt-0.5 text-2xs font-medium uppercase tracking-[0.1em] opacity-75">paper</div>}
-                {cost === 0 && <div className="mt-0.5 text-2xs font-medium uppercase tracking-[0.1em] opacity-75">none</div>}
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-1.5">
+            {costResults.map(({ result, cost }) => {
+              const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
+              return (
+                <button
+                  key={result}
+                  onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
+                  className={cn(chipBase, 'tabular-nums', selectedResult === result ? chipActive : chipInactive)}
+                >
+                  {formatCostLabel(cost)}{hint ? ` (${hint})` : ''}
+                </button>
+              )
+            })}
           </div>
         </div>
       )}
