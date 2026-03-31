@@ -1,9 +1,18 @@
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ListTree, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare, Sparkles } from 'lucide-react'
+import { ListTree, FileText, BookOpen } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
 import type { TabId } from '../layout/TabNav'
+import {
+  AnimatedBookOpen,
+  AnimatedListTree,
+  AnimatedFileText,
+  AnimatedMessageSquare,
+  AnimatedChevronToggle,
+  AnimatedSparkles,
+} from './AnimatedViewIcons'
 
 export type ReaderMode = 'editorial' | 'arguments' | 'paper'
 
@@ -73,6 +82,8 @@ export function PaperViewModeBar({
   const progressPercent = ((activeSectionIndex + 1) / PAPER_SECTIONS.length) * 100
 
   const activeSection = !paperMode ? PAPER_SECTIONS[activeSectionIndex] : null
+  const [hoveredMode, setHoveredMode] = useState<ReaderMode | null>(null)
+  const [notesHovered, setNotesHovered] = useState(false)
 
   return (
     <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-2.5 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6">
@@ -82,14 +93,16 @@ export function PaperViewModeBar({
           <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-0.5 shrink-0" role="tablist" aria-label="Reading mode">
             {MODES_ORDERED.map(mode => {
               const meta = MODE_META[mode]
-              const Icon = meta.icon
               const isActive = readerMode === mode
+              const isHovered = hoveredMode === mode
               return (
                 <motion.button
                   key={mode}
                   role="tab"
                   aria-selected={isActive}
                   onClick={() => onModeChange(mode)}
+                  onMouseEnter={() => setHoveredMode(mode)}
+                  onMouseLeave={() => setHoveredMode(null)}
                   title={meta.detail}
                   whileTap={{ scale: 0.96 }}
                   transition={SPRING_SNAPPY}
@@ -108,7 +121,9 @@ export function PaperViewModeBar({
                     />
                   )}
                   <span className="relative flex items-center gap-1.5">
-                    <Icon className="h-3.5 w-3.5" />
+                    {mode === 'editorial' && <AnimatedBookOpen isActive={isActive} isHovered={isHovered} />}
+                    {mode === 'arguments' && <AnimatedListTree isActive={isActive} isHovered={isHovered} />}
+                    {mode === 'paper' && <AnimatedFileText isActive={isActive} isHovered={isHovered} />}
                     <span className="hidden sm:inline">{meta.label}</span>
                   </span>
                 </motion.button>
@@ -118,8 +133,8 @@ export function PaperViewModeBar({
 
           {/* Fidelity spectrum — animated dot tracks interpretation level */}
           <div className="hidden sm:flex items-center gap-2 shrink-0">
-            <span className="text-2xs select-none whitespace-nowrap flex items-center gap-1">
-              <Sparkles className="h-2.5 w-2.5 text-amber-500/50" />
+            <span className="text-2xs select-none whitespace-nowrap flex items-center gap-1 text-amber-500/50">
+              <AnimatedSparkles isActive={readerMode === 'editorial'} />
               <span className="text-amber-600/50">Interpreted</span>
             </span>
             <div className="relative w-16 h-4 flex items-center">
@@ -168,6 +183,8 @@ export function PaperViewModeBar({
           {onNotesToggle && (
             <button
               onClick={onNotesToggle}
+              onMouseEnter={() => setNotesHovered(true)}
+              onMouseLeave={() => setNotesHovered(false)}
               className={cn(
                 'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors',
                 notesVisible
@@ -175,15 +192,19 @@ export function PaperViewModeBar({
                   : 'border-rule text-muted hover:text-text-primary hover:border-border-hover',
               )}
             >
-              <MessageSquare className="h-3 w-3" />
+              <AnimatedMessageSquare isActive={notesVisible} isHovered={notesHovered} />
               Notes
               {noteCount > 0 && (
-                <span className={cn(
-                  'ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold',
-                  notesVisible ? 'bg-accent text-white' : 'bg-surface-active text-text-faint',
-                )}>
+                <motion.span
+                  className={cn(
+                    'ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold',
+                    notesVisible ? 'bg-accent text-white' : 'bg-surface-active text-text-faint',
+                  )}
+                  animate={notesVisible ? { scale: [1, 1.2, 1] } : {}}
+                  transition={SPRING_SNAPPY}
+                >
                   {noteCount}
-                </span>
+                </motion.span>
               )}
             </button>
           )}
@@ -196,7 +217,7 @@ export function PaperViewModeBar({
                 : 'border-rule text-muted hover:text-text-primary hover:border-border-hover',
             )}
           >
-            {guideOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            <AnimatedChevronToggle isActive={guideOpen} />
             Reading guide
           </button>
         </div>
