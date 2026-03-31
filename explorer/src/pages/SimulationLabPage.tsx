@@ -248,18 +248,19 @@ export function SimulationLabPage({
             />
           ) : null}
 
-          <details open={!manifest} className="mb-5 overflow-hidden rounded-[24px] border border-rule bg-gradient-to-b from-surface-active/80 to-white/95">
-            <summary className="flex cursor-pointer list-none flex-col gap-3 border-b border-rule/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+          {manifest && <div className="section-divider my-6" />}
+
+          <details open={!manifest} className="mb-5 overflow-hidden rounded-[24px] border border-rule bg-gradient-to-b from-surface-active/60 to-white/95">
+            <summary className="flex cursor-pointer list-none flex-col gap-3 border-b border-rule/70 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="lab-section-title">Lab controls</div>
               <div className="flex flex-wrap gap-2 text-xs text-muted">
-                <span className="lab-chip bg-white/85">{config.paradigm}</span>
-                <span className="lab-chip bg-white/85">{config.validators.toLocaleString()} validators</span>
-                <span className="lab-chip bg-white/85">{config.slots.toLocaleString()} slots</span>
-                <span className="lab-chip bg-white/85">{paperComparability.title}</span>
+                <span className="lab-chip bg-white/90">{config.paradigm}</span>
+                <span className="lab-chip bg-white/90">{config.validators.toLocaleString()} val</span>
+                <span className="lab-chip bg-white/90">{config.slots.toLocaleString()} slots</span>
               </div>
             </summary>
 
-            <div className="px-4 py-4">
+            <div className="px-5 py-4">
               <ExactLabIntro
                 config={config}
                 comparabilityTitle={paperComparability.title}

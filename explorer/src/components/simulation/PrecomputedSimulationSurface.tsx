@@ -37,8 +37,8 @@ export function PrecomputedSimulationSurface({
   const dataset = recommendation?.dataset ?? datasets[0] ?? null
 
   return (
-    <div className="mb-5 overflow-hidden rounded-[28px] border border-rule bg-white shadow-[0_24px_64px_rgba(15,23,42,0.08)]">
-      <div className="flex items-center justify-between border-b border-rule bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.9))] px-4 py-3">
+    <div className="geo-accent-bar mb-5 overflow-hidden rounded-[28px] border border-rule bg-white shadow-[0_24px_64px_rgba(15,23,42,0.06)]">
+      <div className="flex items-center justify-between border-b border-rule bg-[linear-gradient(180deg,rgba(250,250,248,0.98),rgba(255,255,255,0.92))] px-5 py-3.5">
         <div
           className="lab-section-title"
           title="Paper-backed charts and map from the nearest checked-in scenario."
@@ -46,7 +46,7 @@ export function PrecomputedSimulationSurface({
           Published evidence
         </div>
         {dataset ? (
-          <span className="lab-chip bg-white/85">
+          <span className="lab-chip bg-white/90">
             {formatPublishedDatasetLabel(dataset)}
           </span>
         ) : null}
