@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
-import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
+import { STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { formatNumber } from './simulation-constants'
 import {
   totalSlotsFromPayload,
@@ -11,7 +11,7 @@ import {
 } from './simulation-analytics'
 import type { ResearchMetadata } from './simulation-lab-types'
 
-// ── KPI card definitions ────────────────────────────────────────────────────
+// ── KPI card builder ────────────────────────────────────────────────────────
 
 interface KpiCard {
   readonly label: string
@@ -21,15 +21,15 @@ interface KpiCard {
   readonly sentiment: 'positive' | 'neutral' | 'negative'
 }
 
-function computeDelta(start: number | undefined, end: number | undefined): { formatted: string; direction: 'up' | 'down' | 'flat' } | null {
+function computeDelta(
+  start: number | undefined,
+  end: number | undefined,
+): { formatted: string; direction: 'up' | 'down' | 'flat' } | null {
   if (start == null || end == null || !Number.isFinite(start) || !Number.isFinite(end)) return null
   const diff = end - start
   if (Math.abs(diff) < 0.0001) return { formatted: '0', direction: 'flat' }
   const sign = diff > 0 ? '+' : ''
-  return {
-    formatted: `${sign}${formatNumber(diff, 4)}`,
-    direction: diff > 0 ? 'up' : 'down',
-  }
+  return { formatted: `${sign}${formatNumber(diff, 4)}`, direction: diff > 0 ? 'up' : 'down' }
 }
 
 function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
@@ -38,7 +38,6 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   const finalSlot = Math.max(0, totalSlots - 1)
   const cards: KpiCard[] = []
 
-  // 1. Concentration (HHI)
   const hhiEnd = metrics.hhi?.[finalSlot]
   const hhiDelta = computeDelta(metrics.hhi?.[0], hhiEnd)
   if (hhiEnd != null) {
@@ -51,7 +50,6 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     })
   }
 
-  // 2. Coverage (Liveness)
   const livenessEnd = metrics.liveness?.[finalSlot]
   const livenessDelta = computeDelta(metrics.liveness?.[0], livenessEnd)
   const topRegion = topRegionsForSlot(payload, finalSlot, 1)[0]
@@ -65,7 +63,6 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     })
   }
 
-  // 3. Attestation
   const attestEnd = metrics.attestations?.[finalSlot]
   const attestDelta = computeDelta(metrics.attestations?.[0], attestEnd)
   if (attestEnd != null) {
@@ -78,7 +75,6 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     })
   }
 
-  // 4. Proposal latency
   const proposalEnd = metrics.proposal_times?.[finalSlot]
   const proposalDelta = computeDelta(metrics.proposal_times?.[0], proposalEnd)
   if (proposalEnd != null) {
@@ -91,7 +87,6 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     })
   }
 
-  // 5. Block value (MEV)
   const mevEnd = metrics.mev?.[finalSlot]
   const mevDelta = computeDelta(metrics.mev?.[0], mevEnd)
   if (mevEnd != null) {
@@ -109,24 +104,23 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
 
 // ── KPI Strip ───────────────────────────────────────────────────────────────
 
-interface KpiStripProps {
-  readonly payload: PublishedAnalyticsPayload
-}
-
 const SENTIMENT_DOT: Record<string, string> = {
   positive: 'bg-emerald-500',
   neutral: 'bg-amber-500',
   negative: 'bg-rose-500',
 }
 
+interface KpiStripProps {
+  readonly payload: PublishedAnalyticsPayload
+}
+
 export function EvidenceKpiStrip({ payload }: KpiStripProps) {
   const cards = useMemo(() => buildKpiCards(payload), [payload])
-
   if (cards.length === 0) return null
 
   return (
     <motion.div
-      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5"
+      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2"
       initial="hidden"
       animate="visible"
       variants={STAGGER_CONTAINER}
@@ -135,13 +129,13 @@ export function EvidenceKpiStrip({ payload }: KpiStripProps) {
         <motion.div
           key={card.label}
           variants={STAGGER_ITEM}
-          className="rounded-xl border border-rule bg-white/80 px-3.5 py-3"
+          className="lab-option-card px-3 py-2.5"
         >
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span className={cn('h-1.5 w-1.5 rounded-full', SENTIMENT_DOT[card.sentiment])} />
-            <span className="text-2xs uppercase tracking-[0.08em] text-text-faint font-medium">{card.label}</span>
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
+            <span className="text-2xs uppercase tracking-[0.08em] text-text-faint font-medium truncate">{card.label}</span>
           </div>
-          <div className="text-base font-semibold text-text-primary tabular-nums leading-tight">{card.value}</div>
+          <div className="text-[15px] font-semibold text-text-primary tabular-nums leading-tight">{card.value}</div>
           {card.delta && (
             <div className="mt-0.5 text-2xs text-muted tabular-nums">{card.delta}</div>
           )}
@@ -161,7 +155,7 @@ interface ConfigSnapshotProps {
   readonly totalSlots: number
 }
 
-const PARAM_LABELS: ReadonlyArray<{
+const PARAM_DEFS: ReadonlyArray<{
   key: keyof ResearchMetadata
   label: string
   format: (v: number) => string
@@ -175,20 +169,13 @@ const PARAM_LABELS: ReadonlyArray<{
 
 export function EvidenceConfigSnapshot({ metadata, description, paradigm, totalSlots }: ConfigSnapshotProps) {
   return (
-    <motion.div
-      className="rounded-xl border border-rule bg-stone-50/60 px-4 py-3"
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={SPRING_CRISP}
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-2xs uppercase tracking-[0.08em] text-text-faint font-semibold">Configuration snapshot</span>
-      </div>
+    <div className="lab-stage-soft px-4 py-3">
+      <div className="lab-section-title mb-2">Configuration snapshot</div>
 
       <div className="flex flex-wrap gap-1.5 mb-3">
         <span className="lab-chip bg-white/90 text-2xs">{paradigm}</span>
         <span className="lab-chip bg-white/90 text-2xs">{totalSlots.toLocaleString()} slots</span>
-        {metadata && PARAM_LABELS.map(({ key, label, format }) => {
+        {metadata && PARAM_DEFS.map(({ key, label, format }) => {
           const val = metadata[key]
           if (val == null || typeof val !== 'number') return null
           return (
@@ -199,13 +186,13 @@ export function EvidenceConfigSnapshot({ metadata, description, paradigm, totalS
         })}
       </div>
 
-      <div className="border-t border-rule/60 pt-2.5">
-        <div className="text-2xs font-semibold text-text-faint uppercase tracking-[0.06em] mb-1">How to read this result</div>
+      <div className="border-t border-rule/50 pt-2">
+        <div className="text-2xs font-semibold text-text-faint uppercase tracking-[0.06em] mb-0.5">How to read this result</div>
         <p className="text-xs leading-relaxed text-muted">
           {description ?? 'This surface presents the final-slot snapshot alongside time-series evolution. Each chart tracks a single metric across the full simulation run. The KPI strip above summarizes the headline numbers with deltas computed from the first to last slot.'}
         </p>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -236,24 +223,27 @@ interface PlotFilterToolbarProps {
 
 export function PlotFilterToolbar({ activeCategory, onCategoryChange, counts }: PlotFilterToolbarProps) {
   return (
-    <div className="mb-4">
+    <div className="mb-3">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-2xs uppercase tracking-[0.08em] text-text-faint font-semibold">Analytical lens</span>
-        <span className="text-2xs text-muted">
+        <div className="lab-section-title">Analytical lens</div>
+        <span className="text-2xs text-muted tabular-nums">
           {counts[activeCategory]} panel{counts[activeCategory] !== 1 ? 's' : ''}
         </span>
       </div>
+      <p className="text-xs text-muted leading-relaxed mb-2.5 max-w-xl">
+        Focus the dashboard by category for a cleaner analytical pass.
+      </p>
       <div className="flex flex-wrap gap-1.5">
         {PLOT_CATEGORIES.map(cat => (
           <button
             key={cat.id}
             onClick={() => onCategoryChange(cat.id)}
             className={cn(
-              'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+              'lab-option-card rounded-full px-3 py-1 text-xs font-medium',
               activeCategory === cat.id
-                ? 'border-accent bg-white text-accent shadow-sm'
-                : 'border-rule bg-surface-active text-text-primary hover:border-border-hover',
-              counts[cat.id] === 0 && cat.id !== 'all' && 'opacity-40 pointer-events-none',
+                ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
+                : 'text-muted',
+              counts[cat.id] === 0 && cat.id !== 'all' && 'opacity-30 pointer-events-none',
             )}
           >
             {cat.label}
@@ -274,43 +264,31 @@ export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
   const metrics = payload.metrics ?? {}
   const totalSlots = totalSlotsFromPayload(payload)
   const finalSlot = Math.max(0, totalSlots - 1)
-  const activeRegions = activeRegionCountAtSlot(payload, finalSlot)
   const topRegion = topRegionsForSlot(payload, finalSlot, 1)[0]
 
   const items: Array<{ label: string; value: string }> = []
-
-  if (metrics.clusters?.[finalSlot] != null) {
+  if (metrics.clusters?.[finalSlot] != null)
     items.push({ label: 'Clusters', value: String(Math.round(metrics.clusters[finalSlot]!)) })
-  }
-  if (metrics.total_distance?.[finalSlot] != null) {
+  if (metrics.total_distance?.[finalSlot] != null)
     items.push({ label: 'Total distance', value: formatNumber(metrics.total_distance[finalSlot]!, 0) })
-  }
-  if (metrics.mev?.[finalSlot] != null) {
+  if (metrics.mev?.[finalSlot] != null)
     items.push({ label: 'MEV', value: `${formatNumber(metrics.mev[finalSlot]!, 6)} ETH` })
-  }
-  if (metrics.attestations?.[finalSlot] != null) {
+  if (metrics.attestations?.[finalSlot] != null)
     items.push({ label: 'Attestation', value: formatNumber(metrics.attestations[finalSlot]!, 1) })
-  }
-  if (metrics.proposal_times?.[finalSlot] != null) {
+  if (metrics.proposal_times?.[finalSlot] != null)
     items.push({ label: 'Proposal time', value: `${formatNumber(metrics.proposal_times[finalSlot]!, 1)} ms` })
-  }
-  items.push({ label: 'Active regions', value: String(activeRegions) })
+  items.push({ label: 'Active regions', value: String(activeRegionCountAtSlot(payload, finalSlot)) })
 
   return (
-    <motion.div
-      className="rounded-xl border border-rule bg-white/80 px-4 py-3"
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={SPRING_CRISP}
-    >
-      <div className="flex items-center justify-between mb-2.5">
-        <span className="text-2xs uppercase tracking-[0.08em] text-text-faint font-semibold">Slot narrative</span>
+    <div className="lab-stage-soft px-4 py-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="lab-section-title">Slot narrative</div>
         <span className="text-2xs text-muted">Final slot — what this snapshot says</span>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
         {items.map(item => (
-          <div key={item.label}>
+          <div key={item.label} className="py-0.5">
             <div className="text-2xs text-text-faint">{item.label}</div>
             <div className="text-sm font-semibold text-text-primary tabular-nums">{item.value}</div>
           </div>
@@ -318,7 +296,7 @@ export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
       </div>
 
       {topRegion && (
-        <div className="mt-3 pt-2.5 border-t border-rule/60 flex items-center gap-3">
+        <div className="mt-2 pt-2 border-t border-rule/50 flex items-center gap-6">
           <div>
             <div className="text-2xs text-text-faint">Lead region</div>
             <div className="text-xs font-medium text-text-primary">{topRegion.label} ({formatNumber(topRegion.share, 1)}%)</div>
@@ -329,7 +307,7 @@ export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
           </div>
         </div>
       )}
-    </motion.div>
+    </div>
   )
 }
 
