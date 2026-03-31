@@ -1,11 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, LayoutList, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
+import { Eye, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
 import type { TabId } from '../layout/TabNav'
 
-export type ReaderMode = 'editorial' | 'focus' | 'argument-map' | 'paper'
+export type ReaderMode = 'editorial' | 'focus' | 'paper'
 
 export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; detail: string; fidelity: string; fidelityShort: string }> = {
   editorial: {
@@ -22,13 +22,6 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
     fidelity: 'Clean reading',
     fidelityShort: 'Interpreted',
   },
-  'argument-map': {
-    icon: LayoutList,
-    label: 'Argument map',
-    detail: 'Paper claims organized as expandable structured cards',
-    fidelity: 'Structured claims',
-    fidelityShort: 'Extracted',
-  },
   paper: {
     icon: FileText,
     label: 'Original PDF',
@@ -38,12 +31,11 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
   },
 }
 
-const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'focus', 'argument-map', 'paper'] as const
+const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'focus', 'paper'] as const
 
 const SPECTRUM_POSITIONS: Record<ReaderMode, number> = {
   editorial: 0,
-  focus: 33,
-  'argument-map': 67,
+  focus: 50,
   paper: 100,
 }
 
@@ -74,15 +66,17 @@ export function PaperViewModeBar({
   onNotesToggle,
   noteCount = 0,
 }: PaperViewModeBarProps) {
-  const argumentMapMode = readerMode === 'argument-map'
   const paperMode = readerMode === 'paper'
   const progressPercent = ((activeSectionIndex + 1) / PAPER_SECTIONS.length) * 100
 
+  const activeSection = !paperMode ? PAPER_SECTIONS[activeSectionIndex] : null
+
   return (
-    <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1">
+    <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-2.5 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6">
+      <div className="flex items-center justify-between gap-3">
+        {/* Mode switcher + active section */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-0.5 shrink-0">
             {MODES_ORDERED.map(mode => {
               const meta = MODE_META[mode]
               const Icon = meta.icon
@@ -95,7 +89,7 @@ export function PaperViewModeBar({
                   whileTap={{ scale: 0.96 }}
                   transition={SPRING_SNAPPY}
                   className={cn(
-                    'relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors',
+                    'relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors',
                     isActive
                       ? 'text-text-primary font-medium'
                       : 'text-muted hover:text-text-primary',
@@ -116,42 +110,28 @@ export function PaperViewModeBar({
               )
             })}
           </div>
-          {/* Interpretation spectrum — animated dot tracks active mode */}
-          <div className="hidden sm:flex items-center gap-2 px-1">
-            <span className="text-2xs text-accent/60 select-none whitespace-nowrap">Interpreted</span>
-            <div className="relative flex-1 h-3 flex items-center">
-              <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-accent/30 via-rule to-muted/30" />
-              {MODES_ORDERED.map((mode, i) => (
-                <div
-                  key={mode}
-                  className="absolute top-1/2 -translate-y-1/2 h-1 w-1 rounded-full bg-rule"
-                  style={{ left: `${(i / (MODES_ORDERED.length - 1)) * 100}%` }}
-                />
-              ))}
-              <motion.div
-                className="absolute top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-accent shadow-[0_0_4px_rgba(59,130,246,0.4)]"
-                animate={{ left: `${SPECTRUM_POSITIONS[readerMode]}%` }}
-                transition={SPRING_SNAPPY}
-                style={{ marginLeft: -4 }}
-              />
-            </div>
-            <span className="text-2xs text-muted/60 select-none whitespace-nowrap">Source</span>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {!argumentMapMode && !paperMode && (
-            <div className="hidden sm:flex items-center gap-2 text-xs text-muted">
-              <span>{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
-              <div className="h-1 w-20 overflow-hidden rounded-full bg-surface-active">
-                <motion.div
-                  className="h-full rounded-full bg-accent"
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={SPRING_SOFT}
-                />
+          {/* Active section label + progress */}
+          {activeSection && (
+            <div className="hidden md:flex items-center gap-2.5 min-w-0">
+              <span className="text-rule">·</span>
+              <span className="mono-xs text-accent shrink-0">{activeSection.number}</span>
+              <span className="text-xs text-text-primary truncate">{activeSection.title}</span>
+              <div className="flex items-center gap-1.5 shrink-0 text-xs text-muted">
+                <span>{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
+                <div className="h-1 w-14 overflow-hidden rounded-full bg-surface-active">
+                  <motion.div
+                    className="h-full rounded-full bg-accent"
+                    animate={{ width: `${progressPercent}%` }}
+                    transition={SPRING_SOFT}
+                  />
+                </div>
               </div>
             </div>
           )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
           {onNotesToggle && (
             <button
               onClick={onNotesToggle}
