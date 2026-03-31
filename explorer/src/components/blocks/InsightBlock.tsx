@@ -36,13 +36,14 @@ export function InsightBlock({ block }: InsightBlockProps) {
       {block.title && (
         <h3 className="flex items-center gap-2 text-[0.9375rem] font-medium text-text-primary mb-2.5">
           <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', dotColors[emphasis])} />
-          {block.title}
+          <span className="flex-1">{block.title}</span>
+          {block.cite && <CiteBadge cite={block.cite} />}
         </h3>
       )}
       <p className="text-sm leading-[1.65] text-text-body font-serif">
         <InlineMarkdown text={block.text} />
       </p>
-      {block.cite && (
+      {block.cite && !block.title && (
         <div className="mt-2.5 pt-2 border-t border-rule/50">
           <CiteBadge cite={block.cite} />
         </div>
