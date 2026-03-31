@@ -106,9 +106,9 @@ function generateWireframe() {
 const WIREFRAME_ARCS = generateWireframe()
 
 /* ── Connection config ── */
-const CONNECTION_DIST_SQ = 260 * 260
-const MAX_CONNECTIONS = 6
-const CONNECTION_INTERVAL = 1600
+const CONNECTION_DIST_SQ = 500 * 500
+const MAX_CONNECTIONS = 8
+const CONNECTION_INTERVAL = 1400
 
 /* ── Component ── */
 export function GlobeWireframe({ className = '' }: { readonly className?: string }) {
@@ -267,13 +267,14 @@ export function GlobeWireframe({ className = '' }: { readonly className?: string
       }
 
       // ── Draw atmosphere glow — visible halo at globe edge ──
-      const atmosGrad = ctx!.createRadialGradient(cx, cy, radius * 0.88, cx, cy, radius * 1.2)
+      const atmosGrad = ctx!.createRadialGradient(cx, cy, radius * 0.85, cx, cy, radius * 1.35)
       atmosGrad.addColorStop(0, 'transparent')
-      atmosGrad.addColorStop(0.4, dark ? 'rgba(150, 185, 220, 0.06)' : 'rgba(90, 130, 200, 0.06)')
-      atmosGrad.addColorStop(0.7, dark ? 'rgba(150, 185, 220, 0.04)' : 'rgba(90, 130, 200, 0.04)')
+      atmosGrad.addColorStop(0.3, dark ? 'rgba(150, 185, 220, 0.12)' : 'rgba(90, 130, 200, 0.10)')
+      atmosGrad.addColorStop(0.6, dark ? 'rgba(150, 185, 220, 0.08)' : 'rgba(90, 130, 200, 0.07)')
+      atmosGrad.addColorStop(0.85, dark ? 'rgba(150, 185, 220, 0.03)' : 'rgba(90, 130, 200, 0.03)')
       atmosGrad.addColorStop(1, 'transparent')
       ctx!.beginPath()
-      ctx!.arc(cx, cy, radius * 1.2, 0, Math.PI * 2)
+      ctx!.arc(cx, cy, radius * 1.35, 0, Math.PI * 2)
       ctx!.fillStyle = atmosGrad
       ctx!.fill()
 
@@ -298,12 +299,16 @@ export function GlobeWireframe({ className = '' }: { readonly className?: string
         else alpha = 1
 
         // Control point pulled inward toward globe center — geodesic sag
+        // Sag scales with node distance so long arcs wrap around the sphere
         const midX = (fromP.x + toP.x) / 2
         const midY = (fromP.y + toP.y) / 2
         const dx = midX - cx
         const dy = midY - cy
         const dist = Math.sqrt(dx * dx + dy * dy) || 1
-        const sagAmount = radius * 0.2
+        const nodeDx = toP.x - fromP.x
+        const nodeDy = toP.y - fromP.y
+        const nodeDist = Math.sqrt(nodeDx * nodeDx + nodeDy * nodeDy)
+        const sagAmount = radius * (0.2 + 0.35 * Math.min(nodeDist / (radius * 2), 1))
         const cpX = midX - (dx / dist) * sagAmount
         const cpY = midY - (dy / dist) * sagAmount
 
