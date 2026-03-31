@@ -116,10 +116,13 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
 ] as const
 
 // The curated Tier 1 topic cards (zero API cost)
+export type TopicTheme = 'ssp' | 'msp' | 'finding' | 'mitigation' | 'caveat' | 'methodology'
+
 export interface TopicCard {
   readonly id: string
   readonly title: string
   readonly description: string
+  readonly theme: TopicTheme
   readonly prompts: readonly string[]
   readonly blocks: readonly Block[]
 }
@@ -127,7 +130,8 @@ export interface TopicCard {
 export const OVERVIEW_CARD: TopicCard = {
   id: 'overview',
   title: 'Start with the sharpest questions',
-  description: 'A curated entry point to the paper’s stakes, paradoxes, and caveats.',
+  description: "A curated entry point to the paper's stakes, paradoxes, and caveats.",
+  theme: 'finding',
   prompts: [
     'Why is Ethereum geography not neutral in these models?',
     'Why does gamma push SSP and MSP in opposite directions?',
@@ -144,6 +148,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
     id: 'ssp-vs-msp',
     title: 'Why does MSP centralize faster than SSP?',
     description: 'The baseline head-to-head, plus the mechanism that makes MSP harsher.',
+    theme: 'ssp',
     prompts: [
       'Why does MSP centralize faster than SSP?',
       'How does SSP compare to MSP?',
@@ -187,6 +192,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
     id: 'policy-implications',
     title: 'What does this imply for protocol design?',
     description: 'A first-pass policy and infrastructure lens without pretending the paper has already settled the recommendation.',
+    theme: 'mitigation',
     prompts: [
       'What does this imply for protocol design and infrastructure policy?',
       'What are the paper-backed policy implications here?',
@@ -221,6 +227,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
     id: 'geographic-convergence',
     title: 'Why do the same regions keep winning?',
     description: 'Which low-latency hubs dominate, and when the starting state matters more than the paradigm.',
+    theme: 'finding',
     prompts: [
       'Why do the same regions keep winning?',
       'Which regions become focal hubs and why?',
@@ -251,6 +258,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
     id: 'source-placement',
     title: 'Why can moving sources help one paradigm and hurt the other?',
     description: 'SE1 shows the same infrastructure change pushing SSP and MSP in opposite directions.',
+    theme: 'msp',
     prompts: [
       'Why can moving sources help one paradigm and hurt the other?',
       'Why are aligned sources worse for MSP but misaligned sources worse for SSP?',
@@ -273,7 +281,8 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
   {
     id: 'initial-distribution',
     title: 'Does starting geography matter more than paradigm?',
-    description: 'SE2 asks how much of the result is already baked into today’s validator map.',
+    description: "SE2 asks how much of the result is already baked into today's validator map.",
+    theme: 'finding',
     prompts: [
       'Does starting geography matter more than paradigm choice?',
       'What changes when validators start where Ethereum already is?',
@@ -297,10 +306,11 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
     id: 'attestation-threshold',
     title: 'Why does gamma flip direction across paradigms?',
     description: 'The sharpest paradox in the paper: one protocol lever, opposite geographic effects.',
+    theme: 'msp',
     prompts: [
       'Why does gamma flip direction across paradigms?',
       'Why does a higher attestation threshold centralize SSP more but MSP less?',
-      'What is the paper’s sharpest paradox?',
+      "What is the paper's sharpest paradox?",
       'How does higher gamma affect SSP and MSP?',
     ],
     blocks: [
@@ -325,6 +335,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
     id: 'shorter-slots',
     title: 'Do shorter slots worsen fairness more than geography?',
     description: 'SE4b separates what changes on the map from what changes in reward inequality.',
+    theme: 'finding',
     prompts: [
       'Do shorter slots worsen fairness more than geography?',
       'What changes under 6-second slots?',
@@ -348,6 +359,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
     id: 'metrics-explained',
     title: 'How should I read the paper metrics?',
     description: 'A practical guide to Gini_g, HHI_g, CV_g, and LC_g.',
+    theme: 'methodology',
     prompts: [
       'How should I read the paper metrics?',
       'Which metric best captures resilience to regional concentration?',
@@ -376,7 +388,8 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
   {
     id: 'limitations',
     title: 'Where should confidence stop?',
-    description: 'The paper’s modeling limits and the research questions they leave open.',
+    description: "The paper's modeling limits and the research questions they leave open.",
+    theme: 'caveat',
     prompts: [
       'Where should confidence stop in this model?',
       'What caveats matter most before generalizing these results?',

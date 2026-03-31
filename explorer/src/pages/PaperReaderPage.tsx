@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PAPER_SECTIONS } from '../data/paper-sections'
 import { createExploration, publishExploration, listExplorations, type Exploration } from '../lib/api'
+import { MOCK_COMMUNITY_NOTES } from '../data/mock-community-notes'
 import { PaperViewModeBar, type ReaderMode } from '../components/paper/PaperViewModeBar'
 import { EditorialView } from '../components/paper/EditorialView'
 import { FullTextView } from '../components/paper/FullTextView'
@@ -37,7 +38,7 @@ export function PaperReaderPage({
   })
 
   const [guideOpen, setGuideOpen] = useState(false)
-  const [notesVisible, setNotesVisible] = useState(false)
+  const [notesVisible, setNotesVisible] = useState(true)
 
   // Text selection for community notes
   const { containerRef, selection, selectionRect, clearSelection } = useTextSelection(readerMode)
@@ -51,19 +52,26 @@ export function PaperReaderPage({
     refetchInterval: isActive ? 60_000 : false,
   })
 
+  // Use real notes when available, fall back to mock data for demo
+  // Only use real notes if they have section anchors (usable for inline display)
+  const resolvedNotes = useMemo(() => {
+    const real = (notesQuery.data ?? []).filter(n => n.anchor?.sectionId)
+    return real.length > 0 ? real : [...MOCK_COMMUNITY_NOTES]
+  }, [notesQuery.data])
+
   // Group notes by sectionId
   const notesBySection = useMemo(() => {
     const map = new Map<string, Exploration[]>()
-    for (const note of notesQuery.data ?? []) {
+    for (const note of resolvedNotes) {
       const sectionId = note.anchor?.sectionId
       if (!sectionId) continue
       const existing = map.get(sectionId) ?? []
       map.set(sectionId, [...existing, note])
     }
     return map
-  }, [notesQuery.data])
+  }, [resolvedNotes])
 
-  const totalNoteCount = notesQuery.data?.length ?? 0
+  const totalNoteCount = resolvedNotes.length
 
   const selectionSectionNoteCount = selection?.sectionId
     ? (notesBySection.get(selection.sectionId)?.length ?? 0)
@@ -163,15 +171,18 @@ export function PaperReaderPage({
   )
 
   return (
+    <>
+    {/* Popover lives OUTSIDE the container so mousedown on it
+        never triggers the container's selection-clear handler */}
+    <SelectionPopover
+      anchor={selection}
+      rect={selectionRect}
+      onAddNote={handleAddNote}
+      onDismiss={clearSelection}
+      sectionNoteCount={selectionSectionNoteCount}
+    />
+
     <div ref={containerRef} className="overflow-x-hidden">
-      {/* Text selection popover for community notes */}
-      <SelectionPopover
-        anchor={selection}
-        rect={selectionRect}
-        onAddNote={handleAddNote}
-        onDismiss={clearSelection}
-        sectionNoteCount={selectionSectionNoteCount}
-      />
 
       {/* Sticky reading-mode bar */}
       <PaperViewModeBar
@@ -203,5 +214,6 @@ export function PaperReaderPage({
         />
       )}
     </div>
+    </>
   )
 }

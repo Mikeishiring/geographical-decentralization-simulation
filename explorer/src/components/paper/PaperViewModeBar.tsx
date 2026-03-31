@@ -7,13 +7,14 @@ import type { TabId } from '../layout/TabNav'
 
 export type ReaderMode = 'editorial' | 'focus' | 'paper'
 
-export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; detail: string; fidelity: string; fidelityShort: string }> = {
+export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; detail: string; fidelity: string; fidelityShort: string; provenanceHint: string }> = {
   editorial: {
     icon: BookOpen,
     label: 'Editorial',
     detail: 'LLM-generated narrative walkthrough with source provenance',
     fidelity: 'LLM narrative',
     fidelityShort: 'Interpreted',
+    provenanceHint: 'Narrative text is LLM-generated. Source pills show provenance.',
   },
   focus: {
     icon: Eye,
@@ -21,6 +22,7 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
     detail: 'Same editorial content, distraction-free centered layout',
     fidelity: 'Clean reading',
     fidelityShort: 'Interpreted',
+    provenanceHint: 'Same editorial content in a clean layout.',
   },
   paper: {
     icon: FileText,
@@ -28,6 +30,7 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
     detail: 'Published arXiv PDF — unmodified source document',
     fidelity: 'Original arXiv',
     fidelityShort: 'Source',
+    provenanceHint: 'Unmodified published document — no interpretation layer.',
   },
 }
 
@@ -217,6 +220,7 @@ export function PaperViewModeBar({
                   })}
                 </div>
                 <p className="mt-2 text-2xs text-muted leading-relaxed">{MODE_META[readerMode].detail}</p>
+                <p className="mt-1 text-2xs text-text-faint leading-relaxed italic">{MODE_META[readerMode].provenanceHint}</p>
               </div>
               <div>
                 <div className="text-xs font-medium text-text-primary">References & artifacts</div>

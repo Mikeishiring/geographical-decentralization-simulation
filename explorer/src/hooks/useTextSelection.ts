@@ -1,22 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TextAnchor } from '../types/anchors'
 
-interface SelectionState {
-  readonly anchor: TextAnchor
-  readonly rect: DOMRect
-}
-
 /**
  * Watches for text selections within a container element and returns
  * a TextAnchor with the selected excerpt and nearest section context.
+ *
+ * Stores the Range object (not a snapshot DOMRect) so the popover can
+ * recompute its viewport position on scroll without going stale.
  */
 export function useTextSelection(viewMode?: string) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [selection, setSelection] = useState<SelectionState | null>(null)
+  const [anchor, setAnchor] = useState<TextAnchor | null>(null)
+  const [rect, setRect] = useState<DOMRect | null>(null)
+  const rangeRef = useRef<Range | null>(null)
 
   const clearSelection = useCallback(() => {
-    setSelection(null)
+    setAnchor(null)
+    setRect(null)
+    rangeRef.current = null
   }, [])
+
+  // Recompute rect from the stored Range on every scroll/resize
+  // so the fixed-position popover tracks the selected text.
+  useEffect(() => {
+    if (!rangeRef.current) return
+
+    const recompute = () => {
+      const range = rangeRef.current
+      if (!range) return
+      setRect(range.getBoundingClientRect())
+    }
+
+    window.addEventListener('scroll', recompute, { passive: true })
+    window.addEventListener('resize', recompute, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', recompute)
+      window.removeEventListener('resize', recompute)
+    }
+  }, [anchor]) // Re-attach when anchor changes (i.e. new selection)
 
   useEffect(() => {
     const container = containerRef.current
@@ -26,46 +47,41 @@ export function useTextSelection(viewMode?: string) {
       // Small delay to let browser finalize the selection
       window.requestAnimationFrame(() => {
         const sel = window.getSelection()
-        if (!sel || sel.isCollapsed || !sel.rangeCount) {
-          setSelection(null)
-          return
-        }
+        if (!sel || sel.isCollapsed || !sel.rangeCount) return
 
         const text = sel.toString().trim()
-        if (text.length < 3 || text.length > 500) {
-          setSelection(null)
-          return
-        }
+        if (text.length < 3 || text.length > 500) return
 
         const range = sel.getRangeAt(0)
 
         // Check that selection is within our container
-        if (!container.contains(range.commonAncestorContainer)) {
-          setSelection(null)
-          return
-        }
+        if (!container.contains(range.commonAncestorContainer)) return
 
         // Walk up from the selection to find the nearest data-section-id
         const sectionId = findAncestorAttribute(range.commonAncestorContainer, 'data-section-id')
         const blockId = findAncestorAttribute(range.commonAncestorContainer, 'data-block-id')
 
-        const rect = range.getBoundingClientRect()
+        // Store the live Range so we can recompute rect on scroll
+        rangeRef.current = range.cloneRange()
 
-        setSelection({
-          anchor: {
-            sectionId: sectionId ?? undefined,
-            blockId: blockId ?? undefined,
-            excerpt: text,
-            viewMode,
-          },
-          rect,
+        setAnchor({
+          sectionId: sectionId ?? undefined,
+          blockId: blockId ?? undefined,
+          excerpt: text,
+          viewMode,
         })
+        setRect(range.getBoundingClientRect())
       })
     }
 
-    const handleMouseDown = () => {
+    const handleMouseDown = (e: MouseEvent) => {
+      // Don't clear if the click is inside the annotation popover.
+      // The popover marks itself with [data-annotation-popover].
+      const target = e.target as HTMLElement
+      if (target.closest?.('[data-annotation-popover]')) return
+
       // Clear on new mouse down to reset stale selections
-      setSelection(null)
+      clearSelection()
     }
 
     container.addEventListener('mouseup', handleMouseUp)
@@ -75,12 +91,12 @@ export function useTextSelection(viewMode?: string) {
       container.removeEventListener('mouseup', handleMouseUp)
       container.removeEventListener('mousedown', handleMouseDown)
     }
-  }, [viewMode])
+  }, [viewMode, clearSelection])
 
   return {
     containerRef,
-    selection: selection?.anchor ?? null,
-    selectionRect: selection?.rect ?? null,
+    selection: anchor,
+    selectionRect: rect,
     clearSelection,
   }
 }
