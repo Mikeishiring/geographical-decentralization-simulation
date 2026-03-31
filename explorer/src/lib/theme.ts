@@ -64,6 +64,7 @@ export const CTA_BUTTON = {
   hover: 'hover:bg-text-primary/90',
 } as const
 
+
 /** Chart design tokens — Stripe-aligned defaults */
 export const CHART = {
   gridOpacity: 0.05,
