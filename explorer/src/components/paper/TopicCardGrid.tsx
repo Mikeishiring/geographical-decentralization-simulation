@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING } from '../../lib/theme'
 import { TOPIC_CARDS, type TopicCard } from '../../data/default-blocks'
+
+const INITIAL_VISIBLE = 4
 
 interface TopicCardGridProps {
   readonly activeTopic: TopicCard | null
@@ -16,24 +19,38 @@ export function TopicCardGrid({
   onTopicClick,
   onBackToOverview,
 }: TopicCardGridProps) {
+  const [expanded, setExpanded] = useState(false)
+  const visibleCards = expanded ? TOPIC_CARDS : TOPIC_CARDS.slice(0, INITIAL_VISIBLE)
+  const hasMore = TOPIC_CARDS.length > INITIAL_VISIBLE
+
   return (
-    <div className="mb-6 rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="rounded-xl border border-rule bg-white px-4 py-4 geo-accent-bar">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <div className="lab-section-title">
-          {activeTopic || showingAi ? 'Paper topics' : 'Key findings'}
+          {activeTopic || showingAi ? 'Paper topics' : 'Explore by topic'}
         </div>
-        {(activeTopic || showingAi) && (
-          <button
-            onClick={onBackToOverview}
-            className="flex items-center gap-1 text-xs text-muted hover:text-text-primary transition-colors"
-          >
-            ← Back to overview
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {(activeTopic || showingAi) && (
+            <button
+              onClick={onBackToOverview}
+              className="text-xs text-muted hover:text-text-primary transition-colors"
+            >
+              ← Back
+            </button>
+          )}
+          {hasMore && !activeTopic && !showingAi && (
+            <button
+              onClick={() => setExpanded(prev => !prev)}
+              className="text-xs text-muted hover:text-accent transition-colors"
+            >
+              {expanded ? 'Show less' : `+${TOPIC_CARDS.length - INITIAL_VISIBLE} more`}
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="stagger-reveal grid grid-cols-2 sm:grid-cols-4 gap-3" role="group" aria-label="Topic cards">
-        {TOPIC_CARDS.map(card => {
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" role="group" aria-label="Topic cards">
+        {visibleCards.map(card => {
           const isActive = activeTopic?.id === card.id && !showingAi
           const isDimmed = (activeTopic !== null || showingAi) && !isActive
 
@@ -46,7 +63,7 @@ export function TopicCardGrid({
               aria-label={card.title}
               aria-pressed={isActive}
               className={cn(
-                'text-left rounded-lg border p-4 transition-colors group card-hover',
+                'text-left rounded-lg border px-3 py-2.5 transition-colors group card-hover',
                 isActive
                   ? 'border-accent bg-white'
                   : isDimmed
@@ -54,14 +71,11 @@ export function TopicCardGrid({
                     : 'border-rule bg-surface-active hover:border-border-hover',
               )}
             >
-              <h4 className="text-xs font-medium text-text-primary leading-snug mb-1 line-clamp-2">
+              <h4 className="text-xs font-medium text-text-primary leading-snug line-clamp-2">
                 {card.title}
               </h4>
-              <p className="text-xs text-muted leading-relaxed line-clamp-2 mb-2">
-                {card.description}
-              </p>
               <span className={cn(
-                'text-11',
+                'mt-1 block text-11',
                 isActive ? 'text-accent' : 'text-text-faint',
               )}>
                 {isActive ? 'Viewing' : 'Explore →'}
