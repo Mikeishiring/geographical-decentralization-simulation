@@ -12,6 +12,9 @@ import type { PublishedAnalyticsPayload } from './simulation-analytics'
 export const SVG_W = 960
 export const SVG_H = 500
 
+/** Visible portion of the SVG — crops Antarctica by clipping below ~55°S */
+export const MAP_VISIBLE_H = 380
+
 export const GCP_REGION_MAP = new Map(GCP_REGIONS.map(r => [r.id, r]))
 
 export type OverlayMode = 'validators' | 'sources' | 'latency'
