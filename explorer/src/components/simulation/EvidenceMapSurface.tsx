@@ -148,6 +148,19 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
   const hhi = metrics.hhi?.[slot]
   const clusters = metrics.clusters?.[slot]
   const distance = metrics.total_distance?.[slot]
+  const liveness = metrics.liveness?.[slot]
+
+  // ── Macro-region (continental) breakdown ──
+  const macroBreakdown = useMemo(() => {
+    const totals = new Map<string, number>()
+    for (const node of displayNodes) {
+      const region = node.macroRegion ?? 'Unknown'
+      totals.set(region, (totals.get(region) ?? 0) + node.count)
+    }
+    return [...totals.entries()]
+      .map(([region, count]) => ({ region, count, share: totalValidators > 0 ? (count / totalValidators) * 100 : 0 }))
+      .toSorted((a, b) => b.count - a.count)
+  }, [displayNodes, totalValidators])
 
   // ── Tooltip position ──
   const tooltipStyle = useMemo(() => {
@@ -216,7 +229,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
       </div>
 
       {/* ── Map + Sidebar ── */}
-      <div className="grid gap-0 lg:grid-cols-[1fr_240px]">
+      <div className="grid gap-0 lg:grid-cols-[1fr_260px]">
         {/* SVG Map */}
         <div className="relative overflow-hidden" style={{ aspectRatio: `${SVG_W} / ${SVG_H}`, backgroundColor: DARK_SURFACE.bg }}>
           <svg
@@ -493,9 +506,19 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                       {overlay === 'sources' ? 'sources' : 'validators'}
                     </span>
                   </div>
+                  {/* Share bar */}
+                  {totalValidators > 0 && (
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <div className="flex-1 h-[3px] rounded-full bg-white/10 overflow-hidden min-w-[60px]">
+                        <div className="h-full rounded-full bg-accent/70" style={{ width: `${Math.min((tooltip.count / totalValidators) * 100, 100)}%` }} />
+                      </div>
+                      <span className="text-[0.5625rem] font-mono text-white/50 tabular-nums">
+                        {formatNumber((tooltip.count / totalValidators) * 100, 1)}%
+                      </span>
+                    </div>
+                  )}
                   <div className="mt-0.5 text-[0.5625rem] font-mono text-white/30">
                     #{tooltip.rank + 1} of {tooltip.total}
-                    {totalValidators > 0 && ` · ${formatNumber((tooltip.count / totalValidators) * 100, 1)}%`}
                   </div>
                 </div>
               </motion.div>
@@ -510,7 +533,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
 
         {/* ── Sidebar ── */}
         <div className="border-t border-rule p-3.5 lg:border-l lg:border-t-0 space-y-4 overflow-y-auto" style={{ maxHeight: 500 }}>
-          {/* Live metrics */}
+          {/* Live metrics — sentiment-colored */}
           <div>
             <div className="lab-section-title">
               Slot {(slot + 1).toLocaleString()} metrics
@@ -519,13 +542,25 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               {gini != null && (
                 <div className="lab-option-card p-2">
                   <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Gini</div>
-                  <div className="text-sm font-semibold tabular-nums text-text-primary">{formatNumber(gini, 3)}</div>
+                  <div className={cn('text-sm font-semibold tabular-nums', gini < 0.4 ? 'text-emerald-600' : gini < 0.6 ? 'text-amber-500' : 'text-rose-500')}>
+                    {formatNumber(gini, 3)}
+                  </div>
                 </div>
               )}
               {hhi != null && (
                 <div className="lab-option-card p-2">
                   <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">HHI</div>
-                  <div className="text-sm font-semibold tabular-nums text-text-primary">{formatNumber(hhi, 4)}</div>
+                  <div className={cn('text-sm font-semibold tabular-nums', hhi < 0.15 ? 'text-emerald-600' : hhi < 0.25 ? 'text-amber-500' : 'text-rose-500')}>
+                    {formatNumber(hhi, 4)}
+                  </div>
+                </div>
+              )}
+              {liveness != null && (
+                <div className="lab-option-card p-2">
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Liveness</div>
+                  <div className={cn('text-sm font-semibold tabular-nums', liveness > 95 ? 'text-emerald-600' : liveness > 80 ? 'text-amber-500' : 'text-rose-500')}>
+                    {formatNumber(liveness, 1)}%
+                  </div>
                 </div>
               )}
               {clusters != null && (
@@ -542,6 +577,24 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               )}
             </div>
           </div>
+
+          {/* Macro-region breakdown */}
+          {macroBreakdown.length > 0 && (
+            <div>
+              <div className="lab-section-title">Continents</div>
+              <div className="space-y-1">
+                {macroBreakdown.map(({ region, count, share }) => (
+                  <div key={region} className="flex items-center gap-2">
+                    <span className="text-2xs text-text-faint w-[72px] truncate">{region}</span>
+                    <div className="flex-1 h-[4px] rounded-full bg-surface-active overflow-hidden">
+                      <div className="h-full rounded-full bg-accent/50" style={{ width: `${Math.min(share, 100)}%` }} />
+                    </div>
+                    <span className="text-2xs text-muted tabular-nums w-8 text-right">{formatNumber(share, 0)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Top regions list */}
           <div>
@@ -643,23 +696,26 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
       {/* ── Playback controls ── */}
       <div className="border-t border-rule px-5 py-3">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {playing ? (
-              <button onClick={onPause} className="lab-option-card flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-text-primary">
-                <Pause className="h-3 w-3" /> Pause
+              <button onClick={onPause} className="lab-option-card flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-text-primary hover:border-border-hover">
+                <Pause className="h-3.5 w-3.5" /> Pause
               </button>
             ) : (
               <button onClick={onPlay} className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/5 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 transition-colors">
-                <Play className="h-3 w-3" /> {slot >= lastSlot ? 'Replay' : 'Play'}
+                <Play className="h-3.5 w-3.5" /> {slot >= lastSlot ? 'Replay' : 'Play'}
               </button>
             )}
-            <button onClick={onReset} className="lab-option-card flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-muted hover:text-text-primary transition-colors">
-              <RotateCcw className="h-3 w-3" /> Final
+            <button onClick={onReset} className="lab-option-card flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted hover:text-text-primary hover:border-border-hover transition-colors" title="Jump to final slot">
+              <RotateCcw className="h-3 w-3" />
             </button>
           </div>
 
-          {/* Scrubber */}
-          <div className="flex-1 min-w-[120px]">
+          {/* Scrubber with progress fill */}
+          <div className="flex-1 min-w-[120px] relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none" style={{ width: `${progress}%` }}>
+              <div className="h-[6px] w-full rounded-l-full bg-accent/25" />
+            </div>
             <input
               type="range"
               min={0}
@@ -667,13 +723,18 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               step={stepSize}
               value={slot}
               onChange={e => { setPlaying(false); setSlot(Number(e.target.value)) }}
-              className="w-full accent-accent h-1.5 cursor-pointer"
+              className="evidence-scrubber relative z-10"
             />
           </div>
 
-          <div className="text-xs tabular-nums text-muted shrink-0">
-            <span className="font-semibold text-text-primary">{(slot + 1).toLocaleString()}</span>
-            <span className="text-text-faint"> / {totalSlots.toLocaleString()}</span>
+          <div className="text-xs tabular-nums text-muted shrink-0 flex items-center gap-2">
+            <span>
+              <span className="font-semibold text-text-primary">{(slot + 1).toLocaleString()}</span>
+              <span className="text-text-faint"> / {totalSlots.toLocaleString()}</span>
+            </span>
+            {playing && (
+              <span className="text-2xs text-accent/70 font-medium">{'\u00D7'}{stepSize}</span>
+            )}
           </div>
         </div>
       </div>

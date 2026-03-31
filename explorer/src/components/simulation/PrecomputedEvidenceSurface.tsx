@@ -112,15 +112,15 @@ function buildTimeseriesBlocks(payload: PublishedAnalyticsPayload): Block[] {
   const push = (title: string, label: string, data: Array<{ x: number; y: number }>, color: string, yLabel: string) => {
     if (data.length > 0) blocks.push({ type: 'timeseries' as const, title, series: [{ label, data, color }], xLabel: 'Slot', yLabel })
   }
-  push('Gini coefficient', 'Gini', sampleSeries(metrics.gini), CHART_COLORS.gini, 'Index')
-  push('HHI \u2014 concentration pressure', 'HHI', sampleSeries(metrics.hhi), CHART_COLORS.hhi, 'Index')
-  push('Liveness \u2014 region representation', 'Liveness', sampleSeries(metrics.liveness), CHART_COLORS.liveness, 'Percent')
-  push('Total validator distance', 'Total distance', sampleSeries(metrics.total_distance), CHART_COLORS.totalDistance, 'Distance')
-  push('Clusters \u2014 spatial groupings', 'Clusters', sampleSeries(metrics.clusters), CHART_COLORS.clusters, 'Count')
-  push('MEV earned \u2014 block value', 'MEV', sampleSeries(metrics.mev), CHART_COLORS.mev, 'ETH')
-  push('Attestation rate', 'Attestations', sampleSeries(metrics.attestations), CHART_COLORS.attestation, 'Count')
-  push('Failed block proposals \u2014 operational friction', 'Failed proposals', sampleSeries(metrics.failed_block_proposals), CHART_COLORS.failedProposals, 'Count')
-  push('Proposal time \u2014 latency', 'Proposal time', sampleSeries(metrics.proposal_times), CHART_COLORS.proposalTime, 'Milliseconds')
+  push('Gini coefficient \u2014 stake inequality over time', 'Gini', sampleSeries(metrics.gini), CHART_COLORS.gini, 'Index (0 = equal, 1 = monopoly)')
+  push('HHI \u2014 market concentration pressure', 'HHI', sampleSeries(metrics.hhi), CHART_COLORS.hhi, 'Index (< 0.15 = unconcentrated)')
+  push('Liveness \u2014 geographic region coverage', 'Liveness', sampleSeries(metrics.liveness), CHART_COLORS.liveness, 'Active regions (%)')
+  push('Total validator distance \u2014 network spread', 'Total distance', sampleSeries(metrics.total_distance), CHART_COLORS.totalDistance, 'Sum of inter-node distances')
+  push('Clusters \u2014 spatial grouping density', 'Clusters', sampleSeries(metrics.clusters), CHART_COLORS.clusters, 'Distinct geographic clusters')
+  push('MEV \u2014 block value captured by builders', 'MEV', sampleSeries(metrics.mev), CHART_COLORS.mev, 'ETH per block')
+  push('Attestation rate \u2014 coordination health', 'Attestations', sampleSeries(metrics.attestations), CHART_COLORS.attestation, 'Successful attestations')
+  push('Failed block proposals \u2014 operational friction', 'Failed proposals', sampleSeries(metrics.failed_block_proposals), CHART_COLORS.failedProposals, 'Missed proposal count')
+  push('Proposal latency \u2014 pipeline responsiveness', 'Proposal time', sampleSeries(metrics.proposal_times), CHART_COLORS.proposalTime, 'Milliseconds (lower = better)')
   return blocks
 }
 
@@ -137,7 +137,7 @@ function buildSourceFootprintBlock(payload: PublishedAnalyticsPayload): Block | 
     totals.set(macroRegion, (totals.get(macroRegion) ?? 0) + 1)
   }
   const data = MACRO_REGION_ORDER.map(region => ({ label: region, value: totals.get(region) ?? 0 })).filter(entry => entry.value > 0)
-  return data.length > 0 ? { type: 'chart' as const, title: 'Source footprint', data, chartType: 'bar' as const } : null
+  return data.length > 0 ? { type: 'chart' as const, title: 'Source footprint \u2014 information origin by continent', data, chartType: 'bar' as const } : null
 }
 
 function buildTopRegionsTable(payload: PublishedAnalyticsPayload): Block | null {
@@ -405,9 +405,21 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
 
   if (!catalog) {
     return (
-      <motion.div className="lab-stage-soft p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={SPRING}>
-        <div className="text-sm text-muted">Loading research catalog\u2026</div>
-      </motion.div>
+      <div className="space-y-3">
+        <div className="lab-stage overflow-hidden animate-pulse">
+          <div className="px-5 py-4">
+            <div className="h-4 w-48 rounded bg-meridian/40 mb-2" />
+            <div className="h-2.5 w-72 rounded bg-meridian/20" />
+          </div>
+          <div className="border-t border-rule/70 px-5 py-4">
+            <div className="flex gap-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-7 w-20 rounded-full bg-meridian/15" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     )
   }
 
@@ -523,18 +535,23 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
             <div className="lab-stage px-5 py-4">
               <PlotFilterToolbar activeCategory={activeCategory} onCategoryChange={setActiveCategory} counts={categoryCounts} />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                <AnimatePresence initial={false}>
-                  {visibleBlocks.map(({ key, block }) => (
-                    <ScrollRevealBlock key={key} block={block} />
-                  ))}
-                </AnimatePresence>
+                {visibleBlocks.map(({ key, block }) => (
+                  <ScrollRevealBlock key={key} block={block} />
+                ))}
+              </div>
+              {/* Chart count summary */}
+              <div className="mt-3 pt-2.5 border-t border-rule/50 text-center">
+                <span className="text-2xs text-text-faint">
+                  {visibleBlocks.length} panel{visibleBlocks.length !== 1 ? 's' : ''}{activeCategory !== 'all' ? ` in ${activeCategory}` : ' total'}
+                </span>
               </div>
             </div>
           )}
 
           {taggedBlocks.length === 0 && (
-            <div className="lab-stage-soft p-8 text-sm text-muted text-center">
-              No visualization data available for this scenario.
+            <div className="lab-stage-soft p-10 text-center">
+              <div className="text-sm text-muted">No visualization data available for this scenario.</div>
+              <div className="mt-1 text-2xs text-text-faint">Try selecting a different scenario or paradigm above.</div>
             </div>
           )}
         </motion.div>
