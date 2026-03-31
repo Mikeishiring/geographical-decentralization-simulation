@@ -1,15 +1,14 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { ContributionComposer } from '../components/community/ContributionComposer'
 import { ExactLabIntro } from '../components/simulation/ExactLabIntro'
 import { ExactSimulationAnalyticsPanel } from '../components/simulation/ExactSimulationAnalyticsPanel'
-import { PrecomputedSimulationSurface } from '../components/simulation/PrecomputedSimulationSurface'
 import { SimConfigPanel } from '../components/simulation/SimConfigPanel'
 import { SimCopilotPanel } from '../components/simulation/SimCopilotPanel'
 import { SimJobStatus } from '../components/simulation/SimJobStatus'
 import { ResearchDemoSurface } from '../components/simulation/ResearchDemoSurface'
 import { SimResultsPanel } from '../components/simulation/SimResultsPanel'
-import { SimulationSurfaceHeader } from '../components/simulation/SimulationSurfaceHeader'
 import { useSimulationArtifactView } from '../components/simulation/useSimulationArtifactView'
 import { useSimulationLabExports } from '../components/simulation/useSimulationLabExports'
 import { useSimulationJobStream } from '../components/simulation/useSimulationJobStream'
@@ -22,6 +21,7 @@ import {
   paperScenarioLabels,
   readOrCreateClientId,
 } from '../components/simulation/simulation-constants'
+import { SPRING, SPRING_CRISP } from '../lib/theme'
 import type { TabId } from '../components/layout/TabNav'
 import {
   getSimulationManifest,
@@ -75,7 +75,7 @@ export function SimulationLabPage({
   })
 
   const exactAnalytics = useExactSimulationAnalytics({
-    surfaceMode: routeState.surfaceMode,
+    surfaceMode: 'lab',
     currentJobId: routeState.currentJobId,
     manifest,
     config,
@@ -124,176 +124,186 @@ export function SimulationLabPage({
 
   return (
     <div>
-      <SimulationSurfaceHeader
-        surfaceMode={routeState.surfaceMode}
-        onSurfaceModeChange={routeState.setSurfaceMode}
+      {/* ── Page header ── */}
+      <motion.div
+        className="mb-5 flex items-center gap-3 rounded-[24px] border border-rule bg-white/92 p-5 shadow-[0_12px_32px_rgba(15,23,42,0.05)]"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING}
+      >
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent dot-pulse" />
+        <h1 className="text-lg font-semibold tracking-tight text-text-primary">Results</h1>
+      </motion.div>
+
+      {/* ── Section 1: Published evidence — always visible at top ── */}
+      <ResearchDemoSurface
+        catalogScriptUrl={routeState.researchCatalogScriptUrl}
+        viewerBaseUrl={routeState.researchViewerBaseUrl}
+        onOpenCommunityExploration={onOpenCommunityExploration}
+        onTabChange={onTabChange}
       />
 
-      {routeState.surfaceMode === 'research' ? (
-        <ResearchDemoSurface
-          catalogScriptUrl={routeState.researchCatalogScriptUrl}
-          viewerBaseUrl={routeState.researchViewerBaseUrl}
-          onOpenCommunityExploration={onOpenCommunityExploration}
-          onTabChange={onTabChange}
+      {/* ── Section 2: Lab controls — visible, not collapsed ── */}
+      <motion.section
+        className="mb-5 overflow-hidden rounded-[24px] border border-rule bg-gradient-to-b from-surface-active/60 to-white/95"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING, delay: 0.06 }}
+      >
+        <div className="flex flex-col gap-3 border-b border-rule/70 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="lab-section-title">Run your own experiment</div>
+            <div className="mt-1 text-xs text-muted">Configure and launch a fresh simulation with the exact engine.</div>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs text-muted">
+            <span className="lab-chip bg-white/90">{config.paradigm}</span>
+            <span className="lab-chip bg-white/90">{config.validators.toLocaleString()} val</span>
+            <span className="lab-chip bg-white/90">{config.slots.toLocaleString()} slots</span>
+          </div>
+        </div>
+
+        <div className="px-5 py-4">
+          <ExactLabIntro
+            config={config}
+            comparabilityTitle={paperComparability.title}
+            onApplyPreset={applyPreset}
+          />
+
+          <SimConfigPanel
+            config={config}
+            onConfigChange={updateConfig}
+            onSubmit={workflow.onSubmit}
+            onReset={resetConfig}
+            isSubmitting={workflow.submitMutation.isPending}
+            canCancel={workflow.canCancel}
+            onCancel={workflow.onCancel}
+            paperScenarioLabels={paperScenarioLabels(config)}
+            paperComparability={paperComparability}
+          />
+
+          <SimCopilotPanel
+            copilotQuestion={workflow.copilotQuestion}
+            onQuestionChange={workflow.setCopilotQuestion}
+            onAsk={question => workflow.copilotMutation.mutate(question)}
+            onApplyConfig={setConfig}
+            copilotResponse={workflow.copilotResponse}
+            copilotAvailable={workflow.copilotAvailable}
+            isHealthLoading={workflow.apiHealthQuery.isLoading}
+            isMutating={workflow.copilotMutation.isPending}
+            mutationError={(workflow.copilotMutation.error as Error | null) ?? null}
+            hasManifest={Boolean(manifest)}
+            promptSuggestions={workflow.copilotPromptSuggestions}
+          />
+        </div>
+      </motion.section>
+
+      {/* ── Section 3: Exact run status + results ── */}
+      {showJobStatus && (
+        <SimJobStatus
+          status={workflow.status}
+          jobData={jobQuery.data ?? null}
+          submitError={(workflow.submitMutation.error as Error | null) ?? null}
+          cancelError={(workflow.cancelMutation.error as Error | null) ?? null}
         />
-      ) : (
+      )}
+
+      {showPendingRunSurface && (
+        <PendingRunSurface
+          status={workflow.status}
+          jobData={jobQuery.data ?? null}
+          config={config}
+        />
+      )}
+
+      {manifest && (
         <>
-          {showJobStatus && (
-            <SimJobStatus
-              status={workflow.status}
-              jobData={jobQuery.data ?? null}
-              submitError={(workflow.submitMutation.error as Error | null) ?? null}
-              cancelError={(workflow.cancelMutation.error as Error | null) ?? null}
-            />
-          )}
+          <motion.div
+            className="section-divider my-6"
+            initial={{ opacity: 0, scaleX: 0.3 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={SPRING_CRISP}
+          />
 
-          {showPendingRunSurface && (
-            <PendingRunSurface
-              status={workflow.status}
-              jobData={jobQuery.data ?? null}
-              config={config}
-            />
-          )}
+          <SimResultsPanel
+            manifest={manifest}
+            overviewBundleOptions={artifactView.overviewBundleOptions}
+            selectedBundle={artifactView.selectedBundle}
+            onSelectBundle={artifactView.setSelectedBundle}
+            exactChartSeries={artifactView.exactChartSeries}
+            isExactChartDeckLoading={artifactView.isExactChartDeckLoading}
+            selectedOverviewBundleMetrics={artifactView.selectedOverviewBundleMetrics}
+            overviewBlocks={artifactView.overviewBlocks}
+            isOverviewLoading={artifactView.isOverviewLoading}
+            selectedArtifact={artifactView.selectedArtifact}
+            selectedArtifactName={artifactView.selectedArtifactName}
+            onSelectArtifact={artifactView.onSelectArtifact}
+            isArtifactFetching={artifactView.artifactQuery.isFetching}
+            isParsing={artifactView.isParsing}
+            parseError={artifactView.parseError}
+            parsedBlocks={artifactView.parsedBlocks}
+            copyState={exports.copyState}
+            exportState={exports.exportState}
+            exportError={exports.exportError}
+            onCopy={exports.copyToClipboard}
+            onExportData={exports.exportRunData}
+          />
 
-          {manifest && (
-            <>
-              <SimResultsPanel
-                manifest={manifest}
-                overviewBundleOptions={artifactView.overviewBundleOptions}
-                selectedBundle={artifactView.selectedBundle}
-                onSelectBundle={artifactView.setSelectedBundle}
-                exactChartSeries={artifactView.exactChartSeries}
-                isExactChartDeckLoading={artifactView.isExactChartDeckLoading}
-                selectedOverviewBundleMetrics={artifactView.selectedOverviewBundleMetrics}
-                overviewBlocks={artifactView.overviewBlocks}
-                isOverviewLoading={artifactView.isOverviewLoading}
-                selectedArtifact={artifactView.selectedArtifact}
-                selectedArtifactName={artifactView.selectedArtifactName}
-                onSelectArtifact={artifactView.onSelectArtifact}
-                isArtifactFetching={artifactView.artifactQuery.isFetching}
-                isParsing={artifactView.isParsing}
-                parseError={artifactView.parseError}
-                parsedBlocks={artifactView.parsedBlocks}
-                copyState={exports.copyState}
-                exportState={exports.exportState}
-                exportError={exports.exportError}
-                onCopy={exports.copyToClipboard}
-                onExportData={exports.exportRunData}
-              />
+          <ExactSimulationAnalyticsPanel
+            surfaceMode="lab"
+            currentJobId={routeState.currentJobId}
+            analyticsView={routeState.exactAnalyticsView}
+            analyticsMetric={routeState.exactAnalyticsMetric}
+            analyticsCompareMode={routeState.exactAnalyticsCompareMode}
+            analyticsRequestedSlot={routeState.exactAnalyticsRequestedSlot}
+            comparisonPath={routeState.exactComparisonPath}
+            analytics={exactAnalytics}
+            onAnalyticsViewChange={routeState.setExactAnalyticsView}
+            onAnalyticsMetricChange={routeState.setExactAnalyticsMetric}
+            onAnalyticsCompareModeChange={routeState.setExactAnalyticsCompareMode}
+            onAnalyticsRequestedSlotChange={routeState.setExactAnalyticsRequestedSlot}
+            onComparisonPathChange={routeState.setExactComparisonPath}
+            onCopyShareUrl={targetUrl => void exports.copyExactAnalyticsUrl(targetUrl)}
+            onCopyQueryJson={() => void exports.copyExactAnalyticsJson()}
+            onDownloadExport={exports.downloadExactAnalyticsExport}
+          />
 
-              <ExactSimulationAnalyticsPanel
-                surfaceMode={routeState.surfaceMode}
-                currentJobId={routeState.currentJobId}
-                analyticsView={routeState.exactAnalyticsView}
-                analyticsMetric={routeState.exactAnalyticsMetric}
-                analyticsCompareMode={routeState.exactAnalyticsCompareMode}
-                analyticsRequestedSlot={routeState.exactAnalyticsRequestedSlot}
-                comparisonPath={routeState.exactComparisonPath}
-                analytics={exactAnalytics}
-                onAnalyticsViewChange={routeState.setExactAnalyticsView}
-                onAnalyticsMetricChange={routeState.setExactAnalyticsMetric}
-                onAnalyticsCompareModeChange={routeState.setExactAnalyticsCompareMode}
-                onAnalyticsRequestedSlotChange={routeState.setExactAnalyticsRequestedSlot}
-                onComparisonPathChange={routeState.setExactComparisonPath}
-                onCopyShareUrl={targetUrl => void exports.copyExactAnalyticsUrl(targetUrl)}
-                onCopyQueryJson={() => void exports.copyExactAnalyticsJson()}
-                onDownloadExport={exports.downloadExactAnalyticsExport}
-              />
-
-              {workflow.simulationPublishContextKey && (
-                <div className="lab-stage-soft p-4">
-                  <div className="flex items-center justify-between">
-                    <div
-                      className="lab-section-title"
-                      title="Publish a short human takeaway only if this run adds something beyond the published replay."
-                    >
-                      Publish findings
-                    </div>
-                  </div>
-
-                  <div className="mt-3">
-                    <ContributionComposer
-                      key={workflow.simulationPublishContextKey}
-                      sourceLabel="Share your findings from this run"
-                      defaultTitle={workflow.simulationPublishTitle}
-                      defaultTakeaway={workflow.simulationPublishTakeaway}
-                      helperText="Add your own title and takeaway based on what you saw in the artifacts."
-                      publishLabel="Publish note"
-                      successLabel="Published"
-                      viewPublishedLabel="Open Community"
-                      published={workflow.publishedSimulationKey === workflow.simulationPublishContextKey}
-                      isPublishing={workflow.publishMutation.isPending}
-                      error={(workflow.publishMutation.error as Error | null)?.message ?? null}
-                      onViewPublished={workflow.publishedSimulationExplorationId != null && onOpenCommunityExploration
-                        ? () => onOpenCommunityExploration(workflow.publishedSimulationExplorationId!)
-                        : onTabChange
-                          ? () => onTabChange('community')
-                          : undefined}
-                      onPublish={payload => workflow.publishMutation.mutate({
-                        contextKey: workflow.simulationPublishContextKey!,
-                        ...payload,
-                      })}
-                    />
-                  </div>
+          {workflow.simulationPublishContextKey && (
+            <div className="lab-stage-soft p-4">
+              <div className="flex items-center justify-between">
+                <div
+                  className="lab-section-title"
+                  title="Publish a short human takeaway only if this run adds something beyond the published replay."
+                >
+                  Publish findings
                 </div>
-              )}
-            </>
-          )}
-
-          {!routeState.currentJobId ? (
-            <PrecomputedSimulationSurface
-              config={config}
-              catalogScriptUrl={routeState.researchCatalogScriptUrl}
-              viewerBaseUrl={routeState.researchViewerBaseUrl}
-            />
-          ) : null}
-
-          {manifest && <div className="section-divider my-6" />}
-
-          <details open={!manifest} className="mb-5 overflow-hidden rounded-[24px] border border-rule bg-gradient-to-b from-surface-active/60 to-white/95">
-            <summary className="flex cursor-pointer list-none flex-col gap-3 border-b border-rule/70 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="lab-section-title">Lab controls</div>
-              <div className="flex flex-wrap gap-2 text-xs text-muted">
-                <span className="lab-chip bg-white/90">{config.paradigm}</span>
-                <span className="lab-chip bg-white/90">{config.validators.toLocaleString()} val</span>
-                <span className="lab-chip bg-white/90">{config.slots.toLocaleString()} slots</span>
               </div>
-            </summary>
 
-            <div className="px-5 py-4">
-              <ExactLabIntro
-                config={config}
-                comparabilityTitle={paperComparability.title}
-                onApplyPreset={applyPreset}
-              />
-
-              <SimConfigPanel
-                config={config}
-                onConfigChange={updateConfig}
-                onSubmit={workflow.onSubmit}
-                onReset={resetConfig}
-                isSubmitting={workflow.submitMutation.isPending}
-                canCancel={workflow.canCancel}
-                onCancel={workflow.onCancel}
-                paperScenarioLabels={paperScenarioLabels(config)}
-                paperComparability={paperComparability}
-              />
-
-              <SimCopilotPanel
-                copilotQuestion={workflow.copilotQuestion}
-                onQuestionChange={workflow.setCopilotQuestion}
-                onAsk={question => workflow.copilotMutation.mutate(question)}
-                onApplyConfig={setConfig}
-                copilotResponse={workflow.copilotResponse}
-                copilotAvailable={workflow.copilotAvailable}
-                isHealthLoading={workflow.apiHealthQuery.isLoading}
-                isMutating={workflow.copilotMutation.isPending}
-                mutationError={(workflow.copilotMutation.error as Error | null) ?? null}
-                hasManifest={Boolean(manifest)}
-                promptSuggestions={workflow.copilotPromptSuggestions}
-              />
+              <div className="mt-3">
+                <ContributionComposer
+                  key={workflow.simulationPublishContextKey}
+                  sourceLabel="Share your findings from this run"
+                  defaultTitle={workflow.simulationPublishTitle}
+                  defaultTakeaway={workflow.simulationPublishTakeaway}
+                  helperText="Add your own title and takeaway based on what you saw in the artifacts."
+                  publishLabel="Publish note"
+                  successLabel="Published"
+                  viewPublishedLabel="Open Community"
+                  published={workflow.publishedSimulationKey === workflow.simulationPublishContextKey}
+                  isPublishing={workflow.publishMutation.isPending}
+                  error={(workflow.publishMutation.error as Error | null)?.message ?? null}
+                  onViewPublished={workflow.publishedSimulationExplorationId != null && onOpenCommunityExploration
+                    ? () => onOpenCommunityExploration(workflow.publishedSimulationExplorationId!)
+                    : onTabChange
+                      ? () => onTabChange('community')
+                      : undefined}
+                  onPublish={payload => workflow.publishMutation.mutate({
+                    contextKey: workflow.simulationPublishContextKey!,
+                    ...payload,
+                  })}
+                />
+              </div>
             </div>
-          </details>
+          )}
         </>
       )}
     </div>
