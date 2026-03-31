@@ -2,7 +2,7 @@ import { Suspense, lazy, startTransition, useState, useCallback, useEffect } fro
 import { Header } from './components/layout/Header'
 import { TabNav, type TabId } from './components/layout/TabNav'
 import { Footer } from './components/layout/Footer'
-import { PaperLandingPage } from './pages/PaperLandingPage'
+import { PaperReaderPage } from './pages/PaperReaderPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { cn } from './lib/cn'
 import { AGENT_ROUTE_PARAM_KEYS, readRouteStateFromLocation, type ExplorerRouteState } from './lib/route-state'
@@ -10,17 +10,24 @@ import { PAPER_SECTIONS } from './data/paper-sections'
 
 const DEFAULT_TAB: TabId = 'paper'
 const ORIGINAL_TAB: TabId = 'original'
+const RESULTS_TAB: TabId = 'results'
 const AGENT_TAB: TabId = 'agent'
 const COMMUNITY_TAB: TabId = 'community'
 const PAPER_SECTION_IDS = new Set(PAPER_SECTIONS.map(section => section.id))
 
 const loadOriginalPaperPageModule = () => import('./pages/OriginalPaperPage')
+const loadSimulationLabPageModule = () => import('./pages/SimulationLabPage')
 const loadAgentLabPageModule = () => import('./pages/AgentLabPage')
 const loadExploreHistoryPageModule = () => import('./pages/ExploreHistoryPage')
 
 const OriginalPaperPage = lazy(async () => {
   const module = await loadOriginalPaperPageModule()
   return { default: module.OriginalPaperPage }
+})
+
+const SimulationLabPage = lazy(async () => {
+  const module = await loadSimulationLabPageModule()
+  return { default: module.SimulationLabPage }
 })
 
 const AgentLabPage = lazy(async () => {
@@ -61,7 +68,7 @@ function writeRouteState(
     url.searchParams.delete('eid')
   }
 
-  if (next.tab !== AGENT_TAB || options?.resetAgentRoute) {
+  if ((next.tab !== AGENT_TAB && next.tab !== RESULTS_TAB) || options?.resetAgentRoute) {
     for (const key of AGENT_ROUTE_PARAM_KEYS) {
       url.searchParams.delete(key)
     }
@@ -81,6 +88,10 @@ function readRouteState() {
 function preloadTab(tab: TabId) {
   if (tab === ORIGINAL_TAB) {
     void loadOriginalPaperPageModule()
+    return
+  }
+  if (tab === RESULTS_TAB) {
+    void loadSimulationLabPageModule()
     return
   }
   if (tab === AGENT_TAB) {
@@ -114,6 +125,7 @@ function App() {
   const [visitedTabs, setVisitedTabs] = useState<Record<TabId, boolean>>({
     paper: initialRoute.tab === DEFAULT_TAB,
     original: initialRoute.tab === ORIGINAL_TAB,
+    results: initialRoute.tab === RESULTS_TAB,
     agent: initialRoute.tab === AGENT_TAB,
     community: initialRoute.tab === COMMUNITY_TAB,
   })
@@ -157,7 +169,7 @@ function App() {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      ;([ORIGINAL_TAB, AGENT_TAB, COMMUNITY_TAB] as const)
+      ;([ORIGINAL_TAB, RESULTS_TAB, AGENT_TAB, COMMUNITY_TAB] as const)
         .filter(tab => tab !== activeTab)
         .forEach(preloadTab)
     }, 1200)
@@ -170,7 +182,7 @@ function App() {
     applyRouteState(
       { tab, query: sharedQuery, explorationId: null },
       false,
-      tab === AGENT_TAB ? { resetAgentRoute: true } : undefined,
+      (tab === AGENT_TAB || tab === RESULTS_TAB) ? { resetAgentRoute: true } : undefined,
     )
   }, [applyRouteState, sharedQuery])
 
@@ -204,14 +216,14 @@ function App() {
             'mx-auto px-4 py-8 sm:px-6',
             activeTab === 'paper'
               ? 'max-w-[88rem]'
-              : activeTab === 'agent'
+              : (activeTab === 'agent' || activeTab === 'results')
                 ? 'max-w-[96rem]'
                 : 'max-w-5xl',
           )}
         >
         <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
           <ErrorBoundary fallbackLabel="The Paper tab encountered an error.">
-            <PaperLandingPage
+            <PaperReaderPage
               isActive={activeTab === 'paper'}
               onOpenCommunityExploration={handleOpenCommunityExploration}
               onTabChange={handleTabChange}
@@ -224,6 +236,19 @@ function App() {
             <ErrorBoundary fallbackLabel="The Original tab encountered an error.">
               <Suspense fallback={<PageFallback label="Loading paper viewer" />}>
                 <OriginalPaperPage onTabChange={handleTabChange} />
+              </Suspense>
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {visitedTabs.results && (
+          <div hidden={activeTab !== 'results'} aria-hidden={activeTab !== 'results'}>
+            <ErrorBoundary fallbackLabel="The Results tab encountered an error.">
+              <Suspense fallback={<PageFallback label="Loading simulation lab" />}>
+                <SimulationLabPage
+                  onOpenCommunityExploration={handleOpenCommunityExploration}
+                  onTabChange={handleTabChange}
+                />
               </Suspense>
             </ErrorBoundary>
           </div>
