@@ -1,6 +1,6 @@
 import { useCallback, useId, useMemo, useRef, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Play, Pause, RotateCcw, Layers, Radio, Zap } from 'lucide-react'
+import { Play, Pause, RotateCcw, Layers, Radio, Zap, Plus, Minus, Maximize2 } from 'lucide-react'
 import { EvidenceMapSidebar } from './EvidenceMapSidebar'
 import { DARK_SURFACE, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { cn } from '../../lib/cn'
@@ -95,6 +95,14 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
   const handlePointerUp = useCallback(() => setIsPanning(false), [])
 
   const resetView = useCallback(() => { setZoom(1); setPan({ x: 0, y: 0 }) }, [])
+  const zoomIn = useCallback(() => setZoom(prev => Math.min(6, prev * 1.4)), [])
+  const zoomOut = useCallback(() => {
+    setZoom(prev => {
+      const next = prev / 1.4
+      if (next <= 1.05) { setPan({ x: 0, y: 0 }); return 1 }
+      return next
+    })
+  }, [])
 
   // ── Playback — requestAnimationFrame for smooth 30fps updates ──
   const stepSize = Math.max(1, Math.ceil(totalSlots / 200))
@@ -335,20 +343,37 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
         >
-          {/* Zoom controls overlay */}
-          {zoom > 1 && (
-            <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
-              <span className="rounded-md bg-black/60 px-2 py-0.5 text-[0.625rem] font-mono text-white/70 tabular-nums backdrop-blur-sm">
-                {zoom.toFixed(1)}x
-              </span>
+          {/* Zoom controls — always visible */}
+          <div className="absolute top-2.5 right-2.5 z-10 flex flex-col gap-1">
+            <button
+              onClick={zoomIn}
+              className="flex items-center justify-center h-7 w-7 rounded-md bg-white/[0.06] backdrop-blur-md border border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.12] transition-colors"
+              title="Zoom in"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={zoomOut}
+              className="flex items-center justify-center h-7 w-7 rounded-md bg-white/[0.06] backdrop-blur-md border border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.12] transition-colors"
+              title="Zoom out"
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+            {zoom > 1.05 && (
               <button
                 onClick={resetView}
-                className="rounded-md bg-black/60 px-2 py-0.5 text-[0.625rem] font-medium text-white/70 backdrop-blur-sm hover:text-white transition-colors"
+                className="flex items-center justify-center h-7 w-7 rounded-md bg-white/[0.06] backdrop-blur-md border border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.12] transition-colors"
+                title="Reset zoom"
               >
-                Reset
+                <Maximize2 className="h-3 w-3" />
               </button>
-            </div>
-          )}
+            )}
+            {zoom > 1.05 && (
+              <span className="text-center text-[0.5625rem] font-mono text-white/40 tabular-nums mt-0.5">
+                {zoom.toFixed(1)}x
+              </span>
+            )}
+          </div>
           <svg
             viewBox={viewBox}
             className="block h-full w-full"
@@ -383,6 +408,24 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               </filter>
               <filter id={`${idPrefix}-node-glow`}>
                 <feGaussianBlur in="SourceGraphic" stdDeviation="6" />
+              </filter>
+              {/* Node orb gradient — bright center fading to transparent for 3D sphere feel */}
+              <radialGradient id={`${idPrefix}-orb`} cx="38%" cy="32%" r="65%">
+                <stop offset="0%" stopColor="white" stopOpacity={0.35} />
+                <stop offset="40%" stopColor="white" stopOpacity={0.08} />
+                <stop offset="100%" stopColor="white" stopOpacity={0} />
+              </radialGradient>
+              {/* Subtle drop shadow beneath nodes for elevation */}
+              <filter id={`${idPrefix}-node-shadow`} x="-50%" y="-30%" width="200%" height="200%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
+                <feOffset dy="1.5" />
+                <feComponentTransfer>
+                  <feFuncA type="linear" slope="0.2" />
+                </feComponentTransfer>
+                <feMerge>
+                  <feMergeNode />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
               </filter>
             </defs>
 
@@ -544,7 +587,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               }
 
               return (
-                <g key={node.id}>
+                <g key={node.id} filter={isTop3 ? `url(#${idPrefix}-node-shadow)` : undefined}>
                   {/* Breathing halo — outer pulse ring for top nodes */}
                   {isTop && !playing && (
                     <circle cx={node.x} cy={node.y} r={r * 2.8} fill="none" stroke={color} strokeWidth={0.5} opacity={0.08}>
@@ -566,19 +609,19 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                     cx={node.x} cy={node.y}
                     r={r * 2.4}
                     fill={color}
-                    fillOpacity={isHovered ? 0.22 : isTop3 ? 0.1 : 0.06}
+                    fillOpacity={isHovered ? 0.25 : isTop3 ? 0.12 : 0.06}
                     filter={isTop3 ? `url(#${idPrefix}-node-glow)` : undefined}
                   />
 
-                  {/* Core node */}
+                  {/* Core node — base fill */}
                   {playing ? (
                     <circle
                       cx={node.x} cy={node.y}
                       r={r}
                       fill={color}
-                      opacity={0.92}
-                      stroke={isTop ? 'rgba(255,255,255,0.5)' : 'rgba(180,200,220,0.18)'}
-                      strokeWidth={isTop3 ? 1 : isTop ? 0.7 : 0.4}
+                      opacity={0.94}
+                      stroke={isTop ? 'rgba(255,255,255,0.45)' : 'rgba(180,200,220,0.15)'}
+                      strokeWidth={isTop3 ? 0.8 : isTop ? 0.5 : 0.3}
                       {...hoverProps}
                     />
                   ) : (
@@ -586,12 +629,32 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                       cx={node.x} cy={node.y}
                       r={r}
                       fill={color}
-                      stroke={isTop ? 'rgba(255,255,255,0.5)' : 'rgba(180,200,220,0.18)'}
-                      strokeWidth={isTop3 ? 1 : isTop ? 0.7 : 0.4}
+                      stroke={isTop ? 'rgba(255,255,255,0.45)' : 'rgba(180,200,220,0.15)'}
+                      strokeWidth={isTop3 ? 0.8 : isTop ? 0.5 : 0.3}
                       initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: isHovered ? 1.25 : 1, opacity: 0.92 }}
+                      animate={{ scale: isHovered ? 1.2 : 1, opacity: 0.94 }}
                       transition={{ ...SPRING_SNAPPY, delay: 0.1 + index * 0.008 }}
                       {...hoverProps}
+                    />
+                  )}
+
+                  {/* Orb highlight — radial gradient overlay for 3D sphere feel */}
+                  <circle
+                    cx={node.x} cy={node.y}
+                    r={r}
+                    fill={`url(#${idPrefix}-orb)`}
+                    pointerEvents="none"
+                  />
+
+                  {/* Rim light — subtle inner ring for depth */}
+                  {isTop && (
+                    <circle
+                      cx={node.x} cy={node.y}
+                      r={r * 0.7}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.08)"
+                      strokeWidth={0.4}
+                      pointerEvents="none"
                     />
                   )}
 
