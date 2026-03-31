@@ -21,12 +21,26 @@ const PASTEL = {
 
 const PASTEL_SCALE = [PASTEL.sky, PASTEL.mint, PASTEL.lavender, PASTEL.peach, PASTEL.rose] as const
 
-/* ── Projection ── */
+/* ── Projection — Natural Earth I (must match generate-map-data.mjs) ── */
+const NE_A = [0.8707, -0.131979, -0.013791, 0.003971, -0.001529] as const
+const NE_B = [1.007226, 0.015085, -0.044475, 0.028874, -0.005916] as const
+
 function latLonToMercator(lat: number, lon: number, width: number, height: number) {
-  const x = ((lon + 180) / 360) * width
-  const latRad = (lat * Math.PI) / 180
-  const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2))
-  const y = height / 2 - (mercN / Math.PI) * (height / 2)
+  const phi = (lat * Math.PI) / 180
+  const lam = (lon * Math.PI) / 180
+  const phi2 = phi * phi
+
+  const xFactor = NE_A[0] + phi2 * (NE_A[1] + phi2 * (NE_A[2] + phi2 * (NE_A[3] + phi2 * NE_A[4])))
+  const yFactor = NE_B[0] + phi2 * (NE_B[1] + phi2 * (NE_B[2] + phi2 * (NE_B[3] + phi2 * NE_B[4])))
+
+  const rawX = lam * xFactor
+  const rawY = phi * yFactor
+
+  const xRange = Math.PI * NE_A[0]
+  const yRange = (Math.PI / 2) * NE_B[0]
+  const x = (rawX / xRange + 1) / 2 * width
+  const y = (1 - rawY / yRange) / 2 * height
+
   return { x, y }
 }
 
@@ -217,21 +231,24 @@ export function MapBlock({ block }: MapBlockProps) {
 
             <rect x={0} y={0} width={SVG_W} height={SVG_H} fill={`url(#${bgId})`} />
 
-            {/* Wireframe-style graticule — matches GlobeWireframe latitude/longitude lines */}
+            {/* Wireframe-style graticule — curved for Natural Earth projection */}
             {[-60, -30, 0, 30, 60].map(lat => {
-              const { y } = latLonToMercator(lat, 0, SVG_W, SVG_H)
+              const pts = Array.from({ length: 37 }, (_, i) => latLonToMercator(lat, -180 + i * 10, SVG_W, SVG_H))
+              const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('')
+              const label = latLonToMercator(lat, -170, SVG_W, SVG_H)
               return (
                 <g key={`lat-${lat}`}>
-                  <line x1={0} y1={y} x2={SVG_W} y2={y} stroke={DARK_SURFACE.graticule} strokeWidth={0.5} strokeDasharray={lat === 0 ? 'none' : '3 6'} />
-                  <text x={8} y={y - 3} fill={DARK_SURFACE.labelText} fontSize="6" fontFamily="var(--font-mono)" opacity={0.7}>
+                  <path d={d} fill="none" stroke={DARK_SURFACE.graticule} strokeWidth={0.5} strokeDasharray={lat === 0 ? 'none' : '3 6'} />
+                  <text x={label.x} y={label.y - 3} fill={DARK_SURFACE.labelText} fontSize="6" fontFamily="var(--font-mono)" opacity={0.7}>
                     {Math.abs(lat)}°{lat >= 0 ? 'N' : 'S'}
                   </text>
                 </g>
               )
             })}
             {[-120, -60, 0, 60, 120].map(lon => {
-              const { x } = latLonToMercator(0, lon, SVG_W, SVG_H)
-              return <line key={`lon-${lon}`} x1={x} y1={0} x2={x} y2={SVG_H} stroke={DARK_SURFACE.graticule} strokeWidth={0.5} strokeDasharray="3 6" />
+              const pts = Array.from({ length: 19 }, (_, i) => latLonToMercator(-90 + i * 10, lon, SVG_W, SVG_H))
+              const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('')
+              return <path key={`lon-${lon}`} d={d} fill="none" stroke={DARK_SURFACE.graticule} strokeWidth={0.5} strokeDasharray="3 6" />
             })}
 
             {/* Country outlines — real GeoJSON silhouettes, softer fill */}

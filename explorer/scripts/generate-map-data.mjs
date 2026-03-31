@@ -12,15 +12,35 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = join(__dirname, '..', '..', 'data')
 
-// Same Mercator projection as MapBlock.tsx
+// Natural Earth I projection — less polar distortion than Mercator
+// Must match latLonProject() in evidence-map-helpers.ts and MapBlock.tsx
 const SVG_W = 800
 const SVG_H = 420
 
-function latLonToMercator(lat, lon) {
-  const x = ((lon + 180) / 360) * SVG_W
-  const latRad = (lat * Math.PI) / 180
-  const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2))
-  const y = SVG_H / 2 - (mercN / Math.PI) * (SVG_H / 2)
+// Natural Earth I polynomial coefficients (Šavrič et al. 2011)
+const NE_A = [0.8707, -0.131979, -0.013791, 0.003971, -0.001529]
+const NE_B = [1.007226, 0.015085, -0.044475, 0.028874, -0.005916]
+
+function latLonProject(lat, lon) {
+  const phi = (lat * Math.PI) / 180
+  const lam = (lon * Math.PI) / 180
+  const phi2 = phi * phi
+  const phi4 = phi2 * phi2
+
+  const xFactor = NE_A[0] + phi2 * (NE_A[1] + phi2 * (NE_A[2] + phi2 * (NE_A[3] + phi2 * NE_A[4])))
+  const yFactor = NE_B[0] + phi2 * (NE_B[1] + phi2 * (NE_B[2] + phi2 * (NE_B[3] + phi2 * NE_B[4])))
+
+  // Normalize: λ ranges [-π, π], φ ranges [-π/2, π/2]
+  // xFactor at equator ≈ 0.8707, yFactor * π/2 ≈ 1.3173
+  const rawX = lam * xFactor       // range: roughly [-π*0.87, π*0.87]
+  const rawY = phi * yFactor        // range: roughly [-1.32, 1.32]
+
+  // Map to SVG coordinates
+  const xRange = Math.PI * NE_A[0]  // max x at equator
+  const yRange = (Math.PI / 2) * NE_B[0]  // max y at pole
+  const x = (rawX / xRange + 1) / 2 * SVG_W
+  const y = (1 - rawY / yRange) / 2 * SVG_H
+
   return { x, y }
 }
 
@@ -32,7 +52,7 @@ const geo = JSON.parse(geoRaw)
 
 function coordsToPath(ring) {
   // Simplify: skip points that are too close in SVG space
-  const points = ring.map(([lon, lat]) => latLonToMercator(lat, lon))
+  const points = ring.map(([lon, lat]) => latLonProject(lat, lon))
   if (points.length < 3) return ''
 
   const simplified = [points[0]]
@@ -83,7 +103,7 @@ const pathsTs = `/**
  * Auto-generated from data/world_countries.geo.json
  * Run: node explorer/scripts/generate-map-data.mjs
  *
- * SVG paths pre-computed for viewBox 0 0 ${SVG_W} ${SVG_H} (Mercator projection).
+ * SVG paths pre-computed for viewBox 0 0 ${SVG_W} ${SVG_H} (Natural Earth I projection).
  * Each string is a complete <path d="..."> value.
  */
 export const WORLD_PATHS: readonly string[] = ${JSON.stringify(allPaths)}

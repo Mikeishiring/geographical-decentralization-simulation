@@ -13,8 +13,8 @@ import type { PublishedAnalyticsPayload } from './simulation-analytics'
 export const SVG_W = 800
 export const SVG_H = 420
 
-/** Visible portion of the SVG — crops Antarctica while showing more ocean for context */
-export const MAP_VISIBLE_H = 340
+/** Visible portion — Natural Earth compresses poles naturally, so we can show more */
+export const MAP_VISIBLE_H = 360
 
 export const GCP_REGION_MAP = new Map(GCP_REGIONS.map(r => [r.id, r]))
 
@@ -28,13 +28,28 @@ export const PASTEL = {
   rose: PASTEL_PALETTE[4],
 } as const
 
-// ── Projection ──────────────────────────────────────────────────────────────
+// ── Projection — Natural Earth I (Šavrič et al. 2011) ──────────────────────
+// Must match generate-map-data.mjs and MapBlock.tsx
+
+const NE_A = [0.8707, -0.131979, -0.013791, 0.003971, -0.001529] as const
+const NE_B = [1.007226, 0.015085, -0.044475, 0.028874, -0.005916] as const
 
 export function latLonToMercator(lat: number, lon: number, w: number, h: number) {
-  const x = ((lon + 180) / 360) * w
-  const latRad = (lat * Math.PI) / 180
-  const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2))
-  const y = h / 2 - (mercN / Math.PI) * (h / 2)
+  const phi = (lat * Math.PI) / 180
+  const lam = (lon * Math.PI) / 180
+  const phi2 = phi * phi
+
+  const xFactor = NE_A[0] + phi2 * (NE_A[1] + phi2 * (NE_A[2] + phi2 * (NE_A[3] + phi2 * NE_A[4])))
+  const yFactor = NE_B[0] + phi2 * (NE_B[1] + phi2 * (NE_B[2] + phi2 * (NE_B[3] + phi2 * NE_B[4])))
+
+  const rawX = lam * xFactor
+  const rawY = phi * yFactor
+
+  const xRange = Math.PI * NE_A[0]
+  const yRange = (Math.PI / 2) * NE_B[0]
+  const x = (rawX / xRange + 1) / 2 * w
+  const y = (1 - rawY / yRange) / 2 * h
+
   return { x, y }
 }
 
