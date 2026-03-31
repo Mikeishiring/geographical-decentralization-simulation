@@ -19,9 +19,9 @@ export function StatBlock({ block }: StatBlockProps) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={SPRING_CRISP}
     >
-      {/* Faint coordinate corner — reveals on hover */}
-      <span aria-hidden="true" className="coord-label absolute top-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-        §
+      {/* Cite pills — reveal on hover alongside coordinate corner */}
+      <span className="absolute top-2.5 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        {block.cite ? <CiteBadge cite={block.cite} /> : <span aria-hidden="true" className="coord-label">§</span>}
       </span>
 
       {/* Momentum-driven accent glow — subtle background pulse for positive/negative */}
@@ -99,11 +99,6 @@ export function StatBlock({ block }: StatBlockProps) {
 
           {block.delta}
         </motion.div>
-      )}
-      {block.cite && (
-        <div className="mt-2.5">
-          <CiteBadge cite={block.cite} />
-        </div>
       )}
     </motion.div>
   )
