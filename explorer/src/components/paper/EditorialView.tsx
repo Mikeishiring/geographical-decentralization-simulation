@@ -10,9 +10,9 @@ import { BlockCanvas } from '../explore/BlockCanvas'
 import { PaperHero } from './PaperHero'
 import { TopicCardGrid } from './TopicCardGrid'
 import { CommunityPreview } from './CommunityPreview'
-import { PaperSectionView } from './PaperSectionView'
+import { PaperSectionView, SourceRefPill } from './PaperSectionView'
 import { NodeArc } from '../decorative/NodeArc'
-import { Link2, Check, Quote } from 'lucide-react'
+import { Link2, Check, Quote, Sparkles } from 'lucide-react'
 import type { TabId } from '../layout/TabNav'
 
 interface EditorialViewProps {
@@ -158,15 +158,19 @@ export function EditorialView({
           /* Focus mode: centered, distraction-free */
           <div className="space-y-12">
             {/* Focus mode section indicator */}
-            <div className="sticky top-40 z-10 rounded-lg border border-rule bg-white/95 backdrop-blur-sm px-4 py-2.5">
+            <div className="sticky top-40 z-10 rounded-lg border border-rule bg-white/95 backdrop-blur-sm px-4 py-2.5 geo-accent-bar">
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-xs font-mono text-accent">{activeSection.number}</span>
-                  <span className="text-text-primary">{activeSection.title}</span>
+                <div className="flex items-center gap-2 text-sm min-w-0">
+                  <span className="text-xs font-mono text-accent shrink-0">{activeSection.number}</span>
+                  <span className="text-text-primary truncate">{activeSection.title}</span>
+                  <span className="hidden md:inline-flex items-center gap-1 shrink-0 rounded-full border border-amber-200/40 bg-amber-50/50 px-2 py-0.5 text-2xs text-amber-600/50 select-none" title="Hover narrative text to see source provenance">
+                    <Sparkles className="h-2.5 w-2.5" />
+                    Interpreted
+                  </span>
                 </div>
                 <button
                   onClick={() => handleCopySectionLink(activeSection.id)}
-                  className="inline-flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-text-primary"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-text-primary shrink-0"
                 >
                   {copiedSectionId === activeSection.id ? <Check className="h-3 w-3 text-success" /> : <Link2 className="h-3 w-3" />}
                   {copiedSectionId === activeSection.id ? 'Copied!' : 'Copy link'}
@@ -200,21 +204,35 @@ export function EditorialView({
                     </p>
                   </div>
 
-                  <div className="space-y-5">
-                    <p className="max-w-3xl text-2xl leading-relaxed text-text-primary font-serif">
-                      {narrative.lede}
-                    </p>
-                    <div className="max-w-3xl space-y-4 text-base leading-9 text-text-body font-serif">
-                      {narrative.paragraphs.map(paragraph => (
-                        <p key={paragraph}>{paragraph}</p>
-                      ))}
+                  <div className="group/prose space-y-5">
+                    <div>
+                      <p className="max-w-3xl text-2xl leading-relaxed text-text-primary font-serif">
+                        {narrative.lede}
+                      </p>
+                      {narrative.sourceRefs?.lede && (
+                        <div className="mt-1.5"><SourceRefPill source={narrative.sourceRefs.lede} /></div>
+                      )}
                     </div>
-                    <div className="border-l-[3px] border-l-accent pl-5 py-2">
-                      <div className="flex items-center gap-1.5 text-xs text-muted mb-2">
+                    <div className="max-w-3xl space-y-4 text-base leading-9 text-text-body font-serif">
+                      {narrative.paragraphs.map((paragraph, i) => {
+                        const ref = narrative.sourceRefs?.paragraphs?.[i]
+                        return (
+                          <div key={paragraph}>
+                            <p>{paragraph}</p>
+                            {ref && <div className="mt-1.5"><SourceRefPill source={ref} /></div>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="border-l-2 border-l-accent/40 pl-5 py-2">
+                      <div className="flex items-center gap-2 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
                         <Quote className="h-3 w-3" />
                         Pull quote
+                        {narrative.sourceRefs?.pullQuote && (
+                          <SourceRefPill source={narrative.sourceRefs.pullQuote} />
+                        )}
                       </div>
-                      <p className="max-w-3xl text-xl leading-relaxed text-text-primary font-serif italic">
+                      <p className="max-w-3xl text-xl leading-relaxed text-text-primary font-serif italic text-balance">
                         {narrative.pullQuote}
                       </p>
                     </div>
