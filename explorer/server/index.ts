@@ -3429,63 +3429,77 @@ app.post('/api/simulation-copilot', simulationCopilotRateLimit, async (req, res)
 // ── llm.txt — agent-readable site map for AI navigation ──
 app.get('/llm.txt', (_req, res) => {
   res.type('text/plain').send(`# Geography Drives Blockchain Centralization
-# Interactive research explorer for arXiv:2509.21475
-# Yang, Oz, Wu, Zhang (2025)
+> Interactive research explorer for arXiv:2509.21475
+> Yang, Oz, Wu, Zhang (2025)
+> Last updated: ${new Date().toISOString().slice(0, 10)}
+
+## Identity
+- Type: Research paper explorer with simulation lab
+- Domain: Ethereum geographic decentralization
+- Paper: arXiv:2509.21475 (peer-reviewed)
+- License: Academic research interface — editorial text is LLM-generated
 
 ## What this site is
 An editorial reading layer and simulation lab built over a peer-reviewed paper
 studying how geography shapes validator concentration in Ethereum under two
 block-building paradigms: SSP (external, relay-based) and MSP (local, direct).
 
-## Key findings
-- Both SSP and MSP centralize validators toward low-latency cloud regions.
-- The attestation threshold (gamma) has OPPOSITE effects: higher gamma
-  increases SSP centralization but can decrease MSP centralization.
-- Starting validator distribution dominates paradigm choice for first-order outcomes.
-- Shorter slot times (EIP-7782) amplify reward inequality without changing geography.
-- Transient decentralization under joint heterogeneity is fragile, not a mitigation.
+The site presents the same paper at four fidelity levels:
+  Editorial (LLM narrative) → Focus (clean reading) → Argument Map (extracted claims) → Original PDF (source)
+Each editorial element carries a provenance tag linking it to the paper source or marking it as interpretation.
+
+## Key findings (5 claims)
+1. Both SSP and MSP centralize validators toward low-latency cloud regions.
+2. The attestation threshold (gamma) has OPPOSITE effects: higher gamma
+   increases SSP centralization but can decrease MSP centralization.
+3. Starting validator distribution dominates paradigm choice for first-order outcomes.
+4. Shorter slot times (EIP-7782) amplify reward inequality without changing geography.
+5. Transient decentralization under joint heterogeneity is fragile, not a mitigation.
 
 ## Paper sections (navigable via URL hash)
-- #system-model          §3     Two-layer geographic game
-- #simulation-design     §4.1   40 regions, 1000 validators, 10000 slots
-- #baseline-results      §4.2   Convergence under homogeneous start
-- #se1-source-placement  §4.4   Infrastructure alignment effects
-- #se2-distribution      §4.5   Realistic validator distribution
-- #se3-joint             §4.5+  Transient decentralization (fragile)
-- #se4a-attestation      App E.3  Gamma paradox (signature result)
-- #se4b-slots            App E.4  Shorter slot times (EIP-7782)
-- #discussion            §5     Mitigation directions (diagnostic, not prescriptive)
-- #limitations           §5     Model assumptions and confidence boundary
+| Hash                  | Paper ref | Topic                                      |
+|-----------------------|-----------|--------------------------------------------|
+| #system-model         | §3        | Two-layer geographic game                  |
+| #simulation-design    | §4.1      | 40 regions, 1000 validators, 10000 slots   |
+| #baseline-results     | §4.2      | Convergence under homogeneous start        |
+| #se1-source-placement | §4.4      | Infrastructure alignment effects           |
+| #se2-distribution     | §4.5      | Realistic validator distribution           |
+| #se3-joint            | §4.5+     | Transient decentralization (fragile)       |
+| #se4a-attestation     | App E.3   | Gamma paradox (signature result)           |
+| #se4b-slots           | App E.4   | Shorter slot times (EIP-7782)              |
+| #discussion           | §5        | Mitigation directions (diagnostic)         |
+| #limitations          | §5        | Model assumptions and confidence boundary  |
 
-## Reading modes (interpretation spectrum)
+## Reading modes (interpretation spectrum, left to right)
 1. Editorial     — LLM-generated narrative with source provenance pills
 2. Focus         — Same content, distraction-free centered layout
 3. Argument Map  — Expandable structured claims by section
-4. Original PDF  — Published arXiv PDF with annotations
+4. Original PDF  — Published arXiv PDF — unmodified source document
 
 ## API endpoints (base: /api)
-- POST /api/explore              — Ask questions, returns structured Block[] visualizations
-- GET  /api/explorations         — List community explorations (search, sort, filter)
-- POST /api/simulations          — Run agent-based simulation with custom config
-- GET  /api/simulations/:id      — Check simulation job status
-- GET  /api/simulations/:id/manifest — Get simulation output manifest
-- GET  /api/health               — Server health check
+POST /api/explore              — Ask questions, returns structured Block[] visualizations
+GET  /api/explorations         — List community explorations (search, sort, filter)
+POST /api/simulations          — Run agent-based simulation with custom config
+GET  /api/simulations/:id      — Check simulation job status
+GET  /api/simulations/:id/manifest — Get simulation output manifest
+GET  /api/health               — Server health check
 
 ## Simulation parameters
-| Parameter            | Type    | Default | Range/Options                              |
-|---------------------|---------|---------|--------------------------------------------|
-| paradigm            | string  | SSP     | SSP, MSP                                   |
-| validators          | number  | 1000    | 10-10000                                   |
-| slots               | number  | 1000    | 100-50000                                  |
-| distribution        | string  | homogeneous | homogeneous, heterogeneous             |
-| sourcePlacement     | string  | homogeneous | homogeneous, latency-aligned, latency-misaligned |
-| migrationCost       | number  | 0.002   | 0-1                                        |
-| attestationThreshold| number  | 0.667   | 0.1-1.0                                    |
-| slotTime            | number  | 12      | 1-60 (seconds)                             |
-| seed                | number  | random  | any integer                                |
+| Parameter            | Type    | Default       | Range/Options                               |
+|----------------------|---------|---------------|---------------------------------------------|
+| paradigm             | string  | SSP           | SSP, MSP                                    |
+| validators           | number  | 1000          | 10–10000                                    |
+| slots                | number  | 1000          | 100–50000                                   |
+| distribution         | string  | homogeneous   | homogeneous, heterogeneous                  |
+| sourcePlacement      | string  | homogeneous   | homogeneous, latency-aligned, latency-misaligned |
+| migrationCost        | number  | 0.002         | 0–1                                         |
+| attestationThreshold | number  | 0.667         | 0.1–1.0                                     |
+| slotTime             | number  | 12            | 1–60 (seconds)                              |
+| seed                 | number  | random        | any integer                                 |
 
 ## Source material
 - Paper: https://arxiv.org/abs/2509.21475
+- PDF:   https://arxiv.org/pdf/2509.21475
 - Code:  https://github.com/syang-ng/geographical-decentralization-simulation
 - Data:  GCP inter-region latency measurements (40 regions)
 
@@ -3540,16 +3554,18 @@ app.get('/llm-full.txt', async (_req, res) => {
 
   res.type('text/plain').send([
     '# Geography Drives Blockchain Centralization — Full Content',
-    '# For the site map and API reference, see /llm.txt',
-    '# This file contains the complete editorial narrative for each section.',
+    `> Generated: ${new Date().toISOString().slice(0, 10)}`,
+    '> For the site map and API reference, see /llm.txt',
+    '> This file contains the complete editorial narrative for each paper section.',
     '',
     '## Content provenance key',
+    'Each element below is tagged with its source:',
     '- [section: §X pN] = paraphrases paper section X, PDF page N',
     '- [figure: Fig. N pN] = interprets figure N from the paper',
     '- [table: Table N pN] = interprets table N from the paper',
     '- [editorial] = LLM-generated interpretation, not a direct paraphrase',
     '',
-    '## Section narratives',
+    `## Section narratives (${PAPER_SECTIONS.length} sections)`,
     '',
     sections,
   ].join('\n'))
