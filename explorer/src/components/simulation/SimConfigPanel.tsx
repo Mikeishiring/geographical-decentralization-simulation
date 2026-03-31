@@ -6,7 +6,9 @@ import type { SimulationConfig } from '../../lib/simulation-api'
 import {
   describeParadigm,
   estimateRuntime,
+  estimateRuntimeSeconds,
   hasNonDefaultProtocol,
+  matchesPublishedResult,
   type PaperComparability,
 } from './simulation-constants'
 
@@ -24,16 +26,16 @@ const THRESHOLD_OPTIONS = [
 ] as const
 
 const VALIDATOR_ANCHORS: readonly NumericAnchor[] = [
-  { label: '1', value: 1, hint: 'debug' },
-  { label: '100', value: 100, hint: 'test' },
-  { label: '250', value: 250 },
+  { label: '50', value: 50, hint: 'test' },
+  { label: '100', value: 100, hint: 'quick' },
+  { label: '250', value: 250, hint: 'default' },
   { label: '500', value: 500 },
   { label: '1,000', value: 1000, hint: 'paper' },
 ]
 
 const SLOT_ANCHORS: readonly NumericAnchor[] = [
-  { label: '1', value: 1, hint: 'smoke' },
-  { label: '100', value: 100, hint: 'fast' },
+  { label: '50', value: 50, hint: 'test' },
+  { label: '100', value: 100, hint: 'default' },
   { label: '1,000', value: 1000, hint: 'lab' },
   { label: '5,000', value: 5000 },
   { label: '10,000', value: 10000, hint: 'paper' },
@@ -94,6 +96,8 @@ export function SimConfigPanel({
   const slotsOnAnchor = isAnchorValue(config.slots, SLOT_ANCHORS)
   const migrationCostOnAnchor = isAnchorValue(config.migrationCost, MIGRATION_COST_ANCHORS)
   const runtime = estimateRuntime(config.validators, config.slots, config.slotTime)
+  const estimatedSeconds = estimateRuntimeSeconds(config.validators, config.slots, config.slotTime)
+  const isCached = matchesPublishedResult(config)
   const protocolOpen = hasNonDefaultProtocol(config)
 
   const inputClassName = 'lab-input-shell w-full rounded-xl px-3 py-2 text-sm text-text-primary outline-none transition hover:border-border-hover focus:border-accent/50 focus:ring-2 focus:ring-accent/10'
@@ -171,17 +175,20 @@ export function SimConfigPanel({
             Scale — how much to compute
           </div>
           <div
-            title={`Estimated runtime: ${runtime.label}. Based on validator × slot count.`}
+            title={isCached
+              ? 'This config matches a pre-computed paper scenario — results will be instant from cache.'
+              : `Estimated runtime: ${runtime.label}. Based on ${config.validators.toLocaleString()} validators × ${config.slots.toLocaleString()} slots × ${Math.round((config.slotTime * 1000) / 100)} steps/slot.`}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-11 font-medium',
-              runtime.tier === 'quick' && 'border-success/30 bg-success/8 text-success',
-              runtime.tier === 'moderate' && 'border-accent/30 bg-accent/8 text-accent',
-              runtime.tier === 'long' && 'border-warning/30 bg-warning/8 text-warning',
-              runtime.tier === 'very-long' && 'border-danger/30 bg-danger/8 text-danger',
+              isCached && 'border-emerald-300/40 bg-emerald-50 text-emerald-700',
+              !isCached && runtime.tier === 'quick' && 'border-success/30 bg-success/8 text-success',
+              !isCached && runtime.tier === 'moderate' && 'border-accent/30 bg-accent/8 text-accent',
+              !isCached && runtime.tier === 'long' && 'border-warning/30 bg-warning/8 text-warning',
+              !isCached && runtime.tier === 'very-long' && 'border-danger/30 bg-danger/8 text-danger',
             )}
           >
-            <Clock className="h-3 w-3" />
-            {runtime.label}
+            {isCached ? <Sparkles className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+            {isCached ? 'Cached · instant' : runtime.label}
           </div>
         </div>
 
@@ -198,8 +205,8 @@ export function SimConfigPanel({
             transition={SPRING_CRISP}
           >
             {runtime.tier === 'very-long'
-              ? 'This configuration will take several minutes. Consider reducing validators or slots for faster iteration, then scale up when the question merits the runtime.'
-              : 'Moderate runtime. Results may take a couple of minutes to compute.'}
+              ? `This configuration will take ${runtime.label} or more. Consider reducing validators or slots for faster iteration, then scale up when the question merits the wait.`
+              : `Estimated ${runtime.label} compute time. Results will appear automatically when ready.`}
           </motion.div>
         )}
 
