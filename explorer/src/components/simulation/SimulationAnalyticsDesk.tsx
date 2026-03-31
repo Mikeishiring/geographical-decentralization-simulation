@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
+import { motion } from 'framer-motion'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { cn } from '../../lib/cn'
+import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import type { Block } from '../../types/blocks'
 import type {
   AnalyticsCompareMode,
@@ -62,8 +64,18 @@ export function SimulationAnalyticsDesk({
   const activeCompareMode = compareModeOptions.find(option => option.id === compareMode) ?? compareModeOptions[0]
 
   return (
-    <div className="lab-stage overflow-hidden p-0">
-      <div className="flex flex-col gap-4 border-b border-rule px-5 py-5 lg:flex-row lg:items-start lg:justify-between">
+    <motion.div
+      className="lab-stage overflow-hidden p-0"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING}
+    >
+      <motion.div
+        className="flex flex-col gap-4 border-b border-rule px-5 py-5 lg:flex-row lg:items-start lg:justify-between"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ ...SPRING_CRISP, delay: 0.04 }}
+      >
         <div>
           <div className="text-xs text-muted mb-1">{title}</div>
           <div className="text-sm text-text-primary">{description}</div>
@@ -104,10 +116,15 @@ export function SimulationAnalyticsDesk({
             ) : null}
           </div>
         ) : null}
-      </div>
+      </motion.div>
 
-      <div className="grid gap-3 border-b border-rule px-5 py-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_minmax(0,0.85fr)]">
-        <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4">
+      <motion.div
+        className="grid gap-3 border-b border-rule px-5 py-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_minmax(0,0.85fr)]"
+        variants={STAGGER_CONTAINER}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4">
           <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Dashboard view</div>
           <div className="mt-2 flex flex-wrap gap-2">
             {analyticsViewOptions.map(view => (
@@ -125,10 +142,10 @@ export function SimulationAnalyticsDesk({
               </button>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {analyticsMetricOptions.length > 0 ? (
-          <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4">
+          <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4">
             <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Metric query</div>
             <div className="mt-2 flex flex-wrap gap-2">
               {analyticsMetricOptions.map(option => (
@@ -147,11 +164,11 @@ export function SimulationAnalyticsDesk({
                 </button>
               ))}
             </div>
-          </div>
+          </motion.div>
         ) : <div />}
 
         {compareModeOptions.length > 0 ? (
-          <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4">
+          <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4">
             <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Compare mode</div>
             <div className="mt-2 flex flex-wrap gap-2">
               {compareModeOptions.map(option => (
@@ -170,11 +187,16 @@ export function SimulationAnalyticsDesk({
                 </button>
               ))}
             </div>
-          </div>
+          </motion.div>
         ) : null}
-      </div>
+      </motion.div>
 
-      <div className="px-5 py-4">
+      <motion.div
+        className="px-5 py-4"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING_CRISP, delay: 0.1 }}
+      >
       <div className="rounded-xl border border-rule bg-surface-active px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="text-sm font-medium text-text-primary">
@@ -200,15 +222,20 @@ export function SimulationAnalyticsDesk({
       {!statusMessage ? children : null}
 
       {!statusMessage && metricCards.length > 0 ? (
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <motion.div
+          className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
+          variants={STAGGER_CONTAINER}
+          initial="hidden"
+          animate="show"
+        >
           {metricCards.map(card => (
-            <div key={card.label} className="rounded-xl border border-rule bg-white px-4 py-4">
+            <motion.div key={card.label} variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-white px-4 py-4">
               <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
               <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
               <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       ) : null}
 
       {!statusMessage && blocks.length > 0 ? (
@@ -216,7 +243,7 @@ export function SimulationAnalyticsDesk({
           <BlockCanvas blocks={blocks} showExport={false} />
         </div>
       ) : null}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
