@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
 import { ChevronDown, ExternalLink, LoaderCircle, Lock, Pause, Play, RotateCcw, X } from 'lucide-react'
 import { ChartBlock } from '../blocks/ChartBlock'
 import { InsightBlock } from '../blocks/InsightBlock'
@@ -8,6 +9,7 @@ import { formatNumber } from './simulation-constants'
 import { CONTINENT_OUTLINES } from '../../data/world-outlines'
 import { GCP_REGIONS, type GcpRegion, type MacroRegion } from '../../data/gcp-regions'
 import { cn } from '../../lib/cn'
+import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 
 interface ResearchMetadata {
   readonly v?: number
@@ -1242,6 +1244,13 @@ export function PublishedDatasetViewer({
           <LoaderCircle className="h-4 w-4 animate-spin" />
           Loading frozen published dataset…
         </div>
+        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+          <div className="lab-skeleton lab-skeleton-block h-[320px] chart-skeleton-breathe" />
+          <div className="space-y-4">
+            <div className="lab-skeleton lab-skeleton-block h-[160px] chart-skeleton-breathe" style={{ animationDelay: '120ms' }} />
+            <div className="lab-skeleton lab-skeleton-block h-[140px] chart-skeleton-breathe" style={{ animationDelay: '240ms' }} />
+          </div>
+        </div>
       </div>
     )
   }
@@ -1257,18 +1266,33 @@ export function PublishedDatasetViewer({
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING}
+    >
       {/* ── Compact header ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1 text-11 font-medium text-text-primary">
+      <motion.div
+        className="flex flex-wrap items-center justify-between gap-3 px-1"
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING_CRISP, delay: 0.04 }}
+      >
+        <motion.div
+          className="flex flex-wrap items-center gap-2 text-xs text-muted"
+          variants={STAGGER_CONTAINER}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.span variants={STAGGER_ITEM} className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1 text-11 font-medium text-text-primary">
             {dataset.evaluation} · {dataset.paradigm} · {dataset.result}
-          </span>
-          <span className="lab-chip">{sourceRoleLabel(dataset.sourceRole)}</span>
-          <span className="lab-chip">{countLabel(totalSlots)} slots</span>
-          <span className="lab-chip">Slot {countLabel(slot + 1)}</span>
-          {topRegion?.region && <span className="lab-chip">{topRegion.region.city} {regionShareLabel(topRegion, totalValidators)}</span>}
-        </div>
+          </motion.span>
+          <motion.span variants={STAGGER_ITEM} className="lab-chip">{sourceRoleLabel(dataset.sourceRole)}</motion.span>
+          <motion.span variants={STAGGER_ITEM} className="lab-chip">{countLabel(totalSlots)} slots</motion.span>
+          <motion.span variants={STAGGER_ITEM} className="lab-chip">Slot {countLabel(slot + 1)}</motion.span>
+          {topRegion?.region && <motion.span variants={STAGGER_ITEM} className="lab-chip">{topRegion.region.city} {regionShareLabel(topRegion, totalValidators)}</motion.span>}
+        </motion.div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => {
@@ -1295,10 +1319,15 @@ export function PublishedDatasetViewer({
             </button>
           ) : null}
         </div>
-      </div>
+      </motion.div>
 
       {/* ── Playback controls (compact inline bar) ── */}
-      <div className="flex flex-wrap items-center gap-2 px-1">
+      <motion.div
+        className="flex flex-wrap items-center gap-2 px-1"
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING_CRISP, delay: 0.08 }}
+      >
         <button disabled={slotLocked} onClick={() => setPlaying(previous => !previous)} className={cn('inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:border disabled:border-rule disabled:bg-surface-active disabled:text-muted', playing ? 'bg-accent text-white shadow-[0_12px_24px_rgba(37,99,235,0.16)]' : 'border border-rule bg-white text-text-primary hover:border-border-hover')}>
           {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
           {playing ? 'Pause' : 'Play'}
@@ -1335,10 +1364,15 @@ export function PublishedDatasetViewer({
             aria-label="Simulation slot"
           />
         </div>
-      </div>
+      </motion.div>
 
       {/* ── Map + Charts (primary content) ── */}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+      <motion.div
+        className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING, delay: 0.12 }}
+      >
         <PublishedGeoCard
           title={`${dataset.evaluation} · ${dataset.paradigm} · ${dataset.result}`}
           regions={currentRegions}
@@ -1352,9 +1386,14 @@ export function PublishedDatasetViewer({
           <ChartBlock block={sourceChartBlock} />
           <InsightBlock block={insightBlock} />
         </div>
-      </div>
+      </motion.div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <motion.div
+        className="grid gap-6 xl:grid-cols-2"
+        variants={STAGGER_CONTAINER}
+        initial="hidden"
+        animate="show"
+      >
         {[
           {
             key: 'concentration',
@@ -1403,7 +1442,7 @@ export function PublishedDatasetViewer({
           const entrySummary = summarizeNoteCluster(entry.notes)
 
           return (
-          <div key={entry.key} className="relative">
+          <motion.div key={entry.key} className="relative" variants={STAGGER_ITEM}>
             {entry.notes.length > 0 ? (
               <div className="absolute right-4 top-4 z-10 flex flex-wrap justify-end gap-2">
                 <div className="rounded-full border border-[#0F172A]/12 bg-white/92 px-3 py-1 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint shadow-[0_10px_20px_rgba(15,23,42,0.06)]">
@@ -1443,9 +1482,9 @@ export function PublishedDatasetViewer({
             )}>
               <TimeSeriesBlock block={entry.block} notePins={entry.notePins} />
             </div>
-          </div>
+          </motion.div>
         )})}
-      </div>
+      </motion.div>
 
       {/* ── Metrics & details (collapsed by default) ── */}
       <details className="group">
@@ -1460,7 +1499,12 @@ export function PublishedDatasetViewer({
         </summary>
 
         <div className="mt-4 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <motion.div
+            className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+            variants={STAGGER_CONTAINER}
+            initial="hidden"
+            animate="show"
+          >
             {[
               {
                 key: 'slot',
@@ -1515,9 +1559,10 @@ export function PublishedDatasetViewer({
                 block: { type: 'stat' as const, value: currentProposalTime != null ? `${compactNumber(currentProposalTime, 1)} ms` : 'N/A', label: 'Proposal time', sublabel: currentAttestation != null ? `Attestation ${percentage(currentAttestation, 1)}` : 'Consensus timing', delta: deltaLabel(currentProposalTime, initialProposalTime), sentiment: (currentProposalTime ?? Number.POSITIVE_INFINITY) <= (initialProposalTime ?? Number.POSITIVE_INFINITY) ? 'positive' as const : 'negative' as const },
               },
             ].map(card => (
-              <button
+              <motion.button
                 key={card.key}
                 type="button"
+                variants={STAGGER_ITEM}
                 onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, card.anchor))}
                 className={cn(
                   'relative w-full text-left transition-all duration-300',
@@ -1535,9 +1580,9 @@ export function PublishedDatasetViewer({
                   </div>
                 ) : null}
                 <StatBlock block={card.block} />
-              </button>
+              </motion.button>
             ))}
-          </div>
+          </motion.div>
 
       {annotationNotes.length > 0 ? (
         <div className="px-5 pb-5">
@@ -1683,6 +1728,6 @@ export function PublishedDatasetViewer({
         </div>
       </details>
 
-    </div>
+    </motion.div>
   )
 }
