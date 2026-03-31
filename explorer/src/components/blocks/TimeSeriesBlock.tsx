@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { motion } from 'framer-motion'
-import { BLOCK_COLORS, SPRING_SOFT } from '../../lib/theme'
+import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
 import type { TimeSeriesBlock as TimeSeriesBlockType } from '../../types/blocks'
 
 interface TimeSeriesBlockProps {
@@ -24,14 +24,14 @@ function formatSeriesNumber(value: number): string {
 }
 
 function notePinColor(intent: 'observation' | 'question' | 'theory' | 'methods'): string {
-  if (intent === 'question') return 'var(--color-accent-warm)'
-  if (intent === 'theory') return 'var(--color-accent)'
-  if (intent === 'methods') return 'var(--color-success)'
-  return 'var(--color-warning)'
+  if (intent === 'question') return '#C2410C'
+  if (intent === 'theory') return '#1D4ED8'
+  if (intent === 'methods') return '#0F766E'
+  return '#7C3AED'
 }
 
 export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) {
-  const [hover, setHover] = useState<{ x: number; svgX: number } | null>(null)
+  const [hover, setHover] = useState<{ x: number; svgX: number; svgY: number } | null>(null)
   const gradientBaseId = useId().replace(/:/g, '')
 
   const padding = { top: 20, right: 60, bottom: 35, left: 45 }
@@ -101,6 +101,20 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
 
   const yTicks = Array.from({ length: 5 }, (_, index) => minY + (rangeY * index) / 4)
   const xTicks = Array.from({ length: 5 }, (_, index) => Math.round(minX + (rangeX * index) / 4))
+
+  /* Tooltip position: anchor near the first series' hovered point, flip if near right edge */
+  const tooltipAnchor = hover && hoverReadout.length > 0
+    ? (() => {
+        const nearest = block.series[0]?.data.reduce((best, point) => {
+          if (best === null) return point
+          return Math.abs(point.x - hover.x) < Math.abs(best.x - hover.x) ? point : best
+        }, null as TimeSeriesBlockType['series'][number]['data'][number] | null)
+        if (!nearest) return null
+        const { sx, sy } = toSvg(nearest.x, nearest.y)
+        const flipX = sx > svgW * 0.65
+        return { sx, sy, flipX }
+      })()
+    : null
 
   return (
     <div className="lab-panel overflow-hidden rounded-xl">
@@ -222,7 +236,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
           )}
         </div>
 
-        <div className="rounded-xl border border-rule bg-white px-3 py-4">
+        <div className="relative rounded-xl border border-rule bg-white px-3 py-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">
               Measurement deck
@@ -238,8 +252,9 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
             onMouseMove={event => {
               const rect = event.currentTarget.getBoundingClientRect()
               const relX = ((event.clientX - rect.left) / rect.width) * svgW
+              const relY = ((event.clientY - rect.top) / rect.height) * svgH
               if (relX >= padding.left && relX <= svgW - padding.right) {
-                setHover({ x: minX + ((relX - padding.left) / chartW) * rangeX, svgX: relX })
+                setHover({ x: minX + ((relX - padding.left) / chartW) * rangeX, svgX: relX, svgY: relY })
               }
             }}
             onMouseLeave={() => setHover(null)}
@@ -256,8 +271,8 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                     y1="0%"
                     y2="100%"
                   >
-                    <stop offset="0%" stopColor={color} stopOpacity="0.15" />
-                    <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+                    <stop offset="0%" stopColor={color} stopOpacity={CHART.areaTopOpacity} />
+                    <stop offset="100%" stopColor={color} stopOpacity={CHART.areaBottomOpacity} />
                   </linearGradient>
                 )
               })}
@@ -272,14 +287,16 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                     y1={sy}
                     x2={svgW - padding.right}
                     y2={sy}
-                    stroke="var(--color-rule)"
-                    strokeWidth={0.5}
+                    stroke="currentColor"
+                    strokeWidth={CHART.gridWidth}
+                    opacity={CHART.gridOpacity}
                   />
                   <text
                     x={padding.left - 6}
                     y={sy + 3}
                     textAnchor="end"
-                    className="fill-muted text-[9px]"
+                    className="fill-muted"
+                    style={{ fontSize: CHART.labelSize }}
                   >
                     {formatSeriesNumber(tick)}
                   </text>
@@ -295,7 +312,8 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                   x={sx}
                   y={svgH - 5}
                   textAnchor="middle"
-                  className="fill-muted text-[9px]"
+                  className="fill-muted"
+                  style={{ fontSize: CHART.labelSize }}
                 >
                   {tick}
                 </text>
@@ -307,7 +325,8 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 x={12}
                 y={padding.top + chartH / 2}
                 textAnchor="middle"
-                className="fill-muted text-[9px]"
+                className="fill-muted"
+                style={{ fontSize: CHART.labelSize }}
                 transform={`rotate(-90, 12, ${padding.top + chartH / 2})`}
               >
                 {block.yLabel}
@@ -319,21 +338,22 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 x={padding.left + chartW / 2}
                 y={svgH - 2}
                 textAnchor="middle"
-                className="fill-muted text-[9px]"
+                className="fill-muted"
+                style={{ fontSize: CHART.labelSize }}
               >
                 {block.xLabel}
               </text>
             )}
 
+            {/* Crosshair — solid, subtle */}
             {hover && (
               <line
                 x1={hover.svgX}
                 y1={padding.top}
                 x2={hover.svgX}
                 y2={padding.top + chartH}
-                stroke="var(--color-accent)"
-                strokeOpacity={0.28}
-                strokeDasharray="4 4"
+                stroke="currentColor"
+                opacity={CHART.crosshairOpacity}
                 strokeWidth={1}
               />
             )}
@@ -365,7 +385,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                       fill={`url(#${gradientBaseId}-${index})`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ ...SPRING_SOFT, delay: index * 0.05 }}
+                      transition={{ ...SPRING_CRISP, delay: index * 0.04 }}
                     />
                   )}
                   <motion.path
@@ -377,7 +397,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                     strokeLinejoin="round"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={{ ...SPRING_SOFT, delay: index * 0.08 }}
+                    transition={{ ...SPRING_CRISP, delay: index * 0.06 }}
                   />
                   {coordinates.map((point, pointIndex) => (
                     (pointIndex % pointStep === 0 || pointIndex === coordinates.length - 1) ? (
@@ -417,7 +437,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                     y1={padding.top}
                     x2={sx}
                     y2={padding.top + chartH}
-                    stroke="var(--color-accent-warm)"
+                    stroke="#C2553A"
                     strokeWidth={1}
                     strokeDasharray="3 3"
                   />
@@ -475,19 +495,39 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 </g>
               )
             })}
-
-            {hover && (
-              <line
-                x1={hover.svgX}
-                y1={padding.top}
-                x2={hover.svgX}
-                y2={padding.top + chartH}
-                stroke="var(--color-muted)"
-                strokeWidth={0.5}
-                strokeDasharray="2 2"
-              />
-            )}
           </svg>
+
+          {/* ── Floating tooltip card (Stripe-style) ── */}
+          {hover && tooltipAnchor && hoverReadout.length > 0 && (
+            <div
+              className="pointer-events-none absolute z-20"
+              style={{
+                left: `${(tooltipAnchor.sx / svgW) * 100}%`,
+                top: `${((tooltipAnchor.sy / svgH) * 100) + 4}%`,
+                transform: tooltipAnchor.flipX ? 'translate(-100%, 0)' : 'translate(12px, 0)',
+              }}
+            >
+              <div
+                className="rounded-lg border border-rule bg-white px-3 py-2.5"
+                style={{ boxShadow: CHART.tooltipShadow }}
+              >
+                <div className="text-[0.625rem] font-medium tabular-nums text-muted">
+                  Slot {hoverReadout[0].x}
+                </div>
+                <div className="mt-1.5 space-y-1">
+                  {hoverReadout.map(point => (
+                    <div key={point.label} className="flex items-center gap-2">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: point.color }} />
+                      <span className="text-[0.6875rem] text-muted">{point.label}</span>
+                      <span className="ml-auto text-[0.8125rem] font-semibold tabular-nums text-text-primary">
+                        {formatSeriesNumber(point.value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {block.annotations && block.annotations.length > 0 && (

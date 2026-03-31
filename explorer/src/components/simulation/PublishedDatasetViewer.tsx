@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ExternalLink, LoaderCircle, Lock, Pause, Play, RotateCcw, X } from 'lucide-react'
+import { ChevronDown, ExternalLink, LoaderCircle, Lock, Pause, Play, RotateCcw, X } from 'lucide-react'
 import { ChartBlock } from '../blocks/ChartBlock'
 import { InsightBlock } from '../blocks/InsightBlock'
 import { StatBlock } from '../blocks/StatBlock'
@@ -326,12 +326,6 @@ function regionValueColor(value: number, maxValue: number): string {
 function regionValueRadius(value: number, maxValue: number): number {
   const normalized = Math.max(value / Math.max(maxValue, 1), 0.04)
   return 3 + normalized * 10
-}
-
-function themeLabel(theme: PublishedViewerSettings['theme']): string {
-  if (theme === 'auto') return 'Auto'
-  if (theme === 'dark') return 'Dark'
-  return 'Light'
 }
 
 function noteIntentLabel(intent: PublishedViewerAnnotationNote['intent']): string {
@@ -1264,379 +1258,68 @@ export function PublishedDatasetViewer({
 
   return (
     <div className="space-y-6">
-      <div className="lab-stage overflow-hidden">
-        <div className="border-b border-rule px-5 py-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <div className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-text-primary">
-                In-app published viewer
-              </div>
-              <h3 className="mt-3 text-xl font-semibold text-text-primary">
-                {dataset.evaluation} · {dataset.paradigm} · {dataset.result}
-              </h3>
-              <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted">
-                <span className="lab-chip">{sourceRoleLabel(dataset.sourceRole)}</span>
-                <span className="lab-chip">{countLabel(totalSlots)} slots</span>
-                <span className="lab-chip">standalone theme {themeLabel(initialSettings.theme)}</span>
-                <span className="lab-chip">dataset {dataset.path}</span>
-              </div>
-              <p className="mt-3 max-w-3xl text-sm text-muted">
-                {data?.description ?? metadata.description ?? 'Frozen published dataset.'}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => {
-                  persistViewerSettings(dataset.path, {
-                    theme: initialSettings.theme,
-                    step: stepSize,
-                    autoplay: playing,
-                  })
-                  const popup = window.open(viewerUrl, '_blank', 'noopener,noreferrer')
-                  if (!popup) window.location.assign(viewerUrl)
-                }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-rule bg-white px-3 py-2 text-xs text-text-primary hover:border-border-hover transition-colors"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                Open standalone viewer
-              </button>
-              {onClose ? (
-                <button
-                  onClick={onClose}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-rule bg-white px-3 py-2 text-xs text-text-primary hover:border-border-hover transition-colors"
-                >
-                  <X className="h-3.5 w-3.5" />
-                  Hide viewer
-                </button>
-              ) : null}
-            </div>
-          </div>
+      {/* ── Compact header ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary">
+            {dataset.evaluation} · {dataset.paradigm} · {dataset.result}
+          </span>
+          <span className="lab-chip">{sourceRoleLabel(dataset.sourceRole)}</span>
+          <span className="lab-chip">{countLabel(totalSlots)} slots</span>
+          <span className="lab-chip">Slot {countLabel(slot + 1)}</span>
+          {topRegion?.region && <span className="lab-chip">{topRegion.region.city} {regionShareLabel(topRegion, totalValidators)}</span>}
         </div>
-
-        <div className="px-5 py-5">
-          <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="lab-lens-card px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Playback</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">{slotLocked ? 'Slot locked' : playing ? 'Autoplay active' : 'Manual review'}</div>
-              <div className="mt-1 text-xs text-muted">Step {stepSize} · slot {countLabel(slot + 1)} of {countLabel(totalSlots)}</div>
-            </div>
-            <div className="lab-lens-card px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Top region</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">{topRegion?.region?.city ?? 'No active region'}</div>
-              <div className="mt-1 text-xs text-muted">{regionShareLabel(topRegion, totalValidators)} of visible validators</div>
-            </div>
-            <div className="lab-lens-card px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Source footprint</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">{sourceRoleLabel(dataset.sourceRole)}</div>
-              <div className="mt-1 text-xs text-muted">{sourceFootprint.length} macro regions represented</div>
-            </div>
-            <div className="lab-lens-card px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Truth boundary</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">Frozen published payload</div>
-              <div className="mt-1 text-xs text-muted">Viewer controls change playback only. They do not alter the dataset.</div>
-            </div>
-          </div>
-
-          <div className="mb-4 rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-3 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Annotate this figure</div>
-                <div className="mt-1 text-sm text-text-primary">
-                  Click any stat card, region, chart point, or note pin to target the figure directly. Slot lock keeps the posture frozen while you write.
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 text-xs text-muted">
-                <span className="lab-chip">{annotationNotes.length} note{annotationNotes.length === 1 ? '' : 's'} attached</span>
-                <span className="lab-chip">Target captured automatically</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {[
-              {
-                key: 'slot',
-                noteCount: annotationNotes.length,
-                noteSummary: noteSurfaceSummaries.slot,
-                focus: false,
-                anchor: { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
-                block: { type: 'stat' as const, value: `${countLabel(slot + 1)} / ${countLabel(totalSlots)}`, label: 'Current slot', sublabel: `Playback step ${stepSize}`, delta: slotLocked ? 'Locked for notes' : playing ? 'Autoplay active' : 'Paused', sentiment: 'neutral' as const },
-              },
-              {
-                key: 'regions',
-                noteCount: metricNoteCounts.geography,
-                noteSummary: noteSurfaceSummaries.geography,
-                focus: focusedArea === 'geography',
-                anchor: topRegion?.region
-                  ? { kind: 'region' as const, key: topRegion.regionId, label: `Region · ${topRegion.region.city}` }
-                  : { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
-                block: { type: 'stat' as const, value: countLabel(currentRegions.length), label: 'Active regions', sublabel: `${countLabel(totalValidators)} validators visible in this slot`, delta: `${currentRegions.length - initialRegions.length >= 0 ? '+' : ''}${countLabel(currentRegions.length - initialRegions.length)} vs slot 1`, sentiment: currentRegions.length <= initialRegions.length ? 'positive' as const : 'neutral' as const },
-              },
-              {
-                key: 'dominant',
-                noteCount: metricNoteCounts.geography,
-                noteSummary: noteSurfaceSummaries.geography,
-                focus: focusedArea === 'geography',
-                anchor: topRegion?.region
-                  ? { kind: 'region' as const, key: topRegion.regionId, label: `Region · ${topRegion.region.city}` }
-                  : { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
-                block: { type: 'stat' as const, value: regionShareLabel(topRegion, totalValidators), label: 'Dominant region share', sublabel: topRegion?.region ? topRegion.region.city : 'No active region', delta: deltaLabel(dominantShare, initialDominantShare), sentiment: dominantShare >= initialDominantShare ? 'negative' as const : 'positive' as const },
-              },
-              {
-                key: 'gini',
-                noteCount: metricNoteCounts.gini,
-                noteSummary: noteSurfaceSummaries.gini,
-                focus: focusedArea === 'concentration',
-                anchor: { kind: 'metric' as const, key: 'gini', label: 'Metric · Gini' },
-                block: { type: 'stat' as const, value: currentGini != null ? compactNumber(currentGini, 3) : 'N/A', label: 'Gini', sublabel: 'Geographic concentration', delta: deltaLabel(currentGini, initialGini), sentiment: (currentGini ?? 0) <= (initialGini ?? 0) ? 'positive' as const : 'negative' as const },
-              },
-              {
-                key: 'mev',
-                noteCount: metricNoteCounts.mev,
-                noteSummary: noteSurfaceSummaries.mev,
-                focus: focusedArea === 'performance',
-                anchor: { kind: 'metric' as const, key: 'mev', label: 'Metric · MEV' },
-                block: { type: 'stat' as const, value: currentMev != null ? `${compactNumber(currentMev, 4)} ETH` : 'N/A', label: 'Average MEV', sublabel: 'Current slot reward surface', delta: deltaLabel(currentMev, initialMev), sentiment: (currentMev ?? 0) >= (initialMev ?? 0) ? 'positive' as const : 'neutral' as const },
-              },
-              {
-                key: 'proposal',
-                noteCount: metricNoteCounts.proposalTime,
-                noteSummary: noteSurfaceSummaries.proposal,
-                focus: focusedArea === 'performance',
-                anchor: { kind: 'metric' as const, key: 'proposal_time', label: 'Metric · Proposal time' },
-                block: { type: 'stat' as const, value: currentProposalTime != null ? `${compactNumber(currentProposalTime, 1)} ms` : 'N/A', label: 'Proposal time', sublabel: currentAttestation != null ? `Attestation ${percentage(currentAttestation, 1)}` : 'Consensus timing', delta: deltaLabel(currentProposalTime, initialProposalTime), sentiment: (currentProposalTime ?? Number.POSITIVE_INFINITY) <= (initialProposalTime ?? Number.POSITIVE_INFINITY) ? 'positive' as const : 'negative' as const },
-              },
-            ].map(card => (
-              <button
-                key={card.key}
-                type="button"
-                onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, card.anchor))}
-                className={cn(
-                  'relative w-full text-left transition-all duration-300',
-                  card.focus ? 'rounded-xl ring-2 ring-accent/30 shadow-[0_16px_34px_rgba(37,99,235,0.08)]' : '',
-                )}
-              >
-                {card.noteCount > 0 ? (
-                  <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-[#DBE4F0] bg-white/96 px-2 py-0.5 text-[0.625rem] font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
-                    {card.noteCount} note{card.noteCount === 1 ? '' : 's'}
-                  </div>
-                ) : null}
-                {card.noteSummary ? (
-                  <div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)] rounded-full border border-[#0F172A]/10 bg-white/94 px-2.5 py-1 text-[0.625rem] font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
-                    {card.noteSummary}
-                  </div>
-                ) : null}
-                <StatBlock block={card.block} />
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              persistViewerSettings(dataset.path, {
+                theme: initialSettings.theme,
+                step: stepSize,
+                autoplay: playing,
+              })
+              const popup = window.open(viewerUrl, '_blank', 'noopener,noreferrer')
+              if (!popup) window.location.assign(viewerUrl)
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-rule bg-white px-3 py-1.5 text-xs text-text-primary hover:border-border-hover transition-colors"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Standalone
+          </button>
+          {onClose ? (
+            <button
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rule bg-white px-3 py-1.5 text-xs text-text-primary hover:border-border-hover transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+              Hide
+            </button>
+          ) : null}
         </div>
       </div>
 
-      {annotationNotes.length > 0 ? (
-        <div className="px-5 pb-5">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-            <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure discussion</div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-4">
-                {[
-                  { label: 'Open questions', value: discussionSummary.openQuestions, tone: 'text-[#9A3412]' },
-                  { label: 'Challenged', value: discussionSummary.challenged, tone: 'text-[#BE123C]' },
-                  { label: 'Author notes', value: discussionSummary.authorAddressed, tone: 'text-[#92400E]' },
-                  { label: 'Range-based', value: discussionSummary.timeRanges, tone: 'text-[#1D4ED8]' },
-                ].map(card => (
-                  <div key={card.label} className="rounded-xl border border-rule bg-white px-3 py-3">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
-                    <div className={cn('mt-2 text-xl font-semibold', card.tone)}>{card.value.toLocaleString()}</div>
-                  </div>
-                ))}
-              </div>
-              {leadingDebate ? (
-                <div className="mt-3 rounded-xl border border-rule bg-white px-3 py-3 text-xs leading-5 text-muted">
-                  <span className="font-medium text-text-primary">{leadingDebate.label}</span> is pulling the most attention in this figure. {leadingDebate.summary ?? `${leadingDebate.count} notes live here.`}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,250,248,0.96))] px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure marginalia</div>
-                  <div className="mt-1 text-xs leading-5 text-muted">
-                    {leadingDebate
-                      ? `${leadingDebate.label} is drawing the most attention. ${leadingDebate.summary ?? ''}`
-                      : 'Most important live notes for this posture.'}
-                  </div>
-                </div>
-                {focusedNote ? (
-                  <div className="rounded-full border border-accent/18 bg-[rgba(37,99,235,0.08)] px-2.5 py-1 text-[0.625rem] font-medium text-accent">
-                    Focus on {focusAreaLabel(focusedArea ?? 'geography')}
-                  </div>
-                ) : null}
-              </div>
-              <div className="mt-3 space-y-3">
-                {marginaliaNotes.map(note => (
-                  <button
-                    key={`marginalia-${note.id}`}
-                    onClick={() => setSelectedNoteId(note.id)}
-                    className={cn(
-                      'w-full rounded-xl border px-3 py-3 text-left transition-all',
-                      focusedNote?.id === note.id
-                        ? 'border-accent/24 bg-[rgba(37,99,235,0.06)] shadow-[0_12px_24px_rgba(37,99,235,0.08)]'
-                        : 'border-rule bg-white hover:border-border-hover',
-                      note.communityLane === 'author'
-                        ? 'border-l-[3px] border-l-[#1D4ED8]'
-                        : note.communityLane === 'reviewer'
-                          ? 'border-l-[3px] border-l-[#9F1239]'
-                          : 'border-l-[3px] border-l-[#0F766E]',
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full border border-[#DBE4F0] bg-[#F8FAFC] px-2.5 py-0.5 text-[0.625rem] font-medium uppercase tracking-[0.08em] text-text-primary">
-                            {note.anchorLabel ?? 'Whole slot'}
-                          </span>
-                          {noteMetaLabel(note) ? (
-                            <span className="text-[0.625rem] uppercase tracking-[0.08em] text-text-faint">
-                              {noteMetaLabel(note)}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                      {(note.replies?.length ?? 0) > 0 ? (
-                        <div className="shrink-0 text-[0.625rem] uppercase tracking-[0.08em] text-text-faint">
-                          {note.replies?.length ?? 0} repl{(note.replies?.length ?? 0) === 1 ? 'y' : 'ies'}
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="mt-2 text-sm leading-6 text-text-primary">{note.note}</div>
-                    {(note.annotationScope === 'time_range' || note.annotationScope === 'region_over_time') && note.rangeStartSlotNumber != null && note.rangeEndSlotNumber != null ? (
-                      <div className="mt-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-                        Slots {note.rangeStartSlotNumber.toLocaleString()}-{note.rangeEndSlotNumber.toLocaleString()}
-                      </div>
-                    ) : null}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="lab-stage p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <div className="text-xs text-muted">Playback controls</div>
-            <div className="mt-1 text-sm text-text-primary">Scrub the frozen published trajectory without leaving the app.</div>
-            <div className="mt-2 text-xs text-muted">
-              The control language mirrors the original viewer, but the surface is tuned to match the rest of the explorer.
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button disabled={slotLocked} onClick={() => setPlaying(previous => !previous)} className={cn('inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:border disabled:border-rule disabled:bg-surface-active disabled:text-muted disabled:hover:translate-y-0', playing ? 'bg-accent text-white shadow-[0_16px_30px_rgba(37,99,235,0.18)]' : 'border border-rule bg-white text-text-primary hover:border-border-hover')}>
-              {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-              {playing ? 'Pause' : 'Play'}
-            </button>
-            <button
-              onClick={() => {
-                setPlaying(false)
-                setSlotLocked(previous => !previous)
-              }}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all',
-                slotLocked
-                  ? 'bg-[#0F172A] text-white shadow-[0_16px_30px_rgba(15,23,42,0.16)]'
-                  : 'border border-rule bg-white text-text-primary hover:border-border-hover',
-              )}
-            >
-              <Lock className="h-3.5 w-3.5" />
-              {slotLocked ? 'Unlock slot' : 'Lock slot'}
-            </button>
-            <button onClick={() => { setPlaying(false); setSlotLocked(false); setSlot(0) }} className="inline-flex items-center gap-1.5 rounded-xl border border-rule bg-white px-3.5 py-2.5 text-xs text-text-primary transition-all hover:border-border-hover">
-              <RotateCcw className="h-3.5 w-3.5" />
-              Reset
-            </button>
-            {[1, 10, 50].map(option => (
-              <button key={option} onClick={() => setStepSize(option as 1 | 10 | 50)} className={cn('rounded-xl border px-3.5 py-2.5 text-xs font-medium transition-all', stepSize === option ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent shadow-[0_12px_24px_rgba(37,99,235,0.08)]' : 'border-rule bg-white text-text-primary hover:border-border-hover')}>
-                Step {option}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {annotationNotes.length > 0 ? (
-          <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Slot note filters</div>
-                <div className="mt-2 text-sm text-text-primary">
-                  Filter authored notes by intent and click one to focus the relevant canvas area.
-                </div>
-              </div>
-              <div className="flex flex-col gap-3 lg:items-end">
-                {focusedNote ? (
-                  <div className="max-w-md rounded-2xl border border-rule bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.05)]">
-                    <div className="flex flex-wrap items-center gap-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-                      <span>{noteIntentLabel(focusedNote.intent)}</span>
-                      <span>Focuses {focusAreaLabel(focusedArea ?? 'geography')}</span>
-                      {focusedNote.anchorLabel ? <span>{focusedNote.anchorLabel}</span> : null}
-                    </div>
-                    <div className="mt-2 text-xs leading-5 text-text-primary">{focusedNote.note}</div>
-                  </div>
-                ) : null}
-
-                <button
-                  onClick={async () => {
-                    if (typeof window === 'undefined') return
-                    try {
-                      await navigator.clipboard.writeText(window.location.href)
-                      setNoteShareStatus('copied')
-                    } catch {
-                      setNoteShareStatus('failed')
-                    }
-                  }}
-                  className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-                >
-                  {noteShareStatus === 'copied' ? 'Copied focused note URL' : noteShareStatus === 'failed' ? 'Copy failed' : 'Copy focused note URL'}
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {[
-                { id: 'all' as const, label: 'All', count: annotationNotes.length },
-                { id: 'observation' as const, label: 'Observation', count: noteIntentCounts.observation },
-                { id: 'question' as const, label: 'Question', count: noteIntentCounts.question },
-                { id: 'theory' as const, label: 'Theory', count: noteIntentCounts.theory },
-                { id: 'methods' as const, label: 'Methods', count: noteIntentCounts.methods },
-              ].map(filter => (
-                <button
-                  key={filter.id}
-                  onClick={() => setActiveNoteFilter(filter.id)}
-                  className={cn(
-                    'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                    activeNoteFilter === filter.id
-                      ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
-                      : 'border-rule bg-white text-text-primary hover:border-border-hover',
-                  )}
-                >
-                  {filter.label} · {filter.count}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="mt-5 rounded-xl border border-rule bg-white px-4 py-4">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-            <span className="lab-chip">{slotLocked ? 'Slot locked for annotation' : playing ? 'Autoplay active' : 'Paused for inspection'}</span>
-            <span className="lab-chip">Step {stepSize}</span>
-            <span className="lab-chip">Slot {countLabel(slot + 1)} of {countLabel(totalSlots)}</span>
-            {annotationNotes.length > 0 ? <span className="lab-chip">{annotationNotes.length} note{annotationNotes.length === 1 ? '' : 's'} on this slot</span> : null}
-          </div>
+      {/* ── Playback controls (compact inline bar) ── */}
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <button disabled={slotLocked} onClick={() => setPlaying(previous => !previous)} className={cn('inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:border disabled:border-rule disabled:bg-surface-active disabled:text-muted', playing ? 'bg-accent text-white shadow-[0_12px_24px_rgba(37,99,235,0.16)]' : 'border border-rule bg-white text-text-primary hover:border-border-hover')}>
+          {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+          {playing ? 'Pause' : 'Play'}
+        </button>
+        <button
+          onClick={() => { setPlaying(false); setSlotLocked(previous => !previous) }}
+          className={cn('inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all', slotLocked ? 'bg-[#0F172A] text-white shadow-[0_12px_24px_rgba(15,23,42,0.14)]' : 'border border-rule bg-white text-text-primary hover:border-border-hover')}
+        >
+          <Lock className="h-3.5 w-3.5" />
+          {slotLocked ? 'Unlock' : 'Lock'}
+        </button>
+        <button onClick={() => { setPlaying(false); setSlotLocked(false); setSlot(0) }} className="inline-flex items-center gap-1.5 rounded-xl border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-all hover:border-border-hover">
+          <RotateCcw className="h-3.5 w-3.5" />
+          Reset
+        </button>
+        {[1, 10, 50].map(option => (
+          <button key={option} onClick={() => setStepSize(option as 1 | 10 | 50)} className={cn('rounded-xl border px-3 py-2 text-xs font-medium transition-all', stepSize === option ? 'border-accent bg-accent/10 text-accent' : 'border-rule bg-white text-text-primary hover:border-border-hover')}>
+            ×{option}
+          </button>
+        ))}
+        <div className="flex-1 min-w-[120px]">
           <input
             type="range"
             min={0}
@@ -1644,29 +1327,17 @@ export function PublishedDatasetViewer({
             step={1}
             value={slot}
             disabled={slotLocked}
-            onChange={event => {
-              setPlaying(false)
-              setSlot(Number(event.target.value))
-            }}
-            className="h-2 w-full appearance-none rounded-full disabled:cursor-not-allowed disabled:opacity-60"
+            onChange={event => { setPlaying(false); setSlot(Number(event.target.value)) }}
+            className="h-1.5 w-full appearance-none rounded-full disabled:cursor-not-allowed disabled:opacity-60"
             style={{
               background: `linear-gradient(90deg, rgba(37,99,235,0.95) 0%, rgba(37,99,235,0.95) ${timelineProgress}%, rgba(226,232,240,0.95) ${timelineProgress}%, rgba(226,232,240,0.95) 100%)`,
             }}
             aria-label="Simulation slot"
           />
-          <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted">
-            <span>slot 1</span>
-            <span>slot {countLabel(slot + 1)} of {countLabel(totalSlots)}</span>
-            <span>slot {countLabel(totalSlots)}</span>
-          </div>
-          <div className="mt-3 text-[0.6875rem] leading-5 text-text-faint">
-            {slotLocked
-              ? 'This slot is frozen so companion answers and paper notes stay tied to the exact replay posture.'
-              : 'Lock a slot when you want to annotate or compare a precise replay state.'}
-          </div>
         </div>
       </div>
 
+      {/* ── Map + Charts (primary content) ── */}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
         <PublishedGeoCard
           title={`${dataset.evaluation} · ${dataset.paradigm} · ${dataset.result}`}
@@ -1677,30 +1348,9 @@ export function PublishedDatasetViewer({
           focusAreaActive={focusedArea === 'geography'}
           anchorScope={anchorScope}
         />
-        <div className="space-y-6">
+        <div className="space-y-4">
           <ChartBlock block={sourceChartBlock} />
           <InsightBlock block={insightBlock} />
-          <div className={cn(
-            'rounded-xl border border-rule bg-white px-4 py-4 text-xs text-muted transition-all duration-300',
-            focusedArea === 'config' ? 'ring-2 ring-accent/35 shadow-[0_18px_36px_rgba(37,99,235,0.1)]' : '',
-          )}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Frozen configuration</div>
-              {metricNoteCounts.methods > 0 ? (
-                <span className="rounded-full border border-[#0F766E]/18 bg-[#ECFDF5] px-2 py-0.5 text-[0.625rem] font-medium text-[#0F766E]">
-                  {metricNoteCounts.methods} note{metricNoteCounts.methods === 1 ? '' : 's'}
-                </span>
-              ) : null}
-            </div>
-            <div className="mt-3 grid gap-2">
-              <div className="flex items-center justify-between gap-3"><span>Validators</span><span className="font-medium tabular-nums text-text-primary">{countLabel(data?.v ?? metadata.v ?? totalValidators)}</span></div>
-              <div className="flex items-center justify-between gap-3"><span>Migration cost</span><span className="font-medium tabular-nums text-text-primary">{compactNumber(data?.cost ?? metadata.cost ?? 0, 4)} ETH</span></div>
-              <div className="flex items-center justify-between gap-3"><span>Slot time</span><span className="font-medium tabular-nums text-text-primary">{compactNumber(data?.delta ?? metadata.delta ?? 0, 0)} ms</span></div>
-              <div className="flex items-center justify-between gap-3"><span>Cutoff</span><span className="font-medium tabular-nums text-text-primary">{compactNumber(data?.cutoff ?? metadata.cutoff ?? 0, 0)} ms</span></div>
-              <div className="flex items-center justify-between gap-3"><span>Gamma</span><span className="font-medium tabular-nums text-text-primary">{compactNumber(data?.gamma ?? metadata.gamma ?? 0, 4)}</span></div>
-              <div className="flex items-center justify-between gap-3"><span>Clusters now</span><span className="font-medium tabular-nums text-text-primary">{currentClusters != null ? countLabel(currentClusters) : 'N/A'}</span></div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1796,6 +1446,243 @@ export function PublishedDatasetViewer({
           </div>
         )})}
       </div>
+
+      {/* ── Metrics & details (collapsed by default) ── */}
+      <details className="group">
+        <summary className="flex cursor-pointer items-center gap-2 rounded-xl border border-rule bg-white px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:border-border-hover [&::-webkit-details-marker]:hidden">
+          <ChevronDown className="h-4 w-4 text-muted transition-transform group-open:rotate-180" />
+          Metrics, stats & configuration
+          <span className="ml-auto flex flex-wrap gap-2 text-xs text-muted">
+            <span className="lab-chip">Gini {currentGini != null ? compactNumber(currentGini, 3) : 'N/A'}</span>
+            <span className="lab-chip">{countLabel(currentRegions.length)} regions</span>
+            {annotationNotes.length > 0 && <span className="lab-chip">{annotationNotes.length} note{annotationNotes.length === 1 ? '' : 's'}</span>}
+          </span>
+        </summary>
+
+        <div className="mt-4 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {[
+              {
+                key: 'slot',
+                noteCount: annotationNotes.length,
+                noteSummary: noteSurfaceSummaries.slot,
+                focus: false,
+                anchor: { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
+                block: { type: 'stat' as const, value: `${countLabel(slot + 1)} / ${countLabel(totalSlots)}`, label: 'Current slot', sublabel: `Playback step ${stepSize}`, delta: slotLocked ? 'Locked for notes' : playing ? 'Autoplay active' : 'Paused', sentiment: 'neutral' as const },
+              },
+              {
+                key: 'regions',
+                noteCount: metricNoteCounts.geography,
+                noteSummary: noteSurfaceSummaries.geography,
+                focus: focusedArea === 'geography',
+                anchor: topRegion?.region
+                  ? { kind: 'region' as const, key: topRegion.regionId, label: `Region · ${topRegion.region.city}` }
+                  : { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
+                block: { type: 'stat' as const, value: countLabel(currentRegions.length), label: 'Active regions', sublabel: `${countLabel(totalValidators)} validators visible in this slot`, delta: `${currentRegions.length - initialRegions.length >= 0 ? '+' : ''}${countLabel(currentRegions.length - initialRegions.length)} vs slot 1`, sentiment: currentRegions.length <= initialRegions.length ? 'positive' as const : 'neutral' as const },
+              },
+              {
+                key: 'dominant',
+                noteCount: metricNoteCounts.geography,
+                noteSummary: noteSurfaceSummaries.geography,
+                focus: focusedArea === 'geography',
+                anchor: topRegion?.region
+                  ? { kind: 'region' as const, key: topRegion.regionId, label: `Region · ${topRegion.region.city}` }
+                  : { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
+                block: { type: 'stat' as const, value: regionShareLabel(topRegion, totalValidators), label: 'Dominant region share', sublabel: topRegion?.region ? topRegion.region.city : 'No active region', delta: deltaLabel(dominantShare, initialDominantShare), sentiment: dominantShare >= initialDominantShare ? 'negative' as const : 'positive' as const },
+              },
+              {
+                key: 'gini',
+                noteCount: metricNoteCounts.gini,
+                noteSummary: noteSurfaceSummaries.gini,
+                focus: focusedArea === 'concentration',
+                anchor: { kind: 'metric' as const, key: 'gini', label: 'Metric · Gini' },
+                block: { type: 'stat' as const, value: currentGini != null ? compactNumber(currentGini, 3) : 'N/A', label: 'Gini', sublabel: 'Geographic concentration', delta: deltaLabel(currentGini, initialGini), sentiment: (currentGini ?? 0) <= (initialGini ?? 0) ? 'positive' as const : 'negative' as const },
+              },
+              {
+                key: 'mev',
+                noteCount: metricNoteCounts.mev,
+                noteSummary: noteSurfaceSummaries.mev,
+                focus: focusedArea === 'performance',
+                anchor: { kind: 'metric' as const, key: 'mev', label: 'Metric · MEV' },
+                block: { type: 'stat' as const, value: currentMev != null ? `${compactNumber(currentMev, 4)} ETH` : 'N/A', label: 'Average MEV', sublabel: 'Current slot reward surface', delta: deltaLabel(currentMev, initialMev), sentiment: (currentMev ?? 0) >= (initialMev ?? 0) ? 'positive' as const : 'neutral' as const },
+              },
+              {
+                key: 'proposal',
+                noteCount: metricNoteCounts.proposalTime,
+                noteSummary: noteSurfaceSummaries.proposal,
+                focus: focusedArea === 'performance',
+                anchor: { kind: 'metric' as const, key: 'proposal_time', label: 'Metric · Proposal time' },
+                block: { type: 'stat' as const, value: currentProposalTime != null ? `${compactNumber(currentProposalTime, 1)} ms` : 'N/A', label: 'Proposal time', sublabel: currentAttestation != null ? `Attestation ${percentage(currentAttestation, 1)}` : 'Consensus timing', delta: deltaLabel(currentProposalTime, initialProposalTime), sentiment: (currentProposalTime ?? Number.POSITIVE_INFINITY) <= (initialProposalTime ?? Number.POSITIVE_INFINITY) ? 'positive' as const : 'negative' as const },
+              },
+            ].map(card => (
+              <button
+                key={card.key}
+                type="button"
+                onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, card.anchor))}
+                className={cn(
+                  'relative w-full text-left transition-all duration-300',
+                  card.focus ? 'rounded-xl ring-2 ring-accent/30 shadow-[0_16px_34px_rgba(37,99,235,0.08)]' : '',
+                )}
+              >
+                {card.noteCount > 0 ? (
+                  <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-[#DBE4F0] bg-white/96 px-2 py-0.5 text-[0.625rem] font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
+                    {card.noteCount} note{card.noteCount === 1 ? '' : 's'}
+                  </div>
+                ) : null}
+                {card.noteSummary ? (
+                  <div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)] rounded-full border border-[#0F172A]/10 bg-white/94 px-2.5 py-1 text-[0.625rem] font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
+                    {card.noteSummary}
+                  </div>
+                ) : null}
+                <StatBlock block={card.block} />
+              </button>
+            ))}
+          </div>
+
+      {annotationNotes.length > 0 ? (
+        <div className="px-5 pb-5">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure discussion</div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-4">
+                {[
+                  { label: 'Open questions', value: discussionSummary.openQuestions, tone: 'text-[#9A3412]' },
+                  { label: 'Challenged', value: discussionSummary.challenged, tone: 'text-[#BE123C]' },
+                  { label: 'Author notes', value: discussionSummary.authorAddressed, tone: 'text-[#92400E]' },
+                  { label: 'Range-based', value: discussionSummary.timeRanges, tone: 'text-[#1D4ED8]' },
+                ].map(card => (
+                  <div key={card.label} className="rounded-xl border border-rule bg-white px-3 py-3">
+                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+                    <div className={cn('mt-2 text-xl font-semibold', card.tone)}>{card.value.toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+              {leadingDebate ? (
+                <div className="mt-3 rounded-xl border border-rule bg-white px-3 py-3 text-xs leading-5 text-muted">
+                  <span className="font-medium text-text-primary">{leadingDebate.label}</span> is pulling the most attention in this figure. {leadingDebate.summary ?? `${leadingDebate.count} notes live here.`}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,250,248,0.96))] px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure marginalia</div>
+                  <div className="mt-1 text-xs leading-5 text-muted">
+                    {leadingDebate
+                      ? `${leadingDebate.label} is drawing the most attention. ${leadingDebate.summary ?? ''}`
+                      : 'Most important live notes for this posture.'}
+                  </div>
+                </div>
+                {focusedNote ? (
+                  <div className="rounded-full border border-accent/18 bg-[rgba(37,99,235,0.08)] px-2.5 py-1 text-[0.625rem] font-medium text-accent">
+                    Focus on {focusAreaLabel(focusedArea ?? 'geography')}
+                  </div>
+                ) : null}
+              </div>
+              <div className="mt-3 space-y-3">
+                {marginaliaNotes.map(note => (
+                  <button
+                    key={`marginalia-${note.id}`}
+                    onClick={() => setSelectedNoteId(note.id)}
+                    className={cn(
+                      'w-full rounded-xl border px-3 py-3 text-left transition-all',
+                      focusedNote?.id === note.id
+                        ? 'border-accent/24 bg-[rgba(37,99,235,0.06)] shadow-[0_12px_24px_rgba(37,99,235,0.08)]'
+                        : 'border-rule bg-white hover:border-border-hover',
+                      note.communityLane === 'author'
+                        ? 'border-l-[3px] border-l-[#1D4ED8]'
+                        : note.communityLane === 'reviewer'
+                          ? 'border-l-[3px] border-l-[#9F1239]'
+                          : 'border-l-[3px] border-l-[#0F766E]',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-[#DBE4F0] bg-[#F8FAFC] px-2.5 py-0.5 text-[0.625rem] font-medium uppercase tracking-[0.08em] text-text-primary">
+                            {note.anchorLabel ?? 'Whole slot'}
+                          </span>
+                          {noteMetaLabel(note) ? (
+                            <span className="text-[0.625rem] uppercase tracking-[0.08em] text-text-faint">
+                              {noteMetaLabel(note)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      {(note.replies?.length ?? 0) > 0 ? (
+                        <div className="shrink-0 text-[0.625rem] uppercase tracking-[0.08em] text-text-faint">
+                          {note.replies?.length ?? 0} repl{(note.replies?.length ?? 0) === 1 ? 'y' : 'ies'}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 text-sm leading-6 text-text-primary">{note.note}</div>
+                    {(note.annotationScope === 'time_range' || note.annotationScope === 'region_over_time') && note.rangeStartSlotNumber != null && note.rangeEndSlotNumber != null ? (
+                      <div className="mt-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                        Slots {note.rangeStartSlotNumber.toLocaleString()}-{note.rangeEndSlotNumber.toLocaleString()}
+                      </div>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── Frozen configuration (inside details) ── */}
+          <div className={cn(
+            'rounded-xl border border-rule bg-white px-4 py-4 text-xs text-muted transition-all duration-300',
+            focusedArea === 'config' ? 'ring-2 ring-accent/35 shadow-[0_18px_36px_rgba(37,99,235,0.1)]' : '',
+          )}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Frozen configuration</div>
+              {metricNoteCounts.methods > 0 ? (
+                <span className="rounded-full border border-[#0F766E]/18 bg-[#ECFDF5] px-2 py-0.5 text-[0.625rem] font-medium text-[#0F766E]">
+                  {metricNoteCounts.methods} note{metricNoteCounts.methods === 1 ? '' : 's'}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-3 grid gap-2">
+              <div className="flex items-center justify-between gap-3"><span>Validators</span><span className="font-medium tabular-nums text-text-primary">{countLabel(data?.v ?? metadata.v ?? totalValidators)}</span></div>
+              <div className="flex items-center justify-between gap-3"><span>Migration cost</span><span className="font-medium tabular-nums text-text-primary">{compactNumber(data?.cost ?? metadata.cost ?? 0, 4)} ETH</span></div>
+              <div className="flex items-center justify-between gap-3"><span>Slot time</span><span className="font-medium tabular-nums text-text-primary">{compactNumber(data?.delta ?? metadata.delta ?? 0, 0)} ms</span></div>
+              <div className="flex items-center justify-between gap-3"><span>Cutoff</span><span className="font-medium tabular-nums text-text-primary">{compactNumber(data?.cutoff ?? metadata.cutoff ?? 0, 0)} ms</span></div>
+              <div className="flex items-center justify-between gap-3"><span>Gamma</span><span className="font-medium tabular-nums text-text-primary">{compactNumber(data?.gamma ?? metadata.gamma ?? 0, 4)}</span></div>
+              <div className="flex items-center justify-between gap-3"><span>Clusters now</span><span className="font-medium tabular-nums text-text-primary">{currentClusters != null ? countLabel(currentClusters) : 'N/A'}</span></div>
+            </div>
+          </div>
+
+          {annotationNotes.length > 0 ? (
+            <div className="rounded-xl border border-rule bg-white px-4 py-4">
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Note filters</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[
+                  { id: 'all' as const, label: 'All', count: annotationNotes.length },
+                  { id: 'observation' as const, label: 'Observation', count: noteIntentCounts.observation },
+                  { id: 'question' as const, label: 'Question', count: noteIntentCounts.question },
+                  { id: 'theory' as const, label: 'Theory', count: noteIntentCounts.theory },
+                  { id: 'methods' as const, label: 'Methods', count: noteIntentCounts.methods },
+                ].map(filter => (
+                  <button
+                    key={filter.id}
+                    onClick={() => setActiveNoteFilter(filter.id)}
+                    className={cn(
+                      'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                      activeNoteFilter === filter.id
+                        ? 'border-accent bg-accent/10 text-accent'
+                        : 'border-rule bg-white text-text-primary hover:border-border-hover',
+                    )}
+                  >
+                    {filter.label} · {filter.count}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </details>
+
     </div>
   )
 }

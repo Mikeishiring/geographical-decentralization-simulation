@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { motion } from 'framer-motion'
-import { BLOCK_COLORS, SPRING_SOFT } from '../../lib/theme'
+import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
 import type { ScatterBlock as ScatterBlockType } from '../../types/blocks'
 
 interface ScatterBlockProps {
@@ -55,6 +55,9 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
   const yTicks = Array.from({ length: 5 }, (_, i) => minY + (rangeY * i) / 4)
   const xTicks = Array.from({ length: 5 }, (_, i) => minX + (rangeX * i) / 4)
 
+  const hoveredPoint = hoveredIndex !== null ? block.points[hoveredIndex] : null
+  const hoveredSvg = hoveredPoint ? toSvg(hoveredPoint.x, hoveredPoint.y) : null
+
   return (
     <div className="overflow-hidden rounded-xl border border-rule bg-white">
       <div className="border-b border-rule px-5 py-3">
@@ -76,13 +79,13 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
         </div>
       </div>
 
-      <div className="px-5 py-4">
+      <div className="relative px-5 py-4">
         <div className="rounded-lg border border-rule bg-surface-active p-3">
           <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" preserveAspectRatio="xMidYMid meet">
             <defs>
               <radialGradient id={gradientId}>
-                <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.25" />
-                <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0" />
+                <stop offset="0%" stopColor="#2563EB" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
               </radialGradient>
             </defs>
 
@@ -91,9 +94,9 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
               return (
                 <g key={tick}>
                   <line x1={padding.left} y1={sy} x2={svgW - padding.right} y2={sy}
-                    stroke="var(--color-rule)" strokeWidth={0.5} />
+                    stroke="currentColor" strokeWidth={CHART.gridWidth} opacity={CHART.gridOpacity} />
                   <text x={padding.left - 6} y={sy + 3} textAnchor="end"
-                    className="fill-muted text-[9px]">
+                    className="fill-muted" style={{ fontSize: CHART.labelSize }}>
                     {Number.isInteger(tick) ? tick : tick.toFixed(2)}
                   </text>
                 </g>
@@ -104,7 +107,7 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
               const { sx } = toSvg(tick, 0)
               return (
                 <text key={`x-${i}`} x={sx} y={svgH - 8} textAnchor="middle"
-                  className="fill-muted text-[9px]">
+                  className="fill-muted" style={{ fontSize: CHART.labelSize }}>
                   {Number.isInteger(tick) ? tick : tick.toFixed(2)}
                 </text>
               )
@@ -112,11 +115,11 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
 
             {block.xLabel && (
               <text x={padding.left + chartW / 2} y={svgH - 2} textAnchor="middle"
-                className="fill-muted text-[9px]">{block.xLabel}</text>
+                className="fill-muted" style={{ fontSize: CHART.labelSize }}>{block.xLabel}</text>
             )}
             {block.yLabel && (
               <text x={12} y={padding.top + chartH / 2} textAnchor="middle"
-                className="fill-muted text-[9px]"
+                className="fill-muted" style={{ fontSize: CHART.labelSize }}
                 transform={`rotate(-90, 12, ${padding.top + chartH / 2})`}>{block.yLabel}</text>
             )}
 
@@ -139,29 +142,39 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
                     opacity={isHovered ? 1 : 0.7}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ ...SPRING_SOFT, delay: i * 0.01 }}
+                    transition={{ ...SPRING_CRISP, delay: i * 0.01 }}
                     style={{ cursor: 'pointer' }}
                   />
-                  {isHovered && point.label && (
-                    <text x={sx} y={sy - 10} textAnchor="middle"
-                      className="fill-text-primary text-[9px] font-medium">
-                      {point.label}
-                    </text>
-                  )}
                 </g>
               )
             })}
           </svg>
         </div>
 
-        {hoveredIndex !== null && (
-          <div className="mt-2 text-xs text-muted">
-            <span className="text-text-primary font-medium tabular-nums">
-              ({block.points[hoveredIndex].x.toFixed(2)}, {block.points[hoveredIndex].y.toFixed(2)})
-            </span>
-            {block.points[hoveredIndex].label && (
-              <span className="ml-2">{block.points[hoveredIndex].label}</span>
-            )}
+        {/* Floating tooltip card */}
+        {hoveredPoint && hoveredSvg && (
+          <div
+            className="pointer-events-none absolute z-20"
+            style={{
+              left: `${(hoveredSvg.sx / svgW) * 100}%`,
+              top: `${((hoveredSvg.sy / svgH) * 100) - 2}%`,
+              transform: hoveredSvg.sx > svgW * 0.65 ? 'translate(-100%, -100%)' : 'translate(12px, -100%)',
+            }}
+          >
+            <div
+              className="rounded-lg border border-rule bg-white px-3 py-2"
+              style={{ boxShadow: CHART.tooltipShadow }}
+            >
+              {hoveredPoint.label && (
+                <div className="text-[0.6875rem] font-medium text-text-primary">{hoveredPoint.label}</div>
+              )}
+              <div className="mt-0.5 text-[0.75rem] font-semibold tabular-nums text-text-primary">
+                ({hoveredPoint.x.toFixed(2)}, {hoveredPoint.y.toFixed(2)})
+              </div>
+              {hoveredPoint.category && (
+                <div className="mt-0.5 text-[0.625rem] text-muted">{hoveredPoint.category}</div>
+              )}
+            </div>
           </div>
         )}
       </div>
