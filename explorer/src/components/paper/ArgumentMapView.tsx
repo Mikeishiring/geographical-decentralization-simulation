@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
-import { SPRING, PAGE_TRANSITION } from '../../lib/theme'
+import { SPRING } from '../../lib/theme'
 import { PAPER_SECTIONS } from '../../data/paper-sections'
 import { PAPER_NARRATIVE } from '../../data/paper-narrative'
 import { summarizeSection, sectionEntryLine } from './paper-helpers'
@@ -25,32 +25,24 @@ export function ArgumentMapView() {
   const collapseAll = () => setExpandedIds(new Set())
 
   return (
-    <motion.div key="argument-map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={PAGE_TRANSITION}>
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Argument map</span>
-          <h2 className="mt-1 text-lg font-medium text-text-primary">
-            Claims, paradoxes, and caveats
-          </h2>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            onClick={expandAll}
-            className="text-13 text-muted transition-colors hover:text-text-primary"
-          >
-            Expand all
-          </button>
-          <span className="text-rule">·</span>
-          <button
-            onClick={collapseAll}
-            className="text-13 text-muted transition-colors hover:text-text-primary"
-          >
-            Collapse all
-          </button>
-        </div>
+    <div>
+      <div className="flex items-center justify-end gap-3 px-5 py-2.5 border-b border-rule bg-surface-active/30">
+        <button
+          onClick={expandAll}
+          className="text-xs text-muted transition-colors hover:text-text-primary"
+        >
+          Expand all
+        </button>
+        <span className="text-rule">·</span>
+        <button
+          onClick={collapseAll}
+          className="text-xs text-muted transition-colors hover:text-text-primary"
+        >
+          Collapse all
+        </button>
       </div>
 
-      <div className="rounded-xl border border-rule bg-white divide-y divide-rule">
+      <div className="divide-y divide-rule">
         {PAPER_SECTIONS.map(section => {
           const isExpanded = expandedIds.has(section.id)
           const summaryTags = summarizeSection(section)
@@ -126,6 +118,6 @@ export function ArgumentMapView() {
           )
         })}
       </div>
-    </motion.div>
+    </div>
   )
 }

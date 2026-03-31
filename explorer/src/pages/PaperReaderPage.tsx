@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
-import { SPRING_SOFT } from '../lib/theme'
-import { PAPER_METADATA, PAPER_SECTIONS } from '../data/paper-sections'
+import { PAPER_SECTIONS } from '../data/paper-sections'
 import { createExploration, publishExploration, listExplorations, type Exploration } from '../lib/api'
 import { PaperViewModeBar, type ReaderMode } from '../components/paper/PaperViewModeBar'
 import { EditorialView } from '../components/paper/EditorialView'
-import { ArgumentMapView } from '../components/paper/ArgumentMapView'
 import { FullTextView } from '../components/paper/FullTextView'
 import { SelectionPopover } from '../components/community/SelectionPopover'
 import { useTextSelection } from '../hooks/useTextSelection'
@@ -28,7 +25,7 @@ export function PaperReaderPage({
 
   const [readerMode, setReaderMode] = useState<ReaderMode>(() => {
     const stored = window.localStorage.getItem('paper-reader-mode')
-    if (stored === 'focus' || stored === 'argument-map' || stored === 'paper') return stored
+    if (stored === 'focus' || stored === 'paper') return stored
     return 'editorial'
   })
 
@@ -166,7 +163,7 @@ export function PaperReaderPage({
   )
 
   return (
-    <div ref={containerRef} className="space-y-12 overflow-x-hidden">
+    <div ref={containerRef} className="overflow-x-hidden">
       {/* Text selection popover for community notes */}
       <SelectionPopover
         anchor={selection}
@@ -175,27 +172,6 @@ export function PaperReaderPage({
         onDismiss={clearSelection}
         sectionNoteCount={selectionSectionNoteCount}
       />
-
-      {/* Paper title hero */}
-      <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={SPRING_SOFT}
-        className="max-w-4xl"
-      >
-        <h1 className="text-3xl font-medium leading-tight text-text-primary font-serif sm:text-4xl">
-          {PAPER_METADATA.title}
-        </h1>
-        <p className="mt-2 text-sm text-muted">{PAPER_METADATA.citation}</p>
-        <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted font-serif">
-          {PAPER_METADATA.abstract}
-        </p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          {PAPER_METADATA.keyClaims.map(claim => (
-            <span key={claim} className="lab-chip">{claim}</span>
-          ))}
-        </div>
-      </motion.section>
 
       {/* Sticky reading-mode bar */}
       <PaperViewModeBar
@@ -212,9 +188,7 @@ export function PaperReaderPage({
       />
 
       {/* Active view */}
-      {readerMode === 'argument-map' ? (
-        <ArgumentMapView />
-      ) : readerMode === 'paper' ? (
+      {readerMode === 'paper' ? (
         <FullTextView />
       ) : (
         <EditorialView
