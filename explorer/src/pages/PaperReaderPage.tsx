@@ -56,11 +56,11 @@ export function PaperReaderPage({
     refetchInterval: isActive ? 60_000 : false,
   })
 
-  // Use real notes when available, fall back to mock data for demo
-  // Only use real notes if they have section anchors (usable for inline display)
+  // Merge real API notes with mock seed data, dedup by ID
   const resolvedNotes = useMemo(() => {
     const real = (notesQuery.data ?? []).filter(n => n.anchor?.sectionId)
-    return real.length > 0 ? real : [...MOCK_COMMUNITY_NOTES]
+    const realIds = new Set(real.map(n => n.id))
+    return [...real, ...MOCK_COMMUNITY_NOTES.filter(m => !realIds.has(m.id))]
   }, [notesQuery.data])
 
   // Group notes by sectionId
