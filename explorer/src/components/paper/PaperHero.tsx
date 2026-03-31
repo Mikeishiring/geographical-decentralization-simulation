@@ -10,7 +10,7 @@ export function PaperHero() {
       transition={SPRING_SOFT}
       className="max-w-4xl reveal-up"
     >
-      <h1 className="text-3xl font-medium leading-tight text-text-primary font-serif sm:text-4xl">
+      <h1 className="text-3xl font-medium leading-tight text-text-primary font-serif sm:text-4xl text-balance">
         {PAPER_METADATA.title}
       </h1>
       <p className="mt-1 text-sm text-muted">{PAPER_METADATA.subtitle}</p>

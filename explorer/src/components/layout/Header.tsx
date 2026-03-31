@@ -96,7 +96,7 @@ export function Header() {
             </p>
 
             {/* Title */}
-            <h1 className="mt-2 text-lg sm:text-xl font-semibold text-text-primary leading-snug tracking-[-0.015em]">
+            <h1 className="mt-2 text-lg sm:text-xl font-semibold text-text-primary leading-snug tracking-[-0.015em] text-balance">
               Geographical Decentralization in Ethereum Block Building
             </h1>
 
