@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
+import { SPRING, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import {
   addPublishedReplayNoteReply,
   createPublishedReplayNote,
@@ -780,7 +780,7 @@ export function PublishedReplayNotesPanel({
             <div className="mt-1 text-xs leading-5 text-muted">{card.detail}</div>
           </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
         <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">What people are debating here</div>
