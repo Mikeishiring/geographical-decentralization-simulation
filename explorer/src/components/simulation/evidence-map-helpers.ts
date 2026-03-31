@@ -4,7 +4,7 @@
  */
 import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
 import { getLatency, getLatencyNormalized } from '../../data/gcp-latency'
-import { PASTEL_PALETTE } from '../../lib/theme'
+import { LIGHT_SURFACE } from '../../lib/theme'
 import type { PublishedAnalyticsPayload } from './simulation-analytics'
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -20,12 +20,23 @@ export const GCP_REGION_MAP = new Map(GCP_REGIONS.map(r => [r.id, r]))
 
 export type OverlayMode = 'validators' | 'sources' | 'latency'
 
+/** Flat blue ramp for light-surface map nodes */
+export const NODE_BLUE = {
+  low: LIGHT_SURFACE.blue100,
+  mid: LIGHT_SURFACE.blue400,
+  high: LIGHT_SURFACE.blue600,
+  top: LIGHT_SURFACE.blue700,
+  /** Source overlay accent — teal */
+  source: '#0D9488',
+} as const
+
+/** @deprecated — use NODE_BLUE instead. Kept for sidebar legend compat */
 export const PASTEL = {
-  lavender: PASTEL_PALETTE[0],
-  sky: PASTEL_PALETTE[1],
-  peach: PASTEL_PALETTE[2],
-  mint: PASTEL_PALETTE[3],
-  rose: PASTEL_PALETTE[4],
+  lavender: NODE_BLUE.mid,
+  sky: NODE_BLUE.low,
+  peach: NODE_BLUE.top,
+  mint: NODE_BLUE.source,
+  rose: NODE_BLUE.high,
 } as const
 
 // ── Projection — Natural Earth I (Šavrič et al. 2011) ──────────────────────
@@ -124,15 +135,16 @@ export function latencyColorGlow(normalized: number): string {
 
 export function nodeRadius(count: number, maxCount: number): number {
   const normalized = Math.max(count / Math.max(maxCount, 1), 0.03)
-  return 3 + Math.pow(normalized, 0.4) * 14
+  return 3 + Math.pow(normalized, 0.4) * 8
 }
 
 export function nodeColor(count: number, maxCount: number): string {
   const t = Math.min(count / Math.max(maxCount, 1), 1)
-  if (t < 0.1) return '#64748B'
-  if (t < 0.3) return PASTEL.sky!
-  if (t < 0.6) return PASTEL.lavender!
-  return PASTEL.peach!
+  if (t < 0.1) return '#94A3B8'
+  if (t < 0.3) return NODE_BLUE.low
+  if (t < 0.6) return NODE_BLUE.mid
+  if (t < 0.85) return NODE_BLUE.high
+  return NODE_BLUE.top
 }
 
 // ── Slot data extraction ────────────────────────────────────────────────────
