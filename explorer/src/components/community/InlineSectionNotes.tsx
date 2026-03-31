@@ -108,8 +108,9 @@ function NoteCard({
   const sectionTitle = extras?.sectionTitle
   const sectionNumber = extras?.sectionNumber
 
-  const realReplyIds = new Set(note.replies.map(r => r.id))
-  const replyCount = note.replies.length + mockReplies.filter(m => !realReplyIds.has(m.id)).length
+  const realReplies = note.replies ?? []
+  const realReplyIds = new Set(realReplies.map(r => r.id))
+  const replyCount = realReplies.length + mockReplies.filter(m => !realReplyIds.has(m.id)).length
 
   const handleClick = useCallback(() => {
     onOpen?.(note.id)
@@ -248,7 +249,7 @@ function NoteCard({
 
               <ReplyThread
                 explorationId={note.id}
-                realReplies={note.replies}
+                realReplies={realReplies}
                 mockReplies={mockReplies}
               />
 

@@ -456,8 +456,9 @@ function ExplorationCard({
   const timeAgo = formatTimeAgo(cardTimestamp(exploration))
   const allTags = [...exploration.paradigmTags, ...exploration.experimentTags]
   const mockReplies = MOCK_NOTE_EXTRAS[exploration.id]?.replies ?? []
-  const realReplyIds = new Set(exploration.replies.map(r => r.id))
-  const replyCount = exploration.replies.length + mockReplies.filter(m => !realReplyIds.has(m.id)).length
+  const realReplies = exploration.replies ?? []
+  const realReplyIds = new Set(realReplies.map(r => r.id))
+  const replyCount = realReplies.length + mockReplies.filter(m => !realReplyIds.has(m.id)).length
 
   return (
     <motion.div
@@ -647,7 +648,7 @@ function ExplorationCard({
 
               <ReplyThread
                 explorationId={exploration.id}
-                realReplies={exploration.replies}
+                realReplies={realReplies}
                 mockReplies={mockReplies}
               />
 
