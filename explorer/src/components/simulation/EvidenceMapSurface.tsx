@@ -1,244 +1,31 @@
 import { useCallback, useId, useMemo, useRef, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Pause, RotateCcw, Layers, Radio, Zap } from 'lucide-react'
-import { DARK_SURFACE, PASTEL_PALETTE, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
+import { DARK_SURFACE, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { WORLD_PATHS } from '../../data/world-paths'
-import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
-import { getLatency, getLatencyNormalized, LATENCY_MIN, LATENCY_MAX } from '../../data/gcp-latency'
+import { LATENCY_MIN, LATENCY_MAX } from '../../data/gcp-latency'
 import {
   totalSlotsFromPayload,
   type PublishedAnalyticsPayload,
 } from './simulation-analytics'
 import { formatNumber } from './simulation-constants'
-
-// ── Constants ───────────────────────────────────────────────────────────────
-
-const SVG_W = 960
-const SVG_H = 500
-const GCP_REGION_MAP = new Map(GCP_REGIONS.map(r => [r.id, r]))
-
-type OverlayMode = 'validators' | 'sources' | 'latency'
-
-const PASTEL = {
-  lavender: PASTEL_PALETTE[0],
-  sky: PASTEL_PALETTE[1],
-  peach: PASTEL_PALETTE[2],
-  mint: PASTEL_PALETTE[3],
-  rose: PASTEL_PALETTE[4],
-} as const
-
-// ── Projection ──────────────────────────────────────────────────────────────
-
-function latLonToMercator(lat: number, lon: number, w: number, h: number) {
-  const x = ((lon + 180) / 360) * w
-  const latRad = (lat * Math.PI) / 180
-  const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2))
-  const y = h / 2 - (mercN / Math.PI) * (h / 2)
-  return { x, y }
-}
-
-// ── Great-circle arc path ───────────────────────────────────────────────────
-
-function greatCircleArc(
-  lat1: number, lon1: number,
-  lat2: number, lon2: number,
-  w: number, h: number,
-  segments = 32,
-): string {
-  const toRad = Math.PI / 180
-  const p1 = latLonToMercator(lat1, lon1, w, h)
-  const p2 = latLonToMercator(lat2, lon2, w, h)
-
-  // If points are close, just use a curved bezier
-  const screenDist = Math.hypot(p2.x - p1.x, p2.y - p1.y)
-  if (screenDist < 60) {
-    const mx = (p1.x + p2.x) / 2
-    const my = (p1.y + p2.y) / 2
-    const curvature = Math.min(screenDist * 0.2, 20)
-    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) - Math.PI / 2
-    const cx = mx + Math.cos(angle) * curvature
-    const cy = my + Math.sin(angle) * curvature
-    return `M${p1.x.toFixed(1)},${p1.y.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`
-  }
-
-  // Interpolate along great circle, project each point
-  const lat1r = lat1 * toRad, lon1r = lon1 * toRad
-  const lat2r = lat2 * toRad, lon2r = lon2 * toRad
-
-  const d = Math.acos(
-    Math.sin(lat1r) * Math.sin(lat2r) +
-    Math.cos(lat1r) * Math.cos(lat2r) * Math.cos(lon2r - lon1r),
-  )
-
-  const points: string[] = []
-  for (let i = 0; i <= segments; i++) {
-    const f = i / segments
-    const A = d > 0.001 ? Math.sin((1 - f) * d) / Math.sin(d) : 1 - f
-    const B = d > 0.001 ? Math.sin(f * d) / Math.sin(d) : f
-
-    const x3d = A * Math.cos(lat1r) * Math.cos(lon1r) + B * Math.cos(lat2r) * Math.cos(lon2r)
-    const y3d = A * Math.cos(lat1r) * Math.sin(lon1r) + B * Math.cos(lat2r) * Math.sin(lon2r)
-    const z3d = A * Math.sin(lat1r) + B * Math.sin(lat2r)
-
-    const lat = Math.atan2(z3d, Math.hypot(x3d, y3d)) / toRad
-    const lon = Math.atan2(y3d, x3d) / toRad
-
-    const proj = latLonToMercator(lat, lon, w, h)
-    points.push(i === 0 ? `M${proj.x.toFixed(1)},${proj.y.toFixed(1)}` : `L${proj.x.toFixed(1)},${proj.y.toFixed(1)}`)
-  }
-
-  return points.join(' ')
-}
-
-// ── Latency color ───────────────────────────────────────────────────────────
-
-function latencyColor(normalized: number): string {
-  // Green (fast) → Yellow → Orange → Red (slow)
-  if (normalized < 0.25) return '#10B981'
-  if (normalized < 0.5) return '#FBBF24'
-  if (normalized < 0.75) return '#F97316'
-  return '#EF4444'
-}
-
-function latencyColorGlow(normalized: number): string {
-  if (normalized < 0.25) return '#10B98133'
-  if (normalized < 0.5) return '#FBBF2433'
-  if (normalized < 0.75) return '#F9731633'
-  return '#EF444433'
-}
-
-// ── Slot data extraction ────────────────────────────────────────────────────
-
-interface RegionNode {
-  readonly id: string
-  readonly lat: number
-  readonly lon: number
-  readonly city: string
-  readonly macroRegion: MacroRegion
-  readonly count: number
-  readonly x: number
-  readonly y: number
-}
-
-function getSlotRegionNodes(payload: PublishedAnalyticsPayload, slot: number): readonly RegionNode[] {
-  const raw = payload.slots?.[String(slot)] ?? []
-  return raw
-    .filter(([, count]) => Number(count) > 0)
-    .map(([regionId, count]) => {
-      const gcpRegion = GCP_REGION_MAP.get(regionId)
-      if (!gcpRegion) return null
-      const { x, y } = latLonToMercator(gcpRegion.lat, gcpRegion.lon, SVG_W, SVG_H)
-      return {
-        id: regionId,
-        lat: gcpRegion.lat,
-        lon: gcpRegion.lon,
-        city: gcpRegion.city,
-        macroRegion: gcpRegion.macroRegion,
-        count: Number(count),
-        x,
-        y,
-      }
-    })
-    .filter((r): r is RegionNode => r !== null)
-    .toSorted((a, b) => a.count - b.count) // back-to-front rendering
-}
-
-function getSourceNodes(payload: PublishedAnalyticsPayload): readonly RegionNode[] {
-  const sources = (payload as { sources?: readonly (readonly [string, string])[] }).sources
-  if (!sources) return []
-
-  const counts = new Map<string, number>()
-  for (const [, regionId] of sources) {
-    counts.set(regionId, (counts.get(regionId) ?? 0) + 1)
-  }
-
-  return [...counts.entries()]
-    .map(([regionId, count]) => {
-      const gcpRegion = GCP_REGION_MAP.get(regionId)
-      if (!gcpRegion) return null
-      const { x, y } = latLonToMercator(gcpRegion.lat, gcpRegion.lon, SVG_W, SVG_H)
-      return {
-        id: regionId,
-        lat: gcpRegion.lat,
-        lon: gcpRegion.lon,
-        city: gcpRegion.city,
-        macroRegion: gcpRegion.macroRegion,
-        count,
-        x,
-        y,
-      }
-    })
-    .filter((r): r is RegionNode => r !== null)
-    .toSorted((a, b) => a.count - b.count)
-}
-
-// ── Latency arcs between active regions ─────────────────────────────────────
-
-interface LatencyArc {
-  readonly path: string
-  readonly ms: number
-  readonly normalized: number
-  readonly fromId: string
-  readonly toId: string
-}
-
-function buildLatencyArcs(nodes: readonly RegionNode[], maxArcs = 30): readonly LatencyArc[] {
-  if (nodes.length < 2) return []
-
-  const topNodes = [...nodes].toSorted((a, b) => b.count - a.count).slice(0, 12)
-  const arcs: LatencyArc[] = []
-
-  for (let i = 0; i < topNodes.length; i++) {
-    for (let j = i + 1; j < topNodes.length; j++) {
-      const a = topNodes[i]!
-      const b = topNodes[j]!
-      const ms = getLatency(a.id, b.id)
-      const norm = getLatencyNormalized(a.id, b.id)
-      if (ms == null || norm == null) continue
-
-      arcs.push({
-        path: greatCircleArc(a.lat, a.lon, b.lat, b.lon, SVG_W, SVG_H),
-        ms,
-        normalized: norm,
-        fromId: a.id,
-        toId: b.id,
-      })
-    }
-  }
-
-  return arcs
-    .toSorted((a, b) => b.ms - a.ms) // highest latency first (drawn behind)
-    .slice(0, maxArcs)
-}
-
-// ── Tooltip ─────────────────────────────────────────────────────────────────
-
-interface TooltipData {
-  readonly x: number
-  readonly y: number
-  readonly city: string
-  readonly id: string
-  readonly count: number
-  readonly rank: number
-  readonly total: number
-  readonly macroRegion: MacroRegion
-}
-
-// ── Node sizing ─────────────────────────────────────────────────────────────
-
-function nodeRadius(count: number, maxCount: number): number {
-  const normalized = Math.max(count / Math.max(maxCount, 1), 0.03)
-  return 4 + Math.sqrt(normalized) * 12
-}
-
-function nodeColor(count: number, maxCount: number): string {
-  const t = Math.min(count / Math.max(maxCount, 1), 1)
-  if (t < 0.1) return '#64748B'
-  if (t < 0.3) return PASTEL.sky
-  if (t < 0.6) return PASTEL.lavender
-  return PASTEL.peach
-}
+import {
+  SVG_W,
+  SVG_H,
+  GCP_REGION_MAP,
+  PASTEL,
+  latLonToMercator,
+  latencyColor,
+  latencyColorGlow,
+  nodeRadius,
+  nodeColor,
+  getSlotRegionNodes,
+  getSourceNodes,
+  buildLatencyArcs,
+  type OverlayMode,
+  type TooltipData,
+} from './evidence-map-helpers'
 
 // ── Main component ──────────────────────────────────────────────────────────
 
@@ -258,29 +45,37 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
   const [overlay, setOverlay] = useState<OverlayMode>('validators')
   const [tooltip, setTooltip] = useState<TooltipData | null>(null)
   const [hoveredRegion, setHoveredRegion] = useState<string | null>(null)
-  const playRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const rafRef = useRef<number | null>(null)
+  const lastFrameRef = useRef(0)
 
-  // ── Playback ──
-  const stepSize = Math.max(1, Math.ceil(totalSlots / 200)) // ~200 frames max
+  // ── Playback — requestAnimationFrame for smooth 30fps updates ──
+  const stepSize = Math.max(1, Math.ceil(totalSlots / 200))
+  const frameInterval = 33 // ~30fps — balances smoothness vs render cost
 
   useEffect(() => {
     if (!playing) {
-      if (playRef.current) clearInterval(playRef.current)
-      playRef.current = null
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
       return
     }
-    playRef.current = setInterval(() => {
-      setSlot(prev => {
-        const next = prev + stepSize
-        if (next >= lastSlot) {
-          setPlaying(false)
-          return lastSlot
-        }
-        return next
-      })
-    }, 60)
-    return () => { if (playRef.current) clearInterval(playRef.current) }
-  }, [playing, stepSize, lastSlot])
+    lastFrameRef.current = 0
+    const tick = (timestamp: number) => {
+      if (timestamp - lastFrameRef.current >= frameInterval) {
+        lastFrameRef.current = timestamp
+        setSlot(prev => {
+          const next = prev + stepSize
+          if (next >= lastSlot) {
+            setPlaying(false)
+            return lastSlot
+          }
+          return next
+        })
+      }
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+    return () => { if (rafRef.current != null) cancelAnimationFrame(rafRef.current) }
+  }, [playing, stepSize, lastSlot, frameInterval])
 
   const onPlay = useCallback(() => {
     if (slot >= lastSlot) setSlot(0)
@@ -290,12 +85,22 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
   const onPause = useCallback(() => setPlaying(false), [])
   const onReset = useCallback(() => { setPlaying(false); setSlot(lastSlot) }, [lastSlot])
 
-  // ── Data ──
+  // ── Data (fully memoized chain) ──
   const validatorNodes = useMemo(() => getSlotRegionNodes(payload, slot), [payload, slot])
   const sourceNodes = useMemo(() => getSourceNodes(payload), [payload])
-  const displayNodes = overlay === 'sources' ? sourceNodes : validatorNodes
-  const maxCount = Math.max(...displayNodes.map(n => n.count), 1)
-  const totalValidators = displayNodes.reduce((sum, n) => sum + n.count, 0)
+  const displayNodes = useMemo(
+    () => overlay === 'sources' ? sourceNodes : validatorNodes,
+    [overlay, sourceNodes, validatorNodes],
+  )
+  const { maxCount, totalValidators } = useMemo(() => {
+    let max = 1
+    let total = 0
+    for (const n of displayNodes) {
+      if (n.count > max) max = n.count
+      total += n.count
+    }
+    return { maxCount: max, totalValidators: total }
+  }, [displayNodes])
 
   const latencyArcs = useMemo(
     () => overlay === 'latency' ? buildLatencyArcs(validatorNodes) : [],
@@ -306,6 +111,36 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
     () => [...displayNodes].toSorted((a, b) => b.count - a.count),
     [displayNodes],
   )
+
+  const edges = useMemo(() => {
+    if (displayNodes.length < 2) return []
+    const result: Array<{ path: string; va: number; vb: number; color: string }> = []
+    const N = Math.min(3, displayNodes.length - 1)
+    const edgeColor = overlay === 'sources' ? PASTEL.mint! : PASTEL.sky!
+    for (const p of displayNodes) {
+      const distances = displayNodes
+        .filter(q => q.id !== p.id)
+        .map(q => ({ q, d: Math.hypot(q.x - p.x, q.y - p.y) }))
+        .toSorted((a, b) => a.d - b.d)
+        .slice(0, N)
+      for (const { q } of distances) {
+        if (p.id < q.id) {
+          const mx = (p.x + q.x) / 2
+          const my = (p.y + q.y) / 2
+          const dist = Math.hypot(q.x - p.x, q.y - p.y)
+          const curvature = Math.min(dist * 0.15, 30)
+          const angle = Math.atan2(q.y - p.y, q.x - p.x) - Math.PI / 2
+          const cx = mx + Math.cos(angle) * curvature
+          const cy = my + Math.sin(angle) * curvature
+          result.push({
+            path: `M${p.x.toFixed(1)},${p.y.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${q.x.toFixed(1)},${q.y.toFixed(1)}`,
+            va: p.count, vb: q.count, color: edgeColor,
+          })
+        }
+      }
+    }
+    return result
+  }, [displayNodes, overlay])
 
   // ── Metrics at current slot ──
   const metrics = payload.metrics ?? {}
@@ -335,14 +170,14 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
   const progress = lastSlot > 0 ? (slot / lastSlot) * 100 : 100
 
   return (
-    <div className={cn('overflow-hidden rounded-xl border border-rule bg-white', className)}>
+    <div className={cn('lab-stage overflow-hidden', className)}>
       {/* ── Header ── */}
       <div className="border-b border-rule px-5 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-accent dot-pulse" />
-              <h3 className="text-sm font-medium text-text-primary">
+              <h3 className="lab-section-title !mb-0">
                 Validator geography
               </h3>
             </div>
@@ -462,7 +297,6 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               const glowColor = latencyColorGlow(arc.normalized)
               return (
                 <g key={`arc-${arc.fromId}-${arc.toId}`}>
-                  {/* Glow underneath */}
                   <motion.path
                     d={arc.path}
                     fill="none"
@@ -473,7 +307,6 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                     animate={{ pathLength: 1, opacity: 0.6 }}
                     transition={{ ...SPRING_SOFT, delay: i * 0.02 }}
                   />
-                  {/* Main arc */}
                   <motion.path
                     d={arc.path}
                     fill="none"
@@ -484,7 +317,6 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                     animate={{ pathLength: 1, opacity: 0.7 }}
                     transition={{ ...SPRING_SOFT, delay: i * 0.02 }}
                   />
-                  {/* Latency label at midpoint */}
                   {i < 10 && (() => {
                     const fromRegion = GCP_REGION_MAP.get(arc.fromId)
                     const toRegion = GCP_REGION_MAP.get(arc.toId)
@@ -515,35 +347,19 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             })}
 
             {/* ── Nearest-neighbor edges (validators/sources mode) ── */}
-            {overlay !== 'latency' && displayNodes.length > 1 && (() => {
-              const edges: Array<{ path: string; va: number; vb: number; color: string }> = []
-              const N = Math.min(3, displayNodes.length - 1)
-              for (const p of displayNodes) {
-                const distances = displayNodes
-                  .filter(q => q.id !== p.id)
-                  .map(q => ({ q, d: Math.hypot(q.x - p.x, q.y - p.y) }))
-                  .toSorted((a, b) => a.d - b.d)
-                  .slice(0, N)
-                for (const { q } of distances) {
-                  if (p.id < q.id) {
-                    const mx = (p.x + q.x) / 2
-                    const my = (p.y + q.y) / 2
-                    const dist = Math.hypot(q.x - p.x, q.y - p.y)
-                    const curvature = Math.min(dist * 0.15, 30)
-                    const angle = Math.atan2(q.y - p.y, q.x - p.x) - Math.PI / 2
-                    const cx = mx + Math.cos(angle) * curvature
-                    const cy = my + Math.sin(angle) * curvature
-                    const path = `M${p.x.toFixed(1)},${p.y.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${q.x.toFixed(1)},${q.y.toFixed(1)}`
-                    edges.push({
-                      path,
-                      va: p.count,
-                      vb: q.count,
-                      color: overlay === 'sources' ? PASTEL.mint : PASTEL.sky,
-                    })
-                  }
-                }
-              }
-              return edges.map((e, i) => (
+            {overlay !== 'latency' && edges.map((e, i) => {
+              const opacity = 0.12 + ((e.va + e.vb) / (2 * maxCount)) * 0.18
+              return playing ? (
+                <path
+                  key={`edge-${i}`}
+                  d={e.path}
+                  fill="none"
+                  stroke={e.color}
+                  strokeWidth={0.7}
+                  strokeLinecap="round"
+                  opacity={opacity}
+                />
+              ) : (
                 <motion.path
                   key={`edge-${i}`}
                   d={e.path}
@@ -552,74 +368,81 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                   strokeWidth={0.7}
                   strokeLinecap="round"
                   initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 0.12 + ((e.va + e.vb) / (2 * maxCount)) * 0.18 }}
+                  animate={{ pathLength: 1, opacity }}
                   transition={{ ...SPRING_SOFT, delay: 0.3 + i * 0.005 }}
                 />
-              ))
-            })()}
+              )
+            })}
 
-            {/* ── Region nodes ── */}
+            {/* ── Region nodes — plain SVG during playback for perf ── */}
             {displayNodes.map((node, index) => {
               const r = nodeRadius(node.count, maxCount)
-              const color = overlay === 'sources' ? PASTEL.mint : nodeColor(node.count, maxCount)
+              const color = overlay === 'sources' ? PASTEL.mint! : nodeColor(node.count, maxCount)
               const isTop = sorted.indexOf(node) < 6
               const rank = sorted.findIndex(n => n.id === node.id)
               const isHovered = hoveredRegion === node.id
 
               return (
                 <g key={node.id}>
-                  {/* Breathing halo for top regions */}
-                  {isTop && (
-                    <circle cx={node.x} cy={node.y} r={r * 2.8} fill="none" stroke={color} strokeWidth={0.4} opacity={0.15}>
-                      <animate
-                        attributeName="r"
-                        values={`${(r * 2.5).toFixed(1)};${(r * 3.5).toFixed(1)};${(r * 2.5).toFixed(1)}`}
-                        dur={`${4 + index * 0.2}s`}
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="opacity"
-                        values="0.05;0.15;0.05"
-                        dur={`${4 + index * 0.2}s`}
-                        repeatCount="indefinite"
-                      />
+                  {/* Breathing halo — only when not playing (SVG animate is cheap but adds clutter) */}
+                  {isTop && !playing && (
+                    <circle cx={node.x} cy={node.y} r={r * 2.8} fill="none" stroke={color} strokeWidth={0.4} opacity={0.1}>
+                      <animate attributeName="r" values={`${(r * 2.5).toFixed(1)};${(r * 3.5).toFixed(1)};${(r * 2.5).toFixed(1)}`} dur="4s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.05;0.15;0.05" dur="4s" repeatCount="indefinite" />
                     </circle>
                   )}
 
-                  {/* Outer glow */}
-                  <motion.circle
+                  {/* Outer glow — plain circle during playback */}
+                  <circle
                     cx={node.x} cy={node.y}
                     r={r * 2.2}
                     fill={color}
                     fillOpacity={isHovered ? 0.2 : 0.08}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ ...SPRING_SOFT, delay: 0.1 + index * 0.008 }}
                   />
 
-                  {/* Core node */}
-                  <motion.circle
-                    cx={node.x} cy={node.y}
-                    r={r}
-                    fill={color}
-                    stroke={isTop ? 'rgba(255,255,255,0.45)' : 'rgba(180,200,220,0.15)'}
-                    strokeWidth={isTop ? 0.8 : 0.4}
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: isHovered ? 1.25 : 1, opacity: 0.9 }}
-                    transition={{ ...SPRING_SNAPPY, delay: 0.1 + index * 0.008 }}
-                    style={{ cursor: 'pointer' }}
-                    onMouseEnter={() => handleHover({
-                      x: node.x, y: node.y,
-                      city: node.city, id: node.id,
-                      count: node.count, rank,
-                      total: displayNodes.length,
-                      macroRegion: node.macroRegion,
-                    })}
-                    onMouseLeave={() => handleHover(null)}
-                  />
+                  {/* Core node — plain circle during playback, motion on initial load */}
+                  {playing ? (
+                    <circle
+                      cx={node.x} cy={node.y}
+                      r={r}
+                      fill={color}
+                      opacity={0.9}
+                      stroke={isTop ? 'rgba(255,255,255,0.45)' : 'rgba(180,200,220,0.15)'}
+                      strokeWidth={isTop ? 0.8 : 0.4}
+                      style={{ cursor: 'pointer' }}
+                      onMouseEnter={() => handleHover({
+                        x: node.x, y: node.y,
+                        city: node.city, id: node.id,
+                        count: node.count, rank,
+                        total: displayNodes.length,
+                        macroRegion: node.macroRegion,
+                      })}
+                      onMouseLeave={() => handleHover(null)}
+                    />
+                  ) : (
+                    <motion.circle
+                      cx={node.x} cy={node.y}
+                      r={r}
+                      fill={color}
+                      stroke={isTop ? 'rgba(255,255,255,0.45)' : 'rgba(180,200,220,0.15)'}
+                      strokeWidth={isTop ? 0.8 : 0.4}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: isHovered ? 1.25 : 1, opacity: 0.9 }}
+                      transition={{ ...SPRING_SNAPPY, delay: 0.1 + index * 0.008 }}
+                      style={{ cursor: 'pointer' }}
+                      onMouseEnter={() => handleHover({
+                        x: node.x, y: node.y,
+                        city: node.city, id: node.id,
+                        count: node.count, rank,
+                        total: displayNodes.length,
+                        macroRegion: node.macroRegion,
+                      })}
+                      onMouseLeave={() => handleHover(null)}
+                    />
+                  )}
 
-                  {/* Label for top 5 */}
-                  {rank < 5 && (
+                  {/* Labels — skip during playback to reduce DOM churn */}
+                  {rank < 5 && !playing && (
                     <motion.text
                       x={node.x} y={node.y - r - 8}
                       textAnchor="middle"
@@ -689,30 +512,30 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
         <div className="border-t border-rule p-3.5 lg:border-l lg:border-t-0 space-y-4 overflow-y-auto" style={{ maxHeight: 500 }}>
           {/* Live metrics */}
           <div>
-            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
+            <div className="lab-section-title">
               Slot {(slot + 1).toLocaleString()} metrics
             </div>
             <div className="grid grid-cols-2 gap-2">
               {gini != null && (
-                <div className="rounded-lg border border-rule bg-surface-active/40 p-2">
+                <div className="lab-option-card p-2">
                   <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Gini</div>
                   <div className="text-sm font-semibold tabular-nums text-text-primary">{formatNumber(gini, 3)}</div>
                 </div>
               )}
               {hhi != null && (
-                <div className="rounded-lg border border-rule bg-surface-active/40 p-2">
+                <div className="lab-option-card p-2">
                   <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">HHI</div>
                   <div className="text-sm font-semibold tabular-nums text-text-primary">{formatNumber(hhi, 4)}</div>
                 </div>
               )}
               {clusters != null && (
-                <div className="rounded-lg border border-rule bg-surface-active/40 p-2">
+                <div className="lab-option-card p-2">
                   <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Clusters</div>
                   <div className="text-sm font-semibold tabular-nums text-text-primary">{clusters}</div>
                 </div>
               )}
               {distance != null && (
-                <div className="rounded-lg border border-rule bg-surface-active/40 p-2">
+                <div className="lab-option-card p-2">
                   <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Distance</div>
                   <div className="text-sm font-semibold tabular-nums text-text-primary">{distance.toLocaleString()}</div>
                 </div>
@@ -722,12 +545,12 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
 
           {/* Top regions list */}
           <div>
-            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
+            <div className="lab-section-title">
               Top regions
             </div>
             <div className="space-y-0.5">
               {sorted.slice(0, 6).map((node, i) => {
-                const color = overlay === 'sources' ? PASTEL.mint : nodeColor(node.count, maxCount)
+                const color = overlay === 'sources' ? PASTEL.mint! : nodeColor(node.count, maxCount)
                 const pct = ((node.count / maxCount) * 100).toFixed(0)
                 const sharePct = totalValidators > 0 ? ((node.count / totalValidators) * 100).toFixed(1) : '0'
                 const isHovered = hoveredRegion === node.id
@@ -774,8 +597,8 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
 
           {/* Latency legend */}
           {overlay === 'latency' && (
-            <div className="rounded-lg border border-rule bg-surface-active/40 p-2.5 text-xs text-muted">
-              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Latency scale</div>
+            <div className="lab-option-card p-2.5 text-xs text-muted">
+              <div className="lab-section-title !mb-1.5">Latency scale</div>
               <div className="flex items-center gap-1.5">
                 <div className="flex-1 h-2 rounded-full" style={{
                   background: 'linear-gradient(to right, #10B981, #FBBF24, #F97316, #EF4444)',
@@ -790,8 +613,8 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
 
           {/* Density legend */}
           {overlay !== 'latency' && (
-            <div className="rounded-lg border border-rule bg-surface-active/40 p-2.5 text-xs text-muted">
-              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">
+            <div className="lab-option-card p-2.5 text-xs text-muted">
+              <div className="lab-section-title !mb-1.5">
                 {overlay === 'sources' ? 'Source density' : 'Stake concentration'}
               </div>
               <div className="grid grid-cols-2 gap-x-2 gap-y-1">
@@ -822,7 +645,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             {playing ? (
-              <button onClick={onPause} className="flex items-center gap-1.5 rounded-lg border border-rule bg-surface-active px-3 py-1.5 text-xs font-medium text-text-primary hover:border-border-hover transition-colors">
+              <button onClick={onPause} className="lab-option-card flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-text-primary">
                 <Pause className="h-3 w-3" /> Pause
               </button>
             ) : (
@@ -830,7 +653,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                 <Play className="h-3 w-3" /> {slot >= lastSlot ? 'Replay' : 'Play'}
               </button>
             )}
-            <button onClick={onReset} className="flex items-center gap-1.5 rounded-lg border border-rule bg-white px-3 py-1.5 text-xs text-muted hover:text-text-primary transition-colors">
+            <button onClick={onReset} className="lab-option-card flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-muted hover:text-text-primary transition-colors">
               <RotateCcw className="h-3 w-3" /> Final
             </button>
           </div>
