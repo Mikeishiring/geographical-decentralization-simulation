@@ -70,7 +70,6 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
       delta: latestPt.y - first.y,
     }]
   })
-  const highestValue = Math.max(...allPoints.map(point => point.y))
   const pointStep = Math.max(1, Math.floor(Math.max(...block.series.map(series => series.data.length)) / 18))
   const hoverReadout = hover
     ? block.series.flatMap((series, index) => {
