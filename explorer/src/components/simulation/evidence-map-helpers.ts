@@ -166,6 +166,63 @@ export function getSourceNodes(payload: PublishedAnalyticsPayload): readonly Reg
     .toSorted((a, b) => a.count - b.count)
 }
 
+// ── Node spreading (force-directed nudge for overlapping nodes) ─────────────
+
+/**
+ * Iteratively nudge nodes apart when they overlap on the projected SVG.
+ * Preserves geographic truthfulness by capping displacement at `maxDisplace`.
+ * Runs a fixed number of iterations — O(n²) per iteration but n ≤ 40 regions.
+ */
+export function spreadOverlappingNodes(
+  nodes: readonly RegionNode[],
+  maxCount: number,
+  iterations = 8,
+  maxDisplace = 16,
+): readonly RegionNode[] {
+  if (nodes.length < 2) return nodes
+
+  // Work with mutable positions
+  const positions = nodes.map(n => ({ x: n.x, y: n.y, origX: n.x, origY: n.y }))
+
+  for (let iter = 0; iter < iterations; iter++) {
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = i + 1; j < positions.length; j++) {
+        const a = positions[i]!
+        const b = positions[j]!
+        const rA = nodeRadius(nodes[i]!.count, maxCount)
+        const rB = nodeRadius(nodes[j]!.count, maxCount)
+        const minDist = rA + rB + 2 // 2px minimum gap
+
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        const dist = Math.hypot(dx, dy)
+
+        if (dist < minDist && dist > 0.01) {
+          const overlap = (minDist - dist) / 2
+          const nx = dx / dist
+          const ny = dy / dist
+          // Push equally in opposite directions
+          a.x -= nx * overlap * 0.5
+          a.y -= ny * overlap * 0.5
+          b.x += nx * overlap * 0.5
+          b.y += ny * overlap * 0.5
+        }
+      }
+    }
+  }
+
+  // Clamp displacement and rebuild immutable nodes
+  return nodes.map((node, i) => {
+    const p = positions[i]!
+    const dx = Math.max(-maxDisplace, Math.min(maxDisplace, p.x - p.origX))
+    const dy = Math.max(-maxDisplace, Math.min(maxDisplace, p.y - p.origY))
+    const finalX = Math.max(4, Math.min(SVG_W - 4, p.origX + dx))
+    const finalY = Math.max(4, Math.min(MAP_VISIBLE_H - 4, p.origY + dy))
+    if (finalX === node.x && finalY === node.y) return node
+    return { ...node, x: finalX, y: finalY }
+  })
+}
+
 // ── Latency arcs ────────────────────────────────────────────────────────────
 
 export interface LatencyArc {
