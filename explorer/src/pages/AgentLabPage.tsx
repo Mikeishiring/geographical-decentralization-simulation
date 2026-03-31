@@ -46,7 +46,12 @@ const SUGGESTED_QUESTIONS = [
   { label: 'Realism', prompt: 'Does the simplified MEV model bias the results toward SSP?' },
 ]
 
-export default function AgentLabPage() {
+interface AgentLabPageProps {
+  readonly onTabChange?: (tab: import('../components/layout/TabNav').TabId) => void
+  readonly onOpenCommunityExploration?: (explorationId: string) => void
+}
+
+export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }: AgentLabPageProps) {
   const queryClient = useQueryClient()
   const [mode, setMode] = useState<AgentMode>('ask')
 
@@ -352,6 +357,11 @@ export default function AgentLabPage() {
                   published={publishedId !== null}
                   isPublishing={publishMutation.isPending}
                   error={(publishMutation.error as Error | null)?.message ?? null}
+                  onViewPublished={publishedId != null && onOpenCommunityExploration
+                    ? () => onOpenCommunityExploration(publishedId)
+                    : onTabChange
+                      ? () => onTabChange('community')
+                      : undefined}
                   onPublish={payload => publishMutation.mutate(payload)}
                 />
 

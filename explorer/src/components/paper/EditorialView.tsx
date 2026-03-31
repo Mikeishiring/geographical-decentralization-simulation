@@ -336,6 +336,7 @@ export function EditorialView({
           <PaperSectionView
             focusMode={false}
             activeSectionId={activeSectionId}
+            onSectionClick={onSectionClick}
             onPublish={handleSectionPublish}
             isPublishing={publishMutation.isPending}
             publishError={(publishMutation.error as Error | null)?.message ?? null}

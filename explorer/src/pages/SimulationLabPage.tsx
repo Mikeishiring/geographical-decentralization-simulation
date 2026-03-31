@@ -23,7 +23,7 @@ import {
   readOrCreateClientId,
 } from '../components/simulation/simulation-constants'
 import { cn } from '../lib/cn'
-import { SPRING, SPRING_CRISP } from '../lib/theme'
+import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../lib/theme'
 import type { TabId } from '../components/layout/TabNav'
 import {
   getSimulationManifest,
@@ -354,6 +354,38 @@ export function SimulationLabPage({
             </>
           )}
         </>
+      )}
+      {/* Cross-tab navigation footer */}
+      {onTabChange && (
+        <motion.div
+          className="mt-12 grid gap-3 sm:grid-cols-3"
+          variants={STAGGER_CONTAINER}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+        >
+          {([
+            { tab: 'paper' as TabId, eyebrow: 'Read the paper', title: 'Paper', detail: 'Editorial reading with source provenance and visual evidence.' },
+            { tab: 'agent' as TabId, eyebrow: 'Questions & experiments', title: 'Agent workspace', detail: 'Ask questions about the paper or run autonomous experiments.' },
+            { tab: 'community' as TabId, eyebrow: 'Public responses', title: 'Community notes', detail: 'Human notes on readings and simulation runs.' },
+          ] as const).map(item => (
+            <motion.button
+              key={item.tab}
+              variants={STAGGER_ITEM}
+              whileTap={{ scale: 0.98 }}
+              transition={SPRING_CRISP}
+              onClick={() => onTabChange(item.tab)}
+              className="group relative overflow-hidden rounded-xl border border-rule bg-white p-4 text-left card-hover"
+            >
+              <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{item.eyebrow}</span>
+              <div className="mt-1.5 flex items-center justify-between gap-2">
+                <span className="text-13 font-medium text-text-primary group-hover:text-accent transition-colors">{item.title}</span>
+                <span className="text-xs text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
+              </div>
+              <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
+            </motion.button>
+          ))}
+        </motion.div>
       )}
     </div>
   )
