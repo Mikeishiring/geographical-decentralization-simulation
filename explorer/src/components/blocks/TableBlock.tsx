@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
+import { SPRING_CRISP } from '../../lib/theme'
 import type { TableBlock as TableBlockType } from '../../types/blocks'
 
 interface TableBlockProps {
@@ -20,7 +22,12 @@ export function TableBlock({ block }: TableBlockProps) {
   }
 
   return (
-    <div className="bg-white border border-rule rounded-xl p-5 card-hover">
+    <motion.div
+      className="bg-white border border-rule rounded-xl p-5 card-hover"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING_CRISP}
+    >
       <h3 className="text-sm font-medium text-text-primary mb-4">
         {block.title}
       </h3>
@@ -65,6 +72,6 @@ export function TableBlock({ block }: TableBlockProps) {
           </tbody>
         </table>
       </div>
-    </div>
+    </motion.div>
   )
 }
