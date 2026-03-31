@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
+import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
 import type { Block } from '../../types/blocks'
 import { formatNumber } from './simulation-constants'
@@ -89,25 +89,6 @@ async function fetchPayload(
 // ── Block builders ──────────────────────────────────────────────────────────
 
 const GCP_REGION_MAP = new Map(GCP_REGIONS.map(r => [r.id, r]))
-
-function buildMapBlock(payload: PublishedAnalyticsPayload): Block | null {
-  const totalSlots = totalSlotsFromPayload(payload)
-  const finalSlot = Math.max(0, totalSlots - 1)
-  const rawRegions = payload.slots?.[String(finalSlot)] ?? []
-  if (rawRegions.length === 0) return null
-
-  const regions = rawRegions
-    .filter(([, count]) => Number(count) > 0)
-    .map(([regionId, count]) => {
-      const gcpRegion = GCP_REGION_MAP.get(regionId)
-      return gcpRegion
-        ? { name: gcpRegion.city, lat: gcpRegion.lat, lon: gcpRegion.lon, value: Number(count), label: `${gcpRegion.city}: ${Number(count).toLocaleString()} validators` }
-        : null
-    })
-    .filter((r): r is NonNullable<typeof r> => r !== null)
-
-  return { type: 'map' as const, title: `Validator distribution at slot ${(finalSlot + 1).toLocaleString()}`, regions, colorScale: 'density' as const, unit: 'validators' }
-}
 
 function sampleSeries(raw: readonly number[] | undefined, maxPoints = 200): Array<{ x: number; y: number }> {
   if (!raw || raw.length === 0) return []
@@ -344,6 +325,36 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
   )
 }
 
+// ── Scroll-reveal chart block ───────────────────────────────────────────────
+
+function ScrollRevealBlock({ block }: { block: import('../../types/blocks').Block }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry?.isIntersecting) { setVisible(true); observer.disconnect() } },
+      { rootMargin: '40px 0px', threshold: 0.05 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 12 }}
+      animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={SPRING_CRISP}
+    >
+      <BlockRenderer block={block} />
+    </motion.div>
+  )
+}
+
 // ── Main component ──────────────────────────────────────────────────────────
 
 interface PrecomputedEvidenceSurfaceProps {
@@ -446,9 +457,38 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
         </div>
       </motion.section>
 
-      {/* ── Loading / error ── */}
+      {/* ── Loading skeleton ── */}
       {payloadQuery.isLoading && (
-        <div className="lab-stage-soft p-8 text-sm text-muted text-center">Loading simulation data\u2026</div>
+        <div className="space-y-3">
+          {/* KPI shimmer row */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="lab-option-card px-3 py-2.5 animate-pulse">
+                <div className="h-2 w-16 rounded bg-meridian/40 mb-2" />
+                <div className="h-5 w-12 rounded bg-meridian/30" />
+              </div>
+            ))}
+          </div>
+          {/* Config + narrative shimmer */}
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="lab-stage-soft px-4 py-3 animate-pulse">
+                <div className="h-2.5 w-24 rounded bg-meridian/40 mb-3" />
+                <div className="space-y-2">
+                  <div className="h-2 w-full rounded bg-meridian/20" />
+                  <div className="h-2 w-3/4 rounded bg-meridian/20" />
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Map shimmer */}
+          <div className="lab-stage overflow-hidden animate-pulse">
+            <div className="border-b border-rule px-5 py-3">
+              <div className="h-3 w-32 rounded bg-meridian/40" />
+            </div>
+            <div className="aspect-[960/500] bg-gradient-to-b from-[#0E1520] to-[#0B0F14]" />
+          </div>
+        </div>
       )}
       {payloadQuery.isError && (
         <div className="rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -478,22 +518,14 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
           {/* Interactive map with latency, playback, and overlays */}
           <EvidenceMapSurface payload={payloadQuery.data} />
 
-          {/* Plot filter toolbar + chart panels */}
+          {/* Plot filter toolbar + chart panels — 2-col grid on desktop */}
           {taggedBlocks.length > 0 && (
             <div className="lab-stage px-5 py-4">
               <PlotFilterToolbar activeCategory={activeCategory} onCategoryChange={setActiveCategory} counts={categoryCounts} />
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 <AnimatePresence initial={false}>
                   {visibleBlocks.map(({ key, block }) => (
-                    <motion.div
-                      key={key}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-                      transition={SPRING_CRISP}
-                    >
-                      <BlockRenderer block={block} />
-                    </motion.div>
+                    <ScrollRevealBlock key={key} block={block} />
                   ))}
                 </AnimatePresence>
               </div>
