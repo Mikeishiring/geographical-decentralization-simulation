@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, LayoutList, FileText, BookOpen, ChevronDown, ChevronUp } from 'lucide-react'
+import { Eye, LayoutList, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
@@ -38,6 +38,11 @@ interface PaperViewModeBarProps {
   readonly onGuideToggle: () => void
   readonly onSectionClick: (id: string) => void
   readonly onTabChange?: (tab: TabId) => void
+  /** Whether inline community notes are shown on sections */
+  readonly notesVisible?: boolean
+  readonly onNotesToggle?: () => void
+  /** Total number of published notes across all sections */
+  readonly noteCount?: number
 }
 
 export function PaperViewModeBar({
@@ -48,6 +53,9 @@ export function PaperViewModeBar({
   onGuideToggle,
   onSectionClick,
   onTabChange,
+  notesVisible = false,
+  onNotesToggle,
+  noteCount = 0,
 }: PaperViewModeBarProps) {
   const argumentMapMode = readerMode === 'argument-map'
   const paperMode = readerMode === 'paper'
@@ -103,6 +111,28 @@ export function PaperViewModeBar({
                 />
               </div>
             </div>
+          )}
+          {onNotesToggle && (
+            <button
+              onClick={onNotesToggle}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors',
+                notesVisible
+                  ? 'border-accent/30 bg-accent/5 text-accent'
+                  : 'border-rule text-muted hover:text-text-primary hover:border-border-hover',
+              )}
+            >
+              <MessageSquare className="h-3 w-3" />
+              Notes
+              {noteCount > 0 && (
+                <span className={cn(
+                  'ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold',
+                  notesVisible ? 'bg-accent text-white' : 'bg-surface-active text-text-faint',
+                )}>
+                  {noteCount}
+                </span>
+              )}
+            </button>
           )}
           <button
             onClick={onGuideToggle}

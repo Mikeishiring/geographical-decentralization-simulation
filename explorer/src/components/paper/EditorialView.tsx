@@ -14,6 +14,8 @@ import { CommunityPreview } from './CommunityPreview'
 import { PaperSectionView } from './PaperSectionView'
 import { NodeArc } from '../decorative/NodeArc'
 import { Link2, Check, Quote } from 'lucide-react'
+import { InlineSectionNotes } from '../community/InlineSectionNotes'
+import type { Exploration } from '../../lib/api'
 import type { TabId } from '../layout/TabNav'
 
 interface EditorialViewProps {
@@ -23,6 +25,10 @@ interface EditorialViewProps {
   readonly onSectionClick: (id: string) => void
   readonly onOpenCommunityExploration?: (explorationId: string) => void
   readonly onTabChange?: (tab: TabId) => void
+  /** Whether to show inline community notes on sections */
+  readonly notesVisible?: boolean
+  /** Notes grouped by sectionId */
+  readonly notesBySection?: ReadonlyMap<string, Exploration[]>
 }
 
 export function EditorialView({
@@ -32,6 +38,8 @@ export function EditorialView({
   onSectionClick,
   onOpenCommunityExploration,
   onTabChange,
+  notesVisible = false,
+  notesBySection,
 }: EditorialViewProps) {
   const queryClient = useQueryClient()
   const [activeTopic, setActiveTopic] = useState<TopicCard | null>(null)
@@ -310,6 +318,14 @@ export function EditorialView({
                     </div>
                   </div>
 
+                  {/* Inline community notes (focus mode) */}
+                  {notesVisible && notesBySection?.get(section.id) && (
+                    <InlineSectionNotes
+                      notes={notesBySection.get(section.id) ?? []}
+                      onOpenNote={openCommunityNote}
+                    />
+                  )}
+
                   <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-5">
                     {previousSection ? (
                       <a href={`#${previousSection.id}`} onClick={() => onSectionClick(previousSection.id)} className="group/nav inline-flex items-center gap-1.5 text-13 text-muted transition-colors hover:text-text-primary">
@@ -339,6 +355,9 @@ export function EditorialView({
             onPublish={handleSectionPublish}
             isPublishing={publishMutation.isPending}
             publishError={(publishMutation.error as Error | null)?.message ?? null}
+            notesVisible={notesVisible}
+            notesBySection={notesBySection}
+            onOpenNote={openCommunityNote}
           />
         )}
       </div>

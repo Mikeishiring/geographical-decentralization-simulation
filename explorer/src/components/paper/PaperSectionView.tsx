@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Link2, Quote, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { ContributionComposer } from '../community/ContributionComposer'
+import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT } from '../../lib/theme'
 import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
+import type { Exploration } from '../../lib/api'
 
 interface PaperNarrative {
   readonly lede: string
@@ -112,6 +114,9 @@ interface PaperSectionViewProps {
   readonly onPublish?: (sectionId: string, payload: { title: string; takeaway: string; author: string }) => void
   readonly isPublishing?: boolean
   readonly publishError?: string | null
+  readonly notesVisible?: boolean
+  readonly notesBySection?: ReadonlyMap<string, Exploration[]>
+  readonly onOpenNote?: (explorationId: string) => void
 }
 
 export function PaperSectionView({
@@ -119,6 +124,9 @@ export function PaperSectionView({
   onPublish,
   isPublishing = false,
   publishError = null,
+  notesVisible = false,
+  notesBySection,
+  onOpenNote,
 }: PaperSectionViewProps) {
   const [activeSectionId, setActiveSectionId] = useState<string>(() => {
     const initialHash = window.location.hash.replace('#', '')
@@ -303,6 +311,9 @@ export function PaperSectionView({
                 isPublishing={isPublishing}
                 publishError={publishError}
                 isPublished={publishedSections.has(section.id)}
+                notesVisible={notesVisible}
+                sectionNotes={notesBySection?.get(section.id) ?? []}
+                onOpenNote={onOpenNote}
               />
             )
           })}
@@ -326,6 +337,9 @@ function SectionCard({
   isPublishing,
   publishError,
   isPublished,
+  notesVisible = false,
+  sectionNotes = [],
+  onOpenNote,
 }: {
   section: PaperSection
   narrative: PaperNarrative
@@ -340,6 +354,9 @@ function SectionCard({
   isPublishing: boolean
   publishError: string | null
   isPublished: boolean
+  notesVisible?: boolean
+  sectionNotes?: readonly Exploration[]
+  onOpenNote?: (explorationId: string) => void
 }) {
   return (
     <motion.section
@@ -407,6 +424,14 @@ function SectionCard({
           </p>
         </div>
       </div>
+
+      {/* Inline community notes */}
+      {notesVisible && sectionNotes.length > 0 && (
+        <InlineSectionNotes
+          notes={sectionNotes}
+          onOpenNote={onOpenNote}
+        />
+      )}
 
       {/* Community note composer per section */}
       {onPublish && (

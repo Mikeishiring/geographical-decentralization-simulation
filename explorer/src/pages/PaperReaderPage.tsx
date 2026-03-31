@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { SPRING_SOFT } from '../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../data/paper-sections'
-import { createExploration, publishExploration } from '../lib/api'
+import { createExploration, publishExploration, listExplorations, type Exploration } from '../lib/api'
 import { PaperViewModeBar, type ReaderMode } from '../components/paper/PaperViewModeBar'
 import { EditorialView } from '../components/paper/EditorialView'
 import { ArgumentMapView } from '../components/paper/ArgumentMapView'
@@ -23,6 +24,8 @@ export function PaperReaderPage({
   onOpenCommunityExploration,
   onTabChange,
 }: PaperReaderPageProps) {
+  const queryClient = useQueryClient()
+
   const [readerMode, setReaderMode] = useState<ReaderMode>(() => {
     const stored = window.localStorage.getItem('paper-reader-mode')
     if (stored === 'focus' || stored === 'argument-map' || stored === 'paper') return stored
@@ -37,11 +40,40 @@ export function PaperReaderPage({
   })
 
   const [guideOpen, setGuideOpen] = useState(false)
+  const [notesVisible, setNotesVisible] = useState(false)
 
   // Text selection for community notes
   const { containerRef, selection, selectionRect, clearSelection } = useTextSelection(readerMode)
 
-  const handleAddNote = useCallback(async (anchor: TextAnchor) => {
+  // Fetch published reading notes for inline display
+  const notesQuery = useQuery({
+    queryKey: ['explorations', 'reading-notes'],
+    queryFn: () => listExplorations({ publishedOnly: true, surface: 'reading', limit: 100 }),
+    enabled: isActive,
+    staleTime: 30_000,
+    refetchInterval: isActive ? 60_000 : false,
+  })
+
+  // Group notes by sectionId
+  const notesBySection = useMemo(() => {
+    const map = new Map<string, Exploration[]>()
+    for (const note of notesQuery.data ?? []) {
+      const sectionId = note.anchor?.sectionId
+      if (!sectionId) continue
+      const existing = map.get(sectionId) ?? []
+      map.set(sectionId, [...existing, note])
+    }
+    return map
+  }, [notesQuery.data])
+
+  const totalNoteCount = notesQuery.data?.length ?? 0
+
+  // Count notes for the section the selection is in
+  const selectionSectionNoteCount = selection?.sectionId
+    ? (notesBySection.get(selection.sectionId)?.length ?? 0)
+    : 0
+
+  const handleAddNote = useCallback(async (anchor: TextAnchor, comment: string) => {
     try {
       const section = anchor.sectionId
         ? PAPER_SECTIONS.find(s => s.id === anchor.sectionId)
@@ -58,21 +90,20 @@ export function PaperReaderPage({
         anchor,
       })
 
-      // Auto-publish as a community note draft
       await publishExploration(created.id, {
         title: `Note on: ${anchor.excerpt.slice(0, 60)}${anchor.excerpt.length > 60 ? '...' : ''}`,
-        takeaway: anchor.excerpt,
+        takeaway: comment,
       })
 
       clearSelection()
       window.getSelection()?.removeAllRanges()
 
-      // Navigate to community tab to see the note
-      onTabChange?.('community')
+      // Refresh notes so the new one appears inline
+      void queryClient.invalidateQueries({ queryKey: ['explorations'] })
     } catch {
       // Silently fail — user can retry
     }
-  }, [clearSelection, onTabChange])
+  }, [clearSelection, queryClient])
 
   // Persist mode to localStorage
   useEffect(() => {
@@ -136,15 +167,18 @@ export function PaperReaderPage({
   )
 
   return (
-    <div ref={containerRef} className="space-y-12 overflow-x-hidden">
-      {/* Text selection popover for community notes */}
-      <SelectionPopover
-        anchor={selection}
-        rect={selectionRect}
-        onAddNote={handleAddNote}
-        onDismiss={clearSelection}
-      />
+    <>
+    {/* Popover lives OUTSIDE the container so mousedown on it
+        never triggers the container's selection-clear handler */}
+    <SelectionPopover
+      anchor={selection}
+      rect={selectionRect}
+      onAddNote={handleAddNote}
+      onDismiss={clearSelection}
+      sectionNoteCount={selectionSectionNoteCount}
+    />
 
+    <div ref={containerRef} className="space-y-12 overflow-x-hidden">
       {/* Paper title hero */}
       <motion.section
         initial={{ opacity: 0, y: 8 }}
@@ -180,6 +214,9 @@ export function PaperReaderPage({
         onGuideToggle={() => setGuideOpen(prev => !prev)}
         onSectionClick={setActiveSectionId}
         onTabChange={onTabChange}
+        notesVisible={notesVisible}
+        onNotesToggle={() => setNotesVisible(prev => !prev)}
+        noteCount={totalNoteCount}
       />
 
       {/* Active view */}
@@ -195,8 +232,11 @@ export function PaperReaderPage({
           onSectionClick={setActiveSectionId}
           onOpenCommunityExploration={onOpenCommunityExploration}
           onTabChange={onTabChange}
+          notesVisible={notesVisible}
+          notesBySection={notesBySection}
         />
       )}
     </div>
+    </>
   )
 }
