@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ArrowUpDown, ThumbsUp, ThumbsDown, Tag, ChevronDown, ChevronUp, Users, Sparkles, FlaskConical, Award, Link2 } from 'lucide-react'
+import { Search, ArrowUpDown, ThumbsUp, ThumbsDown, Tag, ChevronDown, ChevronUp, Users, FlaskConical, Award, Link2 } from 'lucide-react'
 import { NodeArc } from '../components/decorative/NodeArc'
 import { getExploration, listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { BlockCanvas } from '../components/explore/BlockCanvas'

@@ -25,7 +25,6 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
 
   if (published.length === 0) return null
 
-  const preview = published.slice(0, 2)
   const hasMore = published.length > 2
   const remaining = published.length - 2
 

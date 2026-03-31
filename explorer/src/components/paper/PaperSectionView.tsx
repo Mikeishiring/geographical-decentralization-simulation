@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { Link2, Quote, Check, Lightbulb } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
@@ -11,7 +11,7 @@ import { PAPER_NARRATIVE, type PaperNarrative } from '../../data/paper-narrative
 import type { Exploration } from '../../lib/api'
 
 /** Renders paragraph text with an optional keyClaim substring highlighted */
-function renderWithKeyClaim(text: string, keyClaim?: string): JSX.Element | string {
+function renderWithKeyClaim(text: string, keyClaim?: string): ReactNode {
   if (!keyClaim) return text
   const idx = text.indexOf(keyClaim)
   if (idx === -1) return text
