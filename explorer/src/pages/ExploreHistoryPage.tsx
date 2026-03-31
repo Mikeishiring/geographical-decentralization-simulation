@@ -181,7 +181,7 @@ export function ExploreHistoryPage({
             )}
             {onTabChange && (
               <button
-                onClick={() => onTabChange('results')}
+                onClick={() => onTabChange('agent')}
                 className="group flex w-full items-baseline justify-between gap-4 py-3 text-left"
               >
                 <div>
@@ -283,7 +283,7 @@ export function ExploreHistoryPage({
             )}
             {hiddenDraftExploration.surface === 'simulation' && onTabChange && (
               <button
-                onClick={() => onTabChange('results')}
+                onClick={() => onTabChange('agent')}
                 className="rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
               >
                 Open Simulation
@@ -306,7 +306,7 @@ export function ExploreHistoryPage({
             onToggleExpand={toggleExpand}
             onVote={delta => voteMutation.mutate(delta)}
             onOpenQuery={onOpenQuery}
-            onOpenSimulation={onTabChange ? () => onTabChange('results') : undefined}
+            onOpenSimulation={onTabChange ? () => onTabChange('agent') : undefined}
             onShare={handleShare}
             sharedId={sharedId}
             deepLinkedExplorationId={initialExplorationId}
@@ -322,7 +322,7 @@ export function ExploreHistoryPage({
             onToggleExpand={toggleExpand}
             onVote={delta => voteMutation.mutate(delta)}
             onOpenQuery={onOpenQuery}
-            onOpenSimulation={onTabChange ? () => onTabChange('results') : undefined}
+            onOpenSimulation={onTabChange ? () => onTabChange('agent') : undefined}
             onShare={handleShare}
             sharedId={sharedId}
             deepLinkedExplorationId={initialExplorationId}
@@ -791,7 +791,7 @@ function EmptyState({
                 Read the paper
               </button>
               <button
-                onClick={() => onTabChange('results')}
+                onClick={() => onTabChange('agent')}
                 className="rounded-lg border border-rule bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
                 Open Simulation

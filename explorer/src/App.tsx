@@ -2,37 +2,25 @@ import { Suspense, lazy, startTransition, useState, useCallback, useEffect } fro
 import { Header } from './components/layout/Header'
 import { TabNav, type TabId } from './components/layout/TabNav'
 import { Footer } from './components/layout/Footer'
-import { FindingsPage } from './pages/FindingsPage'
+import { PaperLandingPage } from './pages/PaperLandingPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { cn } from './lib/cn'
-import { RESULTS_ROUTE_PARAM_KEYS, readRouteStateFromLocation, type ExplorerRouteState } from './lib/route-state'
+import { AGENT_ROUTE_PARAM_KEYS, readRouteStateFromLocation, type ExplorerRouteState } from './lib/route-state'
 import { PAPER_SECTIONS } from './data/paper-sections'
 
-const DEFAULT_TAB: TabId = 'explore'
-const PAPER_TAB: TabId = 'paper'
-const RESULTS_TAB: TabId = 'results'
-const COMMUNITY_TAB: TabId = 'community'
+const DEFAULT_TAB: TabId = 'paper'
+const ORIGINAL_TAB: TabId = 'original'
 const AGENT_TAB: TabId = 'agent'
+const COMMUNITY_TAB: TabId = 'community'
 const PAPER_SECTION_IDS = new Set(PAPER_SECTIONS.map(section => section.id))
 
-const loadPaperReaderPageModule = () => import('./pages/PaperReaderPage')
-const loadSimulationLabPageModule = () => import('./pages/SimulationLabPage')
-const loadExploreHistoryPageModule = () => import('./pages/ExploreHistoryPage')
+const loadOriginalPaperPageModule = () => import('./pages/OriginalPaperPage')
 const loadAgentLabPageModule = () => import('./pages/AgentLabPage')
+const loadExploreHistoryPageModule = () => import('./pages/ExploreHistoryPage')
 
-const PaperReaderPage = lazy(async () => {
-  const module = await loadPaperReaderPageModule()
-  return { default: module.PaperReaderPage }
-})
-
-const SimulationLabPage = lazy(async () => {
-  const module = await loadSimulationLabPageModule()
-  return { default: module.SimulationLabPage }
-})
-
-const ExploreHistoryPage = lazy(async () => {
-  const module = await loadExploreHistoryPageModule()
-  return { default: module.ExploreHistoryPage }
+const OriginalPaperPage = lazy(async () => {
+  const module = await loadOriginalPaperPageModule()
+  return { default: module.OriginalPaperPage }
 })
 
 const AgentLabPage = lazy(async () => {
@@ -40,11 +28,16 @@ const AgentLabPage = lazy(async () => {
   return { default: module.default }
 })
 
+const ExploreHistoryPage = lazy(async () => {
+  const module = await loadExploreHistoryPageModule()
+  return { default: module.ExploreHistoryPage }
+})
+
 function writeRouteState(
   next: ExplorerRouteState,
   replace = false,
   options?: {
-    readonly resetResultsRoute?: boolean
+    readonly resetAgentRoute?: boolean
   },
 ) {
   const url = new URL(window.location.href)
@@ -68,8 +61,8 @@ function writeRouteState(
     url.searchParams.delete('eid')
   }
 
-  if (next.tab !== RESULTS_TAB || options?.resetResultsRoute) {
-    for (const key of RESULTS_ROUTE_PARAM_KEYS) {
+  if (next.tab !== AGENT_TAB || options?.resetAgentRoute) {
+    for (const key of AGENT_ROUTE_PARAM_KEYS) {
       url.searchParams.delete(key)
     }
   }
@@ -86,20 +79,16 @@ function readRouteState() {
 }
 
 function preloadTab(tab: TabId) {
-  if (tab === PAPER_TAB) {
-    void loadPaperReaderPageModule()
-    return
-  }
-  if (tab === RESULTS_TAB) {
-    void loadSimulationLabPageModule()
-    return
-  }
-  if (tab === COMMUNITY_TAB) {
-    void loadExploreHistoryPageModule()
+  if (tab === ORIGINAL_TAB) {
+    void loadOriginalPaperPageModule()
     return
   }
   if (tab === AGENT_TAB) {
     void loadAgentLabPageModule()
+    return
+  }
+  if (tab === COMMUNITY_TAB) {
+    void loadExploreHistoryPageModule()
   }
 }
 
@@ -123,18 +112,17 @@ function App() {
   const [sharedQuery, setSharedQuery] = useState<string | null>(initialRoute.query)
   const [sharedExplorationId, setSharedExplorationId] = useState<string | null>(initialRoute.explorationId)
   const [visitedTabs, setVisitedTabs] = useState<Record<TabId, boolean>>({
-    explore: initialRoute.tab === DEFAULT_TAB,
-    paper: initialRoute.tab === PAPER_TAB,
-    results: initialRoute.tab === RESULTS_TAB,
-    community: initialRoute.tab === COMMUNITY_TAB,
+    paper: initialRoute.tab === DEFAULT_TAB,
+    original: initialRoute.tab === ORIGINAL_TAB,
     agent: initialRoute.tab === AGENT_TAB,
+    community: initialRoute.tab === COMMUNITY_TAB,
   })
 
   const applyRouteState = useCallback((
     next: ExplorerRouteState,
     replace = false,
     options?: {
-      readonly resetResultsRoute?: boolean
+      readonly resetAgentRoute?: boolean
     },
   ) => {
     startTransition(() => {
@@ -169,7 +157,7 @@ function App() {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      ;([PAPER_TAB, RESULTS_TAB, COMMUNITY_TAB] as const)
+      ;([ORIGINAL_TAB, AGENT_TAB, COMMUNITY_TAB] as const)
         .filter(tab => tab !== activeTab)
         .forEach(preloadTab)
     }, 1200)
@@ -182,7 +170,7 @@ function App() {
     applyRouteState(
       { tab, query: sharedQuery, explorationId: null },
       false,
-      tab === RESULTS_TAB ? { resetResultsRoute: true } : undefined,
+      tab === AGENT_TAB ? { resetAgentRoute: true } : undefined,
     )
   }, [applyRouteState, sharedQuery])
 
@@ -190,24 +178,16 @@ function App() {
     preloadTab(tab)
   }, [])
 
-  const handleFindingsQueryChange = useCallback((query: string | null) => {
-    applyRouteState({ tab: 'explore', query, explorationId: null }, false)
-  }, [applyRouteState])
-
-  const handleExplorationIdChange = useCallback((explorationId: string | null) => {
-    applyRouteState({ tab: 'explore', query: null, explorationId }, false)
-  }, [applyRouteState])
-
   const handleOpenCommunityExploration = useCallback((explorationId: string) => {
     applyRouteState({ tab: 'community', query: null, explorationId }, false)
   }, [applyRouteState])
 
   const handleCommunityGoToFindings = useCallback(() => {
-    applyRouteState({ tab: 'explore', query: null, explorationId: null }, false)
+    applyRouteState({ tab: 'paper', query: null, explorationId: null }, false)
   }, [applyRouteState])
 
   const handleCommunityOpenQuery = useCallback((query: string) => {
-    applyRouteState({ tab: 'explore', query, explorationId: null }, false)
+    applyRouteState({ tab: 'agent', query, explorationId: null }, false)
   }, [applyRouteState])
 
   return (
@@ -224,43 +204,36 @@ function App() {
             'mx-auto px-4 py-8 sm:px-6',
             activeTab === 'paper'
               ? 'max-w-[88rem]'
-              : activeTab === 'results'
+              : activeTab === 'agent'
                 ? 'max-w-[96rem]'
                 : 'max-w-5xl',
           )}
         >
-        <div hidden={activeTab !== 'explore'} aria-hidden={activeTab !== 'explore'}>
-          <ErrorBoundary fallbackLabel="The Explore tab encountered an error.">
-            <FindingsPage
-              initialQuery={sharedQuery}
-              initialExplorationId={sharedExplorationId}
-              isActive={activeTab === 'explore'}
-              onQueryChange={handleFindingsQueryChange}
-              onExplorationIdChange={handleExplorationIdChange}
+        <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
+          <ErrorBoundary fallbackLabel="The Paper tab encountered an error.">
+            <PaperLandingPage
+              isActive={activeTab === 'paper'}
               onOpenCommunityExploration={handleOpenCommunityExploration}
               onTabChange={handleTabChange}
             />
           </ErrorBoundary>
         </div>
 
-        {visitedTabs.paper && (
-          <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
-            <ErrorBoundary fallbackLabel="The Paper tab encountered an error.">
-              <Suspense fallback={<PageFallback label="Loading paper guide" />}>
-                <PaperReaderPage onTabChange={handleTabChange} />
+        {visitedTabs.original && (
+          <div hidden={activeTab !== 'original'} aria-hidden={activeTab !== 'original'}>
+            <ErrorBoundary fallbackLabel="The Original tab encountered an error.">
+              <Suspense fallback={<PageFallback label="Loading paper viewer" />}>
+                <OriginalPaperPage onTabChange={handleTabChange} />
               </Suspense>
             </ErrorBoundary>
           </div>
         )}
 
-        {visitedTabs.results && (
-          <div hidden={activeTab !== 'results'} aria-hidden={activeTab !== 'results'}>
-            <ErrorBoundary fallbackLabel="The Results tab encountered an error.">
-              <Suspense fallback={<PageFallback label="Loading simulation surface" />}>
-                <SimulationLabPage
-                  onOpenCommunityExploration={handleOpenCommunityExploration}
-                  onTabChange={handleTabChange}
-                />
+        {visitedTabs.agent && (
+          <div hidden={activeTab !== 'agent'} aria-hidden={activeTab !== 'agent'}>
+            <ErrorBoundary fallbackLabel="The Agent encountered an error.">
+              <Suspense fallback={<PageFallback label="Loading agent workspace" />}>
+                <AgentLabPage />
               </Suspense>
             </ErrorBoundary>
           </div>
@@ -276,16 +249,6 @@ function App() {
                   onOpenQuery={handleCommunityOpenQuery}
                   onTabChange={handleTabChange}
                 />
-              </Suspense>
-            </ErrorBoundary>
-          </div>
-        )}
-
-        {visitedTabs.agent && (
-          <div hidden={activeTab !== 'agent'} aria-hidden={activeTab !== 'agent'}>
-            <ErrorBoundary fallbackLabel="The Agent Lab encountered an error.">
-              <Suspense fallback={<PageFallback label="Loading agent lab" />}>
-                <AgentLabPage />
               </Suspense>
             </ErrorBoundary>
           </div>
