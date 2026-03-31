@@ -255,25 +255,6 @@ function buildOverviewBundleNote(bundle: string): {
   }
 }
 
-function buildChartFigureNote(series: ExactChartSeries): {
-  readonly title: string
-  readonly detail: string
-} {
-  return buildArtifactFigureNote({
-    name: series.artifactName,
-    label: series.label,
-    kind: series.kind,
-    description: series.description,
-    contentType: 'application/json',
-    bytes: 0,
-    gzipBytes: null,
-    brotliBytes: null,
-    sha256: '',
-    lazy: false,
-    renderable: true,
-  })
-}
-
 function buildInlineFigureBlocks(input: {
   readonly title: string
   readonly detail: string
@@ -320,7 +301,6 @@ function ExactChartDeck({
   const focusedPeak = focusedSeries ? Math.max(...focusedSeries.values) : null
   const focusedStart = focusedSeries?.values[0] ?? null
   const focusedDelta = focusedLatest != null && focusedStart != null ? focusedLatest - focusedStart : null
-  const focusedFigureNote = focusedSeries ? buildChartFigureNote(focusedSeries) : null
   const focusedBlock = !focusedSeries || !focusedVisual
     ? null
     : {
@@ -454,7 +434,6 @@ function ExactChartDeck({
               })}
             </div>
           </div>
-        </div>
       )}
 
       {!loading && series.length === 0 && (
