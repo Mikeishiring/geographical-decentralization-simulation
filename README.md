@@ -185,3 +185,78 @@ fab plot-cost
 #### Validator Convergence Locus
 
 Two figures on validator convergence are also generated when running `fab plot-baseline` and `fab plot-hetero-both`.
+
+## Explorer App
+
+The Explorer is an interactive web app for exploring the paper, running simulations via the browser, and querying an AI agent about findings.
+
+See [`explorer/CLAUDE.md`](explorer/CLAUDE.md) for detailed architecture and development documentation.
+
+### Explorer Quick Start
+
+```bash
+cd explorer
+npm install
+
+# Copy and configure environment
+cp .env.example .env
+# Add your ANTHROPIC_API_KEY to .env
+
+# Start dev servers
+npm run dev          # Frontend on :3200
+npm run dev:api      # API server on :3201
+```
+
+### Docker (Production)
+
+```bash
+docker build -t geo-decentralization .
+docker run -p 8080:8080 -e ANTHROPIC_API_KEY=your_key geo-decentralization
+```
+
+### Explorer Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│ Python Simulation (root)                            │
+│  simulation.py → Mesa ABM                           │
+│  consensus.py  → slot timing, attestation rewards   │
+│  models.py     → SSP / MSP paradigm models          │
+│  data/         → GCP latency, validator locations    │
+│  params/       → YAML scenario configs               │
+└─────────────────────┬───────────────────────────────┘
+                      │ spawned by simulation worker
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│ Explorer (React + Express)                          │
+│                                                     │
+│  Paper Reader  — 4-view spectrum + citations        │
+│  Results Lab   — config builder + artifact viewer   │
+│  Agent Lab     — AI query bar (Claude tool_use)     │
+│  Community     — shared explorations + voting       │
+│                                                     │
+│  Express API (:3201) → Claude Sonnet + Mesa runner  │
+└─────────────────────────────────────────────────────┘
+```
+
+## Deployment
+
+The Explorer app deploys to [Railway](https://railway.app) via Docker:
+- 8 vCPUs, 16 GB RAM
+- 5 GB persistent volume for simulation cache
+- Health check at `/api/health`
+
+## Citation
+
+```bibtex
+@article{geographical-decentralization-2025,
+  title={Geographical Centralization Resilience in Ethereum's Block-Building Paradigms},
+  year={2025},
+  eprint={2509.21475},
+  archivePrefix={arXiv}
+}
+```
+
+## License
+
+[MIT](LICENSE)

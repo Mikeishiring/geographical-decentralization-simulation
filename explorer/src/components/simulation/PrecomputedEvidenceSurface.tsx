@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
-import { BlockCanvas } from '../explore/BlockCanvas'
+import { BlockRenderer } from '../blocks/BlockRenderer'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_CRISP } from '../../lib/theme'
+import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
 import type { Block } from '../../types/blocks'
 import { formatNumber } from './simulation-constants'
@@ -14,6 +14,16 @@ import {
   type PublishedAnalyticsPayload,
 } from './simulation-analytics'
 import type { ResearchCatalog, ResearchDatasetEntry } from './simulation-lab-types'
+import {
+  EvidenceKpiStrip,
+  EvidenceConfigSnapshot,
+  PlotFilterToolbar,
+  SlotMetricsGrid,
+  categorizeChart,
+  countByCategory,
+  type PlotCategory,
+  type TaggedChartBlock,
+} from './EvidenceSurfacePanels'
 
 // ── Catalog loader ──────────────────────────────────────────────────────────
 
@@ -123,59 +133,6 @@ function buildMapBlock(payload: PublishedAnalyticsPayload): Block | null {
   }
 }
 
-function buildStatBlocks(payload: PublishedAnalyticsPayload): Block[] {
-  const totalSlots = totalSlotsFromPayload(payload)
-  const finalSlot = Math.max(0, totalSlots - 1)
-  const metrics = payload.metrics ?? {}
-
-  const gini = metrics.gini?.[finalSlot]
-  const hhi = metrics.hhi?.[finalSlot]
-  const liveness = metrics.liveness?.[finalSlot]
-  const activeRegions = activeRegionCountAtSlot(payload, finalSlot)
-  const topRegion = topRegionsForSlot(payload, finalSlot, 1)[0]
-
-  const stats: Block[] = []
-
-  if (gini != null) {
-    stats.push({
-      type: 'stat' as const,
-      value: formatNumber(gini, 3),
-      label: 'Gini coefficient',
-      sublabel: 'Concentration index (0 = equal, 1 = monopoly)',
-      sentiment: gini < 0.5 ? 'positive' as const : gini < 0.7 ? 'neutral' as const : 'negative' as const,
-    })
-  }
-
-  if (hhi != null) {
-    stats.push({
-      type: 'stat' as const,
-      value: formatNumber(hhi, 4),
-      label: 'HHI',
-      sublabel: 'Herfindahl-Hirschman Index',
-      sentiment: hhi < 0.15 ? 'positive' as const : hhi < 0.25 ? 'neutral' as const : 'negative' as const,
-    })
-  }
-
-  if (liveness != null) {
-    stats.push({
-      type: 'stat' as const,
-      value: `${formatNumber(liveness, 1)}%`,
-      label: 'Liveness',
-      sublabel: 'Network availability rate',
-      sentiment: liveness > 95 ? 'positive' as const : liveness > 80 ? 'neutral' as const : 'negative' as const,
-    })
-  }
-
-  stats.push({
-    type: 'stat' as const,
-    value: activeRegions.toLocaleString(),
-    label: 'Active regions',
-    sublabel: topRegion ? `Led by ${topRegion.label} (${formatNumber(topRegion.share, 1)}%)` : 'Geographic spread',
-  })
-
-  return stats
-}
-
 function sampleSeries(raw: readonly number[] | undefined, maxPoints = 200): Array<{ x: number; y: number }> {
   if (!raw || raw.length === 0) return []
   const step = Math.max(1, Math.ceil(raw.length / maxPoints))
@@ -197,32 +154,52 @@ const CHART_COLORS = {
   totalDistance: '#C2553A',
   proposalTime: '#D97706',
   mev: '#2563EB',
+  attestation: '#0F766E',
+  failedProposals: '#BE123C',
+  clusters: '#7C3AED',
 } as const
 
 function buildTimeseriesBlocks(payload: PublishedAnalyticsPayload): Block[] {
   const metrics = payload.metrics ?? {}
   const blocks: Block[] = []
 
-  // 1. Concentration & liveness — multi-series
+  // 1. Gini coefficient (individual)
   const giniData = sampleSeries(metrics.gini)
-  const hhiData = sampleSeries(metrics.hhi)
-  const livenessData = sampleSeries(metrics.liveness)
-  if (giniData.length > 0 || hhiData.length > 0 || livenessData.length > 0) {
-    const series = [
-      ...(giniData.length > 0 ? [{ label: 'Gini', data: giniData, color: CHART_COLORS.gini }] : []),
-      ...(hhiData.length > 0 ? [{ label: 'HHI', data: hhiData, color: CHART_COLORS.hhi }] : []),
-      ...(livenessData.length > 0 ? [{ label: 'Liveness', data: livenessData, color: CHART_COLORS.liveness }] : []),
-    ]
+  if (giniData.length > 0) {
     blocks.push({
       type: 'timeseries' as const,
-      title: 'Concentration and liveness',
-      series,
+      title: 'Gini coefficient',
+      series: [{ label: 'Gini', data: giniData, color: CHART_COLORS.gini }],
       xLabel: 'Slot',
       yLabel: 'Index',
     })
   }
 
-  // 2. Total validator distance
+  // 2. HHI (individual)
+  const hhiData = sampleSeries(metrics.hhi)
+  if (hhiData.length > 0) {
+    blocks.push({
+      type: 'timeseries' as const,
+      title: 'HHI — concentration pressure',
+      series: [{ label: 'HHI', data: hhiData, color: CHART_COLORS.hhi }],
+      xLabel: 'Slot',
+      yLabel: 'Index',
+    })
+  }
+
+  // 3. Liveness
+  const livenessData = sampleSeries(metrics.liveness)
+  if (livenessData.length > 0) {
+    blocks.push({
+      type: 'timeseries' as const,
+      title: 'Liveness — region representation',
+      series: [{ label: 'Liveness', data: livenessData, color: CHART_COLORS.liveness }],
+      xLabel: 'Slot',
+      yLabel: 'Percent',
+    })
+  }
+
+  // 4. Total validator distance
   const distanceData = sampleSeries(metrics.total_distance)
   if (distanceData.length > 0) {
     blocks.push({
@@ -234,27 +211,63 @@ function buildTimeseriesBlocks(payload: PublishedAnalyticsPayload): Block[] {
     })
   }
 
-  // 3. Proposal time
-  const proposalData = sampleSeries(metrics.proposal_times)
-  if (proposalData.length > 0) {
+  // 5. Clusters
+  const clusterData = sampleSeries(metrics.clusters)
+  if (clusterData.length > 0) {
     blocks.push({
       type: 'timeseries' as const,
-      title: 'Proposal time',
-      series: [{ label: 'Proposal time', data: proposalData, color: CHART_COLORS.proposalTime }],
+      title: 'Clusters — spatial groupings',
+      series: [{ label: 'Clusters', data: clusterData, color: CHART_COLORS.clusters }],
       xLabel: 'Slot',
-      yLabel: 'Milliseconds',
+      yLabel: 'Count',
     })
   }
 
-  // 4. Average MEV
+  // 6. MEV earned
   const mevData = sampleSeries(metrics.mev)
   if (mevData.length > 0) {
     blocks.push({
       type: 'timeseries' as const,
-      title: 'Average MEV',
+      title: 'MEV earned — block value',
       series: [{ label: 'MEV', data: mevData, color: CHART_COLORS.mev }],
       xLabel: 'Slot',
       yLabel: 'ETH',
+    })
+  }
+
+  // 7. Attestation rate
+  const attestData = sampleSeries(metrics.attestations)
+  if (attestData.length > 0) {
+    blocks.push({
+      type: 'timeseries' as const,
+      title: 'Attestation rate',
+      series: [{ label: 'Attestations', data: attestData, color: CHART_COLORS.attestation }],
+      xLabel: 'Slot',
+      yLabel: 'Count',
+    })
+  }
+
+  // 8. Failed block proposals
+  const failedData = sampleSeries(metrics.failed_block_proposals)
+  if (failedData.length > 0) {
+    blocks.push({
+      type: 'timeseries' as const,
+      title: 'Failed block proposals — operational friction',
+      series: [{ label: 'Failed proposals', data: failedData, color: CHART_COLORS.failedProposals }],
+      xLabel: 'Slot',
+      yLabel: 'Count',
+    })
+  }
+
+  // 9. Proposal time
+  const proposalData = sampleSeries(metrics.proposal_times)
+  if (proposalData.length > 0) {
+    blocks.push({
+      type: 'timeseries' as const,
+      title: 'Proposal time — latency',
+      series: [{ label: 'Proposal time', data: proposalData, color: CHART_COLORS.proposalTime }],
+      xLabel: 'Slot',
+      yLabel: 'Milliseconds',
     })
   }
 
@@ -309,22 +322,31 @@ function buildTopRegionsTable(payload: PublishedAnalyticsPayload): Block | null 
   }
 }
 
-function buildEvidenceBlocks(payload: PublishedAnalyticsPayload): readonly Block[] {
-  const blocks: Block[] = [
-    ...buildStatBlocks(payload),
-    ...buildTimeseriesBlocks(payload),
-  ]
+// ── Build all chart blocks with category tags ───────────────────────────────
+
+function buildTaggedChartBlocks(payload: PublishedAnalyticsPayload): readonly TaggedChartBlock[] {
+  const tagged: TaggedChartBlock[] = []
+
+  for (const block of buildTimeseriesBlocks(payload)) {
+    tagged.push({ category: categorizeChart(block.title ?? ''), key: block.title ?? '', block })
+  }
 
   const sourceBlock = buildSourceFootprintBlock(payload)
-  if (sourceBlock) blocks.push(sourceBlock)
+  if (sourceBlock) {
+    tagged.push({ category: 'geography', key: 'source-footprint', block: sourceBlock })
+  }
 
   const mapBlock = buildMapBlock(payload)
-  if (mapBlock) blocks.push(mapBlock)
+  if (mapBlock) {
+    tagged.push({ category: 'geography', key: 'map', block: mapBlock })
+  }
 
   const tableBlock = buildTopRegionsTable(payload)
-  if (tableBlock) blocks.push(tableBlock)
+  if (tableBlock) {
+    tagged.push({ category: 'geography', key: 'top-regions', block: tableBlock })
+  }
 
-  return blocks
+  return tagged
 }
 
 // ── Scenario chip selector ──────────────────────────────────────────────────
@@ -467,8 +489,8 @@ export function PrecomputedEvidenceSurface({
   viewerBaseUrl,
 }: PrecomputedEvidenceSurfaceProps) {
   const { catalog, error: catalogError } = useResearchCatalog(catalogScriptUrl)
-
   const [selectedEntry, setSelectedEntry] = useState<ResearchDatasetEntry | null>(null)
+  const [activeCategory, setActiveCategory] = useState<PlotCategory>('all')
 
   useEffect(() => {
     if (!catalog || selectedEntry) return
@@ -482,6 +504,11 @@ export function PrecomputedEvidenceSurface({
     if (defaultEntry) setSelectedEntry(defaultEntry)
   }, [catalog, selectedEntry])
 
+  // Reset filter when scenario changes
+  useEffect(() => {
+    setActiveCategory('all')
+  }, [selectedEntry?.path])
+
   const payloadQuery = useQuery({
     queryKey: ['evidence-payload', selectedEntry?.path],
     queryFn: () => fetchPayload(viewerBaseUrl, selectedEntry!.path),
@@ -489,9 +516,18 @@ export function PrecomputedEvidenceSurface({
     staleTime: 5 * 60_000,
   })
 
-  const blocks = useMemo<readonly Block[]>(
-    () => payloadQuery.data ? buildEvidenceBlocks(payloadQuery.data) : [],
+  const taggedBlocks = useMemo<readonly TaggedChartBlock[]>(
+    () => payloadQuery.data ? buildTaggedChartBlocks(payloadQuery.data) : [],
     [payloadQuery.data],
+  )
+
+  const categoryCounts = useMemo(() => countByCategory(taggedBlocks), [taggedBlocks])
+
+  const visibleBlocks = useMemo(
+    () => activeCategory === 'all'
+      ? taggedBlocks
+      : taggedBlocks.filter(t => t.category === activeCategory),
+    [taggedBlocks, activeCategory],
   )
 
   const totalSlots = payloadQuery.data ? totalSlotsFromPayload(payloadQuery.data) : 0
@@ -518,67 +554,129 @@ export function PrecomputedEvidenceSurface({
   }
 
   return (
-    <motion.div
-      className="rounded-2xl border border-rule bg-white/92 overflow-hidden"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={SPRING}
-    >
-      {/* ── Scenario selector header ── */}
-      <div className="border-b border-rule px-5 py-4">
-        <div className="flex items-center justify-between gap-4 mb-3">
-          <div>
-            <div className="text-xs font-semibold text-text-primary">Published evidence</div>
-            <div className="mt-0.5 text-xs text-muted">
-              Pre-computed results from {catalog.datasets.length} published simulation{catalog.datasets.length !== 1 ? 's' : ''}
-            </div>
+    <div className="space-y-4">
+      {/* ── Header: title + scenario selector ── */}
+      <motion.div
+        className="rounded-2xl border border-rule bg-white/92 overflow-hidden"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING}
+      >
+        <div className="px-5 py-4">
+          <div className="mb-1">
+            <h2 className="text-base font-semibold tracking-tight text-text-primary">
+              Geographical Decentralization Atlas
+            </h2>
+            <p className="mt-1 text-xs leading-relaxed text-muted max-w-2xl">
+              Explore the published simulation outputs as a living research surface.
+              Synchronized metrics, timelines, and geographic views read as a continuous
+              narrative rather than disconnected charts.
+            </p>
           </div>
-          {totalSlots > 0 && (
-            <span className="lab-chip bg-surface-active text-2xs shrink-0">
-              {totalSlots.toLocaleString()} slots
-            </span>
-          )}
+
+          <div className="mt-3 flex items-center justify-between gap-4">
+            <div className="text-xs text-muted">
+              {catalog.datasets.length} published scenario{catalog.datasets.length !== 1 ? 's' : ''}
+            </div>
+            {totalSlots > 0 && (
+              <span className="lab-chip bg-surface-active text-2xs shrink-0">
+                {totalSlots.toLocaleString()} slots
+              </span>
+            )}
+          </div>
         </div>
 
-        {selectedEntry && (
-          <ScenarioSelector
-            catalog={catalog}
-            selectedEvaluation={selectedEntry.evaluation}
-            selectedParadigm={selectedEntry.paradigm}
-            selectedResult={selectedEntry.result}
-            onSelect={setSelectedEntry}
-          />
-        )}
-      </div>
+        <div className="border-t border-rule px-5 py-3">
+          {selectedEntry && (
+            <ScenarioSelector
+              catalog={catalog}
+              selectedEvaluation={selectedEntry.evaluation}
+              selectedParadigm={selectedEntry.paradigm}
+              selectedResult={selectedEntry.result}
+              onSelect={setSelectedEntry}
+            />
+          )}
+        </div>
+      </motion.div>
 
-      {/* ── Content area ── */}
-      <div className="px-5 py-4">
-        {payloadQuery.isLoading && (
-          <div className="text-sm text-muted py-8 text-center">Loading simulation data…</div>
-        )}
+      {/* ── Loading / error states ── */}
+      {payloadQuery.isLoading && (
+        <div className="rounded-2xl border border-rule bg-white/92 p-8 text-sm text-muted text-center">
+          Loading simulation data…
+        </div>
+      )}
 
-        {payloadQuery.isError && (
-          <div className="rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
-            {(payloadQuery.error as Error).message}
-          </div>
-        )}
+      {payloadQuery.isError && (
+        <div className="rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+          {(payloadQuery.error as Error).message}
+        </div>
+      )}
 
-        {payloadQuery.data && blocks.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={SPRING_CRISP}
-          >
-            <BlockCanvas blocks={blocks} showExport={false} />
-          </motion.div>
-        )}
+      {/* ── Loaded content ── */}
+      {payloadQuery.data && (
+        <motion.div
+          className="space-y-4"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={SPRING_CRISP}
+        >
+          {/* KPI analytics strip */}
+          <EvidenceKpiStrip payload={payloadQuery.data} />
 
-        {payloadQuery.data && blocks.length === 0 && (
-          <div className="text-sm text-muted py-8 text-center">
-            No visualization data available for this scenario.
-          </div>
-        )}
-      </div>
-    </motion.div>
+          {/* Config snapshot + how to read */}
+          {selectedEntry && (
+            <EvidenceConfigSnapshot
+              metadata={selectedEntry.metadata}
+              description={payloadQuery.data.description}
+              paradigm={selectedEntry.paradigm}
+              totalSlots={totalSlots}
+            />
+          )}
+
+          {/* Slot narrative — metrics grid */}
+          <SlotMetricsGrid payload={payloadQuery.data} />
+
+          {/* Plot filter toolbar + charts */}
+          {taggedBlocks.length > 0 && (
+            <div className="rounded-2xl border border-rule bg-white/92 px-5 py-4">
+              <PlotFilterToolbar
+                activeCategory={activeCategory}
+                onCategoryChange={setActiveCategory}
+                counts={categoryCounts}
+              />
+
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={STAGGER_CONTAINER}
+                className="space-y-3"
+              >
+                <AnimatePresence mode="popLayout">
+                  {visibleBlocks.map(({ key, block }) => (
+                    <motion.div
+                      key={key}
+                      variants={STAGGER_ITEM}
+                      layout
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                      transition={SPRING_CRISP}
+                    >
+                      <BlockRenderer block={block} />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+
+          {taggedBlocks.length === 0 && (
+            <div className="rounded-2xl border border-rule bg-white/92 p-8 text-sm text-muted text-center">
+              No visualization data available for this scenario.
+            </div>
+          )}
+        </motion.div>
+      )}
+    </div>
   )
 }
