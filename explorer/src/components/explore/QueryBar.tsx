@@ -172,7 +172,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
                   animate={{ opacity: 1 }}
                   transition={{ ...SPRING, delay: i * 0.04 }}
                   onClick={() => handleChip(group.prompt)}
-                  className="group rounded-xl border border-rule bg-white px-3 py-2.5 text-left transition-all hover:border-border-hover"
+                  className="group rounded-xl border border-rule bg-white px-3 py-2.5 text-left card-hover"
                 >
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint transition-colors group-hover:text-muted">
                     {group.label}
