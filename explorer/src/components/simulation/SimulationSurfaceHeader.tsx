@@ -1,4 +1,6 @@
+import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
+import { SPRING } from '../../lib/theme'
 import type { SurfaceMode } from './simulation-lab-types'
 
 interface SimulationSurfaceHeaderProps {
@@ -24,7 +26,12 @@ export function SimulationSurfaceHeader({
   onSurfaceModeChange,
 }: SimulationSurfaceHeaderProps) {
   return (
-    <div className="stripe-top-accent mb-5 flex flex-col gap-3 rounded-[24px] border border-rule bg-white/92 p-5 shadow-[0_12px_32px_rgba(15,23,42,0.05)] lg:flex-row lg:items-center lg:justify-between">
+    <motion.div
+      className="stripe-top-accent mb-5 flex flex-col gap-3 rounded-[24px] border border-rule bg-white/92 p-5 shadow-[0_12px_32px_rgba(15,23,42,0.05)] lg:flex-row lg:items-center lg:justify-between"
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING}
+    >
       <div className="flex min-w-0 items-center gap-3">
         <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent dot-pulse" />
         <h1 className="text-lg font-semibold tracking-tight text-text-primary">Results</h1>
@@ -50,6 +57,6 @@ export function SimulationSurfaceHeader({
           )
         })}
       </div>
-    </div>
+    </motion.div>
   )
 }

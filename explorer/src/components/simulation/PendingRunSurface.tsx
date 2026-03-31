@@ -1,5 +1,7 @@
+import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { GlobeNetwork } from '../decorative/GlobeNetwork'
+import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import type { SimulationConfig, SimulationJob } from '../../lib/simulation-api'
 import type { RunnerStatus } from './simulation-lab-types'
 import { formatEthValue } from './pending-run-helpers'
@@ -76,8 +78,15 @@ export function PendingRunSurface({
   const updatedLabel = formatJobTimestamp(jobData?.updatedAt)
   const createdLabel = formatJobTimestamp(jobData?.createdAt)
 
+  const isActive = status === 'submitting' || status === 'queued' || status === 'running'
+
   return (
-    <div className="stripe-top-accent lab-stage-soft p-5 mb-5 relative overflow-hidden">
+    <motion.div
+      className="stripe-top-accent lab-stage-soft p-5 mb-5 relative overflow-hidden"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING}
+    >
       <div
         className="absolute -right-6 -top-6 w-[200px] h-[200px] sm:w-[240px] sm:h-[240px] opacity-[0.12] pointer-events-none select-none"
         aria-hidden="true"
@@ -87,13 +96,29 @@ export function PendingRunSurface({
 
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between relative">
         <div>
-          <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-accent font-medium">
+          <motion.div
+            className="text-[0.6875rem] uppercase tracking-[0.1em] text-accent font-medium"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ ...SPRING_CRISP, delay: 0.06 }}
+          >
+            {isActive && <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent dot-pulse mr-2 align-middle" />}
             {stage.eyebrow}
-          </div>
-          <h2 className="mt-1.5 text-xl font-semibold tracking-tight text-text-primary sm:text-2xl">
+          </motion.div>
+          <motion.h2
+            className="mt-1.5 text-xl font-semibold tracking-tight text-text-primary sm:text-2xl"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...SPRING_CRISP, delay: 0.1 }}
+          >
             {stage.headline}
-          </h2>
-          <div className="mt-3 flex flex-wrap gap-2">
+          </motion.h2>
+          <motion.div
+            className="mt-3 flex flex-wrap gap-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ ...SPRING_CRISP, delay: 0.14 }}
+          >
             <span className="lab-chip bg-white/90">
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               {config.paradigm}
@@ -106,35 +131,45 @@ export function PendingRunSurface({
               <span className="h-1.5 w-1.5 rounded-full bg-success" />
               {config.slots.toLocaleString()} slots
             </span>
-          </div>
+          </motion.div>
         </div>
 
-        <div className="stagger-reveal grid gap-3 sm:grid-cols-3 xl:min-w-[380px]">
-          <div className="lab-metric-card">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Queue</div>
-            <div className="mt-1 text-lg font-semibold tabular-nums text-text-primary">
-              {jobData?.queuePosition != null ? jobData.queuePosition.toLocaleString() : 'Live'}
-            </div>
-          </div>
-          <div className="lab-metric-card">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Cache</div>
-            <div className="mt-1 text-lg font-semibold text-text-primary">
-              {jobData?.cacheHit == null ? 'Pending' : jobData.cacheHit ? 'Reused' : 'Fresh'}
-            </div>
-          </div>
-          <div className="lab-metric-card">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Updated</div>
-            <div className="mt-1 text-base font-semibold text-text-primary">
-              {updatedLabel ?? createdLabel ?? 'Waiting'}
-            </div>
-            {jobData?.id && (
-              <div className="mt-0.5 mono-xs">{jobData.id.slice(0, 8)}</div>
-            )}
-          </div>
+        <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[380px]">
+          {[
+            {
+              label: 'Queue',
+              value: jobData?.queuePosition != null ? jobData.queuePosition.toLocaleString() : 'Live',
+            },
+            {
+              label: 'Cache',
+              value: jobData?.cacheHit == null ? 'Pending' : jobData.cacheHit ? 'Reused' : 'Fresh',
+            },
+            {
+              label: 'Updated',
+              value: updatedLabel ?? createdLabel ?? 'Waiting',
+              sub: jobData?.id ? jobData.id.slice(0, 8) : undefined,
+            },
+          ].map((card, i) => (
+            <motion.div
+              key={card.label}
+              className="lab-metric-card"
+              initial={{ opacity: 0, y: 6, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ ...SPRING_CRISP, delay: 0.12 + i * 0.04 }}
+            >
+              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+              <div className={cn('mt-1 font-semibold text-text-primary', card.label === 'Updated' ? 'text-base' : 'text-lg tabular-nums')}>
+                {card.value}
+              </div>
+              {card.sub && (
+                <div className="mt-0.5 mono-xs">{card.sub}</div>
+              )}
+            </motion.div>
+          ))}
         </div>
       </div>
 
-      {/* Progress bar */}
+      {/* Animated progress bar */}
       <div className="mt-4">
         <div className="mb-1.5 flex items-center justify-between gap-4 text-xs text-muted">
           <div className="flex gap-4">
@@ -154,33 +189,36 @@ export function PendingRunSurface({
           <span>{progress}%</span>
         </div>
         <div className="lab-progress-track bg-surface-active">
-          <div
+          <motion.div
             className="lab-progress-fill"
-            data-state="active"
-            style={{ width: `${progress}%` }}
+            data-state={isActive ? 'active' : undefined}
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={SPRING_CRISP}
           />
         </div>
       </div>
 
-      {/* Run snapshot */}
-      <div className="stagger-reveal mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="lab-option-card px-3 py-2.5">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Source</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">{config.sourcePlacement}</div>
-        </div>
-        <div className="lab-option-card px-3 py-2.5">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Distribution</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">{config.distribution}</div>
-        </div>
-        <div className="lab-option-card px-3 py-2.5">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Timing</div>
-          <div className="mt-1 mono-sm text-text-primary">{config.slotTime}s · γ {config.attestationThreshold.toFixed(2)}</div>
-        </div>
-        <div className="lab-option-card px-3 py-2.5">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Migration cost</div>
-          <div className="mt-1 mono-sm text-text-primary">{formatEthValue(config.migrationCost)}</div>
-        </div>
+      {/* Run snapshot — staggered cards */}
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: 'Source', value: config.sourcePlacement },
+          { label: 'Distribution', value: config.distribution },
+          { label: 'Timing', value: `${config.slotTime}s · γ ${config.attestationThreshold.toFixed(2)}`, mono: true },
+          { label: 'Migration cost', value: formatEthValue(config.migrationCost), mono: true },
+        ].map((card, i) => (
+          <motion.div
+            key={card.label}
+            className="lab-option-card px-3 py-2.5"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...SPRING_CRISP, delay: 0.2 + i * 0.04 }}
+          >
+            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+            <div className={cn('mt-1 text-text-primary', card.mono ? 'mono-sm' : 'text-sm font-medium')}>{card.value}</div>
+          </motion.div>
+        ))}
       </div>
-    </div>
+    </motion.div>
   )
 }
