@@ -441,7 +441,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                       </a>
                     ))}
                     {_onTabChange && (
-                      <button onClick={() => _onTabChange('results')} className="arrow-link text-xs">
+                      <button onClick={() => _onTabChange('agent')} className="arrow-link text-xs">
                         Simulation results
                       </button>
                     )}
