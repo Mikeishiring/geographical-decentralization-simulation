@@ -10,7 +10,7 @@ import { BlockCanvas } from '../explore/BlockCanvas'
 import { PaperHero } from './PaperHero'
 import { TopicCardGrid } from './TopicCardGrid'
 import { CommunityPreview } from './CommunityPreview'
-import { PaperSectionView, SourceRefPill } from './PaperSectionView'
+import { PaperSectionView } from './PaperSectionView'
 import { NodeArc } from '../decorative/NodeArc'
 import { Link2, Check, Quote, Sparkles } from 'lucide-react'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
@@ -218,33 +218,19 @@ export function EditorialView({
                     </p>
                   </div>
 
-                  <div className="group/prose space-y-5">
-                    <div>
-                      <p className="max-w-3xl text-2xl leading-relaxed text-text-primary font-serif">
-                        {narrative.lede}
-                      </p>
-                      {narrative.sourceRefs?.lede && (
-                        <div className="mt-1.5"><SourceRefPill source={narrative.sourceRefs.lede} /></div>
-                      )}
-                    </div>
+                  <div className="space-y-5">
+                    <p className="max-w-3xl text-2xl leading-relaxed text-text-primary font-serif">
+                      {narrative.lede}
+                    </p>
                     <div className="max-w-3xl space-y-4 text-base leading-9 text-text-body font-serif">
-                      {narrative.paragraphs.map((paragraph, i) => {
-                        const ref = narrative.sourceRefs?.paragraphs?.[i]
-                        return (
-                          <div key={paragraph}>
-                            <p>{paragraph}</p>
-                            {ref && <div className="mt-1.5"><SourceRefPill source={ref} /></div>}
-                          </div>
-                        )
-                      })}
+                      {narrative.paragraphs.map(paragraph => (
+                        <p key={paragraph}>{paragraph}</p>
+                      ))}
                     </div>
                     <div className="border-l-2 border-l-accent/40 pl-5 py-2">
-                      <div className="flex items-center gap-2 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
+                      <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
                         <Quote className="h-3 w-3" />
                         Pull quote
-                        {narrative.sourceRefs?.pullQuote && (
-                          <SourceRefPill source={narrative.sourceRefs.pullQuote} />
-                        )}
                       </div>
                       <p className="max-w-3xl text-xl leading-relaxed text-text-primary font-serif italic text-balance">
                         {narrative.pullQuote}

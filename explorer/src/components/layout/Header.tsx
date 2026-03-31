@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
 import { PAPER_METADATA, type Author } from '../../data/paper-sections'
 import { SPRING_SNAPPY } from '../../lib/theme'
+import { GlobeWireframe } from '../decorative/GlobeWireframe'
 
 const AUTHORS = PAPER_METADATA.authors
 
@@ -75,58 +76,55 @@ function AuthorChip({ author }: { readonly author: Author }) {
 
 export function Header() {
   return (
-    <header className="border-b border-rule bg-white stripe-top-accent">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-        <div className="flex items-center justify-between gap-4">
-          {/* Left: edition badge + authors */}
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="shrink-0">
-              <p className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
-                Interactive paper edition
-              </p>
-              <p className="mt-0.5 text-13 font-semibold text-text-primary leading-snug truncate">
-                Geographical Decentralization in Ethereum Block Building
-              </p>
-            </div>
+    <header className="relative overflow-hidden bg-white border-b border-rule stripe-top-accent">
+      {/* Globe wireframe — decorative background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <GlobeWireframe />
+      </div>
 
-            {/* Authors — hidden on mobile */}
-            <div className="hidden lg:flex items-center gap-x-1.5 shrink-0">
-              {AUTHORS.map((author, i) => (
-                <span key={author.name} className="inline-flex items-center">
-                  <AuthorChip author={author} />
-                  {i < AUTHORS.length - 1 && (
-                    <span className="text-rule ml-1.5">·</span>
-                  )}
-                </span>
-              ))}
-              <span className="text-rule">·</span>
-              <span className="text-2xs text-text-faint">2025</span>
-            </div>
+      {/* White gradient — text legibility on the left */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'linear-gradient(105deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 40%, rgba(255,255,255,0.3) 70%, transparent 100%)',
+        }}
+      />
+
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+        <div className="flex flex-col gap-3">
+          {/* Top row: edition label + arXiv badge */}
+          <div className="flex items-center justify-between">
+            <p className="text-2xs font-medium uppercase tracking-[0.14em] text-text-faint">
+              Interactive paper edition
+            </p>
+            <a
+              href="https://arxiv.org/abs/2509.21475"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md border border-rule px-2.5 py-1 text-2xs font-medium text-muted transition-colors hover:border-accent/30 hover:text-accent"
+            >
+              <span className="font-mono tracking-tight">arXiv:2509.21475</span>
+              <ExternalLink className="h-3 w-3 opacity-50" />
+            </a>
           </div>
 
-          {/* Right: links + coordinate */}
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="hidden sm:flex items-center gap-x-4">
-              <a
-                href="https://arxiv.org/abs/2509.21475"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="arrow-link text-xs"
-              >
-                Read the paper
-              </a>
-              <a
-                href="https://github.com/syang-ng/geographical-decentralization-simulation"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="arrow-link text-xs"
-              >
-                View source
-              </a>
-            </div>
-            <span className="hidden md:inline mono-xs text-meridian" aria-hidden="true">
-              arXiv:2509.21475
-            </span>
+          {/* Title */}
+          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary leading-snug max-w-xl font-serif">
+            Geographical Decentralization in Ethereum Block Building
+          </h1>
+
+          {/* Authors row */}
+          <div className="flex items-center gap-x-1.5 flex-wrap">
+            {AUTHORS.map((author, i) => (
+              <span key={author.name} className="inline-flex items-center">
+                <AuthorChip author={author} />
+                {i < AUTHORS.length - 1 && (
+                  <span className="text-rule ml-1.5">·</span>
+                )}
+              </span>
+            ))}
+            <span className="text-rule">·</span>
+            <span className="text-2xs text-text-faint">2025</span>
           </div>
         </div>
       </div>
