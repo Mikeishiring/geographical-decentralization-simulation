@@ -15,10 +15,11 @@ export function FollowUpPrompts({ prompts, title, onSelect }: FollowUpPromptsPro
           <button
             key={`${query}-${index}`}
             onClick={() => onSelect(query)}
-            className="text-xs text-muted hover:text-accent transition-colors group/followup"
+            className="follow-up-chip"
             title={`Ask: ${query}`}
           >
-            <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+            {query}
+            <span aria-hidden="true" className="follow-up-chip-arrow">→</span>
           </button>
         ))}
       </div>
