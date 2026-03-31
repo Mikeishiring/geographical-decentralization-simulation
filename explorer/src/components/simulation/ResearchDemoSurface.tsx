@@ -561,14 +561,6 @@ export function ResearchDemoSurface({
     return url.toString()
   }, [selectedPaperSection])
 
-  const introParagraphs = useMemo(
-    () => (catalog?.introBlurb ?? '')
-      .split(/\n\s*\n/)
-      .map(paragraph => paragraph.trim())
-      .filter(Boolean),
-    [catalog],
-  )
-
   const activeViewer = useMemo<ViewerLaunch | null>(() => {
     if (!selectedDataset) return null
     return {
@@ -683,8 +675,6 @@ export function ResearchDemoSurface({
       ],
     },
   ]), [selectedDataset, selectedMetadata])
-
-  const activePaperLens = paperLenses.find(lens => lens.id === paperLens) ?? paperLenses[0]
 
   const assistantPrompts = useMemo(() => {
     if (!selectedDataset) return []
