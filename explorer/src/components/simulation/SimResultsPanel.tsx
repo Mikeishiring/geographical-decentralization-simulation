@@ -1,8 +1,10 @@
 import { startTransition, useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Check, Copy, Download } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { TimeSeriesBlock } from '../blocks/TimeSeriesBlock'
 import { cn } from '../../lib/cn'
+import { CHART, SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import {
   attestationCutoffMs,
   describeDistribution,
@@ -327,7 +329,12 @@ function ExactChartDeck({
       }
 
   return (
-    <div className="geo-accent-bar lab-stage p-5 mb-5">
+    <motion.div
+      className="geo-accent-bar lab-stage p-5 mb-5"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ ...SPRING, delay: 0.06 }}
+    >
       <div className="flex items-center justify-between">
         <div className="lab-section-title">Chart deck</div>
         <div className="mono-xs" title="Hover a card to preview, click to pin.">
@@ -337,10 +344,10 @@ function ExactChartDeck({
 
       {loading && series.length === 0 && (
         <div className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="lab-skeleton lab-skeleton-block h-[380px]" />
+          <div className="lab-skeleton lab-skeleton-block h-[380px] chart-skeleton-breathe" />
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="lab-skeleton lab-skeleton-block h-[94px]" />
+              <div key={index} className="lab-skeleton lab-skeleton-block h-[94px] chart-skeleton-breathe" style={{ animationDelay: `${index * 120}ms` }} />
             ))}
           </div>
         </div>
@@ -348,36 +355,51 @@ function ExactChartDeck({
 
       {!loading && focusedSeries && focusedVisual && focusedBlock && (
         <div className="mt-4 grid gap-4 xl:grid-cols-[1.18fr_0.82fr]">
-          <div className="overflow-hidden rounded-xl border border-rule bg-white p-4">
-            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <div className="text-lg font-semibold tracking-tight text-text-primary">{focusedVisual.title}</div>
-                <div className="mt-1 max-w-2xl text-sm leading-6 text-muted">{focusedSeries.description}</div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={focusedSeries.artifactName}
+              className="overflow-hidden rounded-xl border border-rule bg-white p-4"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={SPRING_CRISP}
+            >
+              <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="text-lg font-semibold tracking-tight text-text-primary">{focusedVisual.title}</div>
+                  <div className="mt-1 max-w-2xl text-sm leading-6 text-muted">{focusedSeries.description}</div>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+                  {[
+                    { label: 'Latest', value: focusedLatest },
+                    { label: 'Peak', value: focusedPeak },
+                    { label: 'Delta', value: focusedDelta },
+                  ].map((metric, mi) => (
+                    <motion.div
+                      key={metric.label}
+                      className="rounded-xl border border-rule bg-surface-active/60 px-3 py-2.5"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ ...SPRING_CRISP, delay: 0.06 + mi * 0.03 }}
+                    >
+                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
+                      <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
+                        {metric.value == null ? '—' : formatExactChartValue(metric.value)}
+                      </div>
+                      <div className="mt-0.5 mono-xs">{focusedVisual.unit}</div>
+                    </motion.div>
+                  ))}
+                </div>
               </div>
-              <div className="stagger-reveal grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
-                {[
-                  { label: 'Latest', value: focusedLatest },
-                  { label: 'Peak', value: focusedPeak },
-                  { label: 'Delta', value: focusedDelta },
-                ].map(metric => (
-                  <div
-                    key={metric.label}
-                    className="rounded-xl border border-rule bg-surface-active/60 px-3 py-2.5"
-                  >
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
-                    <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
-                      {metric.value == null ? '—' : formatExactChartValue(metric.value)}
-                    </div>
-                    <div className="mt-0.5 mono-xs">{focusedVisual.unit}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            <TimeSeriesBlock block={focusedBlock} />
-          </div>
+              <TimeSeriesBlock block={focusedBlock} />
+            </motion.div>
+          </AnimatePresence>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <motion.div
+            className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1"
+            initial="hidden" animate="visible" variants={STAGGER_CONTAINER}
+          >
               {series.map(entry => {
                 const visual = CHART_VISUALS[entry.artifactName]
                 const latest = entry.values.at(-1) ?? 0
@@ -389,7 +411,8 @@ function ExactChartDeck({
               const isPinned = entry.artifactName === pinnedArtifactName
 
                 return (
-                  <button
+                  <motion.button
+                    variants={STAGGER_ITEM}
                     key={entry.artifactName}
                     onClick={() => setPinnedArtifactName(entry.artifactName)}
                     onMouseEnter={() => setHoveredArtifactName(entry.artifactName)}
@@ -451,10 +474,10 @@ function ExactChartDeck({
                         </div>
                       ))}
                     </div>
-                  </button>
+                  </motion.button>
                 )
               })}
-            </div>
+          </motion.div>
           </div>
       )}
 
@@ -463,7 +486,7 @@ function ExactChartDeck({
           This exact run did not emit any interactive chart series.
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }
 
@@ -558,11 +581,21 @@ export function SimResultsPanel({
 
   return (
     <>
-      <div className="stripe-top-accent lab-stage p-5 mb-5">
+      <motion.div
+        className="stripe-top-accent lab-stage p-5 mb-5"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING}
+      >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
             <div className="lab-section-title">Exact results</div>
-            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            <motion.div
+              className="mt-2.5 flex flex-wrap items-center gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ ...SPRING_CRISP, delay: 0.08 }}
+            >
               {paperScenarioLabels(manifest.config).map(label => (
                 <span key={label} className="lab-chip bg-white/90">
                   <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -573,18 +606,30 @@ export function SimResultsPanel({
                 {manifest.cacheHit ? 'Cache hit' : 'Fresh run'}
                 <span className="mono-xs">{formatNumber(manifest.runtimeSeconds, 2)}s</span>
               </span>
-            </div>
+            </motion.div>
           </div>
 
-          <div className="flex items-center gap-3 text-sm">
+          <motion.div
+            className="flex items-center gap-3 text-sm"
+            initial={{ opacity: 0, x: 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ ...SPRING_CRISP, delay: 0.12 }}
+          >
             <span className="font-medium text-text-primary">{describeParadigmWithAlias(manifest.config.paradigm)}</span>
             <span className="text-muted">{manifest.config.validators.toLocaleString()} val · {manifest.config.slots.toLocaleString()} slots</span>
-          </div>
+          </motion.div>
         </div>
 
-        <div className="stagger-reveal grid grid-cols-2 gap-3 mt-4 xl:grid-cols-6">
-          {exactMetricCards.map(card => (
-            <div key={card.key} className="lab-metric-card" title={card.note ?? undefined}>
+        <div className="grid grid-cols-2 gap-3 mt-4 xl:grid-cols-6">
+          {exactMetricCards.map((card, i) => (
+            <motion.div
+              key={card.key}
+              className="lab-metric-card"
+              title={card.note ?? undefined}
+              initial={{ opacity: 0, y: 8, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ ...SPRING_CRISP, delay: 0.1 + i * CHART.stagger }}
+            >
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
               <div className="mt-1.5 text-lg font-semibold text-text-primary tabular-nums">
                 {card.value}
@@ -592,17 +637,22 @@ export function SimResultsPanel({
               {card.suffix && (
                 <div className="mt-0.5 mono-xs">{card.suffix}</div>
               )}
-            </div>
+            </motion.div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       <ExactChartDeck
         series={exactChartSeries}
         loading={isExactChartDeckLoading}
       />
 
-      <div className="lab-panel p-4 mb-5">
+      <motion.div
+        className="lab-panel p-4 mb-5"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING, delay: 0.1 }}
+      >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <span
@@ -697,9 +747,14 @@ export function SimResultsPanel({
             </div>
           </div>
         </details>
-      </div>
+      </motion.div>
 
-      <div className="lab-stage p-5 mb-5">
+      <motion.div
+        className="lab-stage p-5 mb-5"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING, delay: 0.14 }}
+      >
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="lab-section-title">Overview bundles</div>
           <div className="mono-xs">
@@ -743,9 +798,14 @@ export function SimResultsPanel({
             No overview sidecar available for this bundle.
           </div>
         )}
-      </div>
+      </motion.div>
 
-      <div className="lab-stage p-5 mb-5">
+      <motion.div
+        className="lab-stage p-5 mb-5"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING, delay: 0.18 }}
+      >
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="lab-section-title">
             Artifacts
@@ -753,10 +813,14 @@ export function SimResultsPanel({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+        <motion.div
+          className="grid grid-cols-1 gap-3 xl:grid-cols-3"
+          initial="hidden" animate="visible" variants={STAGGER_CONTAINER}
+        >
           {renderableArtifacts.map(artifact => (
-            <button
+            <motion.button
               key={artifact.name}
+              variants={STAGGER_ITEM}
               onClick={() => onSelectArtifact(artifact.name)}
               className={cn(
                 'lab-option-card text-left rounded-[1rem] px-4 py-3 transition-all hover:border-border-hover',
@@ -783,9 +847,9 @@ export function SimResultsPanel({
                 {artifact.brotliBytes != null && <span>br {formatBytes(artifact.brotliBytes)}</span>}
                 {artifact.gzipBytes != null && <span>gzip {formatBytes(artifact.gzipBytes)}</span>}
               </div>
-            </button>
+            </motion.button>
           ))}
-        </div>
+        </motion.div>
 
           {referenceArtifacts.length > 0 && (
             <details className="mt-4 rounded-xl border border-rule bg-white/78 px-4 py-3.5">
@@ -831,9 +895,14 @@ export function SimResultsPanel({
               </div>
             </details>
         )}
-      </div>
+      </motion.div>
 
-      <div className="lab-stage p-5">
+      <motion.div
+        className="lab-stage p-5"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING, delay: 0.22 }}
+      >
         <div className="mb-4 flex items-center justify-between">
           <div>
             <div className="lab-section-title">
@@ -851,7 +920,7 @@ export function SimResultsPanel({
         </div>
 
         {((isArtifactFetching && !parsedBlocks.length) || isParsing) && (
-          <div className="lab-skeleton lab-skeleton-block h-[320px]" />
+          <div className="lab-skeleton lab-skeleton-block h-[320px] chart-skeleton-breathe" />
         )}
 
         {parseError && (
@@ -860,16 +929,26 @@ export function SimResultsPanel({
           </div>
         )}
 
-        {!isArtifactFetching && !isParsing && !parseError && parsedBlocks.length > 0 && (
-          <BlockCanvas blocks={renderedArtifactBlocks} showExport={false} />
-        )}
+        <AnimatePresence mode="wait">
+          {!isArtifactFetching && !isParsing && !parseError && parsedBlocks.length > 0 && (
+            <motion.div
+              key={selectedArtifactName ?? 'none'}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={SPRING_CRISP}
+            >
+              <BlockCanvas blocks={renderedArtifactBlocks} showExport={false} />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {!isArtifactFetching && !isParsing && !parseError && parsedBlocks.length === 0 && (
           <div className="rounded-xl border border-dashed border-rule bg-surface-active/70 px-5 py-12 text-center text-sm text-muted">
             Select an artifact above to render.
           </div>
         )}
-      </div>
+      </motion.div>
     </>
   )
 }
