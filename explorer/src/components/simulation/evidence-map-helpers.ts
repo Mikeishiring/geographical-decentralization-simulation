@@ -13,8 +13,8 @@ import type { PublishedAnalyticsPayload } from './simulation-analytics'
 export const SVG_W = 800
 export const SVG_H = 420
 
-/** Visible portion of the SVG — crops Antarctica by clipping below ~55°S */
-export const MAP_VISIBLE_H = 288
+/** Visible portion of the SVG — crops Antarctica while showing more ocean for context */
+export const MAP_VISIBLE_H = 340
 
 export const GCP_REGION_MAP = new Map(GCP_REGIONS.map(r => [r.id, r]))
 
