@@ -10,12 +10,7 @@ export function resolveAppBaseUrl(): string {
   if (configuredBaseUrl) return configuredBaseUrl
   if (typeof window === 'undefined') return ''
 
-  const { protocol, hostname } = window.location
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `${protocol}//${hostname}:3201`
-  }
-
-  return ''
+  return window.location.origin
 }
 
 function parseSurfaceMode(value: string | null): SurfaceMode | undefined {
