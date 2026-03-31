@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { cn } from '../../lib/cn'
@@ -16,8 +16,8 @@ import {
 import type { ResearchCatalog, ResearchDatasetEntry } from './simulation-lab-types'
 import {
   EvidenceKpiStrip,
+  EvidenceCategoryBar,
   EvidenceConfigSnapshot,
-  PlotFilterToolbar,
   SlotMetricsGrid,
   categorizeChart,
   countByCategory,
@@ -366,6 +366,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
   const { catalog, error: catalogError } = useResearchCatalog(catalogScriptUrl)
   const [selectedEntry, setSelectedEntry] = useState<ResearchDatasetEntry | null>(null)
   const [activeCategory, setActiveCategory] = useState<PlotCategory>('all')
+  const chartGridRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!catalog || selectedEntry) return
@@ -424,7 +425,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
   }
 
   return (
-    <div className="space-y-3">
+    <div>
       {/* ── Header + controls ── */}
       <motion.section
         className="lab-stage overflow-hidden"
@@ -471,7 +472,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
 
       {/* ── Loading skeleton ── */}
       {payloadQuery.isLoading && (
-        <div className="space-y-3">
+        <div className="mt-3 space-y-3">
           {/* KPI shimmer row */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -503,19 +504,31 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
         </div>
       )}
       {payloadQuery.isError && (
-        <div className="rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className="mt-3 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
           {(payloadQuery.error as Error).message}
         </div>
       )}
 
       {/* ── Loaded surface ── */}
       {payloadQuery.data && (
-        <motion.div className="space-y-3" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SPRING_CRISP}>
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SPRING_CRISP}>
           {/* KPI analytics strip */}
-          <EvidenceKpiStrip payload={payloadQuery.data} />
+          <div className="mt-3">
+            <EvidenceKpiStrip payload={payloadQuery.data} activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+          </div>
 
-          {/* Config snapshot + how to read + slot narrative — side by side on desktop */}
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {/* Sticky analytical lens category bar */}
+          <div className="mt-2">
+            <EvidenceCategoryBar
+              activeCategory={activeCategory}
+              onCategoryChange={setActiveCategory}
+              counts={categoryCounts}
+              chartGridRef={chartGridRef}
+            />
+          </div>
+
+          {/* Config snapshot + slot narrative — side by side on desktop */}
+          <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
             {selectedEntry && (
               <EvidenceConfigSnapshot
                 metadata={selectedEntry.metadata}
@@ -528,32 +541,85 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
           </div>
 
           {/* Interactive map with latency, playback, and overlays */}
-          <EvidenceMapSurface payload={payloadQuery.data} />
+          <div className="mt-6">
+            <EvidenceMapSurface payload={payloadQuery.data} />
+          </div>
 
-          {/* Plot filter toolbar + chart panels — 2-col grid on desktop */}
-          {taggedBlocks.length > 0 && (
-            <div className="lab-stage px-5 py-4">
-              <PlotFilterToolbar activeCategory={activeCategory} onCategoryChange={setActiveCategory} counts={categoryCounts} />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {visibleBlocks.map(({ key, block }) => (
-                  <ScrollRevealBlock key={key} block={block} />
-                ))}
-              </div>
-              {/* Chart count summary */}
-              <div className="mt-3 pt-2.5 border-t border-rule/50 text-center">
-                <span className="text-2xs text-text-faint">
-                  {visibleBlocks.length} panel{visibleBlocks.length !== 1 ? 's' : ''}{activeCategory !== 'all' ? ` in ${activeCategory}` : ' total'}
-                </span>
-              </div>
-            </div>
-          )}
+          {/* Section divider */}
+          <div className="section-divider my-6" />
 
-          {taggedBlocks.length === 0 && (
-            <div className="lab-stage-soft p-10 text-center">
-              <div className="text-sm text-muted">No visualization data available for this scenario.</div>
-              <div className="mt-1 text-2xs text-text-faint">Try selecting a different scenario or paradigm above.</div>
-            </div>
-          )}
+          {/* Chart panels — 2-col grid on desktop */}
+          <div ref={chartGridRef}>
+            {taggedBlocks.length > 0 && (
+              <div className="lab-stage px-5 py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="lab-section-title">Charts</div>
+                  {activeCategory !== 'all' && (
+                    <span className="lab-chip bg-accent/8 text-accent text-2xs">{activeCategory}</span>
+                  )}
+                  <span className="text-2xs text-text-faint tabular-nums ml-auto">
+                    {visibleBlocks.length} of {taggedBlocks.length}
+                  </span>
+                </div>
+                <AnimatePresence mode="popLayout">
+                  {visibleBlocks.length > 0 ? (
+                    <motion.div
+                      key="grid"
+                      className="grid grid-cols-1 lg:grid-cols-2 gap-3"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={SPRING_CRISP}
+                    >
+                      {visibleBlocks.map(({ key, block }) => (
+                        <ScrollRevealBlock key={key} block={block} />
+                      ))}
+                    </motion.div>
+                  ) : activeCategory !== 'all' ? (
+                    <motion.div
+                      key="empty"
+                      className="py-10 text-center"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={SPRING_CRISP}
+                    >
+                      <div className="text-sm text-muted">No {activeCategory} charts in this scenario.</div>
+                      <button
+                        onClick={() => setActiveCategory('all')}
+                        className="mt-2 text-xs text-accent hover:underline"
+                      >
+                        Show all panels
+                      </button>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+                {/* Chart count footer */}
+                <div className="mt-3 pt-2.5 border-t border-rule/50 text-center">
+                  <span className="text-2xs text-text-faint">
+                    {activeCategory !== 'all'
+                      ? `Showing ${visibleBlocks.length} ${activeCategory} panel${visibleBlocks.length !== 1 ? 's' : ''} of ${taggedBlocks.length} total`
+                      : `${taggedBlocks.length} panel${taggedBlocks.length !== 1 ? 's' : ''} total`}
+                  </span>
+                  {activeCategory !== 'all' && (
+                    <>
+                      <span className="text-2xs text-text-faint mx-1.5">\u00b7</span>
+                      <button onClick={() => setActiveCategory('all')} className="text-2xs text-accent hover:underline">
+                        Clear
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {taggedBlocks.length === 0 && (
+              <div className="lab-stage-soft p-10 text-center">
+                <div className="text-sm text-muted">No visualization data available for this scenario.</div>
+                <div className="mt-1 text-2xs text-text-faint">Try selecting a different scenario or paradigm above.</div>
+              </div>
+            )}
+          </div>
         </motion.div>
       )}
     </div>

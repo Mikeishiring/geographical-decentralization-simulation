@@ -54,3 +54,17 @@ export const SENTIMENT_TEXT: Record<MetricSentiment, string> = {
   neutral: 'text-amber-500',
   negative: 'text-rose-500',
 }
+
+// ── Analytical lens category descriptions ─────────────────────────────────
+
+export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  all: 'All metrics across the simulation run.',
+  decentralization: 'Stake inequality and market concentration.',
+  coverage: 'Geographic liveness \u2014 regional participation.',
+  equity: 'Profit distribution fairness.',
+  topology: 'Spatial clustering, spacing, and spread.',
+  economics: 'MEV extraction and attestation health.',
+  performance: 'Missed proposals and operational friction.',
+  latency: 'Block proposal pipeline timing.',
+  sources: 'Information relay origin and reach.',
+}
