@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sun, Moon, MessageSquarePlus, Trash2, ExternalLink, Download } from 'lucide-react'
+import { Sun, Moon, MessageSquarePlus, Trash2, ExternalLink } from 'lucide-react'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SNAPPY } from '../lib/theme'
 import { PAPER_METADATA } from '../data/paper-sections'
