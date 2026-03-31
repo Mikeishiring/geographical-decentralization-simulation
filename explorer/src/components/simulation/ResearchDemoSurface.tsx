@@ -1048,7 +1048,7 @@ export function ResearchDemoSurface({
       ...overrides,
     }
 
-    params.set('tab', 'agent')
+    // Don't override 'tab' — App.tsx owns top-level tab routing
     params.delete('q')
     params.delete('eid')
     if (nextState.selectedEvaluation) params.set('evaluation', nextState.selectedEvaluation)
@@ -1894,7 +1894,7 @@ export function ResearchDemoSurface({
     const url = new URL(window.location.href)
     const params = url.searchParams
 
-    params.set('tab', 'agent')
+    // Don't override 'tab' — App.tsx owns top-level tab routing
     params.delete('q')
     params.delete('eid')
     if (selectedEvaluation) params.set('evaluation', selectedEvaluation)
