@@ -1,3 +1,6 @@
+import { motion } from 'framer-motion'
+import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
+
 interface FollowUpPromptsProps {
   readonly prompts: readonly string[]
   readonly title: string
@@ -8,21 +11,32 @@ export function FollowUpPrompts({ prompts, title, onSelect }: FollowUpPromptsPro
   if (prompts.length === 0) return null
 
   return (
-    <div className="mt-6 pt-4 border-t border-rule">
+    <motion.div
+      className="mt-6 pt-4 border-t border-rule"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING_CRISP}
+    >
       <span className="text-xs text-muted mb-2 block">{title}</span>
-      <div className="flex flex-wrap gap-2 stagger-reveal">
+      <motion.div
+        className="flex flex-wrap gap-2"
+        variants={STAGGER_CONTAINER}
+        initial="hidden"
+        animate="show"
+      >
         {prompts.map((query, index) => (
-          <button
+          <motion.button
             key={`${query}-${index}`}
+            variants={STAGGER_ITEM}
             onClick={() => onSelect(query)}
             className="follow-up-chip"
             title={`Ask: ${query}`}
           >
             {query}
             <span aria-hidden="true" className="follow-up-chip-arrow">→</span>
-          </button>
+          </motion.button>
         ))}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

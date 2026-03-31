@@ -1,4 +1,6 @@
+import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
+import { SPRING_CRISP } from '../../lib/theme'
 import type { InsightBlock as InsightBlockType } from '../../types/blocks'
 
 interface InsightBlockProps {
@@ -21,11 +23,14 @@ export function InsightBlock({ block }: InsightBlockProps) {
   const emphasis = block.emphasis ?? 'normal'
 
   return (
-    <div
+    <motion.div
       className={cn(
         'bg-white border border-rule rounded-xl p-5 border-l-2 topo-bg card-hover',
         emphasisStyles[emphasis],
       )}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING_CRISP}
     >
       {block.title && (
         <h3 className="flex items-center gap-2 text-[0.9375rem] font-medium text-text-primary mb-2.5">
@@ -36,7 +41,7 @@ export function InsightBlock({ block }: InsightBlockProps) {
       <p className="text-sm leading-[1.65] text-text-body font-serif">
         <InlineMarkdown text={block.text} />
       </p>
-    </div>
+    </motion.div>
   )
 }
 
