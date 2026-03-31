@@ -1,3 +1,5 @@
+import { GlobeNetwork } from '../decorative/GlobeNetwork'
+
 const FOOTER_LINKS = [
   { label: 'Read the paper', href: 'https://arxiv.org/abs/2509.21475' },
   { label: 'View source', href: 'https://github.com/syang-ng/geographical-decentralization-simulation' },
@@ -6,12 +8,20 @@ const FOOTER_LINKS = [
 
 export function Footer() {
   return (
-    <footer className="mt-16">
+    <footer className="mt-16 relative overflow-hidden">
       <div className="h-px bg-rule" />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      {/* Bookend globe — bottom hemisphere, mirroring the header's top hemisphere */}
+      <div
+        className="absolute right-8 -bottom-12 w-[180px] h-[180px] sm:w-[220px] sm:h-[220px] opacity-[0.35] pointer-events-none select-none"
+        aria-hidden="true"
+      >
+        <GlobeNetwork className="w-full h-full text-muted" flip />
+      </div>
+
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-col gap-5">
-          {/* Arrow links — Agentation-style lightweight CTAs */}
+          {/* Arrow links */}
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             {FOOTER_LINKS.map(({ label, href }) => (
               <a

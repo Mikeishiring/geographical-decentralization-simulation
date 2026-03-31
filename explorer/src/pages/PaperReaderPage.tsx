@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, Link2, Quote, ChevronDown, ChevronUp, LayoutList, FileText, BookOpen, Check, Download } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
+import { GlobeNetwork } from '../components/decorative/GlobeNetwork'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
@@ -285,9 +286,17 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={SPRING_SOFT}
-        className="max-w-4xl"
+        className="max-w-4xl relative"
       >
-        <h1 className="text-3xl font-medium leading-tight text-text-primary font-serif sm:text-4xl">
+        {/* Decorative globe — faint, behind the serif title */}
+        <div
+          className="absolute -right-8 -top-4 w-[200px] h-[200px] sm:w-[260px] sm:h-[260px] opacity-[0.2] pointer-events-none select-none"
+          aria-hidden="true"
+        >
+          <GlobeNetwork className="w-full h-full text-muted" />
+        </div>
+
+        <h1 className="text-3xl font-medium leading-tight text-text-primary font-serif sm:text-4xl relative">
           {PAPER_METADATA.title}
         </h1>
         <p className="mt-2 text-sm text-muted">{PAPER_METADATA.citation}</p>
