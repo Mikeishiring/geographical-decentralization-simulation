@@ -360,13 +360,13 @@ function SectionCard({
           <span className="mono-xs text-accent">{section.number}</span>
           <button
             onClick={() => onCopyLink(section.id)}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted opacity-0 transition-all group-hover:opacity-100 hover:bg-surface-active hover:text-text-primary"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted opacity-40 transition-all group-hover:opacity-100 hover:bg-surface-active hover:text-text-primary"
           >
             {copiedSectionId === section.id ? <Check className="h-3 w-3 text-success" /> : <Link2 className="h-3 w-3" />}
             {copiedSectionId === section.id ? 'Copied!' : 'Link'}
           </button>
         </div>
-        <h2 className={cn('mt-2 text-2xl font-medium text-text-primary font-serif sm:text-3xl', focusMode && 'max-w-3xl')}>
+        <h2 className={cn('mt-2 text-2xl font-medium text-text-primary font-serif sm:text-3xl text-balance', focusMode && 'max-w-3xl')}>
           {section.title}
         </h2>
         <p className={cn('mt-3 text-base leading-relaxed text-muted', focusMode ? 'max-w-3xl' : 'max-w-2xl')}>
@@ -388,11 +388,11 @@ function SectionCard({
             ))}
           </div>
           <div className="border-l-2 border-l-accent/40 pl-5 py-2">
-            <div className="flex items-center gap-1.5 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
+            <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
               <Quote className="h-3 w-3" />
               Pull quote
             </div>
-            <p className={cn('leading-relaxed text-text-primary font-serif italic', focusMode ? 'max-w-3xl text-xl' : 'max-w-2xl text-lg')}>
+            <p className={cn('leading-relaxed text-text-primary font-serif italic text-balance', focusMode ? 'max-w-3xl text-xl' : 'max-w-2xl text-lg')}>
               {narrative.pullQuote}
             </p>
           </div>

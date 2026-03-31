@@ -159,7 +159,7 @@ export function MapBlock({ block }: MapBlockProps) {
           </div>
           <div className="flex items-center gap-3 text-xs text-muted">
             <span>{regions.length} regions</span>
-            <span className="font-mono text-[0.625rem] opacity-60">{edges.length} links</span>
+            <span className="font-mono text-2xs opacity-60">{edges.length} links</span>
           </div>
         </div>
       </div>
@@ -364,14 +364,14 @@ export function MapBlock({ block }: MapBlockProps) {
                   />
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: tooltip.color }} />
-                    <span className="text-[0.6875rem] font-medium text-white/95">{tooltip.label}</span>
+                    <span className="text-11 font-medium text-white/95">{tooltip.label}</span>
                   </div>
                   <div className="mt-0.5 flex items-baseline gap-1.5 pl-4">
                     <span className="text-sm font-semibold tabular-nums text-white">
                       {tooltip.value.toLocaleString()}
                     </span>
                     {block.unit && (
-                      <span className="text-[0.625rem] text-white/50">{block.unit}</span>
+                      <span className="text-2xs text-white/50">{block.unit}</span>
                     )}
                   </div>
                   {tooltip.rank < block.regions.length && (
@@ -389,7 +389,7 @@ export function MapBlock({ block }: MapBlockProps) {
         <div className="border-t border-rule p-3 lg:border-l lg:border-t-0 space-y-3 overflow-hidden">
           {/* Top regions list */}
           <div>
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
               Top regions
             </div>
             <div className="space-y-0.5">
@@ -472,13 +472,13 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
   if (colorScale === 'binary') {
     return (
       <div className="rounded-lg border border-rule bg-surface-active/40 p-2.5 text-xs text-muted">
-        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Presence</div>
+        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Presence</div>
         <div className="space-y-1">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[#16A34A]" /> Present
+            <span className="h-2 w-2 rounded-full bg-success" /> Present
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[#3B3B3B]" /> Absent
+            <span className="h-2 w-2 rounded-full bg-neutral-700" /> Absent
           </span>
         </div>
       </div>
@@ -488,16 +488,16 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
   if (colorScale === 'change') {
     return (
       <div className="rounded-lg border border-rule bg-surface-active/40 p-2.5 text-xs text-muted">
-        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Change</div>
+        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Change</div>
         <div className="space-y-1">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[#16A34A]" /> Increase
+            <span className="h-2 w-2 rounded-full bg-success" /> Increase
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[#DC2626]" /> Decrease
+            <span className="h-2 w-2 rounded-full bg-danger" /> Decrease
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[#555]" /> No change
+            <span className="h-2 w-2 rounded-full bg-neutral-500" /> No change
           </span>
         </div>
       </div>
@@ -506,23 +506,23 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
 
   return (
     <div className="rounded-lg border border-rule bg-surface-active/40 p-2.5 text-xs text-muted">
-      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Stake concentration</div>
+      <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Stake concentration</div>
       <div className="grid grid-cols-2 gap-x-2 gap-y-1">
         <span className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#64748B]" />
-          <span className="text-[0.625rem]">Low</span>
+          <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
+          <span className="text-2xs">Low</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[#3B82F6]" />
-          <span className="text-[0.625rem]">Moderate</span>
+          <span className="h-2 w-2 rounded-full bg-accent" />
+          <span className="text-2xs">Moderate</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[#C2553A]" />
-          <span className="text-[0.625rem]">High</span>
+          <span className="h-2 w-2 rounded-full bg-accent-warm" />
+          <span className="text-2xs">High</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#F59E0B]" />
-          <span className="text-[0.625rem]">Dominant</span>
+          <span className="h-2.5 w-2.5 rounded-full bg-warning" />
+          <span className="text-2xs">Dominant</span>
         </span>
       </div>
       <p className="text-[0.5625rem] text-text-faint mt-1.5 leading-tight">

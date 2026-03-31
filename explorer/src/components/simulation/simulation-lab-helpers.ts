@@ -29,7 +29,7 @@ function parseOptionalSlotIndex(value: string | null): number | undefined {
 }
 
 export function readInitialSimulationLabState(): InitialSimulationLabState {
-  if (typeof window === 'undefined') return { surfaceMode: 'research' }
+  if (typeof window === 'undefined') return { surfaceMode: 'lab' }
 
   const params = new URLSearchParams(window.location.search)
   const jobId = params.get('simulationJob') ?? undefined

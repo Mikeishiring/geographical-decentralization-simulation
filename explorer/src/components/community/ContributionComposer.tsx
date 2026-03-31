@@ -152,7 +152,7 @@ export function ContributionComposer({
           </button>
 
           {!hasIntentionalEdit && (
-            <div className="rounded-lg border border-rule bg-surface-active px-3 py-2 text-[0.6875rem] leading-5 text-text-faint">
+            <div className="rounded-lg border border-rule bg-surface-active px-3 py-2 text-11 leading-5 text-text-faint">
               Edit the title or takeaway to publish.
             </div>
           )}

@@ -61,7 +61,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                   aria-selected={isActive}
                   tabIndex={isActive ? 0 : -1}
                   className={cn(
-                    'relative flex items-center gap-2 px-3.5 py-3 text-[0.8125rem] transition-colors',
+                    'relative flex items-center gap-2 px-3.5 py-3 text-13 transition-colors',
                     isActive
                       ? 'text-text-primary font-medium'
                       : 'text-muted hover:text-text-primary',
@@ -105,7 +105,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                       transition={SPRING_SNAPPY}
                       className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-30 whitespace-nowrap pointer-events-none"
                     >
-                      <div className="relative rounded-lg bg-text-primary/92 px-3 py-2 text-[0.6875rem] text-white/90 shadow-lg backdrop-blur-sm">
+                      <div className="relative rounded-lg bg-text-primary/92 px-3 py-2 text-11 text-white/90 shadow-lg backdrop-blur-sm">
                         {tab.hint}
                       </div>
                     </motion.div>

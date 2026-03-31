@@ -730,7 +730,7 @@ export function PublishedReplayNotesPanel({
     <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure annotations</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Figure annotations</div>
           <div className="mt-2 text-sm font-medium text-text-primary">
             Click a figure target first, then leave a short note with the context already attached.
           </div>
@@ -745,7 +745,7 @@ export function PublishedReplayNotesPanel({
           className={cn(
             'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
             canSave
-              ? 'bg-[#0F172A] text-white hover:bg-[#111C31]'
+              ? 'bg-slate-900 text-white hover:bg-slate-800'
               : 'cursor-not-allowed border border-rule bg-surface-active text-muted',
           )}
         >
@@ -763,7 +763,7 @@ export function PublishedReplayNotesPanel({
           { label: 'Following', value: discovery.followed.toLocaleString(), detail: 'Notes you marked to come back to.' },
         ].map(card => (
           <div key={card.label} className="rounded-xl border border-rule bg-surface-active px-4 py-3">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
             <div className="mt-2 text-2xl font-semibold text-text-primary">{card.value}</div>
             <div className="mt-1 text-xs leading-5 text-muted">{card.detail}</div>
           </div>
@@ -771,7 +771,7 @@ export function PublishedReplayNotesPanel({
       </div>
 
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
-        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">What people are debating here</div>
+        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">What people are debating here</div>
         <div className="mt-2 max-w-3xl text-xs leading-5 text-muted">{discussionLead}</div>
         <div className="mt-3 flex flex-wrap gap-2">
           {discovery.topAnchors.length > 0 ? discovery.topAnchors.map(([anchorLabel, count]) => (
@@ -792,12 +792,12 @@ export function PublishedReplayNotesPanel({
       </div>
 
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
-        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Captured context</div>
+        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Captured context</div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-[#DBE4F0] bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary">
+          <span className="rounded-full border border-[#DBE4F0] bg-white px-3 py-1 text-11 font-medium text-text-primary">
             Selected target · {selectedAnchorLabel}
           </span>
-          <span className="rounded-full border border-[#DBE4F0] bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary">
+          <span className="rounded-full border border-[#DBE4F0] bg-white px-3 py-1 text-11 font-medium text-text-primary">
             Scope · {ANNOTATION_SCOPES.find(option => option.id === annotationScope)?.label ?? annotationScope}
           </span>
         </div>
@@ -816,7 +816,7 @@ export function PublishedReplayNotesPanel({
       </div>
 
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
-        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Prompts to think with</div>
+        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Prompts to think with</div>
         <div className="mt-3 flex flex-wrap gap-2">
           {promptLaunchers.map(prompt => (
             <button
@@ -836,7 +836,7 @@ export function PublishedReplayNotesPanel({
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Community lane</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Community lane</div>
           <div className="mt-3 flex flex-wrap gap-2">
             {COMMUNITY_LANES.map(option => (
               <button
@@ -857,7 +857,7 @@ export function PublishedReplayNotesPanel({
         </div>
 
         <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Reasoning move</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Reasoning move</div>
           <div className="mt-3 flex flex-wrap gap-2">
             {CONTRIBUTION_TYPES.map(option => (
               <button
@@ -883,7 +883,7 @@ export function PublishedReplayNotesPanel({
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Discussion state</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Discussion state</div>
           <div className="mt-3 flex flex-wrap gap-2">
             {DISCUSSION_STATES.map(option => (
               <button
@@ -903,7 +903,7 @@ export function PublishedReplayNotesPanel({
         </div>
 
         <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Annotation unit</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Annotation unit</div>
           <div className="mt-3 flex flex-wrap gap-2">
             {ANNOTATION_SCOPES.filter(option => comparisonViewerSnapshot || option.id !== 'comparison_gap').map(option => (
               <button
@@ -926,10 +926,10 @@ export function PublishedReplayNotesPanel({
 
       {rangeRequired ? (
         <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Slot window</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Slot window</div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <label className="rounded-xl border border-rule bg-white px-3 py-3">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Start slot</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Start slot</div>
               <input
                 type="number"
                 min={1}
@@ -939,7 +939,7 @@ export function PublishedReplayNotesPanel({
               />
             </label>
             <label className="rounded-xl border border-rule bg-white px-3 py-3">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">End slot</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">End slot</div>
               <input
                 type="number"
                 min={1}
@@ -953,7 +953,7 @@ export function PublishedReplayNotesPanel({
       ) : null}
 
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
-        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Note anchor</div>
+        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Note anchor</div>
         <div className="mt-3 flex flex-wrap gap-2">
           {anchorOptions.map(option => (
             <button
@@ -978,12 +978,12 @@ export function PublishedReplayNotesPanel({
       </div>
 
       <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
-        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Note draft</div>
+        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Note draft</div>
         <div className="mt-2 rounded-xl border border-rule bg-surface-active px-3 py-3 text-xs leading-5 text-muted">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Composer guidance</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Composer guidance</div>
           <div className="mt-2">{composerGuidance}</div>
         </div>
-        <div className="mt-3 text-[0.6875rem] leading-5 text-muted">
+        <div className="mt-3 text-11 leading-5 text-muted">
           Keep the note short. The selected target, slot posture, and replay context already carry most of the precision.
         </div>
         <textarea
@@ -1015,7 +1015,7 @@ export function PublishedReplayNotesPanel({
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure thread</div>
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Figure thread</div>
             <div className="mt-1 text-xs text-muted">Notes stay attached to this replay posture, but they can still speak in ranges, comparisons, claims, and challenges.</div>
           </div>
           {notesQuery.isLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted" /> : null}
@@ -1056,10 +1056,10 @@ export function PublishedReplayNotesPanel({
                   ? 'border-l-[3px] border-l-[#9F1239]'
                   : 'border-l-[3px] border-l-[#0F766E]',
             )}>
-              <div className="flex flex-wrap items-center gap-2 text-[0.6875rem] text-text-faint">
-                <span className={cn('rounded-full border px-2.5 py-0.5 text-[0.625rem] font-medium', laneBadgeClass(note.communityLane))}>{COMMUNITY_LANES.find(option => option.id === note.communityLane)?.label ?? note.communityLane}</span>
-                <span className={cn('rounded-full border px-2.5 py-0.5 text-[0.625rem] font-medium', contributionBadgeClass(note.contributionType))}>{CONTRIBUTION_TYPES.find(option => option.id === note.contributionType)?.label ?? note.contributionType.replace('_', ' ')}</span>
-                <span className={cn('rounded-full border px-2.5 py-0.5 text-[0.625rem] font-medium', statusBadgeClass(note.status))}>{formatStatusLabel(note.status)}</span>
+              <div className="flex flex-wrap items-center gap-2 text-11 text-text-faint">
+                <span className={cn('rounded-full border px-2.5 py-0.5 text-2xs font-medium', laneBadgeClass(note.communityLane))}>{COMMUNITY_LANES.find(option => option.id === note.communityLane)?.label ?? note.communityLane}</span>
+                <span className={cn('rounded-full border px-2.5 py-0.5 text-2xs font-medium', contributionBadgeClass(note.contributionType))}>{CONTRIBUTION_TYPES.find(option => option.id === note.contributionType)?.label ?? note.contributionType.replace('_', ' ')}</span>
+                <span className={cn('rounded-full border px-2.5 py-0.5 text-2xs font-medium', statusBadgeClass(note.status))}>{formatStatusLabel(note.status)}</span>
                 <span className="lab-chip">slot {note.slotNumber}</span>
                 {(note.annotationScope === 'time_range' || note.annotationScope === 'region_over_time') && note.rangeStartSlotNumber != null && note.rangeEndSlotNumber != null ? (
                   <span className="lab-chip">window {note.rangeStartSlotNumber}-{note.rangeEndSlotNumber}</span>
@@ -1076,7 +1076,7 @@ export function PublishedReplayNotesPanel({
                       : [...current, note.id]
                   )}
                   className={cn(
-                    'ml-auto rounded-full border px-2.5 py-0.5 text-[0.625rem] font-medium transition-colors',
+                    'ml-auto rounded-full border px-2.5 py-0.5 text-2xs font-medium transition-colors',
                     followedNoteSet.has(note.id)
                       ? 'border-[#DBE4F0] bg-[linear-gradient(180deg,#FFFFFF,#F8FAFC)] text-[#0F172A]'
                       : 'border-rule bg-white text-text-primary hover:border-border-hover',
@@ -1086,21 +1086,21 @@ export function PublishedReplayNotesPanel({
                 </button>
               </div>
               {note.contextLabel ? (
-                <div className="mt-2 text-[0.6875rem] leading-5 text-muted">{note.contextLabel}</div>
+                <div className="mt-2 text-11 leading-5 text-muted">{note.contextLabel}</div>
               ) : null}
               <div className="mt-3 text-sm leading-6 text-text-primary">{note.note}</div>
               {note.replies.length > 0 ? (
                 <div className="mt-4 space-y-2 border-t border-rule pt-3">
                   {note.replies.map(reply => (
                     <div key={reply.id} className="rounded-xl border border-rule bg-surface-active px-3 py-3">
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{formatTimestamp(reply.createdAt)}</div>
+                      <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{formatTimestamp(reply.createdAt)}</div>
                       <div className="mt-2 text-xs leading-5 text-text-primary">{reply.text}</div>
                     </div>
                   ))}
                 </div>
               ) : null}
               <div className="mt-4 rounded-xl border border-rule bg-surface-active px-3 py-3">
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Reply</div>
+                <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Reply</div>
                 <textarea
                   value={replyDrafts[note.id] ?? ''}
                   onChange={event => setReplyDrafts(current => ({ ...current, [note.id]: event.target.value }))}

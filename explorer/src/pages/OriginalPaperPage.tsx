@@ -79,7 +79,6 @@ export function OriginalPaperPage({ onTabChange }: { onTabChange?: (tab: TabId) 
     setAnnotations(prev => prev.filter(a => a.id !== id))
   }, [])
 
-  // Use local PDF if available, fall back to arXiv
   const pdfSrc = LOCAL_PDF_URL
 
   return (
@@ -208,7 +207,7 @@ export function OriginalPaperPage({ onTabChange }: { onTabChange?: (tab: TabId) 
             className="overflow-hidden"
           >
             <div className="rounded-xl border border-rule bg-white px-5 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">New annotation</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">New annotation</div>
               <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
                 <textarea
                   value={newAnnotation.text}
@@ -218,7 +217,7 @@ export function OriginalPaperPage({ onTabChange }: { onTabChange?: (tab: TabId) 
                   rows={2}
                 />
                 <div className="flex flex-col gap-2">
-                  <label className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Page</label>
+                  <label className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Page</label>
                   <input
                     type="number"
                     min={1}
@@ -229,7 +228,7 @@ export function OriginalPaperPage({ onTabChange }: { onTabChange?: (tab: TabId) 
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Color</label>
+                  <label className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Color</label>
                   <div className="flex gap-1.5">
                     {ANNOTATION_COLORS.map(color => (
                       <button
@@ -294,7 +293,7 @@ export function OriginalPaperPage({ onTabChange }: { onTabChange?: (tab: TabId) 
         {/* Annotations sidebar */}
         {showAnnotations && annotations.length > 0 && (
           <div className="space-y-3">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
               Your annotations ({annotations.length})
             </div>
             <div className="stagger-reveal space-y-2 max-h-[calc(100vh-18rem)] overflow-y-auto">
@@ -312,14 +311,14 @@ export function OriginalPaperPage({ onTabChange }: { onTabChange?: (tab: TabId) 
                         annotation.color === 'success' && 'bg-success',
                         annotation.color === 'warning' && 'bg-warning',
                       )} />
-                      <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                      <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
                         Page {annotation.page}
                       </span>
                     </div>
                     <button
                       onClick={() => handleDeleteAnnotation(annotation.id)}
                       className="opacity-0 group-hover:opacity-100 text-muted hover:text-danger transition-all"
-                      title="Delete annotation"
+                      aria-label="Delete annotation"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>

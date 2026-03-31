@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
 import { ChevronDown, ExternalLink, LoaderCircle, Lock, Pause, Play, RotateCcw, X } from 'lucide-react'
 import { ChartBlock } from '../blocks/ChartBlock'
 import { InsightBlock } from '../blocks/InsightBlock'
@@ -8,6 +9,7 @@ import { formatNumber } from './simulation-constants'
 import { CONTINENT_OUTLINES } from '../../data/world-outlines'
 import { GCP_REGIONS, type GcpRegion, type MacroRegion } from '../../data/gcp-regions'
 import { cn } from '../../lib/cn'
+import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 
 interface ResearchMetadata {
   readonly v?: number
@@ -600,7 +602,7 @@ function PublishedGeoCard({
         <div className="relative overflow-hidden rounded-2xl border border-[#1F2937] bg-[#0D1117]">
           {annotationNotes && annotationNotes.length > 0 ? (
             <div className="absolute inset-x-4 top-4 z-10 flex max-w-xl flex-wrap gap-2">
-              <div className="rounded-full border border-white/12 bg-[#0F172A]/78 px-3 py-1.5 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-white/85 backdrop-blur-md">
+              <div className="rounded-full border border-white/12 bg-[#0F172A]/78 px-3 py-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-white/85 backdrop-blur-md">
                 {annotationNotes.length} paper note{annotationNotes.length === 1 ? '' : 's'} pinned to this slot
               </div>
               {annotationNotes.slice(0, 2).map(note => (
@@ -608,7 +610,7 @@ function PublishedGeoCard({
                   key={note.id}
                   onClick={() => onSelectNote?.(note.id)}
                   className={cn(
-                    'pointer-events-auto max-w-[18rem] rounded-full border px-3 py-1.5 text-left text-[0.6875rem] text-white/88 backdrop-blur-md transition-all',
+                    'pointer-events-auto max-w-[18rem] rounded-full border px-3 py-1.5 text-left text-11 text-white/88 backdrop-blur-md transition-all',
                     selectedNoteId === note.id
                       ? 'border-white/45 bg-white/20 shadow-[0_16px_30px_rgba(15,23,42,0.22)]'
                       : 'border-white/12 bg-white/10 hover:border-white/30 hover:bg-white/14',
@@ -734,7 +736,7 @@ function PublishedGeoCard({
 
         <div className="space-y-3">
           <div className="rounded-xl border border-rule bg-surface-active p-4">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Top regions</div>
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Top regions</div>
             <div className="mt-3 space-y-2.5">
               {topRegions.map(region => {
                 const regionLabel = region.region ? region.region.city : region.regionId
@@ -759,21 +761,21 @@ function PublishedGeoCard({
                         <div className="flex items-center gap-2">
                           <div className="truncate text-xs font-medium text-text-primary">{regionLabel}</div>
                           {regionNoteCount > 0 ? (
-                            <span className="rounded-full border border-[#DBE4F0] bg-[#F8FAFC] px-2 py-0.5 text-[0.625rem] font-medium text-text-primary">
+                            <span className="rounded-full border border-[#DBE4F0] bg-[#F8FAFC] px-2 py-0.5 text-2xs font-medium text-text-primary">
                               {regionNoteCount} note{regionNoteCount === 1 ? '' : 's'}
                             </span>
                           ) : null}
                         </div>
-                        <div className="truncate text-[0.6875rem] text-muted">{region.regionId}</div>
+                        <div className="truncate text-11 text-muted">{region.regionId}</div>
                         {regionNoteSummary ? (
-                          <div className="mt-1 truncate text-[0.625rem] font-medium text-text-primary">
+                          <div className="mt-1 truncate text-2xs font-medium text-text-primary">
                             {regionNoteSummary}
                           </div>
                         ) : null}
                       </div>
                       <div className="shrink-0 text-right">
                         <div className="text-xs font-medium tabular-nums text-text-primary">{countLabel(region.count)}</div>
-                        <div className="text-[0.6875rem] text-muted">{percentage(share, 1)}</div>
+                        <div className="text-11 text-muted">{percentage(share, 1)}</div>
                       </div>
                     </div>
                     <div className="mt-1.5 h-1.5 rounded-full bg-surface-active">
@@ -789,7 +791,7 @@ function PublishedGeoCard({
           </div>
 
           <div className="rounded-xl border border-rule bg-white p-4">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Macro regions</div>
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Macro regions</div>
             <div className="mt-3 space-y-2">
               {macroRegionCounts.map(entry => {
                 const share = totalValidators > 0 ? (entry.count / totalValidators) * 100 : 0
@@ -1242,6 +1244,13 @@ export function PublishedDatasetViewer({
           <LoaderCircle className="h-4 w-4 animate-spin" />
           Loading frozen published dataset…
         </div>
+        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+          <div className="lab-skeleton lab-skeleton-block h-[320px] chart-skeleton-breathe" />
+          <div className="space-y-4">
+            <div className="lab-skeleton lab-skeleton-block h-[160px] chart-skeleton-breathe" style={{ animationDelay: '120ms' }} />
+            <div className="lab-skeleton lab-skeleton-block h-[140px] chart-skeleton-breathe" style={{ animationDelay: '240ms' }} />
+          </div>
+        </div>
       </div>
     )
   }
@@ -1257,18 +1266,33 @@ export function PublishedDatasetViewer({
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING}
+    >
       {/* ── Compact header ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary">
+      <motion.div
+        className="flex flex-wrap items-center justify-between gap-3 px-1"
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING_CRISP, delay: 0.04 }}
+      >
+        <motion.div
+          className="flex flex-wrap items-center gap-2 text-xs text-muted"
+          variants={STAGGER_CONTAINER}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.span variants={STAGGER_ITEM} className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1 text-11 font-medium text-text-primary">
             {dataset.evaluation} · {dataset.paradigm} · {dataset.result}
-          </span>
-          <span className="lab-chip">{sourceRoleLabel(dataset.sourceRole)}</span>
-          <span className="lab-chip">{countLabel(totalSlots)} slots</span>
-          <span className="lab-chip">Slot {countLabel(slot + 1)}</span>
-          {topRegion?.region && <span className="lab-chip">{topRegion.region.city} {regionShareLabel(topRegion, totalValidators)}</span>}
-        </div>
+          </motion.span>
+          <motion.span variants={STAGGER_ITEM} className="lab-chip">{sourceRoleLabel(dataset.sourceRole)}</motion.span>
+          <motion.span variants={STAGGER_ITEM} className="lab-chip">{countLabel(totalSlots)} slots</motion.span>
+          <motion.span variants={STAGGER_ITEM} className="lab-chip">Slot {countLabel(slot + 1)}</motion.span>
+          {topRegion?.region && <motion.span variants={STAGGER_ITEM} className="lab-chip">{topRegion.region.city} {regionShareLabel(topRegion, totalValidators)}</motion.span>}
+        </motion.div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => {
@@ -1295,10 +1319,15 @@ export function PublishedDatasetViewer({
             </button>
           ) : null}
         </div>
-      </div>
+      </motion.div>
 
       {/* ── Playback controls (compact inline bar) ── */}
-      <div className="flex flex-wrap items-center gap-2 px-1">
+      <motion.div
+        className="flex flex-wrap items-center gap-2 px-1"
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING_CRISP, delay: 0.08 }}
+      >
         <button disabled={slotLocked} onClick={() => setPlaying(previous => !previous)} className={cn('inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:border disabled:border-rule disabled:bg-surface-active disabled:text-muted', playing ? 'bg-accent text-white shadow-[0_12px_24px_rgba(37,99,235,0.16)]' : 'border border-rule bg-white text-text-primary hover:border-border-hover')}>
           {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
           {playing ? 'Pause' : 'Play'}
@@ -1335,10 +1364,15 @@ export function PublishedDatasetViewer({
             aria-label="Simulation slot"
           />
         </div>
-      </div>
+      </motion.div>
 
       {/* ── Map + Charts (primary content) ── */}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+      <motion.div
+        className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING, delay: 0.12 }}
+      >
         <PublishedGeoCard
           title={`${dataset.evaluation} · ${dataset.paradigm} · ${dataset.result}`}
           regions={currentRegions}
@@ -1352,9 +1386,14 @@ export function PublishedDatasetViewer({
           <ChartBlock block={sourceChartBlock} />
           <InsightBlock block={insightBlock} />
         </div>
-      </div>
+      </motion.div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <motion.div
+        className="grid gap-6 xl:grid-cols-2"
+        variants={STAGGER_CONTAINER}
+        initial="hidden"
+        animate="show"
+      >
         {[
           {
             key: 'concentration',
@@ -1403,14 +1442,14 @@ export function PublishedDatasetViewer({
           const entrySummary = summarizeNoteCluster(entry.notes)
 
           return (
-          <div key={entry.key} className="relative">
+          <motion.div key={entry.key} className="relative" variants={STAGGER_ITEM}>
             {entry.notes.length > 0 ? (
               <div className="absolute right-4 top-4 z-10 flex flex-wrap justify-end gap-2">
-                <div className="rounded-full border border-[#0F172A]/12 bg-white/92 px-3 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint shadow-[0_10px_20px_rgba(15,23,42,0.06)]">
+                <div className="rounded-full border border-[#0F172A]/12 bg-white/92 px-3 py-1 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint shadow-[0_10px_20px_rgba(15,23,42,0.06)]">
                   Slot notes
                 </div>
                 {entrySummary ? (
-                  <div className="rounded-full border border-[#DBE4F0] bg-white/96 px-3 py-1 text-[0.625rem] font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
+                  <div className="rounded-full border border-[#DBE4F0] bg-white/96 px-3 py-1 text-2xs font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
                     {entrySummary}
                   </div>
                 ) : null}
@@ -1419,7 +1458,7 @@ export function PublishedDatasetViewer({
                     key={`${entry.key}-${note.id}`}
                     onClick={() => setSelectedNoteId(note.id)}
                     className={cn(
-                      'pointer-events-auto rounded-full border px-3 py-1.5 text-left text-[0.625rem] font-medium shadow-[0_10px_20px_rgba(15,23,42,0.05)] transition-all',
+                      'pointer-events-auto rounded-full border px-3 py-1.5 text-left text-2xs font-medium shadow-[0_10px_20px_rgba(15,23,42,0.05)] transition-all',
                       focusedNote?.id === note.id ? 'scale-[1.02] ring-2 ring-accent/25' : '',
                       noteIntentClass(note.intent),
                     )}
@@ -1443,9 +1482,9 @@ export function PublishedDatasetViewer({
             )}>
               <TimeSeriesBlock block={entry.block} notePins={entry.notePins} />
             </div>
-          </div>
+          </motion.div>
         )})}
-      </div>
+      </motion.div>
 
       {/* ── Metrics & details (collapsed by default) ── */}
       <details className="group">
@@ -1460,7 +1499,12 @@ export function PublishedDatasetViewer({
         </summary>
 
         <div className="mt-4 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <motion.div
+            className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+            variants={STAGGER_CONTAINER}
+            initial="hidden"
+            animate="show"
+          >
             {[
               {
                 key: 'slot',
@@ -1515,9 +1559,10 @@ export function PublishedDatasetViewer({
                 block: { type: 'stat' as const, value: currentProposalTime != null ? `${compactNumber(currentProposalTime, 1)} ms` : 'N/A', label: 'Proposal time', sublabel: currentAttestation != null ? `Attestation ${percentage(currentAttestation, 1)}` : 'Consensus timing', delta: deltaLabel(currentProposalTime, initialProposalTime), sentiment: (currentProposalTime ?? Number.POSITIVE_INFINITY) <= (initialProposalTime ?? Number.POSITIVE_INFINITY) ? 'positive' as const : 'negative' as const },
               },
             ].map(card => (
-              <button
+              <motion.button
                 key={card.key}
                 type="button"
+                variants={STAGGER_ITEM}
                 onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, card.anchor))}
                 className={cn(
                   'relative w-full text-left transition-all duration-300',
@@ -1525,25 +1570,25 @@ export function PublishedDatasetViewer({
                 )}
               >
                 {card.noteCount > 0 ? (
-                  <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-[#DBE4F0] bg-white/96 px-2 py-0.5 text-[0.625rem] font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
+                  <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-full border border-[#DBE4F0] bg-white/96 px-2 py-0.5 text-2xs font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
                     {card.noteCount} note{card.noteCount === 1 ? '' : 's'}
                   </div>
                 ) : null}
                 {card.noteSummary ? (
-                  <div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)] rounded-full border border-[#0F172A]/10 bg-white/94 px-2.5 py-1 text-[0.625rem] font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
+                  <div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)] rounded-full border border-[#0F172A]/10 bg-white/94 px-2.5 py-1 text-2xs font-medium text-text-primary shadow-[0_10px_20px_rgba(15,23,42,0.05)]">
                     {card.noteSummary}
                   </div>
                 ) : null}
                 <StatBlock block={card.block} />
-              </button>
+              </motion.button>
             ))}
-          </div>
+          </motion.div>
 
       {annotationNotes.length > 0 ? (
         <div className="px-5 pb-5">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
             <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure discussion</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Figure discussion</div>
               <div className="mt-3 grid gap-3 sm:grid-cols-4">
                 {[
                   { label: 'Open questions', value: discussionSummary.openQuestions, tone: 'text-[#9A3412]' },
@@ -1552,7 +1597,7 @@ export function PublishedDatasetViewer({
                   { label: 'Range-based', value: discussionSummary.timeRanges, tone: 'text-[#1D4ED8]' },
                 ].map(card => (
                   <div key={card.label} className="rounded-xl border border-rule bg-white px-3 py-3">
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+                    <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
                     <div className={cn('mt-2 text-xl font-semibold', card.tone)}>{card.value.toLocaleString()}</div>
                   </div>
                 ))}
@@ -1567,7 +1612,7 @@ export function PublishedDatasetViewer({
             <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,250,248,0.96))] px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Figure marginalia</div>
+                  <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Figure marginalia</div>
                   <div className="mt-1 text-xs leading-5 text-muted">
                     {leadingDebate
                       ? `${leadingDebate.label} is drawing the most attention. ${leadingDebate.summary ?? ''}`
@@ -1575,7 +1620,7 @@ export function PublishedDatasetViewer({
                   </div>
                 </div>
                 {focusedNote ? (
-                  <div className="rounded-full border border-accent/18 bg-[rgba(37,99,235,0.08)] px-2.5 py-1 text-[0.625rem] font-medium text-accent">
+                  <div className="rounded-full border border-accent/18 bg-[rgba(37,99,235,0.08)] px-2.5 py-1 text-2xs font-medium text-accent">
                     Focus on {focusAreaLabel(focusedArea ?? 'geography')}
                   </div>
                 ) : null}
@@ -1600,25 +1645,25 @@ export function PublishedDatasetViewer({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full border border-[#DBE4F0] bg-[#F8FAFC] px-2.5 py-0.5 text-[0.625rem] font-medium uppercase tracking-[0.08em] text-text-primary">
+                          <span className="rounded-full border border-[#DBE4F0] bg-[#F8FAFC] px-2.5 py-0.5 text-2xs font-medium uppercase tracking-[0.08em] text-text-primary">
                             {note.anchorLabel ?? 'Whole slot'}
                           </span>
                           {noteMetaLabel(note) ? (
-                            <span className="text-[0.625rem] uppercase tracking-[0.08em] text-text-faint">
+                            <span className="text-2xs uppercase tracking-[0.08em] text-text-faint">
                               {noteMetaLabel(note)}
                             </span>
                           ) : null}
                         </div>
                       </div>
                       {(note.replies?.length ?? 0) > 0 ? (
-                        <div className="shrink-0 text-[0.625rem] uppercase tracking-[0.08em] text-text-faint">
+                        <div className="shrink-0 text-2xs uppercase tracking-[0.08em] text-text-faint">
                           {note.replies?.length ?? 0} repl{(note.replies?.length ?? 0) === 1 ? 'y' : 'ies'}
                         </div>
                       ) : null}
                     </div>
                     <div className="mt-2 text-sm leading-6 text-text-primary">{note.note}</div>
                     {(note.annotationScope === 'time_range' || note.annotationScope === 'region_over_time') && note.rangeStartSlotNumber != null && note.rangeEndSlotNumber != null ? (
-                      <div className="mt-2 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                      <div className="mt-2 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
                         Slots {note.rangeStartSlotNumber.toLocaleString()}-{note.rangeEndSlotNumber.toLocaleString()}
                       </div>
                     ) : null}
@@ -1636,9 +1681,9 @@ export function PublishedDatasetViewer({
             focusedArea === 'config' ? 'ring-2 ring-accent/35 shadow-[0_18px_36px_rgba(37,99,235,0.1)]' : '',
           )}>
             <div className="flex items-center justify-between gap-3">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Frozen configuration</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Frozen configuration</div>
               {metricNoteCounts.methods > 0 ? (
-                <span className="rounded-full border border-[#0F766E]/18 bg-[#ECFDF5] px-2 py-0.5 text-[0.625rem] font-medium text-[#0F766E]">
+                <span className="rounded-full border border-[#0F766E]/18 bg-[#ECFDF5] px-2 py-0.5 text-2xs font-medium text-[#0F766E]">
                   {metricNoteCounts.methods} note{metricNoteCounts.methods === 1 ? '' : 's'}
                 </span>
               ) : null}
@@ -1655,7 +1700,7 @@ export function PublishedDatasetViewer({
 
           {annotationNotes.length > 0 ? (
             <div className="rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Note filters</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Note filters</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {[
                   { id: 'all' as const, label: 'All', count: annotationNotes.length },
@@ -1683,6 +1728,6 @@ export function PublishedDatasetViewer({
         </div>
       </details>
 
-    </div>
+    </motion.div>
   )
 }

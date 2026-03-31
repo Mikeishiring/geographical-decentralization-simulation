@@ -97,7 +97,7 @@ export function PendingRunSurface({
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between relative">
         <div>
           <motion.div
-            className="text-[0.6875rem] uppercase tracking-[0.1em] text-accent font-medium"
+            className="text-11 uppercase tracking-[0.1em] text-accent font-medium"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ ...SPRING_CRISP, delay: 0.06 }}
@@ -157,7 +157,7 @@ export function PendingRunSurface({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ ...SPRING_CRISP, delay: 0.12 + i * 0.04 }}
             >
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
               <div className={cn('mt-1 font-semibold text-text-primary', card.label === 'Updated' ? 'text-base' : 'text-lg tabular-nums')}>
                 {card.value}
               </div>
@@ -177,7 +177,7 @@ export function PendingRunSurface({
               <span
                 key={step}
                 className={cn(
-                  'text-[0.6875rem]',
+                  'text-11',
                   stepIndex > index && 'text-emerald-600',
                   stepIndex === index && 'text-accent font-medium',
                 )}
@@ -214,7 +214,7 @@ export function PendingRunSurface({
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...SPRING_CRISP, delay: 0.2 + i * 0.04 }}
           >
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
             <div className={cn('mt-1 text-text-primary', card.mono ? 'mono-sm' : 'text-sm font-medium')}>{card.value}</div>
           </motion.div>
         ))}

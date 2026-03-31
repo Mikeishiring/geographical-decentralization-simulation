@@ -175,7 +175,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
               key={`${entry.label}-${index}`}
               className="rounded-xl border border-rule bg-white px-3 py-2.5"
             >
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Latest</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Latest</div>
               <div className="mt-1 text-xs font-medium text-text-primary">{entry.label}</div>
               <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
                 {formatSeriesNumber(entry.value)}
@@ -194,7 +194,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: snapshot.color }} />
                 <div className="text-xs font-medium text-text-primary">{snapshot.label}</div>
               </div>
-              <div className="mt-3 grid grid-cols-1 gap-2 text-[0.6875rem] sm:grid-cols-3">
+              <div className="mt-3 grid grid-cols-1 gap-2 text-11 sm:grid-cols-3">
                 <div>
                   <div className="uppercase tracking-[0.1em] text-text-faint">Start</div>
                   <div className="mt-1 font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.first)}</div>
@@ -214,7 +214,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
 
         <div className="mb-4 flex flex-col gap-3 rounded-xl border border-rule bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Integrity</div>
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Integrity</div>
             <div className="mt-1 text-sm font-medium text-text-primary">
               Raw slot series, full ordering, no smoothing.
             </div>
@@ -231,7 +231,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 >
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: point.color }} />
-                    <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Slot {point.x}</span>
+                    <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Slot {point.x}</span>
                   </div>
                   <div className="mt-1 text-xs font-medium text-text-primary">{point.label}</div>
                   <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
@@ -245,10 +245,10 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
 
         <div className="relative rounded-xl border border-rule bg-white px-3 py-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">
+            <div className="text-11 uppercase tracking-[0.1em] text-text-faint">
               Measurement deck
             </div>
-            <div className="text-[0.6875rem] text-muted">
+            <div className="text-11 text-muted">
               {block.series.length} series · x {formatSeriesNumber(minX)} to {formatSeriesNumber(maxX)}
             </div>
           </div>
@@ -597,15 +597,15 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                   className="rounded-lg border border-rule bg-white px-3 py-2.5"
                   style={{ boxShadow: `${CHART.tooltipShadow}, 0 0 0 1px rgba(37,99,235,0.06)` }}
                 >
-                  <div className="text-[0.625rem] font-medium tabular-nums text-muted">
+                  <div className="text-2xs font-medium tabular-nums text-muted">
                     Slot {hoverReadout[0].x}
                   </div>
                   <div className="mt-1.5 space-y-1">
                     {hoverReadout.map(point => (
                       <div key={point.label} className="flex items-center gap-2">
                         <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: point.color }} />
-                        <span className="text-[0.6875rem] text-muted">{point.label}</span>
-                        <span className="ml-auto text-[0.8125rem] font-semibold tabular-nums text-text-primary">
+                        <span className="text-11 text-muted">{point.label}</span>
+                        <span className="ml-auto text-13 font-semibold tabular-nums text-text-primary">
                           {formatSeriesNumber(point.value)}
                         </span>
                       </div>

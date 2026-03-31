@@ -2125,7 +2125,7 @@ export function ResearchDemoSurface({
         <div className="grid gap-3 px-5 py-4 md:grid-cols-2 xl:grid-cols-4">
           {heroSnapshotCards.map((card, index) => (
             <div key={card.label} className={cn('lab-metric-card', index === 0 && 'border-accent/20')}>
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
               <div className="mt-1.5 text-sm font-semibold text-text-primary">{card.value}</div>
               <div className="mt-1 text-xs text-muted line-clamp-2" title={card.detail}>{card.detail}</div>
             </div>
@@ -2159,7 +2159,7 @@ export function ResearchDemoSurface({
                 <div className="grid gap-4 xl:grid-cols-2">
                   <div className="space-y-3">
                     <div className="rounded-xl border border-accent bg-white px-4 py-4">
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Primary published replay</div>
+                      <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Primary published replay</div>
                       <div className="mt-2 text-sm font-medium text-text-primary">
                         {activeViewer.dataset.evaluation} · {activeViewer.dataset.paradigm}
                       </div>
@@ -2179,7 +2179,7 @@ export function ResearchDemoSurface({
 
                   <div className="space-y-3">
                     <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison published replay</div>
+                      <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Comparison published replay</div>
                       <div className="mt-2 text-sm font-medium text-text-primary">
                         {comparisonDataset.evaluation} · {comparisonDataset.paradigm}
                       </div>
@@ -2234,7 +2234,7 @@ export function ResearchDemoSurface({
               <div className="grid gap-3 px-5 py-4 md:grid-cols-2 xl:grid-cols-4">
                 {resultSnapshotCards.map((card, index) => (
                   <div key={card.label} className={cn('lab-metric-card', index === 0 && 'border-accent/20')}>
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+                    <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
                     <div className="mt-1.5 text-sm font-semibold tabular-nums text-text-primary">{card.value}</div>
                     {card.detail && <div className="mt-1 text-xs text-muted">{card.detail}</div>}
                   </div>
@@ -2270,7 +2270,7 @@ export function ResearchDemoSurface({
                         )}
                       >
                         <div className="text-xs font-medium text-text-primary">{entry.evaluation} · {entry.paradigm}</div>
-                        <div className="mt-0.5 text-[0.6875rem] text-muted">{entry.result}</div>
+                        <div className="mt-0.5 text-11 text-muted">{entry.result}</div>
                       </button>
                     )
                   })}
@@ -2278,7 +2278,7 @@ export function ResearchDemoSurface({
 
                 <div className="grid gap-3 rounded-xl border border-rule bg-surface-active px-4 py-4">
                   <div>
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Audience</div>
+                    <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Audience</div>
                     <div className="mt-2 grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
                       {audienceProfiles.map(profile => (
                         <button
@@ -2298,7 +2298,7 @@ export function ResearchDemoSurface({
                   </div>
 
                   <div>
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">View</div>
+                    <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">View</div>
                     <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
                       {viewPresets.map(preset => (
                         <button
@@ -2318,7 +2318,7 @@ export function ResearchDemoSurface({
                   </div>
 
                   <div>
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Lens</div>
+                    <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Lens</div>
                     <div className="mt-2 grid grid-cols-3 gap-2">
                       {paperLenses.map(lens => (
                         <button
@@ -2442,7 +2442,7 @@ export function ResearchDemoSurface({
                     )}
                   >
                     <div className="text-xs font-medium text-text-primary">{profile.label}</div>
-                    <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{profile.description}</div>
+                    <div className="mt-1 text-11 leading-5 text-muted">{profile.description}</div>
                   </button>
                 ))}
               </div>
@@ -2463,7 +2463,7 @@ export function ResearchDemoSurface({
                     )}
                   >
                     <div className="text-xs font-medium text-text-primary">{preset.label}</div>
-                    <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{preset.description}</div>
+                    <div className="mt-1 text-11 leading-5 text-muted">{preset.description}</div>
                   </button>
                 ))}
               </div>
@@ -2560,7 +2560,7 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="mt-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-2">Reading routes</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">Reading routes</div>
               <div className="flex flex-wrap gap-2">
                 {savedWorkspaceViews.map(view => (
                   <button
@@ -2576,7 +2576,7 @@ export function ResearchDemoSurface({
             </div>
 
             <div className="mt-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-2">Chapter routes</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">Chapter routes</div>
               <div className="flex flex-wrap gap-2">
                 {chapterRoutes.map(chapter => (
                   <button
@@ -2617,7 +2617,7 @@ export function ResearchDemoSurface({
                   { label: 'source', value: selectedDataset?.sourceRole ?? '--' },
                 ].map(param => (
                   <div key={param.label} className="lab-metric-card">
-                    <div className="text-[0.625rem] text-text-faint">{param.label}</div>
+                    <div className="text-2xs text-text-faint">{param.label}</div>
                     <div className="mt-0.5 mono-sm">{param.value}</div>
                   </div>
                 ))}
@@ -2845,7 +2845,7 @@ export function ResearchDemoSurface({
 
                   <div className="grid gap-4 border-t border-rule px-4 py-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                     <div>
-                      <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Dashboards</div>
+                      <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Dashboards</div>
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
                         {analyticsDashboardPresetCards.map(preset => (
                           <div
@@ -2863,7 +2863,7 @@ export function ResearchDemoSurface({
                                 <div className="mt-1 text-xs leading-5 text-muted">{preset.note}</div>
                               </div>
                               {preset.active ? (
-                                <span className="rounded-full bg-accent px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-white">
+                                <span className="rounded-full bg-accent px-2 py-1 text-2xs font-medium uppercase tracking-[0.1em] text-white">
                                   Live
                                 </span>
                               ) : null}
@@ -2888,7 +2888,7 @@ export function ResearchDemoSurface({
                     </div>
 
                     <div>
-                      <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Ask from this query</div>
+                      <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Ask from this query</div>
                       {analyticsPromptLaunchers.length > 0 ? (
                         <div className="mt-4 grid gap-3">
                           {analyticsPromptLaunchers.map(item => (
@@ -2898,7 +2898,7 @@ export function ResearchDemoSurface({
                               className="rounded-xl border border-rule bg-surface-active px-4 py-4 text-left transition-colors hover:border-border-hover"
                             >
                               <div className="text-sm font-medium text-text-primary">{item.label}</div>
-                              <div className="mt-1 text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">{item.detail}</div>
+                              <div className="mt-1 text-11 uppercase tracking-[0.1em] text-text-faint">{item.detail}</div>
                               <div className="mt-3 text-xs leading-5 text-muted">{item.prompt}</div>
                             </button>
                           ))}
@@ -2954,7 +2954,7 @@ export function ResearchDemoSurface({
                     <div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="rounded-xl border border-accent bg-white px-4 py-4">
-                          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Active scenario</div>
+                          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Active scenario</div>
                           <div className="mt-2 text-sm font-medium text-text-primary">
                             {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'No scenario'}
                           </div>
@@ -2965,7 +2965,7 @@ export function ResearchDemoSurface({
                         </div>
 
                         <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison scenario</div>
+                          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Comparison scenario</div>
                           <div className="mt-2 text-sm font-medium text-text-primary">
                             {comparisonDataset ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}` : 'No comparison'}
                           </div>
@@ -2992,7 +2992,7 @@ export function ResearchDemoSurface({
 
                           return (
                             <div key={metric.label} className="rounded-xl border border-rule bg-white px-4 py-4">
-                              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
+                              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
                               <div className="mt-3 flex items-end justify-between gap-3">
                                 <div>
                                   <div className="text-xs text-muted">Active</div>
@@ -3010,13 +3010,13 @@ export function ResearchDemoSurface({
                       </div>
 
                       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
-                        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Comparison readout</div>
+                        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Comparison readout</div>
                         <div className="mt-2 text-sm leading-6 text-text-primary">{comparisonNarrative}</div>
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Actions</div>
+                      <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Actions</div>
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                         <button
                           onClick={handleFocusViewer}
@@ -3083,7 +3083,7 @@ export function ResearchDemoSurface({
                 <div className="grid gap-4 border-t border-rule px-5 py-4 sm:grid-cols-2">
                   {paperNotes.map(note => (
                     <div key={note.title} className="lab-metric-card">
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{note.title}</div>
+                      <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{note.title}</div>
                       <div className="mt-1.5 text-xs leading-5 text-muted">{note.body}</div>
                     </div>
                   ))}

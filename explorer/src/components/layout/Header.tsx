@@ -15,12 +15,12 @@ function AuthorChip({ author }: { readonly author: Author }) {
       href={author.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-[0.75rem] text-text-faint underline decoration-rule underline-offset-2 transition-colors hover:text-accent hover:decoration-accent/40"
+      className="text-xs text-text-faint underline decoration-rule underline-offset-2 transition-colors hover:text-accent hover:decoration-accent/40"
     >
       {author.name}
     </a>
   ) : (
-    <span className="text-[0.75rem] text-text-faint">
+    <span className="text-xs text-text-faint">
       {author.name}
     </span>
   )
@@ -44,7 +44,7 @@ function AuthorChip({ author }: { readonly author: Author }) {
           >
             <div className="rounded-xl border border-rule bg-white/95 backdrop-blur-md shadow-lg px-3.5 py-2.5 min-w-[180px] max-w-[260px]">
               <div className="flex items-center gap-2">
-                <span className="text-[0.8125rem] font-medium text-text-primary">
+                <span className="text-13 font-medium text-text-primary">
                   {author.name}
                 </span>
                 {author.url && (
@@ -52,17 +52,17 @@ function AuthorChip({ author }: { readonly author: Author }) {
                 )}
               </div>
               {author.role && (
-                <div className="mt-1 text-[0.6875rem] text-accent font-medium">
+                <div className="mt-1 text-11 text-accent font-medium">
                   {author.role}
                 </div>
               )}
               {author.focus && (
-                <div className="mt-1 text-[0.6875rem] leading-relaxed text-muted">
+                <div className="mt-1 text-11 leading-relaxed text-muted">
                   {author.focus}
                 </div>
               )}
               {author.url && (
-                <div className="mt-1.5 text-[0.625rem] text-text-faint">
+                <div className="mt-1.5 text-2xs text-text-faint">
                   Google Scholar profile
                 </div>
               )}
@@ -91,7 +91,7 @@ export function Header() {
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
           <div className="min-w-0 max-w-xl">
             {/* Eyebrow */}
-            <p className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+            <p className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
               Interactive paper edition
             </p>
 
@@ -101,7 +101,7 @@ export function Header() {
             </h1>
 
             {/* Subtitle */}
-            <p className="mt-2 text-[0.8125rem] leading-relaxed text-muted max-w-lg">
+            <p className="mt-2 text-13 leading-relaxed text-muted max-w-lg">
               How validator geography and paradigm choice shape centralization pressure under SSP and MSP.
             </p>
 
@@ -116,7 +116,7 @@ export function Header() {
                 </span>
               ))}
               <span className="text-rule">·</span>
-              <span className="text-[0.6875rem] text-text-faint">2025</span>
+              <span className="text-11 text-text-faint">2025</span>
             </div>
 
             {/* Arrow links — Stripe-style lightweight CTAs */}

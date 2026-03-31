@@ -88,7 +88,7 @@ export function ExactSimulationAnalyticsPanel({
         <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-xl border border-rule bg-white px-4 py-3">
             <div
-              className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint"
+              className="text-2xs uppercase tracking-[0.1em] text-text-faint"
               title="Reusable dashboard reads over the same exact-run payload."
             >
               Named dashboards
@@ -124,7 +124,7 @@ export function ExactSimulationAnalyticsPanel({
                         <div className="mt-1 text-xs leading-5 text-muted">{preset.note}</div>
                       </div>
                       {presetActive ? (
-                        <span className="rounded-full bg-accent px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-white">
+                        <span className="rounded-full bg-accent px-2 py-1 text-2xs font-medium uppercase tracking-[0.1em] text-white">
                           Live
                         </span>
                       ) : null}
@@ -158,7 +158,7 @@ export function ExactSimulationAnalyticsPanel({
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <div
-                  className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint"
+                  className="text-2xs uppercase tracking-[0.1em] text-text-faint"
                   title="Cards and comparisons stay bound to the selected slot."
                 >
                   Slot posture
@@ -206,7 +206,7 @@ export function ExactSimulationAnalyticsPanel({
 
           <div className="rounded-xl border border-rule bg-white px-4 py-3 xl:col-span-2">
             <div
-              className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint"
+              className="text-2xs uppercase tracking-[0.1em] text-text-faint"
               title="Compare against a checked-in paper dataset in the same desk."
             >
               Published foil
@@ -239,14 +239,14 @@ export function ExactSimulationAnalyticsPanel({
 
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <div className="rounded-xl border border-rule bg-white px-3 py-2.5">
-                <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Recommendation</div>
+                <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Recommendation</div>
                 <div className="mt-1 text-sm font-medium text-text-primary">
                   {recommendedComparison ? formatPublishedDatasetLabel(recommendedComparison.dataset) : 'Awaiting catalog'}
                 </div>
                 <div className="mt-1 text-xs leading-5 text-muted">{comparisonRecommendationDetail}</div>
               </div>
               <div className="rounded-xl border border-rule bg-white px-3 py-2.5">
-                <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Alignment</div>
+                <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Alignment</div>
                 <div className="mt-1 text-sm font-medium text-text-primary">
                   {comparisonAnalyticsPayload
                     ? `Slot ${comparisonSlot + 1} / ${comparisonTotalSlots.toLocaleString()}`

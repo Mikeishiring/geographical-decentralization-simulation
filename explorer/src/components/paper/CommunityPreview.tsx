@@ -35,6 +35,19 @@ export function CommunityPreview({
     .filter(exploration => exploration.publication.published)
     .slice(0, 3)
 
+  if (communityPreviewQuery.isLoading) {
+    return (
+      <div className="mb-6 rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
+        <div className="lab-section-title">Public responses</div>
+        <div className="mt-4 space-y-3">
+          <div className="h-4 w-1/3 animate-pulse rounded bg-surface-active" />
+          <div className="h-16 animate-pulse rounded-xl bg-surface-active" />
+          <div className="h-16 animate-pulse rounded-xl bg-surface-active" />
+        </div>
+      </div>
+    )
+  }
+
   if (notes.length === 0) return null
 
   return (
@@ -42,7 +55,7 @@ export function CommunityPreview({
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <div className="lab-section-title">Public responses</div>
-          <div className="mt-1.5 text-[0.8125rem] font-medium text-text-primary">How other readers turned evidence into public notes</div>
+          <div className="mt-1.5 text-13 font-medium text-text-primary">How other readers turned evidence into public notes</div>
         </div>
         {onTabChange && (
           <button
@@ -61,16 +74,16 @@ export function CommunityPreview({
             onClick={() => onOpenNote(exploration.id)}
             className="rounded-lg border border-rule bg-surface-active px-4 py-4 text-left card-hover"
           >
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
               {communityPreviewLabel(exploration)}
             </div>
-            <div className="mt-2 text-[0.8125rem] font-medium text-text-primary">
+            <div className="mt-2 text-13 font-medium text-text-primary">
               {exploration.publication.title}
             </div>
             <div className="mt-1 text-xs leading-5 text-muted line-clamp-4">
               {exploration.publication.takeaway}
             </div>
-            <div className="mt-3 flex items-center justify-between gap-3 text-[0.6875rem] text-text-faint">
+            <div className="mt-3 flex items-center justify-between gap-3 text-11 text-text-faint">
               <span>{exploration.surface === 'simulation' ? 'Exact-run backed' : 'Paper-reading backed'}</span>
               <span>{exploration.publication.author || 'Anonymous'}</span>
             </div>

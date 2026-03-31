@@ -382,7 +382,7 @@ function ExactChartDeck({
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ ...SPRING_CRISP, delay: 0.06 + mi * 0.03 }}
                     >
-                      <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
+                      <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
                       <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
                         {metric.value == null ? '—' : formatExactChartValue(metric.value)}
                       </div>
@@ -427,14 +427,14 @@ function ExactChartDeck({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
                           {isPinned ? 'Pinned chart' : isFocused ? 'Previewing now' : 'Hover to preview'}
                         </div>
                         <div className="mt-2 text-sm font-medium text-text-primary">{visual?.title ?? entry.label}</div>
                         <div className="mt-1 text-xs leading-5 text-muted line-clamp-2">{entry.description}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Latest</div>
+                        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Latest</div>
                         <div className="mt-2 text-sm font-semibold tabular-nums text-text-primary">
                           {formatExactChartValue(latest)}
                         </div>
@@ -460,7 +460,7 @@ function ExactChartDeck({
                       </svg>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-1 gap-2 text-[0.6875rem] sm:grid-cols-3">
+                    <div className="mt-3 grid grid-cols-1 gap-2 text-11 sm:grid-cols-3">
                       {[
                         { label: 'Start', value: start },
                         { label: 'Peak', value: peak },
@@ -630,7 +630,7 @@ export function SimResultsPanel({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ ...SPRING_CRISP, delay: 0.1 + i * CHART.stagger }}
             >
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
               <div className="mt-1.5 text-lg font-semibold text-text-primary tabular-nums">
                 {card.value}
               </div>
@@ -657,7 +657,7 @@ export function SimResultsPanel({
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={cn(
-                'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.6875rem] font-medium',
+                'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-11 font-medium',
                 paperComparability.tone === 'canonical' && 'border-success/30 bg-success/8 text-text-primary',
                 paperComparability.tone === 'editorial' && 'border-warning/30 bg-warning/8 text-text-primary',
                 paperComparability.tone === 'experimental' && 'border-rule bg-white text-text-primary',
@@ -675,14 +675,14 @@ export function SimResultsPanel({
             </span>
             <button
               onClick={() => onCopy(JSON.stringify(manifest.config, null, 2), 'config')}
-              className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary transition-colors hover:border-border-hover"
+              className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1 text-11 font-medium text-text-primary transition-colors hover:border-border-hover"
             >
               {copyState === 'config' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
               {copyState === 'config' ? 'Copied' : 'Config'}
             </button>
             <button
               onClick={() => onCopy(buildRunSummary(manifest), 'run')}
-              className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary transition-colors hover:border-border-hover"
+              className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1 text-11 font-medium text-text-primary transition-colors hover:border-border-hover"
             >
               {copyState === 'run' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
               {copyState === 'run' ? 'Copied' : 'Summary'}
@@ -691,7 +691,7 @@ export function SimResultsPanel({
               onClick={onExportData}
               disabled={exportState === 'exporting'}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[0.6875rem] font-medium transition-colors',
+                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-11 font-medium transition-colors',
                 exportState === 'exporting'
                   ? 'cursor-wait border-rule bg-surface-active text-muted'
                   : 'border-rule bg-white text-text-primary hover:border-border-hover',
@@ -720,7 +720,7 @@ export function SimResultsPanel({
         )}
 
         <details className="mt-4 rounded-xl border border-rule bg-surface-active/50 px-4 py-3">
-          <summary className="cursor-pointer list-none text-[0.6875rem] text-muted hover:text-text-primary transition-colors">
+          <summary className="cursor-pointer list-none text-11 text-muted hover:text-text-primary transition-colors">
             Provenance details
           </summary>
           <div className="stagger-reveal grid gap-2 mt-3 text-xs text-muted sm:grid-cols-2 xl:grid-cols-4">
@@ -834,12 +834,12 @@ export function SimResultsPanel({
                   <div className="text-sm font-medium text-text-primary">{artifact.label}</div>
                   <div className="text-xs text-muted mt-1 line-clamp-2">{artifact.description}</div>
                 </div>
-                <div className="text-[0.6875rem] text-muted whitespace-nowrap">
+                <div className="text-11 text-muted whitespace-nowrap">
                   {artifact.kind}
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 mt-3 text-[0.6875rem] text-muted">
+              <div className="flex flex-wrap items-center gap-2 mt-3 text-11 text-muted">
                 <span className="rounded-full border border-rule bg-white/88 px-2 py-0.5">
                   {artifact.lazy ? 'Lazy fetch' : 'Manifest-ready'}
                 </span>
@@ -856,7 +856,7 @@ export function SimResultsPanel({
               <summary className="cursor-pointer list-none">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Reference artifacts</div>
+                    <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Reference artifacts</div>
                     <div className="mt-1 text-sm text-text-primary">
                       Raw exports preserved for audit and offline analysis.
                     </div>
@@ -876,13 +876,13 @@ export function SimResultsPanel({
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="text-sm font-medium text-text-primary">{artifact.label}</div>
-                        <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5 text-[0.6875rem] text-muted">
+                        <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5 text-11 text-muted">
                           {artifact.kind}
                         </span>
                       </div>
                       <div className="mt-1 text-xs text-muted">{artifact.description}</div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-[0.6875rem] text-muted sm:justify-end">
+                    <div className="flex flex-wrap items-center gap-2 text-11 text-muted sm:justify-end">
                       <span>{formatBytes(artifact.bytes)}</span>
                       {artifact.brotliBytes != null && <span>br {formatBytes(artifact.brotliBytes)}</span>}
                       {artifact.gzipBytes != null && <span>gzip {formatBytes(artifact.gzipBytes)}</span>}
