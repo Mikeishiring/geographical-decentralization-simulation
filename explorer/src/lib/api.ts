@@ -324,3 +324,34 @@ export async function publishExploration(
   const raw = (await res.json()) as RawExploration
   return parseExploration(raw)
 }
+
+// ── Reply stubs (community features — server not yet deployed) ──────────────
+
+export interface Reply {
+  readonly id: string
+  readonly explorationId: string
+  readonly author: string
+  readonly body: string
+  readonly createdAt: string
+  readonly votes: number
+}
+
+export async function addReply(explorationId: string, body: string): Promise<Reply> {
+  const res = await fetch(`${API_BASE}/explorations/${encodeURIComponent(explorationId)}/replies`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
+  })
+  if (!res.ok) throw new Error(`Failed to add reply: ${res.statusText}`)
+  return (await res.json()) as Reply
+}
+
+export async function voteReply(explorationId: string, replyId: string, delta: 1 | -1): Promise<Reply> {
+  const res = await fetch(`${API_BASE}/explorations/${encodeURIComponent(explorationId)}/replies/${encodeURIComponent(replyId)}/vote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ delta }),
+  })
+  if (!res.ok) throw new Error(`Failed to vote on reply: ${res.statusText}`)
+  return (await res.json()) as Reply
+}
