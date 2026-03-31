@@ -565,7 +565,7 @@ export function FindingsPage({
         <div className="stagger-reveal mb-6 rounded-xl border border-rule bg-white divide-y divide-rule">
           {([
             { tab: 'paper' as TabId, eyebrow: 'Read the canonical source', title: 'Open the paper guide', detail: 'Go section by section through the paper when you want the exact claim, method, or caveat.' },
-            { tab: 'agent' as TabId, eyebrow: 'Inspect evidence', title: 'Open Agent workspace', detail: 'Start with the published replay, then open the exact lab only if you need fresh evidence.' },
+            { tab: 'results' as TabId, eyebrow: 'Inspect evidence', title: 'Open Results', detail: 'Start with the published replay, then open the exact lab only if you need fresh evidence.' },
             { tab: 'community' as TabId, eyebrow: 'Read public responses', title: 'Browse community notes', detail: 'Human-authored notes layered on top of paper readings and exact simulation runs.' },
           ] as const).map(item => (
             <button
