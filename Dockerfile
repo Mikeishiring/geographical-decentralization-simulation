@@ -20,7 +20,18 @@ WORKDIR /app
 COPY . .
 
 # Resolve Git LFS pointers to actual file content (dashboard/simulations/*.json)
-RUN if [ -d .git ]; then git lfs pull && rm -rf .git; fi
+# Railway sends .git in the build context so git-lfs can pull the real objects.
+# Fail loudly if LFS resolution doesn't work — serving pointer stubs breaks the app.
+RUN if [ -d .git ]; then \
+      git lfs pull && rm -rf .git; \
+    else \
+      echo "WARNING: .git missing — checking if LFS files are already resolved..."; \
+    fi \
+ && if head -c 40 dashboard/simulations/baseline/SSP/cost_0.002/data.json 2>/dev/null | grep -q 'version https://git-lfs'; then \
+      echo "ERROR: dashboard/simulations still contains Git LFS pointers." >&2; \
+      echo "The build context must include .git so that 'git lfs pull' can resolve them." >&2; \
+      exit 1; \
+    fi
 
 WORKDIR /app/explorer
 RUN npm run build

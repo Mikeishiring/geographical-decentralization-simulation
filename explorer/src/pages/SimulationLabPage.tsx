@@ -143,58 +143,60 @@ export function SimulationLabPage({
         onTabChange={onTabChange}
       />
 
-      {/* ── Section 2: Lab controls — visible, not collapsed ── */}
+      {/* ── Section 2: Lab controls — collapsed by default, opens when user wants to run ── */}
       <motion.section
         className="mb-5 overflow-hidden rounded-[24px] border border-rule bg-gradient-to-b from-surface-active/60 to-white/95"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...SPRING, delay: 0.06 }}
       >
-        <div className="flex flex-col gap-3 border-b border-rule/70 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="lab-section-title">Run your own experiment</div>
-            <div className="mt-1 text-xs text-muted">Configure and launch a fresh simulation with the exact engine.</div>
+        <details>
+          <summary className="flex cursor-pointer list-none flex-col gap-3 px-5 py-4 lg:flex-row lg:items-center lg:justify-between [&::-webkit-details-marker]:hidden">
+            <div>
+              <div className="lab-section-title">Run your own experiment</div>
+              <div className="mt-1 text-xs text-muted">Configure and launch a fresh simulation with the exact engine.</div>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs text-muted">
+              <span className="lab-chip bg-white/90">{config.paradigm}</span>
+              <span className="lab-chip bg-white/90">{config.validators.toLocaleString()} val</span>
+              <span className="lab-chip bg-white/90">{config.slots.toLocaleString()} slots</span>
+            </div>
+          </summary>
+
+          <div className="border-t border-rule/70 px-5 py-4">
+            <ExactLabIntro
+              config={config}
+              comparabilityTitle={paperComparability.title}
+              onApplyPreset={applyPreset}
+            />
+
+            <SimConfigPanel
+              config={config}
+              onConfigChange={updateConfig}
+              onSubmit={workflow.onSubmit}
+              onReset={resetConfig}
+              isSubmitting={workflow.submitMutation.isPending}
+              canCancel={workflow.canCancel}
+              onCancel={workflow.onCancel}
+              paperScenarioLabels={paperScenarioLabels(config)}
+              paperComparability={paperComparability}
+            />
+
+            <SimCopilotPanel
+              copilotQuestion={workflow.copilotQuestion}
+              onQuestionChange={workflow.setCopilotQuestion}
+              onAsk={question => workflow.copilotMutation.mutate(question)}
+              onApplyConfig={setConfig}
+              copilotResponse={workflow.copilotResponse}
+              copilotAvailable={workflow.copilotAvailable}
+              isHealthLoading={workflow.apiHealthQuery.isLoading}
+              isMutating={workflow.copilotMutation.isPending}
+              mutationError={(workflow.copilotMutation.error as Error | null) ?? null}
+              hasManifest={Boolean(manifest)}
+              promptSuggestions={workflow.copilotPromptSuggestions}
+            />
           </div>
-          <div className="flex flex-wrap gap-2 text-xs text-muted">
-            <span className="lab-chip bg-white/90">{config.paradigm}</span>
-            <span className="lab-chip bg-white/90">{config.validators.toLocaleString()} val</span>
-            <span className="lab-chip bg-white/90">{config.slots.toLocaleString()} slots</span>
-          </div>
-        </div>
-
-        <div className="px-5 py-4">
-          <ExactLabIntro
-            config={config}
-            comparabilityTitle={paperComparability.title}
-            onApplyPreset={applyPreset}
-          />
-
-          <SimConfigPanel
-            config={config}
-            onConfigChange={updateConfig}
-            onSubmit={workflow.onSubmit}
-            onReset={resetConfig}
-            isSubmitting={workflow.submitMutation.isPending}
-            canCancel={workflow.canCancel}
-            onCancel={workflow.onCancel}
-            paperScenarioLabels={paperScenarioLabels(config)}
-            paperComparability={paperComparability}
-          />
-
-          <SimCopilotPanel
-            copilotQuestion={workflow.copilotQuestion}
-            onQuestionChange={workflow.setCopilotQuestion}
-            onAsk={question => workflow.copilotMutation.mutate(question)}
-            onApplyConfig={setConfig}
-            copilotResponse={workflow.copilotResponse}
-            copilotAvailable={workflow.copilotAvailable}
-            isHealthLoading={workflow.apiHealthQuery.isLoading}
-            isMutating={workflow.copilotMutation.isPending}
-            mutationError={(workflow.copilotMutation.error as Error | null) ?? null}
-            hasManifest={Boolean(manifest)}
-            promptSuggestions={workflow.copilotPromptSuggestions}
-          />
-        </div>
+        </details>
       </motion.section>
 
       {/* ── Section 3: Exact run status + results ── */}
