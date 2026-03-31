@@ -158,6 +158,13 @@ export async function healthCheck(): Promise<boolean> {
 
 // --- Exploration history ---
 
+export interface TextAnchor {
+  readonly sectionId?: string
+  readonly blockId?: string
+  readonly excerpt: string
+  readonly viewMode?: string
+}
+
 export interface Exploration {
   readonly id: string
   readonly query: string
@@ -173,6 +180,7 @@ export interface Exploration {
   readonly experimentTags: readonly string[]
   readonly verified: boolean
   readonly surface: ExplorationSurface
+  readonly anchor?: TextAnchor
   readonly publication: {
     readonly published: boolean
     readonly title: string
@@ -279,6 +287,7 @@ export async function createExploration(input: {
   model?: string
   cached?: boolean
   surface?: ExplorationSurface
+  anchor?: TextAnchor
 }): Promise<Exploration> {
   const res = await fetch(`${API_BASE}/explorations`, {
     method: 'POST',

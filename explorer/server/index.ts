@@ -538,6 +538,12 @@ interface CreateExplorationRequest {
   model?: string
   cached?: boolean
   surface?: ExplorationSurface
+  anchor?: {
+    sectionId?: string
+    blockId?: string
+    excerpt: string
+    viewMode?: string
+  }
 }
 
 interface PublishExplorationRequest {
@@ -3611,6 +3617,7 @@ app.post('/api/explorations', (req, res) => {
     model,
     cached,
     surface,
+    anchor,
   } = req.body as CreateExplorationRequest
 
   const trimmedQuery = query?.trim()
@@ -3631,6 +3638,16 @@ app.post('/api/explorations', (req, res) => {
     ? followUps.filter((value): value is string => typeof value === 'string').slice(0, 4)
     : []
 
+  // Validate anchor if provided
+  const validatedAnchor = anchor && typeof anchor.excerpt === 'string' && anchor.excerpt.trim().length > 0
+    ? {
+        sectionId: typeof anchor.sectionId === 'string' ? anchor.sectionId : undefined,
+        blockId: typeof anchor.blockId === 'string' ? anchor.blockId : undefined,
+        excerpt: limitText(anchor.excerpt.trim(), 500),
+        viewMode: typeof anchor.viewMode === 'string' ? anchor.viewMode : undefined,
+      }
+    : undefined
+
   const exploration = explorationStore.create({
     query: limitText(trimmedQuery, MAX_EXPLORE_QUERY_LENGTH),
     summary: limitText(trimmedSummary, 180),
@@ -3639,6 +3656,7 @@ app.post('/api/explorations', (req, res) => {
     model: limitText(model, MAX_EXPLORATION_MODEL_LENGTH),
     cached: Boolean(cached),
     surface: nextSurface,
+    anchor: validatedAnchor,
   })
 
   res.status(201).json(exploration)
