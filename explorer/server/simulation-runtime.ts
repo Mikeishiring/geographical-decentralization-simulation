@@ -603,6 +603,32 @@ export class SimulationRuntime {
     return { overviewBundle: asset, body, contentEncoding }
   }
 
+  /** Return summaries of all completed in-memory jobs, optionally filtered. */
+  listCompletedResults(filters?: {
+    readonly paradigm?: 'SSP' | 'MSP'
+    readonly distribution?: string
+    readonly sourcePlacement?: string
+  }): ReadonlyArray<{
+    configHash: string
+    config: SimulationRequest
+    summary: SimulationSummary
+  }> {
+    const results: Array<{ configHash: string; config: SimulationRequest; summary: SimulationSummary }> = []
+    for (const job of this.jobs.values()) {
+      if (job.status !== 'completed' || !job.manifest) continue
+      const { config } = job.manifest
+      if (filters?.paradigm && config.paradigm !== filters.paradigm) continue
+      if (filters?.distribution && config.distribution !== filters.distribution) continue
+      if (filters?.sourcePlacement && config.sourcePlacement !== filters.sourcePlacement) continue
+      results.push({
+        configHash: job.manifest.configHash,
+        config: job.manifest.config,
+        summary: job.manifest.summary,
+      })
+    }
+    return results
+  }
+
   health() {
     this.pruneJobs()
     const readyWorkers = this.workers.filter(worker => worker.process !== null).length
@@ -1022,6 +1048,57 @@ export class SimulationRuntime {
     } catch {
       return 0
     }
+  }
+
+  /**
+   * Scan the simulation cache and return all valid manifests.
+   * Optionally filter by paradigm, distribution, or sourcePlacement.
+   */
+  async listCachedResults(filters?: {
+    readonly paradigm?: 'SSP' | 'MSP'
+    readonly distribution?: string
+    readonly sourcePlacement?: string
+  }): Promise<ReadonlyArray<{
+    configHash: string
+    config: SimulationRequest
+    summary: SimulationSummary
+    topRegions: ReadonlyArray<{ name: string; count: number }>
+  }>> {
+    let entries: string[]
+    try {
+      entries = readdirSync(SIMULATION_CACHE_ROOT, { withFileTypes: true })
+        .filter(entry => entry.isDirectory())
+        .map(entry => entry.name)
+    } catch {
+      return []
+    }
+
+    const results: Array<{
+      configHash: string
+      config: SimulationRequest
+      summary: SimulationSummary
+      topRegions: Array<{ name: string; count: number }>
+    }> = []
+
+    for (const hash of entries) {
+      const manifestPath = path.join(SIMULATION_CACHE_ROOT, hash, 'explorer_manifest.json')
+      try {
+        const raw = JSON.parse(await fs.readFile(manifestPath, 'utf8'))
+        const config = raw.config as SimulationRequest
+        const summary = raw.summary as SimulationSummary
+        const topRegions = (raw.summary?.topRegions ?? []) as Array<{ name: string; count: number }>
+
+        if (filters?.paradigm && config.paradigm !== filters.paradigm) continue
+        if (filters?.distribution && config.distribution !== filters.distribution) continue
+        if (filters?.sourcePlacement && config.sourcePlacement !== filters.sourcePlacement) continue
+
+        results.push({ configHash: hash, config, summary, topRegions })
+      } catch {
+        // Skip entries with missing or invalid manifests
+      }
+    }
+
+    return results
   }
 
   private async readManifestAsset<T extends { name: string }>(

@@ -2723,6 +2723,23 @@ function executeToolCall(
     return buildSimulationConfig(input)
   }
 
+  if (name === 'query_cached_results') {
+    const paradigm = typeof input.paradigm === 'string' ? input.paradigm as 'SSP' | 'MSP' : undefined
+    const distribution = typeof input.distribution === 'string' ? input.distribution : undefined
+    const sourcePlacement = typeof input.sourcePlacement === 'string' ? input.sourcePlacement : undefined
+
+    const results = simulationRuntime.listCompletedResults({ paradigm, distribution, sourcePlacement })
+
+    if (results.length === 0) {
+      return {
+        message: 'No cached simulation results match those filters. The user can run a simulation from the Results tab, or try different filter parameters.',
+        availableFilters: { paradigm: ['SSP', 'MSP'], distribution: ['homogeneous', 'homogeneous-gcp', 'heterogeneous', 'random'], sourcePlacement: ['homogeneous', 'latency-aligned', 'latency-misaligned'] },
+      }
+    }
+
+    return { results }
+  }
+
   if (name === 'verify_exploration') {
     const id = typeof input.id === 'string' ? input.id : ''
     const verified = typeof input.verified === 'boolean' ? input.verified : true
@@ -3409,6 +3426,135 @@ app.post('/api/simulation-copilot', simulationCopilotRateLimit, async (req, res)
   }
 })
 
+// ── llm.txt — agent-readable site map for AI navigation ──
+app.get('/llm.txt', (_req, res) => {
+  res.type('text/plain').send(`# Geography Drives Blockchain Centralization
+# Interactive research explorer for arXiv:2509.21475
+# Yang, Oz, Wu, Zhang (2025)
+
+## What this site is
+An editorial reading layer and simulation lab built over a peer-reviewed paper
+studying how geography shapes validator concentration in Ethereum under two
+block-building paradigms: SSP (external, relay-based) and MSP (local, direct).
+
+## Key findings
+- Both SSP and MSP centralize validators toward low-latency cloud regions.
+- The attestation threshold (gamma) has OPPOSITE effects: higher gamma
+  increases SSP centralization but can decrease MSP centralization.
+- Starting validator distribution dominates paradigm choice for first-order outcomes.
+- Shorter slot times (EIP-7782) amplify reward inequality without changing geography.
+- Transient decentralization under joint heterogeneity is fragile, not a mitigation.
+
+## Paper sections (navigable via URL hash)
+- #system-model          §3     Two-layer geographic game
+- #simulation-design     §4.1   40 regions, 1000 validators, 10000 slots
+- #baseline-results      §4.2   Convergence under homogeneous start
+- #se1-source-placement  §4.4   Infrastructure alignment effects
+- #se2-distribution      §4.5   Realistic validator distribution
+- #se3-joint             §4.5+  Transient decentralization (fragile)
+- #se4a-attestation      App E.3  Gamma paradox (signature result)
+- #se4b-slots            App E.4  Shorter slot times (EIP-7782)
+- #discussion            §5     Mitigation directions (diagnostic, not prescriptive)
+- #limitations           §5     Model assumptions and confidence boundary
+
+## Reading modes (interpretation spectrum)
+1. Editorial     — LLM-generated narrative with source provenance pills
+2. Focus         — Same content, distraction-free centered layout
+3. Argument Map  — Expandable structured claims by section
+4. Original PDF  — Published arXiv PDF with annotations
+
+## API endpoints (base: /api)
+- POST /api/explore              — Ask questions, returns structured Block[] visualizations
+- GET  /api/explorations         — List community explorations (search, sort, filter)
+- POST /api/simulations          — Run agent-based simulation with custom config
+- GET  /api/simulations/:id      — Check simulation job status
+- GET  /api/simulations/:id/manifest — Get simulation output manifest
+- GET  /api/health               — Server health check
+
+## Simulation parameters
+| Parameter            | Type    | Default | Range/Options                              |
+|---------------------|---------|---------|--------------------------------------------|
+| paradigm            | string  | SSP     | SSP, MSP                                   |
+| validators          | number  | 1000    | 10-10000                                   |
+| slots               | number  | 1000    | 100-50000                                  |
+| distribution        | string  | homogeneous | homogeneous, heterogeneous             |
+| sourcePlacement     | string  | homogeneous | homogeneous, latency-aligned, latency-misaligned |
+| migrationCost       | number  | 0.002   | 0-1                                        |
+| attestationThreshold| number  | 0.667   | 0.1-1.0                                    |
+| slotTime            | number  | 12      | 1-60 (seconds)                             |
+| seed                | number  | random  | any integer                                |
+
+## Source material
+- Paper: https://arxiv.org/abs/2509.21475
+- Code:  https://github.com/syang-ng/geographical-decentralization-simulation
+- Data:  GCP inter-region latency measurements (40 regions)
+
+## Content provenance
+Editorial narrative text is LLM-generated interpretation of the paper.
+Each editorial element is tagged with a source reference:
+- [section: §X pN] = paraphrases paper section X, PDF page N
+- [figure: Fig. N pN] = interprets a specific figure
+- [table: Table N pN] = interprets a specific table
+- [editorial] = LLM inference, not a direct paraphrase
+The Original PDF mode shows the unmodified published paper.
+
+## Extended content
+- /llm-full.txt — Complete section narratives with provenance tags
+                   (use this for deep content understanding)
+`)
+})
+
+// ── llm-full.txt — deep content for agents that want section narratives ──
+app.get('/llm-full.txt', async (_req, res) => {
+  // Dynamically import the narrative data so this stays in sync
+  const { PAPER_NARRATIVE } = await import('../src/data/paper-narrative.ts')
+  const { PAPER_SECTIONS } = await import('../src/data/paper-sections.ts')
+
+  const sections = PAPER_SECTIONS.map(section => {
+    const narrative = PAPER_NARRATIVE[section.id]
+    const refs = narrative?.sourceRefs
+    const sourceInfo = (ref: { label: string; kind: string; page?: number } | undefined) =>
+      ref ? `[${ref.kind}: ${ref.label}${ref.page ? ` p.${ref.page}` : ''}]` : ''
+
+    return [
+      `### ${section.number} ${section.title}`,
+      `ID: #${section.id}`,
+      `Summary: ${section.description}`,
+      '',
+      narrative ? [
+        `Lede ${sourceInfo(refs?.lede)}:`,
+        narrative.lede,
+        '',
+        ...narrative.paragraphs.flatMap((p, i) => [
+          `Paragraph ${i + 1} ${sourceInfo(refs?.paragraphs?.[i])}:`,
+          p,
+          '',
+        ]),
+        `Pull quote ${sourceInfo(refs?.pullQuote)}:`,
+        `"${narrative.pullQuote}"`,
+        '',
+        `Evidence blocks: ${section.blocks.map(b => b.type).join(', ')}`,
+      ].join('\n') : 'No editorial narrative for this section.',
+    ].join('\n')
+  }).join('\n\n---\n\n')
+
+  res.type('text/plain').send([
+    '# Geography Drives Blockchain Centralization — Full Content',
+    '# For the site map and API reference, see /llm.txt',
+    '# This file contains the complete editorial narrative for each section.',
+    '',
+    '## Content provenance key',
+    '- [section: §X pN] = paraphrases paper section X, PDF page N',
+    '- [figure: Fig. N pN] = interprets figure N from the paper',
+    '- [table: Table N pN] = interprets table N from the paper',
+    '- [editorial] = LLM-generated interpretation, not a direct paraphrase',
+    '',
+    '## Section narratives',
+    '',
+    sections,
+  ].join('\n'))
+})
+
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
@@ -3515,6 +3661,15 @@ app.get('/api/simulations/:jobId/events', (req, res) => {
     clearInterval(heartbeat)
     unsubscribe()
   })
+})
+
+app.get('/api/simulations/cached', async (req, res) => {
+  const paradigm = typeof req.query.paradigm === 'string' ? req.query.paradigm as 'SSP' | 'MSP' : undefined
+  const distribution = typeof req.query.distribution === 'string' ? req.query.distribution : undefined
+  const sourcePlacement = typeof req.query.sourcePlacement === 'string' ? req.query.sourcePlacement : undefined
+
+  const results = await simulationRuntime.listCachedResults({ paradigm, distribution, sourcePlacement })
+  res.json({ results })
 })
 
 app.get('/api/simulations/:jobId/manifest', (req, res) => {

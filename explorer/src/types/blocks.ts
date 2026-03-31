@@ -1,5 +1,14 @@
 import { z } from 'zod/v4'
 
+// --- Shared citation schema ---
+
+export const citeSchema = z.object({
+  paperSection: z.string().optional(),
+  figure: z.string().optional(),
+  experiment: z.enum(['baseline', 'SE1', 'SE2', 'SE3', 'SE4a', 'SE4b']).optional(),
+  table: z.string().optional(),
+}).optional()
+
 // --- Individual block schemas ---
 
 export const statBlockSchema = z.object({
@@ -9,6 +18,7 @@ export const statBlockSchema = z.object({
   sublabel: z.string().optional(),
   delta: z.string().optional(),
   sentiment: z.enum(['positive', 'negative', 'neutral']).optional(),
+  cite: citeSchema,
 })
 
 export const insightBlockSchema = z.object({
@@ -16,6 +26,7 @@ export const insightBlockSchema = z.object({
   title: z.string().optional(),
   text: z.string(),
   emphasis: z.enum(['normal', 'key-finding', 'surprising']).optional(),
+  cite: citeSchema,
 })
 
 export const chartBlockSchema = z.object({
@@ -28,6 +39,7 @@ export const chartBlockSchema = z.object({
   })),
   unit: z.string().optional(),
   chartType: z.enum(['bar', 'line']).optional(),
+  cite: citeSchema,
 })
 
 export const comparisonBlockSchema = z.object({
@@ -42,6 +54,7 @@ export const comparisonBlockSchema = z.object({
     items: z.array(z.object({ key: z.string(), value: z.string() })),
   }),
   verdict: z.string().optional(),
+  cite: citeSchema,
 })
 
 export const tableBlockSchema = z.object({
@@ -50,6 +63,7 @@ export const tableBlockSchema = z.object({
   headers: z.array(z.string()),
   rows: z.array(z.array(z.string())),
   highlight: z.array(z.number()).optional(),
+  cite: citeSchema,
 })
 
 export const caveatBlockSchema = z.object({
@@ -78,6 +92,7 @@ export const mapBlockSchema = z.object({
   })),
   colorScale: z.enum(['density', 'change', 'binary']).optional(),
   unit: z.string().optional(),
+  cite: citeSchema,
 })
 
 export const timeSeriesBlockSchema = z.object({
@@ -94,6 +109,7 @@ export const timeSeriesBlockSchema = z.object({
     x: z.number(),
     label: z.string(),
   })).optional(),
+  cite: citeSchema,
 })
 
 export const scatterBlockSchema = z.object({
@@ -108,6 +124,7 @@ export const scatterBlockSchema = z.object({
   xLabel: z.string().optional(),
   yLabel: z.string().optional(),
   unit: z.string().optional(),
+  cite: citeSchema,
 })
 
 export const histogramBlockSchema = z.object({
@@ -119,6 +136,7 @@ export const histogramBlockSchema = z.object({
     category: z.string().optional(),
   })),
   unit: z.string().optional(),
+  cite: citeSchema,
 })
 
 export const heatmapBlockSchema = z.object({
@@ -129,6 +147,7 @@ export const heatmapBlockSchema = z.object({
   values: z.array(z.array(z.number())),
   colorScale: z.enum(['sequential', 'diverging']).optional(),
   unit: z.string().optional(),
+  cite: citeSchema,
 })
 
 export const stackedBarBlockSchema = z.object({
@@ -141,6 +160,7 @@ export const stackedBarBlockSchema = z.object({
     color: z.string().optional(),
   })),
   unit: z.string().optional(),
+  cite: citeSchema,
 })
 
 export const equationBlockSchema = z.object({
@@ -148,7 +168,12 @@ export const equationBlockSchema = z.object({
   latex: z.string(),
   label: z.string().optional(),
   description: z.string().optional(),
+  cite: citeSchema,
 })
+
+// --- Cite type export ---
+
+export type Cite = z.infer<typeof citeSchema>
 
 // --- Discriminated union ---
 

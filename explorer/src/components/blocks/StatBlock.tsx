@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { CHART, SPRING_CRISP } from '../../lib/theme'
 import type { StatBlock as StatBlockType } from '../../types/blocks'
+import { CiteBadge } from './CiteBadge'
 
 interface StatBlockProps {
   block: StatBlockType
@@ -98,6 +99,11 @@ export function StatBlock({ block }: StatBlockProps) {
 
           {block.delta}
         </motion.div>
+      )}
+      {block.cite && (
+        <div className="mt-2.5">
+          <CiteBadge cite={block.cite} />
+        </div>
       )}
     </motion.div>
   )

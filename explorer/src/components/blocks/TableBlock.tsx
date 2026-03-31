@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING_CRISP } from '../../lib/theme'
 import type { TableBlock as TableBlockType } from '../../types/blocks'
+import { CiteBadge } from './CiteBadge'
 
 interface TableBlockProps {
   block: TableBlockType
@@ -72,6 +73,11 @@ export function TableBlock({ block }: TableBlockProps) {
           </tbody>
         </table>
       </div>
+      {block.cite && (
+        <div className="mt-3 pt-2 border-t border-rule/50">
+          <CiteBadge cite={block.cite} />
+        </div>
+      )}
     </motion.div>
   )
 }

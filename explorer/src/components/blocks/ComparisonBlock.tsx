@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING_CRISP } from '../../lib/theme'
 import type { ComparisonBlock as ComparisonBlockType } from '../../types/blocks'
+import { CiteBadge } from './CiteBadge'
 
 interface ComparisonBlockProps {
   block: ComparisonBlockType
@@ -91,6 +92,11 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
         <p className="text-sm text-muted italic mt-5 pt-4 border-t border-rule font-serif">
           {block.verdict}
         </p>
+      )}
+      {block.cite && (
+        <div className={cn('mt-3 pt-2 border-t border-rule/50', !block.verdict && 'mt-5')}>
+          <CiteBadge cite={block.cite} />
+        </div>
       )}
     </motion.div>
   )
