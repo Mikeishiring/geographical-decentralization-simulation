@@ -165,10 +165,11 @@ export function PaperLandingPage({
                     <button
                       key={`${prompt}-${i}`}
                       onClick={() => onTabChange('agent')}
-                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                      className="follow-up-chip"
                       title={`Ask Agent: ${prompt}`}
                     >
-                      <span className="group-hover/followup:underline underline-offset-2">{prompt}</span>
+                      {prompt}
+                      <span aria-hidden="true" className="follow-up-chip-arrow">→</span>
                     </button>
                   ))}
                 </div>

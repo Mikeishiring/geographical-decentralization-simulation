@@ -8,7 +8,7 @@ interface StatBlockProps {
 export function StatBlock({ block }: StatBlockProps) {
   return (
     <div
-      className="bg-white border border-rule rounded-xl p-5 topo-bg relative overflow-hidden group geo-accent-bar"
+      className="bg-white border border-rule rounded-xl p-5 topo-bg relative overflow-hidden group geo-accent-bar card-hover"
     >
       {/* Faint coordinate corner — reveals on hover */}
       <span aria-hidden="true" className="coord-label absolute top-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
