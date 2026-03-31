@@ -299,11 +299,25 @@ function aggregateSourceFootprint(data: PublishedDatasetPayload | null): readonl
     .filter(entry => entry.count > 0)
 }
 
+const NE_A = [0.8707, -0.131979, -0.013791, 0.003971, -0.001529] as const
+const NE_B = [1.007226, 0.015085, -0.044475, 0.028874, -0.005916] as const
+
 function latLonToMercator(lat: number, lon: number, width: number, height: number) {
-  const x = ((lon + 180) / 360) * width
-  const latRad = (lat * Math.PI) / 180
-  const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2))
-  const y = height / 2 - (mercN / Math.PI) * (height / 2)
+  const phi = (lat * Math.PI) / 180
+  const lam = (lon * Math.PI) / 180
+  const phi2 = phi * phi
+
+  const xFactor = NE_A[0] + phi2 * (NE_A[1] + phi2 * (NE_A[2] + phi2 * (NE_A[3] + phi2 * NE_A[4])))
+  const yFactor = NE_B[0] + phi2 * (NE_B[1] + phi2 * (NE_B[2] + phi2 * (NE_B[3] + phi2 * NE_B[4])))
+
+  const rawX = lam * xFactor
+  const rawY = phi * yFactor
+
+  const xRange = Math.PI * NE_A[0]
+  const yRange = (Math.PI / 2) * NE_B[0]
+  const x = (rawX / xRange + 1) / 2 * width
+  const y = (1 - rawY / yRange) / 2 * height
+
   return { x, y }
 }
 
