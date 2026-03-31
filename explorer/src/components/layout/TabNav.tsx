@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BookOpen, FlaskConical, BarChart3, Users } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_SNAPPY } from '../../lib/theme'
+import { SPRING, SPRING_SNAPPY, contentMaxWidth } from '../../lib/theme'
 
 export type TabId = 'paper' | 'results' | 'agent' | 'community'
 
@@ -26,7 +26,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
 
   return (
     <div className="sticky top-0 z-20 border-b border-rule bg-white/92 backdrop-blur-lg shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto hide-scrollbar">
+      <div className={`${contentMaxWidth(activeTab)} mx-auto px-4 sm:px-6 overflow-x-auto hide-scrollbar transition-[max-width] duration-300`}>
         <nav className="flex gap-1 min-w-max" role="tablist" aria-label="Explorer sections">
           {tabs.map(tab => {
             const isActive = activeTab === tab.id

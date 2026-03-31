@@ -5,6 +5,7 @@ import { Footer } from './components/layout/Footer'
 import { PaperReaderPage } from './pages/PaperReaderPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { cn } from './lib/cn'
+import { contentMaxWidth } from './lib/theme'
 import { AGENT_ROUTE_PARAM_KEYS, readRouteStateFromLocation, type ExplorerRouteState } from './lib/route-state'
 import { PAPER_SECTIONS } from './data/paper-sections'
 
@@ -195,18 +196,14 @@ function App() {
       <a href="#main-content" className="skip-to-content">
         Skip to content
       </a>
-      <Header />
+      <Header activeTab={activeTab} />
       <TabNav activeTab={activeTab} onTabChange={handleTabChange} onTabIntent={handleTabIntent} />
 
         <main
           id="main-content"
           className={cn(
-            'mx-auto px-4 py-8 sm:px-6',
-            activeTab === 'paper'
-              ? 'max-w-[88rem]'
-              : (activeTab === 'agent' || activeTab === 'results')
-                ? 'max-w-[96rem]'
-                : 'max-w-6xl',
+            'mx-auto px-4 py-8 sm:px-6 transition-[max-width] duration-300',
+            contentMaxWidth(activeTab),
           )}
         >
         <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
@@ -259,7 +256,7 @@ function App() {
         )}
       </main>
 
-      <Footer />
+      <Footer activeTab={activeTab} />
     </div>
   )
 }

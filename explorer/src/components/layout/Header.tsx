@@ -4,7 +4,7 @@ import { ExternalLink } from 'lucide-react'
 import { PAPER_METADATA, type Author } from '../../data/paper-sections'
 
 const HEADER_TITLE = 'Geographical Centralization Resilience in Ethereum Block Building'
-import { SPRING_SNAPPY } from '../../lib/theme'
+import { SPRING_SNAPPY, contentMaxWidth } from '../../lib/theme'
 import { GlobeWireframe } from '../decorative/GlobeWireframe'
 
 const AUTHORS = PAPER_METADATA.authors
@@ -78,7 +78,11 @@ function AuthorChip({ author }: { readonly author: Author }) {
   )
 }
 
-export function Header() {
+interface HeaderProps {
+  readonly activeTab?: string
+}
+
+export function Header({ activeTab = 'paper' }: HeaderProps) {
   return (
     <header className="relative overflow-hidden bg-white border-b border-rule stripe-top-accent">
       {/* Globe wireframe — decorative background, right side */}
@@ -94,7 +98,7 @@ export function Header() {
         }}
       />
 
-      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <div className={`relative ${contentMaxWidth(activeTab)} mx-auto px-4 sm:px-6 py-8 sm:py-10 transition-[max-width] duration-300`}>
         <div className="flex flex-col gap-3">
           {/* Top row: edition label + arXiv badge */}
           <div className="flex items-center justify-between">
@@ -113,7 +117,7 @@ export function Header() {
           </div>
 
           {/* Title */}
-          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary leading-snug max-w-xl font-serif">
+          <h1 className="text-[clamp(1.25rem,1rem+0.5vw,1.75rem)] font-semibold text-text-primary leading-snug max-w-2xl font-serif">
             {HEADER_TITLE}
           </h1>
 

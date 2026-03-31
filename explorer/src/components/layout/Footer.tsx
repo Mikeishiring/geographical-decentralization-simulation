@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { SPRING } from '../../lib/theme'
+import { SPRING, contentMaxWidth } from '../../lib/theme'
 import { GlobeNetwork } from '../decorative/GlobeNetwork'
 
 const FOOTER_LINKS = [
@@ -8,7 +8,11 @@ const FOOTER_LINKS = [
   { label: 'Published demo', href: 'https://geo-decentralization.github.io/' },
 ] as const
 
-export function Footer() {
+interface FooterProps {
+  readonly activeTab?: string
+}
+
+export function Footer({ activeTab = 'paper' }: FooterProps) {
   return (
     <motion.footer
       className="mt-16 relative overflow-hidden"
@@ -27,7 +31,7 @@ export function Footer() {
         <GlobeNetwork className="w-full h-full text-muted" flip />
       </div>
 
-      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className={`relative ${contentMaxWidth(activeTab)} mx-auto px-4 sm:px-6 py-8 transition-[max-width] duration-300`}>
         <div className="flex flex-col gap-5">
           {/* Arrow links — Stripe-style lightweight CTAs */}
           <div className="flex flex-wrap gap-x-6 gap-y-2">
