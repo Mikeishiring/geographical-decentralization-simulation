@@ -1,72 +1,14 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Link2, Quote, Check, ChevronDown, ChevronUp, FileText, Sparkles } from 'lucide-react'
+import { Link2, Quote, Check, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { ContributionComposer } from '../community/ContributionComposer'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT } from '../../lib/theme'
 import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
-import { PAPER_NARRATIVE as IMPORTED_NARRATIVE, type SourceRef, type PaperNarrative } from '../../data/paper-narrative'
-import { ARXIV_PDF_URL } from './paper-helpers'
+import { PAPER_NARRATIVE, type PaperNarrative } from '../../data/paper-narrative'
 import type { Exploration } from '../../lib/api'
-
-const PAPER_NARRATIVE = IMPORTED_NARRATIVE
-
-/** Provenance pill — shows source origin for each editorial element.
- *  Low-opacity by default, fully visible on parent group-hover/prose.
- *  Two variants: amber for editorial, accent-blue for paper sources. */
-function SourceRefPill({ source }: { readonly source: SourceRef }) {
-  const isEditorial = source.kind === 'editorial'
-  const Icon = isEditorial ? Sparkles : FileText
-
-  const kindLabel: Record<SourceRef['kind'], string> = {
-    section: 'Section',
-    figure: 'Figure',
-    table: 'Table',
-    equation: 'Equation',
-    editorial: 'Interpretation',
-  }
-
-  const kindIcon: Record<SourceRef['kind'], string> = {
-    section: '§',
-    figure: 'Fig.',
-    table: 'Tbl.',
-    equation: 'Eq.',
-    editorial: '',
-  }
-
-  if (isEditorial) {
-    return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full border border-amber-200/50 bg-amber-50/60 px-2 py-0.5 text-2xs text-amber-600/60 select-none opacity-0 transition-opacity duration-300 ease-out group-hover/prose:opacity-80"
-        title="LLM editorial interpretation — not a direct paraphrase of the paper"
-      >
-        <Icon className="h-2.5 w-2.5" />
-        <span className="hidden sm:inline">Editorial</span>
-        <span className="sm:hidden">LLM</span>
-      </span>
-    )
-  }
-
-  const href = source.page ? `${ARXIV_PDF_URL}#page=${source.page}` : ARXIV_PDF_URL
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 rounded-full border border-accent/12 bg-accent/4 px-2 py-0.5 text-2xs text-accent/50 transition-all duration-300 ease-out hover:bg-accent/12 hover:text-accent hover:border-accent/30 hover:shadow-[0_0_8px_rgba(59,130,246,0.1)] select-none opacity-0 group-hover/prose:opacity-80"
-      title={`${kindLabel[source.kind]}: ${source.label}${source.page ? ` — opens PDF page ${source.page}` : ''}`}
-    >
-      <Icon className="h-2.5 w-2.5" />
-      <span className="font-medium">{kindIcon[source.kind] || ''}{source.label.replace(/^§/, '')}</span>
-      {source.page && <span className="text-accent/35 tabular-nums">p.{source.page}</span>}
-    </a>
-  )
-}
-
-/** Export for reuse in EditorialView focus mode */
-export { SourceRefPill }
 
 interface PaperSectionViewProps {
   readonly focusMode?: boolean
@@ -356,36 +298,22 @@ function SectionCard({
 
       {/* Content grid */}
       <div className={cn('grid gap-6', focusMode ? 'xl:grid-cols-[minmax(0,1fr)]' : 'xl:grid-cols-12')}>
-        {/* Prose column — group/prose enables hover-reveal on source pills */}
-        <div className={cn('group/prose', focusMode ? 'space-y-5' : 'xl:col-span-7 space-y-5', figuresFirst && 'xl:order-2')}>
-          <div>
-            <p className={cn('text-xl leading-relaxed text-text-primary font-serif', focusMode ? 'max-w-3xl text-2xl' : 'max-w-2xl')}>
-              {narrative.lede}
-            </p>
-            {narrative.sourceRefs?.lede && (
-              <div className="mt-1.5"><SourceRefPill source={narrative.sourceRefs.lede} /></div>
-            )}
-          </div>
+        {/* Prose column */}
+        <div className={cn(focusMode ? 'space-y-5' : 'xl:col-span-7 space-y-5', figuresFirst && 'xl:order-2')}>
+          <p className={cn('text-xl leading-relaxed text-text-primary font-serif', focusMode ? 'max-w-3xl text-2xl' : 'max-w-2xl')}>
+            {narrative.lede}
+          </p>
           <div className={cn('space-y-4 text-base text-text-body font-serif', focusMode ? 'max-w-3xl text-base leading-9' : 'leading-8')}>
-            {narrative.paragraphs.map((paragraph, i) => {
-              const ref = narrative.sourceRefs?.paragraphs?.[i]
-              return (
-                <div key={paragraph}>
-                  <p className={cn(focusMode ? 'max-w-3xl' : 'max-w-2xl')}>
-                    {paragraph}
-                  </p>
-                  {ref && <div className="mt-1.5"><SourceRefPill source={ref} /></div>}
-                </div>
-              )
-            })}
+            {narrative.paragraphs.map(paragraph => (
+              <p key={paragraph} className={cn(focusMode ? 'max-w-3xl' : 'max-w-2xl')}>
+                {paragraph}
+              </p>
+            ))}
           </div>
           <div className="border-l-2 border-l-accent/40 pl-5 py-2">
-            <div className="flex items-center gap-2 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
+            <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
               <Quote className="h-3 w-3" />
               Pull quote
-              {narrative.sourceRefs?.pullQuote && (
-                <SourceRefPill source={narrative.sourceRefs.pullQuote} />
-              )}
             </div>
             <p className={cn('leading-relaxed text-text-primary font-serif italic text-balance', focusMode ? 'max-w-3xl text-xl' : 'max-w-2xl text-lg')}>
               {narrative.pullQuote}

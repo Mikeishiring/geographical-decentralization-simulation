@@ -1,19 +1,8 @@
-export interface SourceRef {
-  readonly label: string
-  readonly page?: number
-  readonly kind: 'section' | 'figure' | 'table' | 'equation' | 'editorial'
-}
-
 export interface PaperNarrative {
   readonly lede: string
   readonly paragraphs: readonly string[]
   readonly pullQuote: string
   readonly figureCaption: string
-  readonly sourceRefs?: {
-    readonly lede?: SourceRef
-    readonly paragraphs?: readonly (SourceRef | undefined)[]
-    readonly pullQuote?: SourceRef
-  }
 }
 
 export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
@@ -25,14 +14,6 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'The mechanism differs, but the pressure is the same: latency becomes an allocation rule for where validators want to live.',
     figureCaption: 'The core comparison is the latency path itself: SSP optimizes a best relay path, while MSP optimizes over many direct information inputs.',
-    sourceRefs: {
-      lede: { label: '§3', page: 4, kind: 'section' },
-      paragraphs: [
-        { label: '§3.1–3.2', page: 5, kind: 'section' },
-        { label: 'Editorial', kind: 'editorial' },
-      ],
-      pullQuote: { label: 'Editorial', kind: 'editorial' },
-    },
   },
   'simulation-design': {
     lede: 'The simulation is deliberately simplified, but it is simplified in a way that makes the causal story easy to inspect.',
@@ -42,14 +23,6 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'This is a paper about structural pressure, not about reproducing every empirical detail of block production.',
     figureCaption: 'The simulation design is intentionally legible: 40 measured regions, 1,000 validators, and paper-facing runs commonly reported over 10,000 slots under bounded modeling assumptions.',
-    sourceRefs: {
-      lede: { label: 'Editorial', kind: 'editorial' },
-      paragraphs: [
-        { label: '§4.1', page: 6, kind: 'section' },
-        { label: '§5 Limitations', page: 11, kind: 'section' },
-      ],
-      pullQuote: { label: 'Editorial', kind: 'editorial' },
-    },
   },
   'baseline-results': {
     lede: 'Under the homogeneous starting baseline, both paradigms centralize. The interesting part is how differently they get there.',
@@ -59,14 +32,6 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'Baseline results matter here because they show centralization without needing exotic assumptions.',
     figureCaption: 'The baseline comparison sets the tone for the rest of the paper: MSP is more aggressive in the default geography, SSP is more path-dependent.',
-    sourceRefs: {
-      lede: { label: '§4.2 Fig. 1', page: 7, kind: 'figure' },
-      paragraphs: [
-        { label: '§4.2', page: 7, kind: 'section' },
-        { label: '§4.2', page: 8, kind: 'section' },
-      ],
-      pullQuote: { label: 'Editorial', kind: 'editorial' },
-    },
   },
   'se1-source-placement': {
     lede: 'Infrastructure placement is not a neutral background condition. It changes the shape of the optimization problem itself.',
@@ -76,14 +41,6 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'The same geography can be stabilizing in one paradigm and destabilizing in the other.',
     figureCaption: 'SE1 is the cleanest demonstration that the paper is not merely comparing two labels; it is comparing two different latency geometries.',
-    sourceRefs: {
-      lede: { label: 'Editorial', kind: 'editorial' },
-      paragraphs: [
-        { label: '§4.4 Table 2', page: 9, kind: 'table' },
-        { label: '§4.4', page: 9, kind: 'section' },
-      ],
-      pullQuote: { label: 'Editorial', kind: 'editorial' },
-    },
   },
   'se2-distribution': {
     lede: 'The paper then asks a harder question: what if the system is already geographically unequal before agents start moving?',
@@ -93,14 +50,6 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'If the system starts centralized, the paradigm mostly changes how the imbalance amplifies, not whether it exists.',
     figureCaption: 'SE2 reframes the story from "which paradigm centralizes more?" to "how much of the outcome was already baked into the starting distribution?"',
-    sourceRefs: {
-      lede: { label: '§4.5', page: 9, kind: 'section' },
-      paragraphs: [
-        { label: '§4.5 Fig. 4', page: 10, kind: 'figure' },
-        { label: 'Editorial', kind: 'editorial' },
-      ],
-      pullQuote: { label: 'Editorial', kind: 'editorial' },
-    },
   },
   'se3-joint': {
     lede: 'Joint heterogeneity is where the paper briefly finds something that looks like relief, then carefully refuses to overclaim it.',
@@ -110,14 +59,6 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'A temporary dip in Gini is not the same thing as a decentralization mechanism.',
     figureCaption: 'SE3 is best read as a warning against overinterpreting transient trajectories as stable system improvements.',
-    sourceRefs: {
-      lede: { label: 'Editorial', kind: 'editorial' },
-      paragraphs: [
-        { label: '§4.5 + App. E', page: 10, kind: 'section' },
-        { label: 'Editorial', kind: 'editorial' },
-      ],
-      pullQuote: { label: 'Editorial', kind: 'editorial' },
-    },
   },
   'se4a-attestation': {
     lede: 'SE4a is the paper\'s signature result because it shows the same protocol parameter producing opposite geographic effects across paradigms.',
@@ -127,14 +68,6 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'The most surprising result in the paper is also the most revealing: timing rules are not paradigm-neutral.',
     figureCaption: 'Attestation threshold is where the paper most clearly shows that "faster consensus" and "more centralization" do not move identically in SSP and MSP.',
-    sourceRefs: {
-      lede: { label: 'App. E.3 Fig. 7', page: 15, kind: 'figure' },
-      paragraphs: [
-        { label: 'App. E.3', page: 15, kind: 'section' },
-        { label: 'App. E.3', page: 15, kind: 'section' },
-      ],
-      pullQuote: { label: 'Editorial', kind: 'editorial' },
-    },
   },
   'se4b-slots': {
     lede: 'Shorter slots do less to change where validators end up than to change how unevenly rewards are distributed on the way there.',
@@ -144,14 +77,6 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'Shorter slots amplify inequality faster than they rewrite the geography.',
     figureCaption: 'The slot-time experiment is a reminder that not every protocol change moves the concentration map, but many still change who gets paid.',
-    sourceRefs: {
-      lede: { label: 'Editorial', kind: 'editorial' },
-      paragraphs: [
-        { label: 'App. E.4', page: 16, kind: 'section' },
-        { label: 'App. E.4 Fig. 8', page: 16, kind: 'figure' },
-      ],
-      pullQuote: { label: 'Editorial', kind: 'editorial' },
-    },
   },
   discussion: {
     lede: 'The discussion section is diagnostic rather than prescriptive, and that is the right tone to preserve in the UI.',
@@ -161,14 +86,6 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'The strongest claim here is about diagnosis: the protocol and infrastructure together create concentration pressure.',
     figureCaption: 'Mitigation ideas are included as design directions, not as recommendations validated by this model.',
-    sourceRefs: {
-      lede: { label: 'Editorial', kind: 'editorial' },
-      paragraphs: [
-        { label: '§5', page: 11, kind: 'section' },
-        { label: 'Editorial', kind: 'editorial' },
-      ],
-      pullQuote: { label: '§5', page: 11, kind: 'section' },
-    },
   },
   limitations: {
     lede: 'The limitations section is one of the most important parts of the paper because it defines where confidence should stop.',
@@ -178,13 +95,5 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'A good research interface should make the caveats feel structural, not optional.',
     figureCaption: 'The limitations list is part of the paper\'s core meaning, not an appendix to ignore.',
-    sourceRefs: {
-      lede: { label: 'Editorial', kind: 'editorial' },
-      paragraphs: [
-        { label: '§5 Table 3', page: 12, kind: 'table' },
-        { label: 'Editorial', kind: 'editorial' },
-      ],
-      pullQuote: { label: 'Editorial', kind: 'editorial' },
-    },
   },
 }
