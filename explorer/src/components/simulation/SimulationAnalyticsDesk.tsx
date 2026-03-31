@@ -124,7 +124,7 @@ export function SimulationAnalyticsDesk({
         initial="hidden"
         animate="show"
       >
-        <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4">
+        <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-slate-50/94 px-4 py-4">
           <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Dashboard view</div>
           <div className="mt-2 flex flex-wrap gap-2">
             {analyticsViewOptions.map(view => (
@@ -145,7 +145,7 @@ export function SimulationAnalyticsDesk({
         </motion.div>
 
         {analyticsMetricOptions.length > 0 ? (
-          <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4">
+          <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-slate-50/94 px-4 py-4">
             <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Metric query</div>
             <div className="mt-2 flex flex-wrap gap-2">
               {analyticsMetricOptions.map(option => (
@@ -168,7 +168,7 @@ export function SimulationAnalyticsDesk({
         ) : <div />}
 
         {compareModeOptions.length > 0 ? (
-          <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4">
+          <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-slate-50/94 px-4 py-4">
             <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Compare mode</div>
             <div className="mt-2 flex flex-wrap gap-2">
               {compareModeOptions.map(option => (
@@ -229,7 +229,7 @@ export function SimulationAnalyticsDesk({
           animate="show"
         >
           {metricCards.map(card => (
-            <motion.div key={card.label} variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-white px-4 py-4">
+            <motion.div key={card.label} variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-white px-4 py-4 card-hover">
               <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
               <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
               <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
