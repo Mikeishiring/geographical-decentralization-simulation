@@ -35,6 +35,19 @@ export function CommunityPreview({
     .filter(exploration => exploration.publication.published)
     .slice(0, 3)
 
+  if (communityPreviewQuery.isLoading) {
+    return (
+      <div className="mb-6 rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
+        <div className="lab-section-title">Public responses</div>
+        <div className="mt-4 space-y-3">
+          <div className="h-4 w-1/3 animate-pulse rounded bg-surface-active" />
+          <div className="h-16 animate-pulse rounded-xl bg-surface-active" />
+          <div className="h-16 animate-pulse rounded-xl bg-surface-active" />
+        </div>
+      </div>
+    )
+  }
+
   if (notes.length === 0) return null
 
   return (

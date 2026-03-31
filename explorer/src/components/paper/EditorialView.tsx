@@ -151,7 +151,7 @@ export function EditorialView({
       </div>
 
       {/* Default/topic blocks */}
-      <div className="mt-8">
+      <div className="mt-10">
         <AnimatePresence mode="wait">
           {showTopic ? (
             <motion.div
@@ -174,10 +174,10 @@ export function EditorialView({
                       <button
                         key={`${prompt}-${i}`}
                         onClick={() => onTabChange('agent')}
-                        className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                        className="follow-up-chip"
                         title={`Ask Agent: ${prompt}`}
                       >
-                        <span className="group-hover/followup:underline underline-offset-2">{prompt}</span>
+                        {prompt}
                       </button>
                     ))}
                   </div>
@@ -202,14 +202,14 @@ export function EditorialView({
       {!showTopic && onTabChange && (
         <div className="mt-10 stagger-reveal grid gap-3 sm:grid-cols-3">
           {([
-            { tab: 'original' as TabId, eyebrow: 'Canonical source', title: 'Original PDF', detail: 'Dark mode, annotations, exact published paper.', accent: 'accent' },
-            { tab: 'agent' as TabId, eyebrow: 'Questions & experiments', title: 'Agent workspace', detail: 'Ask the paper, run simulations, export results.', accent: 'accent-warm' },
-            { tab: 'community' as TabId, eyebrow: 'Public responses', title: 'Community notes', detail: 'Human notes on readings and simulation runs.', accent: 'success' },
+            { tab: 'original' as TabId, eyebrow: 'Canonical source', title: 'Original PDF', detail: 'Dark mode, annotations, exact published paper.' },
+            { tab: 'agent' as TabId, eyebrow: 'Questions & experiments', title: 'Agent workspace', detail: 'Ask the paper, run simulations, export results.' },
+            { tab: 'community' as TabId, eyebrow: 'Public responses', title: 'Community notes', detail: 'Human notes on readings and simulation runs.' },
           ] as const).map(item => (
             <button
               key={item.tab}
               onClick={() => onTabChange(item.tab)}
-              className="group relative overflow-hidden rounded-xl border border-rule bg-white p-4 text-left transition-all hover:border-border-hover hover:shadow-sm globe-grid"
+              className="group relative overflow-hidden rounded-xl border border-rule bg-white p-4 text-left card-hover globe-grid"
             >
               <div className="absolute right-1 top-1 w-[80px] h-[40px] opacity-[0.35] pointer-events-none select-none" aria-hidden="true">
                 <NodeArc className="w-full h-full text-muted" />
