@@ -6,7 +6,6 @@ import type { SimulationConfig } from '../../lib/simulation-api'
 import {
   describeParadigm,
   estimateRuntime,
-  estimateRuntimeSeconds,
   hasNonDefaultProtocol,
   matchesPublishedResult,
   type PaperComparability,
@@ -96,7 +95,6 @@ export function SimConfigPanel({
   const slotsOnAnchor = isAnchorValue(config.slots, SLOT_ANCHORS)
   const migrationCostOnAnchor = isAnchorValue(config.migrationCost, MIGRATION_COST_ANCHORS)
   const runtime = estimateRuntime(config.validators, config.slots, config.slotTime)
-  const estimatedSeconds = estimateRuntimeSeconds(config.validators, config.slots, config.slotTime)
   const isCached = matchesPublishedResult(config)
   const protocolOpen = hasNonDefaultProtocol(config)
 

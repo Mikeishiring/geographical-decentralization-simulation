@@ -84,6 +84,39 @@ export const DARK_SURFACE = {
   grayscaleStroke: '#556677',
 } as const
 
+/** Light-mode map surface palette — warm paper aesthetic */
+export const LIGHT_SURFACE = {
+  bg: '#FAFAF7',
+  gradientCenter: '#F5F5F0',
+  gradientEdge: '#EEEEE8',
+  graticule: '#DDD9D0',
+  labelText: '#8C8578',
+  worldFill: '#ECEAE4',
+  worldStroke: '#D6D2C8',
+  tooltipBg: '#FFFFFF',
+  subtleText: '#5C5650',
+  grayscaleFill: '#C4BFB6',
+  grayscaleStroke: '#B0AAA0',
+  /** Orb effects tuned for light bg — darker tints instead of white highlights */
+  orbHighlight: 'rgba(255,255,255,0.55)',
+  orbMid: 'rgba(255,255,255,0.18)',
+  rimLight: 'rgba(0,0,0,0.04)',
+  haloStroke: 'rgba(0,0,0,0.06)',
+  nodeShadow: 'rgba(0,0,0,0.10)',
+} as const
+
+/** Map node color ramp — aligned with page's BLOCK_COLORS semantic system */
+export const MAP_NODE_COLORS = {
+  /** 4-tier concentration scale using the page accent (blue) */
+  low: '#93C5FD',       // blue-300 — faint presence
+  mid: '#60A5FA',       // blue-400 — moderate
+  high: '#2563EB',      // blue-600 — matches accent / SSP
+  top: '#1E40AF',       // blue-800 — dominant
+  /** Overlay-specific */
+  sources: '#16A34A',   // meridian green — matches page success color
+  inactive: '#C4BFB6',  // warm gray — no validators
+} as const
+
 /** Shimmer loading placeholder color */
 export const SHIMMER_COLOR = '#CBD5E1'
 

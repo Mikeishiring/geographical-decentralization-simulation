@@ -3,12 +3,12 @@
  * Extracted from EvidenceMapSurface.tsx to keep it under the 800-line limit.
  */
 import { motion } from 'framer-motion'
-import { SPRING_SOFT } from '../../lib/theme'
+import { MAP_NODE_COLORS, SPRING_SOFT } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { LATENCY_MIN, LATENCY_MAX } from '../../data/gcp-latency'
 import { formatNumber } from './simulation-constants'
 import { THRESHOLDS, SENTIMENT_TEXT, sentimentLower, sentimentHigher } from './simulation-evidence-constants'
-import { nodeColor, PASTEL, type RegionNode, type OverlayMode, type TooltipData } from './evidence-map-helpers'
+import { nodeColor, type RegionNode, type OverlayMode, type TooltipData } from './evidence-map-helpers'
 
 interface MacroBreakdownEntry {
   readonly region: string
@@ -39,7 +39,7 @@ export function EvidenceMapSidebar({
   hoveredRegion, onHover,
 }: EvidenceMapSidebarProps) {
   return (
-    <div className="border-t border-rule p-3.5 lg:border-l lg:border-t-0 space-y-3.5 max-h-[360px] overflow-y-auto lg:max-h-none lg:overflow-y-visible">
+    <div className="border-t border-rule p-3.5 lg:border-l lg:border-t-0 space-y-3.5 max-h-[360px] overflow-y-auto overscroll-contain lg:max-h-none lg:overflow-y-visible">
       {/* Live metrics — sentiment-colored */}
       <div>
         <div className="lab-section-title flex items-baseline gap-1.5">
@@ -91,11 +91,16 @@ export function EvidenceMapSidebar({
         <div>
           <div className="lab-section-title">Continents</div>
           <div className="space-y-1">
-            {macroBreakdown.map(({ region, share }) => (
+            {macroBreakdown.map(({ region, share }, i) => (
               <div key={region} className="flex items-center gap-2">
                 <span className="text-2xs text-text-faint w-[72px] truncate">{region}</span>
                 <div className="flex-1 h-[4px] rounded-full bg-surface-active overflow-hidden">
-                  <div className="h-full rounded-full bg-accent/50" style={{ width: `${Math.min(share, 100)}%` }} />
+                  <motion.div
+                    className="h-full rounded-full bg-accent/50"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(share, 100)}%` }}
+                    transition={{ ...SPRING_SOFT, delay: 0.05 + i * 0.03 }}
+                  />
                 </div>
                 <span className="text-2xs text-muted tabular-nums w-8 text-right">{formatNumber(share, 0)}%</span>
               </div>
@@ -171,10 +176,10 @@ export function EvidenceMapSidebar({
           <div className="lab-section-title !mb-1.5">{overlay === 'sources' ? 'Source density' : 'Stake concentration'}</div>
           <div className="flex items-center gap-3">
             {([
-              { size: 'h-1.5 w-1.5', label: 'Low', color: '#64748B' },
-              { size: 'h-2 w-2', label: 'Med', color: overlay === 'sources' ? PASTEL.mint : PASTEL.sky },
-              { size: 'h-2 w-2', label: 'High', color: overlay === 'sources' ? PASTEL.mint : PASTEL.lavender },
-              { size: 'h-2.5 w-2.5', label: 'Top', color: overlay === 'sources' ? PASTEL.mint : PASTEL.peach },
+              { size: 'h-1.5 w-1.5', label: 'Low', color: overlay === 'sources' ? MAP_NODE_COLORS.sources : MAP_NODE_COLORS.inactive },
+              { size: 'h-2 w-2', label: 'Med', color: overlay === 'sources' ? MAP_NODE_COLORS.sources : MAP_NODE_COLORS.low },
+              { size: 'h-2 w-2', label: 'High', color: overlay === 'sources' ? MAP_NODE_COLORS.sources : MAP_NODE_COLORS.mid },
+              { size: 'h-2.5 w-2.5', label: 'Top', color: overlay === 'sources' ? MAP_NODE_COLORS.sources : MAP_NODE_COLORS.high },
             ] as const).map(({ size, label, color }) => (
               <span key={label} className="flex items-center gap-1">
                 <span className={cn('rounded-full', size)} style={{ backgroundColor: color }} />
