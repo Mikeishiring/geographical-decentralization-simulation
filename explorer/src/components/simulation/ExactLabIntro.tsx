@@ -25,7 +25,7 @@ export function ExactLabIntro({
         className="flex flex-wrap gap-2 text-xs text-muted"
         variants={STAGGER_CONTAINER}
         initial="hidden"
-        animate="show"
+        animate="visible"
       >
         <motion.span variants={STAGGER_ITEM} className="lab-chip bg-white/90">{config.paradigm}</motion.span>
         <motion.span variants={STAGGER_ITEM} className="lab-chip bg-white/90">{config.validators.toLocaleString()} validators</motion.span>
@@ -43,7 +43,7 @@ export function ExactLabIntro({
         className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4"
         variants={STAGGER_CONTAINER}
         initial="hidden"
-        animate="show"
+        animate="visible"
       >
         {PRESETS.map(preset => (
           <motion.button

@@ -86,7 +86,7 @@ export function PaperViewModeBar({
     <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1">
+          <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1" role="tablist" aria-label="Reading mode">
             {MODES_ORDERED.map(mode => {
               const meta = MODE_META[mode]
               const Icon = meta.icon
@@ -94,6 +94,8 @@ export function PaperViewModeBar({
               return (
                 <motion.button
                   key={mode}
+                  role="tab"
+                  aria-selected={isActive}
                   onClick={() => onModeChange(mode)}
                   title={meta.detail}
                   whileTap={{ scale: 0.96 }}

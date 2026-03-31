@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
 import { PAPER_METADATA, type Author } from '../../data/paper-sections'
+
+const HEADER_TITLE = 'Geographical Centralization Resilience in Ethereum Block Building'
 import { SPRING_SNAPPY } from '../../lib/theme'
 import { GlobeWireframe } from '../decorative/GlobeWireframe'
 
@@ -30,6 +32,8 @@ function AuthorChip({ author }: { readonly author: Author }) {
       className="relative inline-flex items-center"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
     >
       {nameElement}
 
@@ -110,7 +114,7 @@ export function Header() {
 
           {/* Title */}
           <h1 className="text-xl sm:text-2xl font-semibold text-text-primary leading-snug max-w-xl font-serif">
-            Geographical Decentralization in Ethereum Block Building
+            {HEADER_TITLE}
           </h1>
 
           {/* Authors row */}

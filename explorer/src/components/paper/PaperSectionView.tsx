@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link2, Quote, Check, ChevronDown, ChevronUp, Sparkles, Lightbulb } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
@@ -29,6 +29,7 @@ function renderWithKeyClaim(text: string, keyClaim?: string): JSX.Element | stri
 
 interface PaperSectionViewProps {
   readonly focusMode?: boolean
+  readonly activeSectionId?: string
   readonly onPublish?: (sectionId: string, payload: { title: string; takeaway: string; author: string }) => void
   readonly isPublishing?: boolean
   readonly publishError?: string | null
@@ -39,6 +40,7 @@ interface PaperSectionViewProps {
 
 export function PaperSectionView({
   focusMode = false,
+  activeSectionId: activeSectionIdProp,
   onPublish,
   isPublishing = false,
   publishError = null,
@@ -46,45 +48,10 @@ export function PaperSectionView({
   notesBySection,
   onOpenNote,
 }: PaperSectionViewProps) {
-  const [activeSectionId, setActiveSectionId] = useState<string>(() => {
-    const initialHash = window.location.hash.replace('#', '')
-    return PAPER_SECTIONS.some(section => section.id === initialHash)
-      ? initialHash
-      : PAPER_SECTIONS[0].id
-  })
+  const activeSectionId = activeSectionIdProp ?? PAPER_SECTIONS[0].id
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
   const [guideOpen, setGuideOpen] = useState(false)
   const [publishedSections, setPublishedSections] = useState<Set<string>>(new Set())
-
-  useEffect(() => {
-    const sections = PAPER_SECTIONS
-      .map(section => document.getElementById(section.id))
-      .filter((el): el is HTMLElement => el instanceof HTMLElement)
-
-    if (sections.length === 0) return
-
-    const observer = new IntersectionObserver(
-      entries => {
-        const visible = entries
-          .filter(entry => entry.isIntersecting)
-          .sort((left, right) => right.intersectionRatio - left.intersectionRatio)
-        if (visible[0]?.target.id) {
-          setActiveSectionId(visible[0].target.id)
-        }
-      },
-      { rootMargin: '-22% 0px -55% 0px', threshold: [0.15, 0.35, 0.6] },
-    )
-
-    sections.forEach(section => observer.observe(section))
-    return () => observer.disconnect()
-  }, [])
-
-  useEffect(() => {
-    if (!activeSectionId) return
-    const url = new URL(window.location.href)
-    url.hash = activeSectionId
-    window.history.replaceState({}, '', url.toString())
-  }, [activeSectionId])
 
   const activeSectionIndex = Math.max(0, PAPER_SECTIONS.findIndex(s => s.id === activeSectionId))
   const progressPercent = ((activeSectionIndex + 1) / PAPER_SECTIONS.length) * 100
@@ -139,7 +106,7 @@ export function PaperSectionView({
               )}
             >
               {guideOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              Guide
+              Sections
             </button>
           </div>
         </div>
@@ -158,7 +125,7 @@ export function PaperSectionView({
                   <a
                     key={section.id}
                     href={`#${section.id}`}
-                    onClick={() => setActiveSectionId(section.id)}
+                    onClick={() => { /* navigation handled by href hash */ }}
                     className={cn(
                       'block rounded-md px-3 py-2 text-xs transition-colors',
                       activeSectionId === section.id
@@ -190,7 +157,7 @@ export function PaperSectionView({
                   <a
                     key={section.id}
                     href={`#${section.id}`}
-                    onClick={() => setActiveSectionId(section.id)}
+                    onClick={() => { /* navigation handled by href hash */ }}
                     className={cn(
                       'block rounded-md px-3 py-2 text-sm transition-colors',
                       activeSectionId === section.id
@@ -233,7 +200,9 @@ export function PaperSectionView({
                 nextSection={nextSection}
                 copiedSectionId={copiedSectionId}
                 onCopyLink={handleCopySectionLink}
-                onNavigate={setActiveSectionId}
+                onNavigate={(id: string) => {
+                  document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                }}
                 onPublish={onPublish ? handleSectionPublish : undefined}
                 isPublishing={isPublishing}
                 publishError={publishError}
@@ -386,6 +355,13 @@ function SectionCard({
             isPublishing={isPublishing}
             error={publishError}
             onPublish={payload => onPublish(section.id, payload)}
+            onViewPublished={onOpenNote ? () => {
+              // Navigate to the community tab — the note will be visible there
+              const url = new URL(window.location.href)
+              url.searchParams.set('tab', 'community')
+              window.history.pushState({}, '', url.toString())
+              window.dispatchEvent(new PopStateEvent('popstate'))
+            } : undefined}
           />
         </div>
       )}

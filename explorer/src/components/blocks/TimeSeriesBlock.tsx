@@ -132,7 +132,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
               {block.title}
             </h3>
             <p className="mt-1 text-xs text-muted">
-              Exact series values, rendered with the same slot ordering as the simulation output and framed like a measurement surface.
+              Hover the chart to inspect exact readings at any point.
             </p>
           </div>
 

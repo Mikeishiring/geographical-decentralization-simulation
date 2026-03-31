@@ -765,7 +765,7 @@ export function PublishedReplayNotesPanel({
         className="mt-4 grid gap-3 xl:grid-cols-5"
         variants={STAGGER_CONTAINER}
         initial="hidden"
-        animate="show"
+        animate="visible"
       >
         {[
           { label: 'Notes here', value: discovery.total.toLocaleString(), detail: 'Structured contributions in this replay posture.' },
