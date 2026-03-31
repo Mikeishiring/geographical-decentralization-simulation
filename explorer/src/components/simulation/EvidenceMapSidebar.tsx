@@ -48,7 +48,7 @@ export function EvidenceMapSidebar({
         </div>
         <div className="grid grid-cols-2 gap-2">
           {gini != null && (
-            <div className="lab-option-card p-2">
+            <div className="lab-option-card p-2" title="Gini coefficient (0 = perfectly equal, 1 = maximally concentrated). Measures geographic validator distribution.">
               <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Gini</div>
               <div className={cn('text-sm font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(gini, THRESHOLDS.gini)])}>
                 {formatNumber(gini, 3)}
@@ -56,7 +56,7 @@ export function EvidenceMapSidebar({
             </div>
           )}
           {hhi != null && (
-            <div className="lab-option-card p-2">
+            <div className="lab-option-card p-2" title="Herfindahl-Hirschman Index — sum of squared market shares. Higher = more concentrated.">
               <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">HHI</div>
               <div className={cn('text-sm font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(hhi, THRESHOLDS.hhi)])}>
                 {formatNumber(hhi, 4)}
@@ -64,7 +64,7 @@ export function EvidenceMapSidebar({
             </div>
           )}
           {liveness != null && (
-            <div className="lab-option-card p-2">
+            <div className="lab-option-card p-2" title="Percentage of GCP regions with active validators. Higher = broader geographic spread.">
               <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Liveness</div>
               <div className={cn('text-sm font-semibold tabular-nums', SENTIMENT_TEXT[sentimentHigher(liveness, THRESHOLDS.liveness)])}>
                 {formatNumber(liveness, 1)}%
@@ -72,13 +72,13 @@ export function EvidenceMapSidebar({
             </div>
           )}
           {clusters != null && (
-            <div className="lab-option-card p-2">
+            <div className="lab-option-card p-2" title="Number of distinct geographic clusters identified by nearest-neighbor analysis.">
               <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Clusters</div>
               <div className="text-sm font-semibold tabular-nums text-text-primary">{clusters}</div>
             </div>
           )}
           {distance != null && (
-            <div className="lab-option-card p-2">
+            <div className="lab-option-card p-2" title="Sum of pairwise distances between all active regions. Higher = more geographically spread out.">
               <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Distance</div>
               <div className="text-sm font-semibold tabular-nums text-text-primary">{distance.toLocaleString()}</div>
             </div>

@@ -242,7 +242,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
       {/* Scenario (always full-width) */}
       <div className="sm:col-span-2">
-        <label className="text-xs text-muted mb-1.5 block">Scenario</label>
+        <label className="text-xs text-muted mb-1.5 block" title="Simulation evaluation scenario from the published paper results">Scenario</label>
         <div className="flex flex-wrap gap-1.5">
           {evaluations.map(evaluation => (
             <button
@@ -259,7 +259,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
       {/* Source paradigm */}
       {paradigms.length > 1 && (
         <div>
-          <label className="text-xs text-muted mb-1.5 block">Source paradigm</label>
+          <label className="text-xs text-muted mb-1.5 block" title="Block-building paradigm: SSP (Single Slot Proposer) or MSP (Multiple Slot Proposer)">Source paradigm</label>
           <div className="flex flex-wrap gap-1.5">
             {paradigms.map(paradigm => (
               <button
@@ -278,7 +278,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
       {hasCostDimension && (
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs text-muted">Migration cost</label>
+            <label className="text-xs text-muted" title="ETH cost validators pay when relocating between regions. Higher costs discourage geographic churn.">Migration cost</label>
             {selectedCost != null && (
               <span className="text-11 text-text-faint tabular-nums">{selectedCost.toFixed(4)} ETH</span>
             )}

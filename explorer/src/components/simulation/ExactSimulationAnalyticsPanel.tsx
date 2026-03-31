@@ -163,7 +163,7 @@ export function ExactSimulationAnalyticsPanel({
                 >
                   Slot posture
                 </div>
-                <div className="mt-1 text-sm font-medium text-text-primary">
+                <div className="mt-1 text-sm font-medium text-text-primary" title={`Viewing metrics at consensus round ${slot + 1} of ${totalSlots.toLocaleString()} total`}>
                   Slot {slot + 1} of {totalSlots.toLocaleString()}
                 </div>
               </div>
