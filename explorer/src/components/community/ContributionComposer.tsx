@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { MessageSquarePlus } from 'lucide-react'
-import { cn } from '../../lib/cn'
+
 
 interface ContributionComposerProps {
   readonly sourceLabel: string

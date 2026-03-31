@@ -4,7 +4,7 @@ import { Link2, Quote, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { ContributionComposer } from '../community/ContributionComposer'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
+import { SPRING, SPRING_SOFT } from '../../lib/theme'
 import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
 
 interface PaperNarrative {

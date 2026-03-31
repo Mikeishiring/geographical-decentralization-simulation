@@ -15,7 +15,7 @@ import { Loader2, MessageSquare, FlaskConical, Link2, FileText } from 'lucide-re
 import { NodeArc } from '../components/decorative/NodeArc'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SNAPPY } from '../lib/theme'
-import { explore, getApiHealth, createExploration, publishExploration, type ExploreResponse, type ExploreError, type ExploreProvenance } from '../lib/api'
+import { explore, getApiHealth, createExploration, publishExploration, type ExploreResponse, type ExploreError } from '../lib/api'
 import { blocksToMarkdown } from '../lib/export'
 import type { SimulationConfig } from '../lib/simulation-api'
 import {
