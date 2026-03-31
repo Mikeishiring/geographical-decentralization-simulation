@@ -132,7 +132,7 @@ export function SimulationLabPage({
     <div>
       {/* ── Page header with mode switcher ── */}
       <motion.div
-        className="relative mb-6 overflow-hidden rounded-[24px] border border-rule bg-white/92 p-5 shadow-[0_12px_32px_rgba(15,23,42,0.05)] sm:p-6"
+        className="relative mb-6 overflow-hidden rounded-3xl border border-rule bg-white/92 p-5 shadow-[0_12px_32px_rgba(15,23,42,0.05)] sm:p-6"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={SPRING}
@@ -192,7 +192,7 @@ export function SimulationLabPage({
       {resultsMode === 'engine' && (
         <>
           <motion.section
-            className="mb-6 overflow-hidden rounded-[24px] border border-rule bg-gradient-to-b from-surface-active/60 to-white/95"
+            className="mb-6 overflow-hidden rounded-3xl border border-rule bg-gradient-to-b from-surface-active/60 to-white/95"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...SPRING, delay: 0.06 }}

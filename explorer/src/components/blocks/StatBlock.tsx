@@ -49,7 +49,7 @@ export function StatBlock({ block }: StatBlockProps) {
         className="text-13 font-medium text-text-primary mt-2.5"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, delay: 0.12 }}
+        transition={{ ...SPRING_CRISP, delay: 0.12 }}
       >
         {block.label}
       </motion.div>
@@ -58,7 +58,7 @@ export function StatBlock({ block }: StatBlockProps) {
           className="text-xs text-muted mt-1"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.16 }}
+          transition={{ ...SPRING_CRISP, delay: 0.16 }}
         >
           {block.sublabel}
         </motion.div>

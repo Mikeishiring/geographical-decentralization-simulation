@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CHART, SPRING_SOFT } from '../../lib/theme'
+import { CHART, SPRING_CRISP, SPRING_SOFT } from '../../lib/theme'
 import { centerOutReveal } from '../../lib/chart-animations'
 import type { HeatmapBlock as HeatmapBlockType } from '../../types/blocks'
 
@@ -160,7 +160,7 @@ export function HeatmapBlock({ block }: HeatmapBlockProps) {
                   style={{ backgroundColor: colorFn(val, minVal, maxVal) }}
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.3, delay: i * 0.02 }}
+                  transition={{ ...SPRING_CRISP, delay: i * 0.02 }}
                 />
               )
             })}

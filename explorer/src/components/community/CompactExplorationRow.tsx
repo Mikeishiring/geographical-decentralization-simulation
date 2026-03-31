@@ -68,7 +68,7 @@ export function CompactExplorationRow({
         )} />
 
         {/* Title */}
-        <span className="min-w-0 flex-1 truncate text-xs font-medium text-text-primary">
+        <span className="min-w-0 flex-1 truncate text-xs font-medium text-text-primary" title={cardTitle(exploration)}>
           {cardTitle(exploration)}
         </span>
 
@@ -105,7 +105,7 @@ export function CompactExplorationRow({
 
         {/* Author */}
         {exploration.publication.author && (
-          <span className="hidden max-w-[80px] truncate text-2xs text-text-faint sm:block">
+          <span className="hidden max-w-[80px] truncate text-2xs text-text-faint sm:block" title={exploration.publication.author}>
             {exploration.publication.author}
           </span>
         )}

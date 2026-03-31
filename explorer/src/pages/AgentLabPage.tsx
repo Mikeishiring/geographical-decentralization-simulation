@@ -8,7 +8,7 @@
  * Users can switch modes freely. Both share the same research context.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, MessageSquare, FlaskConical, Link2, FileText } from 'lucide-react'
@@ -72,6 +72,10 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [questionDraft, setQuestionDraft] = useState('')
   const [maxSteps, setMaxSteps] = useState(5)
+
+  // Track pending timers for cleanup on unmount
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  useEffect(() => () => timersRef.current.forEach(clearTimeout), [])
 
   const apiHealthQuery = useQuery({
     queryKey: ['api-health'],
@@ -158,7 +162,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
     url.searchParams.delete('q')
     await navigator.clipboard.writeText(url.toString())
     setShareState('copied')
-    setTimeout(() => setShareState('idle'), 2000)
+    timersRef.current.push(setTimeout(() => setShareState('idle'), 2000))
   }, [aiResponse, publishedId])
 
   const handleExportMarkdown = useCallback(async () => {
@@ -166,7 +170,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
     const md = blocksToMarkdown(query || 'Exploration', aiResponse.summary, aiResponse.blocks)
     await navigator.clipboard.writeText(md)
     setExportState('copied')
-    setTimeout(() => setExportState('idle'), 2000)
+    timersRef.current.push(setTimeout(() => setExportState('idle'), 2000))
   }, [aiResponse, query])
 
   // ── Experiment mode handlers ──
