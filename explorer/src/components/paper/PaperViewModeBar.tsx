@@ -25,8 +25,8 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
   },
   paper: {
     icon: FileText,
-    label: 'Full text',
-    detail: 'Typeset paper — single column, inline figures, academic layout',
+    label: 'Original PDF',
+    detail: 'Published arXiv PDF with dark mode, annotations, and direct download',
   },
 }
 
