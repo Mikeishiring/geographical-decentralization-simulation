@@ -625,7 +625,7 @@ export function SimResultsPanel({
           {exactMetricCards.map((card, i) => (
             <motion.div
               key={card.key}
-              className="lab-metric-card"
+              className="lab-metric-card card-hover"
               title={card.note ?? undefined}
               initial={{ opacity: 0, y: 8, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
