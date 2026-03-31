@@ -36,6 +36,7 @@ interface PaperSectionViewProps {
   readonly notesVisible?: boolean
   readonly notesBySection?: ReadonlyMap<string, Exploration[]>
   readonly onOpenNote?: (explorationId: string) => void
+  readonly onSectionClick?: (sectionId: string) => void
 }
 
 export function PaperSectionView({
@@ -47,6 +48,7 @@ export function PaperSectionView({
   notesVisible = false,
   notesBySection,
   onOpenNote,
+  onSectionClick,
 }: PaperSectionViewProps) {
   const activeSectionId = activeSectionIdProp ?? PAPER_SECTIONS[0].id
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
@@ -82,7 +84,7 @@ export function PaperSectionView({
                   <a
                     key={section.id}
                     href={`#${section.id}`}
-                    onClick={() => { /* navigation handled by href hash */ }}
+                    onClick={() => { onSectionClick?.(section.id) }}
                     className={cn(
                       'block rounded-md px-3 py-2 text-sm transition-colors',
                       activeSectionId === section.id

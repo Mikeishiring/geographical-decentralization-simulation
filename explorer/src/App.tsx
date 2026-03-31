@@ -234,7 +234,10 @@ function App() {
           <div hidden={activeTab !== 'agent'} aria-hidden={activeTab !== 'agent'}>
             <ErrorBoundary fallbackLabel="The Agent encountered an error.">
               <Suspense fallback={<PageFallback label="Loading agent workspace" />}>
-                <AgentLabPage />
+                <AgentLabPage
+                  onTabChange={handleTabChange}
+                  onOpenCommunityExploration={handleOpenCommunityExploration}
+                />
               </Suspense>
             </ErrorBoundary>
           </div>
