@@ -38,7 +38,7 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
           <div className="flex items-center gap-2 text-sm font-medium text-text-primary mb-3">
             <span className={cn(
               'w-2.5 h-2.5 rounded-full bg-accent transition-shadow',
-              hoveredSide === 'left' && 'shadow-[0_0_6px_rgba(37,99,235,0.3)]',
+              hoveredSide === 'left' && 'shadow-[0_0_6px_color-mix(in_srgb,var(--color-accent)_30%,transparent)]',
             )} />
             {block.left.label}
           </div>
@@ -65,7 +65,7 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
           <div className="flex items-center gap-2 text-sm font-medium text-text-primary mb-3">
             <span className={cn(
               'w-2.5 h-2.5 rounded-full bg-accent-warm transition-shadow',
-              hoveredSide === 'right' && 'shadow-[0_0_6px_rgba(194,85,58,0.3)]',
+              hoveredSide === 'right' && 'shadow-[0_0_6px_color-mix(in_srgb,var(--color-accent-warm)_30%,transparent)]',
             )} />
             {block.right.label}
           </div>

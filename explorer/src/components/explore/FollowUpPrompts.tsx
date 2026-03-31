@@ -10,7 +10,7 @@ export function FollowUpPrompts({ prompts, title, onSelect }: FollowUpPromptsPro
   return (
     <div className="mt-6 pt-4 border-t border-rule">
       <span className="text-xs text-muted mb-2 block">{title}</span>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 stagger-reveal">
         {prompts.map((query, index) => (
           <button
             key={`${query}-${index}`}

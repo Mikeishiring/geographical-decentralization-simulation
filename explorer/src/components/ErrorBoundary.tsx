@@ -36,16 +36,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       const label = this.props.fallbackLabel ?? 'Something went wrong'
       return (
         <div
-          className="rounded-xl border border-red-200 bg-red-50 px-5 py-6 text-center"
+          className="rounded-xl border border-danger/20 bg-danger/5 px-5 py-6 text-center"
           role="alert"
         >
-          <div className="text-sm font-medium text-red-700">{label}</div>
-          <div className="mt-2 text-xs text-red-600">
+          <div className="text-sm font-medium text-danger">{label}</div>
+          <div className="mt-2 text-xs text-danger/80">
             {this.state.error?.message ?? 'An unexpected error occurred.'}
           </div>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
-            className="mt-4 rounded-lg border border-red-200 bg-white px-4 py-2 text-xs font-medium text-red-700 transition-colors hover:bg-red-50"
+            className="mt-4 rounded-lg border border-danger/20 bg-white px-4 py-2 text-xs font-medium text-danger transition-colors hover:bg-danger/5"
           >
             Try again
           </button>
