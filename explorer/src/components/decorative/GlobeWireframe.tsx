@@ -197,12 +197,12 @@ export function GlobeWireframe({ className = '' }: { readonly className?: string
       const dark = isDarkRef.current
 
       // ── Draw wireframe arcs ──
-      const wireAlpha = dark ? 0.24 : 0.28
+      const wireAlpha = dark ? 0.32 : 0.42
       const wireColor = dark
         ? `rgba(180, 200, 220, ${wireAlpha})`
-        : `rgba(70, 100, 150, ${wireAlpha})`
+        : `rgba(60, 90, 140, ${wireAlpha})`
       ctx!.strokeStyle = wireColor
-      ctx!.lineWidth = 0.6
+      ctx!.lineWidth = 0.8
 
       for (const arc of WIREFRAME_ARCS) {
         ctx!.beginPath()
@@ -269,9 +269,9 @@ export function GlobeWireframe({ className = '' }: { readonly className?: string
       // ── Draw atmosphere glow — visible halo at globe edge ──
       const atmosGrad = ctx!.createRadialGradient(cx, cy, radius * 0.85, cx, cy, radius * 1.35)
       atmosGrad.addColorStop(0, 'transparent')
-      atmosGrad.addColorStop(0.3, dark ? 'rgba(150, 185, 220, 0.12)' : 'rgba(90, 130, 200, 0.10)')
-      atmosGrad.addColorStop(0.6, dark ? 'rgba(150, 185, 220, 0.08)' : 'rgba(90, 130, 200, 0.07)')
-      atmosGrad.addColorStop(0.85, dark ? 'rgba(150, 185, 220, 0.03)' : 'rgba(90, 130, 200, 0.03)')
+      atmosGrad.addColorStop(0.3, dark ? 'rgba(150, 185, 220, 0.16)' : 'rgba(80, 120, 190, 0.14)')
+      atmosGrad.addColorStop(0.6, dark ? 'rgba(150, 185, 220, 0.10)' : 'rgba(80, 120, 190, 0.10)')
+      atmosGrad.addColorStop(0.85, dark ? 'rgba(150, 185, 220, 0.04)' : 'rgba(80, 120, 190, 0.05)')
       atmosGrad.addColorStop(1, 'transparent')
       ctx!.beginPath()
       ctx!.arc(cx, cy, radius * 1.35, 0, Math.PI * 2)
@@ -317,8 +317,8 @@ export function GlobeWireframe({ className = '' }: { readonly className?: string
         ctx!.moveTo(fromP.x, fromP.y)
         ctx!.quadraticCurveTo(cpX, cpY, toP.x, toP.y)
         ctx!.strokeStyle = nodeColor
-        ctx!.globalAlpha = alpha * 0.5
-        ctx!.lineWidth = 1
+        ctx!.globalAlpha = alpha * 0.6
+        ctx!.lineWidth = 1.2
         ctx!.stroke()
         ctx!.globalAlpha = 1
       }
@@ -332,28 +332,28 @@ export function GlobeWireframe({ className = '' }: { readonly className?: string
 
         const node = NODES[p.idx]
         const color = dark ? node.colorDark : node.color
-        const depthAlpha = 0.55 + p.z * 0.45
+        const depthAlpha = 0.6 + p.z * 0.4
         const r = node.radius * (0.9 + p.z * 0.35) * breathe
 
         // Outer glow
         ctx!.beginPath()
         ctx!.arc(p.x, p.y, r * 4.5, 0, Math.PI * 2)
         ctx!.fillStyle = color
-        ctx!.globalAlpha = depthAlpha * 0.12
+        ctx!.globalAlpha = depthAlpha * 0.18
         ctx!.fill()
 
         // Inner glow
         ctx!.beginPath()
         ctx!.arc(p.x, p.y, r * 2.2, 0, Math.PI * 2)
         ctx!.fillStyle = color
-        ctx!.globalAlpha = depthAlpha * 0.25
+        ctx!.globalAlpha = depthAlpha * 0.35
         ctx!.fill()
 
         // Core dot
         ctx!.beginPath()
         ctx!.arc(p.x, p.y, r, 0, Math.PI * 2)
         ctx!.fillStyle = color
-        ctx!.globalAlpha = depthAlpha * 0.92
+        ctx!.globalAlpha = depthAlpha * 0.95
         ctx!.fill()
 
         ctx!.globalAlpha = 1
