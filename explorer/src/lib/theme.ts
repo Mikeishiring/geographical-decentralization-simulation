@@ -68,6 +68,25 @@ export const INTENT_COLORS: Record<string, string> = {
   highlight: '#7C3AED',
 } as const
 
+/** Light-mode map surface palette — Observable / Stripe Atlas aesthetic */
+export const LIGHT_SURFACE = {
+  bg: '#FAFAF8',
+  countryFill: '#EEECE6',
+  countryStroke: '#D8D4CC',
+  graticule: '#E0DDD6',
+  labelText: '#78716C',
+  tooltipBg: '#FFFFFF',
+  tooltipBorder: '#E5E5E3',
+  tooltipText: '#1C1917',
+  subtleText: '#57534E',
+  edgeStroke: '#D6D3CE',
+  /** Mono-accent blue ramp — low → top stake */
+  blue100: '#BFDBFE',
+  blue400: '#60A5FA',
+  blue600: '#2563EB',
+  blue700: '#1D4ED8',
+} as const
+
 /** Dark-mode map/globe surface palette */
 export const DARK_SURFACE = {
   bg: '#0B0F14',

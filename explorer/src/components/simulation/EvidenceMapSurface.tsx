@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Pause, RotateCcw, Layers, Radio, Zap, Plus, Minus, Maximize2 } from 'lucide-react'
 import { EvidenceMapSidebar } from './EvidenceMapSidebar'
 import { MapBaseLayers, MapNodeLayer, MapLabelLayer } from './EvidenceMapLayers'
+
 import { LIGHT_SURFACE, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { LATENCY_MIN, LATENCY_MAX } from '../../data/gcp-latency'
@@ -180,7 +181,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
     if (displayNodes.length < 2) return []
     const result: Array<{ path: string; va: number; vb: number; color: string }> = []
     const N = Math.min(3, displayNodes.length - 1)
-    const edgeColor = overlay === 'sources' ? PASTEL.mint! : PASTEL.sky!
+    const edgeColor = LIGHT_SURFACE.edgeStroke
     for (const p of displayNodes) {
       const distances = displayNodes
         .filter(q => q.id !== p.id)
@@ -346,6 +347,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             <button
               onClick={zoomIn}
               className="flex items-center justify-center h-7 w-7 rounded-md bg-white/80 backdrop-blur-md border border-rule text-muted hover:text-text-primary hover:bg-white transition-colors shadow-sm"
+
               aria-label={`Zoom in (current: ${zoom.toFixed(1)}x)`}
               title="Zoom in"
             >
@@ -354,6 +356,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             <button
               onClick={zoomOut}
               className="flex items-center justify-center h-7 w-7 rounded-md bg-white/80 backdrop-blur-md border border-rule text-muted hover:text-text-primary hover:bg-white transition-colors shadow-sm"
+
               aria-label={`Zoom out (current: ${zoom.toFixed(1)}x)`}
               title="Zoom out"
             >
@@ -363,6 +366,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               <button
                 onClick={resetView}
                 className="flex items-center justify-center h-7 w-7 rounded-md bg-white/80 backdrop-blur-md border border-rule text-muted hover:text-text-primary hover:bg-white transition-colors shadow-sm"
+
                 aria-label="Reset map zoom and pan to default view"
                 title="Reset zoom"
               >
@@ -371,6 +375,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             )}
             {zoom > 1.05 && (
               <span className="text-center text-[0.5625rem] font-mono text-muted tabular-nums mt-0.5">
+
                 {zoom.toFixed(1)}x
               </span>
             )}
@@ -441,30 +446,20 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               onHover={handleHover}
             />
 
+
             {/* ── Latency arcs layer ── */}
             {overlay === 'latency' && latencyArcs.map((arc, i) => {
               const color = latencyColor(arc.normalized)
-              const glowColor = latencyColorGlow(arc.normalized)
               return (
                 <g key={`arc-${arc.fromId}-${arc.toId}`}>
                   <motion.path
                     d={arc.path}
                     fill="none"
-                    stroke={glowColor}
-                    strokeWidth={3}
-                    filter={`url(#${idPrefix}-arc-glow)`}
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 0.6 }}
-                    transition={{ ...SPRING_SOFT, delay: i * 0.02 }}
-                  />
-                  <motion.path
-                    d={arc.path}
-                    fill="none"
                     stroke={color}
-                    strokeWidth={1.2 + (1 - arc.normalized) * 0.8}
+                    strokeWidth={1 + (1 - arc.normalized) * 0.6}
                     strokeLinecap="round"
                     initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 0.7 }}
+                    animate={{ pathLength: 1, opacity: 0.6 }}
                     transition={{ ...SPRING_SOFT, delay: i * 0.02 }}
                   />
                   {i < 10 && (() => {
@@ -499,6 +494,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             {/* ── Nearest-neighbor edges (validators/sources mode) ── */}
             {overlay !== 'latency' && edges.map((e, i) => {
               const opacity = 0.10 + ((e.va + e.vb) / (2 * maxCount)) * 0.20
+
               return playing ? (
                 <path
                   key={`edge-${i}`}
@@ -506,6 +502,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                   fill="none"
                   stroke={LIGHT_SURFACE.graticule}
                   strokeWidth={0.5}
+
                   strokeLinecap="round"
                   opacity={opacity}
                 />
@@ -516,6 +513,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                   fill="none"
                   stroke={LIGHT_SURFACE.graticule}
                   strokeWidth={0.5}
+
                   strokeLinecap="round"
                   initial={{ pathLength: 0, opacity: 0 }}
                   animate={{ pathLength: 1, opacity }}
@@ -526,6 +524,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
 
             {/* ── Labels — collision-aware placement (memoized) ── */}
             <MapLabelLayer labelPositions={labelPositions} playing={playing} />
+
           </svg>
 
           {/* ── Tooltip ── */}
@@ -541,35 +540,35 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                 className="pointer-events-none absolute z-20"
                 style={tooltipStyle}
               >
-                <div className="relative rounded-lg border border-white/10 bg-[#0C1220]/95 px-3.5 py-2.5 shadow-2xl backdrop-blur-md">
-                  <div className="absolute left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-b border-r border-white/10 bg-[#0C1220]/95"
+                <div className="relative rounded-lg border border-stone-200 bg-white px-3.5 py-2.5 shadow-lg">
+                  <div className="absolute left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-b border-r border-stone-200 bg-white"
                     style={{
                       bottom: (tooltip.y / MAP_VISIBLE_H) * 100 < 15 ? 'auto' : '-5px',
                       top: (tooltip.y / MAP_VISIBLE_H) * 100 < 15 ? '-5px' : 'auto',
                     }}
                   />
-                  <div className="text-11 font-medium text-white/90">{tooltip.city}</div>
-                  <div className="mt-0.5 text-[0.5625rem] font-mono text-white/40">{tooltip.id} · {tooltip.macroRegion}</div>
+                  <div className="text-11 font-medium text-stone-900">{tooltip.city}</div>
+                  <div className="mt-0.5 text-[0.5625rem] font-mono text-stone-400">{tooltip.id} · {tooltip.macroRegion}</div>
                   <div className="mt-1 flex items-baseline gap-1.5">
-                    <span className="text-sm font-semibold tabular-nums text-white">
+                    <span className="text-sm font-semibold tabular-nums text-stone-900">
                       {tooltip.count.toLocaleString()}
                     </span>
-                    <span className="text-2xs text-white/45">
+                    <span className="text-2xs text-stone-400">
                       {overlay === 'sources' ? 'sources' : 'validators'}
                     </span>
                   </div>
                   {/* Share bar */}
                   {totalValidators > 0 && (
                     <div className="mt-1.5 flex items-center gap-1.5">
-                      <div className="flex-1 h-[3px] rounded-full bg-white/10 overflow-hidden min-w-[60px]">
-                        <div className="h-full rounded-full bg-accent/70" style={{ width: `${Math.min((tooltip.count / totalValidators) * 100, 100)}%` }} />
+                      <div className="flex-1 h-[3px] rounded-full bg-stone-100 overflow-hidden min-w-[60px]">
+                        <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.min((tooltip.count / totalValidators) * 100, 100)}%` }} />
                       </div>
-                      <span className="text-[0.5625rem] font-mono text-white/50 tabular-nums">
+                      <span className="text-[0.5625rem] font-mono text-stone-500 tabular-nums">
                         {formatNumber((tooltip.count / totalValidators) * 100, 1)}%
                       </span>
                     </div>
                   )}
-                  <div className="mt-0.5 text-[0.5625rem] font-mono text-white/30">
+                  <div className="mt-0.5 text-[0.5625rem] font-mono text-stone-300">
                     #{tooltip.rank + 1} of {tooltip.total}
                   </div>
                 </div>
