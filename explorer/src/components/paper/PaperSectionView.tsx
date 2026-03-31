@@ -412,12 +412,12 @@ function SectionCard({
         <div className="mt-6 border-t border-rule pt-4">
           <ContributionComposer
             key={section.id}
-            sourceLabel="Add a community note to this section"
+            sourceLabel="Add a community note"
             defaultTitle={section.title}
             defaultTakeaway={section.description}
-            helperText="Turn your reading of this section into a human-authored community note."
+            helperText="Share your take on this section's evidence."
             publishLabel="Publish note"
-            successLabel="Note published"
+            successLabel="Published"
             viewPublishedLabel="View in Community"
             published={isPublished}
             isPublishing={isPublishing}

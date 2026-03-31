@@ -23,10 +23,6 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
   const tabRefs = React.useRef<Map<TabId, HTMLButtonElement>>(new Map())
   const [hoveredTab, setHoveredTab] = useState<TabId | null>(null)
 
-  React.useEffect(() => {
-    tabRefs.current.get(activeTab)?.focus()
-  }, [activeTab])
-
   return (
     <div className="sticky top-0 z-20 border-b border-rule bg-white/92 backdrop-blur-lg">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto hide-scrollbar">

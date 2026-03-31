@@ -32,7 +32,6 @@ interface SimulationAnalyticsDeskProps {
   readonly statusMessage: string | null
   readonly metricCards: readonly AnalyticsMetricCard[]
   readonly blocks: readonly Block[]
-  readonly queryHint?: string
   readonly children?: ReactNode
 }
 
@@ -56,7 +55,6 @@ export function SimulationAnalyticsDesk({
   statusMessage,
   metricCards,
   blocks,
-  queryHint = 'Use the query to establish what the data shows first. Only then ask for implications or interpretation.',
   children,
 }: SimulationAnalyticsDeskProps) {
   const activeView = analyticsViewOptions.find(view => view.id === analyticsView) ?? analyticsViewOptions[0]
@@ -177,20 +175,20 @@ export function SimulationAnalyticsDesk({
       </div>
 
       <div className="px-5 py-4">
-      <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-        <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Query framing</div>
-        <div className="mt-2 text-sm font-medium text-text-primary">
-          {(activeMetric?.label ?? activeView?.label ?? 'Analytics')} query
-        </div>
-        <div className="mt-2 text-xs leading-5 text-muted">
-          {activeMetric?.description ?? activeView?.description ?? 'Exact metric query over the current analytics payload.'}
-        </div>
-        {activeCompareMode ? (
-          <div className="mt-2 text-xs leading-5 text-muted">
-            Compare mode: {activeCompareMode.label}. {activeCompareMode.description}
+      <div className="rounded-xl border border-rule bg-surface-active px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="text-sm font-medium text-text-primary">
+            {activeMetric?.label ?? activeView?.label ?? 'Analytics'}
           </div>
-        ) : null}
-        <div className="mt-3 text-[0.6875rem] leading-5 text-text-faint">{queryHint}</div>
+          {activeCompareMode ? (
+            <span
+              className="lab-chip bg-white/85 text-[0.625rem]"
+              title={activeCompareMode.description}
+            >
+              {activeCompareMode.label}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       {statusMessage ? (

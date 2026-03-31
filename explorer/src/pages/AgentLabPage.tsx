@@ -240,8 +240,8 @@ export default function AgentLabPage() {
       {mode === 'ask' && (
         <div className="space-y-6">
           {/* Query input */}
-          <div className="rounded-xl border border-rule bg-white px-5 py-5">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+          <div className="rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
+            <div className="lab-section-title">
               Ask a question about the paper
             </div>
             <div className={cn(
@@ -354,8 +354,8 @@ export default function AgentLabPage() {
         <div className="space-y-6">
           {/* Question input */}
           {!session || session.status !== 'active' ? (
-            <div className="rounded-xl border border-rule bg-white px-5 py-5">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+            <div className="rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
+              <div className="lab-section-title">
                 Research question for simulation loop
               </div>
               <textarea
@@ -470,15 +470,16 @@ export default function AgentLabPage() {
 
       {/* Suggested questions — shown when no active results in either mode */}
       {!hasAskResult && mode === 'ask' && !aiLoading && (
-        <div className="rounded-xl border border-dashed border-rule bg-white px-5 py-8 relative overflow-hidden">
+        <div className="relative overflow-hidden rounded-xl border border-dashed border-rule bg-white px-5 py-8">
           {/* Node-arc motif — visual DNA echoing the header globe */}
           <div className="absolute right-4 top-2 w-[140px] h-[70px] opacity-[0.5] pointer-events-none select-none" aria-hidden="true">
             <NodeArc className="w-full h-full text-muted" />
           </div>
-          <div className="text-center text-sm text-muted mb-4 relative">
+
+          <div className="relative text-center text-sm text-muted mb-5">
             Choose a question below or write your own above
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4 stagger-reveal">
+          <div className="relative grid gap-2 sm:grid-cols-2 xl:grid-cols-4 stagger-reveal">
             {SUGGESTED_QUESTIONS.map((s, i) => (
               <motion.button
                 key={s.prompt}
@@ -486,12 +487,12 @@ export default function AgentLabPage() {
                 animate={{ opacity: 1 }}
                 transition={{ ...SPRING, delay: i * 0.03 }}
                 onClick={() => handleSuggestionClick(s.prompt)}
-                className="group rounded-lg border border-rule bg-surface-active px-3 py-2.5 text-left transition-all hover:border-border-hover hover:bg-white"
+                className="group rounded-xl border border-rule bg-surface-active/60 px-3.5 py-3 text-left transition-all hover:border-border-hover hover:bg-white hover:shadow-sm"
               >
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                <div className="mono-xs uppercase text-text-faint">
                   {s.label}
                 </div>
-                <div className="mt-1 text-xs leading-5 text-text-body group-hover:text-text-primary transition-colors">
+                <div className="mt-1.5 text-xs leading-5 text-text-body group-hover:text-text-primary transition-colors">
                   {s.prompt}
                 </div>
               </motion.button>
@@ -501,16 +502,21 @@ export default function AgentLabPage() {
       )}
 
       {!hasExperiment && mode === 'experiment' && !isCreating && (
-        <div className="rounded-xl border border-dashed border-rule bg-white px-5 py-8">
-          <div className="text-center text-sm text-muted mb-4">
+        <div className="relative overflow-hidden rounded-xl border border-dashed border-rule bg-white px-5 py-8">
+          {/* Node-arc motif — globe DNA */}
+          <div className="absolute left-4 bottom-2 w-[120px] h-[60px] opacity-[0.4] pointer-events-none select-none" aria-hidden="true">
+            <NodeArc className="w-full h-full text-muted" />
+          </div>
+
+          <div className="relative text-center text-sm text-muted mb-4">
             Enter a research question to start the autonomous loop, or choose one below
           </div>
-          <div className="flex flex-wrap justify-center gap-2 stagger-reveal">
+          <div className="relative flex flex-wrap justify-center gap-2 stagger-reveal">
             {SUGGESTED_QUESTIONS.filter(s => s.label === 'Experiment' || s.label === 'Mechanism').map(s => (
               <button
                 key={s.prompt}
                 onClick={() => handleSuggestionClick(s.prompt)}
-                className="rounded-full border border-rule bg-surface-active px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                className="rounded-full border border-rule bg-surface-active/60 px-3.5 py-1.5 text-xs font-medium text-text-primary transition-all hover:border-border-hover hover:bg-white hover:shadow-sm"
               >
                 {s.prompt}
               </button>

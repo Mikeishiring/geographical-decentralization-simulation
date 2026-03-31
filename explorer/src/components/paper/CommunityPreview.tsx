@@ -40,10 +40,7 @@ export function CommunityPreview({
   return (
     <div className="mb-6">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Public responses</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">How other readers turned evidence into public notes</div>
-        </div>
+        <div className="text-sm font-medium text-text-primary">Community notes</div>
         {onTabChange && (
           <button
             onClick={() => onTabChange('community')}
