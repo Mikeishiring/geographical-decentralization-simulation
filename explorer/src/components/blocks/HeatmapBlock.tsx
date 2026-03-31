@@ -10,9 +10,10 @@ interface HeatmapBlockProps {
 
 function sequentialColor(value: number, min: number, max: number): string {
   const t = max === min ? 0.5 : (value - min) / (max - min)
-  const r = Math.round(37 + t * (37 - 37))
-  const g = Math.round(99 + t * (99 - 200) * -1)
-  const b = Math.round(235)
+  // Interpolate from light blue (37,150,235) → deep blue (37,99,235)
+  const r = 37
+  const g = Math.round(150 - t * 51)
+  const b = 235
   const opacity = 0.08 + t * 0.82
   return `rgba(${r}, ${g}, ${b}, ${opacity})`
 }

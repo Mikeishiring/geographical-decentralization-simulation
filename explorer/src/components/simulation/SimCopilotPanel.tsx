@@ -162,7 +162,7 @@ export function SimCopilotPanel({
             className="mt-4 flex flex-wrap gap-2"
             variants={STAGGER_CONTAINER}
             initial="hidden"
-            animate="show"
+            animate="visible"
           >
             {promptSuggestions.map(prompt => (
               <motion.button
@@ -192,7 +192,7 @@ export function SimCopilotPanel({
               className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]"
               variants={STAGGER_CONTAINER}
               initial="hidden"
-              animate="show"
+              animate="visible"
             >
               <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-white/80 p-4">
                 <div className="lab-skeleton lab-skeleton-line w-1/3" />
@@ -254,7 +254,7 @@ export function SimCopilotPanel({
                   className="grid grid-cols-2 gap-3 text-xs text-muted sm:grid-cols-4"
                   variants={STAGGER_CONTAINER}
                   initial="hidden"
-                  animate="show"
+                  animate="visible"
                 >
                   {[
                     { label: 'Paradigm', value: copilotResponse.proposedConfig.paradigm },

@@ -57,21 +57,9 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
         </span>
       </button>
 
-      {/* Preview cards */}
-      <div className="mt-2.5 space-y-1.5">
-        {preview.map((note, i) => (
-          <NoteCard
-            key={note.id}
-            note={note}
-            onOpen={onOpenNote}
-            delay={i * 0.04}
-          />
-        ))}
-      </div>
-
-      {/* Expanded: remaining notes */}
+      {/* Notes — show preview when collapsed, all when expanded */}
       <AnimatePresence>
-        {expanded && hasMore && (
+        {expanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -79,8 +67,8 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
             transition={SPRING_SNAPPY}
             className="overflow-hidden"
           >
-            <div className="mt-1.5 space-y-1.5">
-              {published.slice(2).map((note, i) => (
+            <div className="mt-2.5 space-y-1.5">
+              {published.map((note, i) => (
                 <NoteCard
                   key={note.id}
                   note={note}

@@ -206,7 +206,7 @@ function App() {
               ? 'max-w-[88rem]'
               : (activeTab === 'agent' || activeTab === 'results')
                 ? 'max-w-[96rem]'
-                : 'max-w-5xl',
+                : 'max-w-6xl',
           )}
         >
         <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
@@ -215,6 +215,7 @@ function App() {
               isActive={activeTab === 'paper'}
               onOpenCommunityExploration={handleOpenCommunityExploration}
               onTabChange={handleTabChange}
+              onQueryAgent={handleCommunityOpenQuery}
             />
           </ErrorBoundary>
         </div>

@@ -2128,7 +2128,7 @@ export function ResearchDemoSurface({
           className="grid gap-3 px-5 py-4 md:grid-cols-2 xl:grid-cols-4"
           variants={STAGGER_CONTAINER}
           initial="hidden"
-          animate="show"
+          animate="visible"
         >
           {heroSnapshotCards.map((card, index) => (
             <motion.div key={card.label} variants={STAGGER_ITEM} className={cn('lab-metric-card', index === 0 && 'border-accent/20')}>

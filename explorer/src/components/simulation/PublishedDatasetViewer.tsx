@@ -1283,7 +1283,7 @@ export function PublishedDatasetViewer({
           className="flex flex-wrap items-center gap-2 text-xs text-muted"
           variants={STAGGER_CONTAINER}
           initial="hidden"
-          animate="show"
+          animate="visible"
         >
           <motion.span variants={STAGGER_ITEM} className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1 text-11 font-medium text-text-primary">
             {dataset.evaluation} · {dataset.paradigm} · {dataset.result}
@@ -1392,7 +1392,7 @@ export function PublishedDatasetViewer({
         className="grid gap-6 xl:grid-cols-2"
         variants={STAGGER_CONTAINER}
         initial="hidden"
-        animate="show"
+        animate="visible"
       >
         {[
           {
@@ -1503,7 +1503,7 @@ export function PublishedDatasetViewer({
             className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
             variants={STAGGER_CONTAINER}
             initial="hidden"
-            animate="show"
+            animate="visible"
           >
             {[
               {

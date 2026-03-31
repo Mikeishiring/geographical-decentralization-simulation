@@ -1,7 +1,7 @@
 import { useId, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
-import { BLOCK_COLORS, CHART, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
+import { CHART, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { WORLD_PATHS } from '../../data/world-paths'
 import type { MapBlock as MapBlockType } from '../../types/blocks'
@@ -9,6 +9,17 @@ import type { MapBlock as MapBlockType } from '../../types/blocks'
 interface MapBlockProps {
   block: MapBlockType
 }
+
+/* ── Pastel palette — matches the GlobeWireframe node colors ── */
+const PASTEL = {
+  lavender: '#c3b1e1',
+  sky: '#a8d8ea',
+  peach: '#ffd3b6',
+  mint: '#a8e6cf',
+  rose: '#f6b8d1',
+} as const
+
+const PASTEL_SCALE = [PASTEL.sky, PASTEL.mint, PASTEL.lavender, PASTEL.peach, PASTEL.rose] as const
 
 /* ── Projection ── */
 function latLonToMercator(lat: number, lon: number, width: number, height: number) {
@@ -26,22 +37,22 @@ function getDotRadius(value: number, maxValue: number): number {
 }
 
 function getDotColor(value: number, maxValue: number, colorScale?: string): string {
-  if (colorScale === 'binary') return value > 0 ? BLOCK_COLORS[2] : '#3B3B3B'
+  if (colorScale === 'binary') return value > 0 ? PASTEL.mint : '#3B3B3B'
   if (colorScale === 'change') {
-    if (value > 0) return BLOCK_COLORS[2]
-    if (value < 0) return BLOCK_COLORS[4]
-    return '#888'
+    if (value > 0) return PASTEL.mint
+    if (value < 0) return PASTEL.rose
+    return '#667788'
   }
   const t = Math.min(value / Math.max(maxValue, 1), 1)
-  if (t < 0.1) return '#64748B'
-  if (t < 0.3) return BLOCK_COLORS[0]
-  if (t < 0.6) return BLOCK_COLORS[1]
-  return BLOCK_COLORS[3]
+  if (t < 0.1) return '#556677'
+  if (t < 0.3) return PASTEL.sky
+  if (t < 0.6) return PASTEL.lavender
+  return PASTEL.peach
 }
 
 function getEdgeOpacity(va: number, vb: number, maxValue: number): number {
   const combined = (va + vb) / (2 * Math.max(maxValue, 1))
-  return 0.05 + combined * 0.15
+  return 0.08 + combined * 0.22
 }
 
 /* ── Curved edge path (quadratic bezier with upward arc) ── */
@@ -153,9 +164,14 @@ export function MapBlock({ block }: MapBlockProps) {
       {/* ── Header ── */}
       <div className="border-b border-rule px-5 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-accent dot-pulse" />
-            <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
+          <div>
+            <div className="flex items-center gap-2">
+              <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-accent dot-pulse" />
+              <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
+            </div>
+            <p className="mt-0.5 text-2xs text-muted pl-[18px]">
+              Geographic validator distribution. Hover nodes to inspect values. Size encodes stake share.
+            </p>
           </div>
           <div className="flex items-center gap-3 text-xs text-muted">
             <span>{regions.length} regions</span>
@@ -170,38 +186,44 @@ export function MapBlock({ block }: MapBlockProps) {
         <div
           ref={mapRef}
           className="relative overflow-hidden bg-[#0B0F14]"
-          style={{ aspectRatio: `${SVG_W} / ${SVG_H}` }}
+          style={{ aspectRatio: `${SVG_W} / ${SVG_H}`, minHeight: 0 }}
         >
           <svg
             viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-            className="absolute inset-0 h-full w-full"
-            preserveAspectRatio="xMidYMid slice"
+            className="block h-full w-full"
+            preserveAspectRatio="xMidYMid meet"
             role="img"
             aria-label={block.title}
           >
             <defs>
               <radialGradient id={bgId} cx="42%" cy="38%" r="68%">
-                <stop offset="0%" stopColor="#111927" />
-                <stop offset="100%" stopColor="#0B0F14" />
+                <stop offset="0%" stopColor="#0E1520" />
+                <stop offset="100%" stopColor="#080C12" />
               </radialGradient>
               <radialGradient id={glowId} cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.12} />
-                <stop offset="100%" stopColor="#3B82F6" stopOpacity={0} />
+                <stop offset="0%" stopColor={PASTEL.lavender} stopOpacity={0.14} />
+                <stop offset="100%" stopColor={PASTEL.lavender} stopOpacity={0} />
+              </radialGradient>
+              {/* Atmospheric vignette — matches globe edge glow */}
+              <radialGradient id={`${bgId}-atmos`} cx="50%" cy="50%" r="55%">
+                <stop offset="0%" stopColor="transparent" />
+                <stop offset="75%" stopColor="transparent" />
+                <stop offset="100%" stopColor="#060A0F" stopOpacity={0.6} />
               </radialGradient>
               <filter id={`${bgId}-blur`}>
-                <feGaussianBlur in="SourceGraphic" stdDeviation="18" />
+                <feGaussianBlur in="SourceGraphic" stdDeviation="22" />
               </filter>
             </defs>
 
             <rect x={0} y={0} width={SVG_W} height={SVG_H} fill={`url(#${bgId})`} />
 
-            {/* Subtle graticule grid */}
+            {/* Wireframe-style graticule — matches GlobeWireframe latitude/longitude lines */}
             {[-60, -30, 0, 30, 60].map(lat => {
               const { y } = latLonToMercator(lat, 0, SVG_W, SVG_H)
               return (
                 <g key={`lat-${lat}`}>
-                  <line x1={0} y1={y} x2={SVG_W} y2={y} stroke="#1A2336" strokeWidth={0.4} />
-                  <text x={8} y={y - 3} fill="#263354" fontSize="6" fontFamily="var(--font-mono)">
+                  <line x1={0} y1={y} x2={SVG_W} y2={y} stroke="#1C2A3E" strokeWidth={0.5} strokeDasharray={lat === 0 ? 'none' : '3 6'} />
+                  <text x={8} y={y - 3} fill="#2A3D5A" fontSize="6" fontFamily="var(--font-mono)" opacity={0.7}>
                     {Math.abs(lat)}°{lat >= 0 ? 'N' : 'S'}
                   </text>
                 </g>
@@ -209,43 +231,48 @@ export function MapBlock({ block }: MapBlockProps) {
             })}
             {[-120, -60, 0, 60, 120].map(lon => {
               const { x } = latLonToMercator(0, lon, SVG_W, SVG_H)
-              return <line key={`lon-${lon}`} x1={x} y1={0} x2={x} y2={SVG_H} stroke="#1A2336" strokeWidth={0.4} />
+              return <line key={`lon-${lon}`} x1={x} y1={0} x2={x} y2={SVG_H} stroke="#1C2A3E" strokeWidth={0.5} strokeDasharray="3 6" />
             })}
 
-            {/* Country outlines — real GeoJSON silhouettes */}
+            {/* Country outlines — real GeoJSON silhouettes, softer fill */}
             {WORLD_PATHS.map((d, i) => (
               <path
                 key={i}
                 d={d}
-                fill="#141E2E"
-                stroke="#1F3049"
-                strokeWidth={0.35}
+                fill="#111B28"
+                stroke="#1E3048"
+                strokeWidth={0.4}
                 strokeLinejoin="round"
+                opacity={0.85}
               />
             ))}
 
-            {/* Ambient glow behind top clusters */}
-            {topRegions.slice(0, 3).map(region => {
+            {/* Ambient glow behind top clusters — pastel tones */}
+            {topRegions.slice(0, 3).map((region, i) => {
               const { x, y } = latLonToMercator(region.lat, region.lon, SVG_W, SVG_H)
+              const glowColor = PASTEL_SCALE[i % PASTEL_SCALE.length]
               return (
                 <circle
                   key={`glow-${region.name}`}
-                  cx={x} cy={y} r={40}
-                  fill={`url(#${glowId})`}
+                  cx={x} cy={y} r={45}
+                  fill={glowColor}
+                  fillOpacity={0.06}
                   filter={`url(#${bgId}-blur)`}
-                  opacity={0.7}
                 />
               )
             })}
 
-            {/* Network edges — curved paths */}
+            {/* Atmospheric vignette overlay */}
+            <rect x={0} y={0} width={SVG_W} height={SVG_H} fill={`url(#${bgId}-atmos)`} />
+
+            {/* Network edges — atmospheric arcs matching globe connection style */}
             {edges.map((e, i) => (
               <motion.path
                 key={`edge-${i}`}
                 d={e.path}
                 fill="none"
-                stroke="#3B82F6"
-                strokeWidth={0.6}
+                stroke={PASTEL_SCALE[i % PASTEL_SCALE.length]}
+                strokeWidth={0.8}
                 strokeLinecap="round"
                 initial={{ pathLength: 0, opacity: 0 }}
                 animate={{
@@ -270,44 +297,44 @@ export function MapBlock({ block }: MapBlockProps) {
 
                 return (
                   <g key={region.name}>
-                    {/* Breathing halo for top regions */}
+                    {/* Breathing halo for top regions — atmospheric pulse */}
                     {isTop && (
                       <motion.circle
-                        cx={x} cy={y} r={radius * 2.2}
+                        cx={x} cy={y} r={radius * 2.5}
                         fill="none"
                         stroke={color}
-                        strokeWidth={0.6}
-                        initial={{ opacity: 0, r: radius * 2.2 }}
+                        strokeWidth={0.5}
+                        initial={{ opacity: 0, r: radius * 2.5 }}
                         animate={{
-                          opacity: [0.06, 0.14, 0.06],
-                          r: [radius * 2.2, radius * 2.8, radius * 2.2],
+                          opacity: [0.04, 0.12, 0.04],
+                          r: [radius * 2.5, radius * 3.2, radius * 2.5],
                         }}
                         transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: index * 0.3 }}
                       />
                     )}
 
-                    {/* Soft glow ring */}
+                    {/* Outer glow — depth-based like globe nodes */}
                     <motion.circle
                       cx={x} cy={y}
-                      r={radius * 1.7}
+                      r={radius * 2.2}
                       fill={color}
-                      fillOpacity={isHovered ? 0.16 : 0.07}
+                      fillOpacity={isHovered ? 0.18 : 0.08}
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ ...SPRING_SOFT, delay: 0.15 + index * 0.012 }}
                     />
 
-                    {/* Core dot */}
+                    {/* Core dot — pastel with soft white stroke */}
                     <motion.circle
                       cx={x} cy={y}
                       r={radius}
                       fill={color}
-                      stroke={isTop ? 'rgba(255,255,255,0.7)' : 'rgba(148,163,184,0.25)'}
-                      strokeWidth={isTop ? 1 : 0.5}
+                      stroke={isTop ? 'rgba(255,255,255,0.5)' : 'rgba(180,200,220,0.18)'}
+                      strokeWidth={isTop ? 0.8 : 0.4}
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{
                         scale: isHovered ? 1.3 : 1,
-                        opacity: 1,
+                        opacity: 0.85,
                       }}
                       transition={{ ...SPRING_SNAPPY, delay: 0.15 + index * 0.012 }}
                       style={{ cursor: 'pointer' }}
@@ -322,14 +349,15 @@ export function MapBlock({ block }: MapBlockProps) {
                     {isTop && rank < 4 && (
                       <motion.text
                         x={x}
-                        y={y - radius - 6}
+                        y={y - radius - 7}
                         textAnchor="middle"
-                        fill="#8899B0"
-                        fontSize="7.5"
+                        fill="#B0C4D8"
+                        fontSize="7"
                         fontFamily="var(--font-mono)"
                         fontWeight={500}
+                        letterSpacing="0.02em"
                         initial={{ opacity: 0, y: y - radius }}
-                        animate={{ opacity: 0.9, y: y - radius - 6 }}
+                        animate={{ opacity: 0.85, y: y - radius - 7 }}
                         transition={{ ...SPRING_SOFT, delay: 0.6 + index * 0.04 }}
                       >
                         {region.label ?? region.name}
@@ -353,10 +381,10 @@ export function MapBlock({ block }: MapBlockProps) {
                 className="pointer-events-none absolute z-20"
                 style={tooltipStyle}
               >
-                <div className="relative rounded-lg border border-white/10 bg-[#111827]/90 px-3 py-2 shadow-2xl backdrop-blur-md">
+                <div className="relative rounded-lg border border-white/8 bg-[#0C1220]/92 px-3 py-2 shadow-2xl backdrop-blur-md">
                   {/* Arrow */}
                   <div
-                    className="absolute left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-b border-r border-white/10 bg-[#111827]/90"
+                    className="absolute left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-b border-r border-white/8 bg-[#0C1220]/92"
                     style={{
                       bottom: (tooltip.y / SVG_H) * 100 < 18 ? 'auto' : '-5px',
                       top: (tooltip.y / SVG_H) * 100 < 18 ? '-5px' : 'auto',
@@ -475,10 +503,10 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
         <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Presence</div>
         <div className="space-y-1">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-success" /> Present
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: PASTEL.mint }} /> Present
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-neutral-700" /> Absent
+            <span className="h-2 w-2 rounded-full bg-text-faint" /> Absent
           </span>
         </div>
       </div>
@@ -491,13 +519,13 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
         <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Change</div>
         <div className="space-y-1">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-success" /> Increase
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: PASTEL.mint }} /> Increase
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-danger" /> Decrease
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: PASTEL.rose }} /> Decrease
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-neutral-500" /> No change
+            <span className="h-2 w-2 rounded-full bg-text-faint" /> No change
           </span>
         </div>
       </div>
@@ -509,19 +537,19 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
       <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Stake concentration</div>
       <div className="grid grid-cols-2 gap-x-2 gap-y-1">
         <span className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
+          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#556677' }} />
           <span className="text-2xs">Low</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-accent" />
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: PASTEL.sky }} />
           <span className="text-2xs">Moderate</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-accent-warm" />
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: PASTEL.lavender }} />
           <span className="text-2xs">High</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-warning" />
+          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PASTEL.peach }} />
           <span className="text-2xs">Dominant</span>
         </span>
       </div>

@@ -174,7 +174,7 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
                 <motion.circle
                   cx={p.x} cy={p.y}
                   r={isHovered ? 5 : (isLast ? 3.5 : 2)}
-                  fill="white" stroke="#2563EB" strokeWidth={isHovered ? 2 : 1.5}
+                  fill="white" stroke={BLOCK_COLORS[0]} strokeWidth={isHovered ? 2 : 1.5}
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ ...SPRING_CRISP, delay: 0.2 + i * 0.02 }}
@@ -195,7 +195,7 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
             <circle
               cx={latestPoint.x} cy={latestPoint.y}
               r={CHART.liveDotRadius}
-              fill="none" stroke="#2563EB" strokeWidth={1.5} opacity={0.4}
+              fill="none" stroke={BLOCK_COLORS[0]} strokeWidth={1.5} opacity={0.4}
               className="live-dot-pulse"
             />
           )}

@@ -42,6 +42,8 @@ interface EditorialViewProps {
   readonly onSectionClick: (id: string) => void
   readonly onOpenCommunityExploration?: (explorationId: string) => void
   readonly onTabChange?: (tab: TabId) => void
+  /** Navigate to Agent tab with a pre-filled query */
+  readonly onQueryAgent?: (query: string) => void
   /** Whether to show inline community notes on sections */
   readonly notesVisible?: boolean
   /** Notes grouped by sectionId */
@@ -55,6 +57,7 @@ export function EditorialView({
   onSectionClick,
   onOpenCommunityExploration,
   onTabChange,
+  onQueryAgent,
   notesVisible = false,
   notesBySection,
 }: EditorialViewProps) {
@@ -157,20 +160,20 @@ export function EditorialView({
               <p className="mt-1 text-sm text-muted">{activeTopic.description}</p>
             </div>
             <BlockCanvas blocks={activeTopic.blocks} />
-            {activeTopic.prompts.length > 0 && onTabChange && (
+            {activeTopic.prompts.length > 0 && (onQueryAgent || onTabChange) && (
               <div className="mt-6 pt-4 border-t border-rule">
                 <span className="text-xs text-muted mb-2 block">Ask the Agent about this topic</span>
                 <motion.div
                   className="flex flex-wrap gap-2"
                   variants={STAGGER_CONTAINER}
                   initial="hidden"
-                  animate="show"
+                  animate="visible"
                 >
                   {activeTopic.prompts.slice(0, 4).map((prompt, i) => (
                     <motion.button
                       key={`${prompt}-${i}`}
                       variants={STAGGER_ITEM}
-                      onClick={() => onTabChange('agent')}
+                      onClick={() => onQueryAgent ? onQueryAgent(prompt) : onTabChange?.('agent')}
                       className="follow-up-chip"
                       title={`Ask Agent: ${prompt}`}
                     >
@@ -206,7 +209,7 @@ export function EditorialView({
           /* Focus mode: centered, distraction-free */
           <div className="space-y-12">
             {/* Focus mode section indicator */}
-            <div className="sticky top-40 z-10 rounded-xl border border-rule bg-white/95 backdrop-blur-sm px-4 py-2.5 geo-accent-bar">
+            <div className="sticky top-[8rem] z-10 rounded-xl border border-rule bg-white/95 backdrop-blur-sm px-4 py-2.5 geo-accent-bar">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm min-w-0">
                   <span className="text-xs font-mono text-accent shrink-0">{activeSection.number}</span>
@@ -329,6 +332,7 @@ export function EditorialView({
           /* Editorial mode: uses PaperSectionView with sidebar */
           <PaperSectionView
             focusMode={false}
+            activeSectionId={activeSectionId}
             onPublish={handleSectionPublish}
             isPublishing={publishMutation.isPending}
             publishError={(publishMutation.error as Error | null)?.message ?? null}
@@ -345,7 +349,7 @@ export function EditorialView({
           className="mt-10 grid gap-3 sm:grid-cols-3"
           variants={STAGGER_CONTAINER}
           initial="hidden"
-          whileInView="show"
+          whileInView="visible"
           viewport={{ once: true, amount: 0.3 }}
         >
           {([

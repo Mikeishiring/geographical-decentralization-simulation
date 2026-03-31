@@ -22,7 +22,7 @@ export function SourceBlock({ block }: SourceBlockProps) {
               href={ref.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-baseline justify-between gap-2 py-2 text-13 text-accent hover:text-accent/80 transition-colors"
+              className="flex items-baseline justify-between gap-2 py-2 px-2 -mx-2 rounded-md text-13 text-accent hover:text-accent/80 hover:bg-surface-active/50 transition-colors"
             >
               <span>
                 {ref.label}

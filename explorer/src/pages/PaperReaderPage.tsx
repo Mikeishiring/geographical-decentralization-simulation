@@ -15,12 +15,14 @@ interface PaperReaderPageProps {
   readonly isActive?: boolean
   readonly onOpenCommunityExploration?: (explorationId: string) => void
   readonly onTabChange?: (tab: TabId) => void
+  readonly onQueryAgent?: (query: string) => void
 }
 
 export function PaperReaderPage({
   isActive = true,
   onOpenCommunityExploration,
   onTabChange,
+  onQueryAgent,
 }: PaperReaderPageProps) {
   const queryClient = useQueryClient()
 
@@ -30,6 +32,7 @@ export function PaperReaderPage({
     return 'editorial'
   })
 
+  const [noteError, setNoteError] = useState<string | null>(null)
   const [activeSectionId, setActiveSectionId] = useState<string>(() => {
     const initialHash = window.location.hash.replace('#', '')
     return PAPER_SECTIONS.some(section => section.id === initialHash)
@@ -105,7 +108,8 @@ export function PaperReaderPage({
       // Refresh notes so the new one appears inline
       void queryClient.invalidateQueries({ queryKey: ['explorations'] })
     } catch {
-      // Silently fail — user can retry
+      setNoteError('Failed to publish note. Please try again.')
+      window.setTimeout(() => setNoteError(null), 4000)
     }
   }, [clearSelection, queryClient])
 
@@ -182,6 +186,12 @@ export function PaperReaderPage({
       sectionNoteCount={selectionSectionNoteCount}
     />
 
+    {noteError && (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-xl border border-danger/20 bg-danger/5 px-4 py-2.5 text-sm text-danger shadow-lg backdrop-blur-sm">
+        {noteError}
+      </div>
+    )}
+
     <div ref={containerRef} className="overflow-x-hidden">
 
       {/* Sticky reading-mode bar */}
@@ -209,6 +219,7 @@ export function PaperReaderPage({
           onSectionClick={setActiveSectionId}
           onOpenCommunityExploration={onOpenCommunityExploration}
           onTabChange={onTabChange}
+          onQueryAgent={onQueryAgent}
           notesVisible={notesVisible}
           notesBySection={notesBySection}
         />
