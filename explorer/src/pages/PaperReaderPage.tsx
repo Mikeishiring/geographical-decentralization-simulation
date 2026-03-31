@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, Link2, Quote, ChevronDown, ChevronUp, LayoutList, FileText, BookOpen, Check, Download } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { cn } from '../lib/cn'
-import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../lib/theme'
+import { SPRING, SPRING_SOFT, SPRING_SNAPPY, PAGE_TRANSITION } from '../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
 import type { TabId } from '../components/layout/TabNav'
 
@@ -455,7 +455,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
 
       {argumentMapMode ? (
         /* ── Argument Map View ── */
-        <motion.div key="argument-map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}>
+        <motion.div key="argument-map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={PAGE_TRANSITION}>
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
               <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Argument map</span>
@@ -550,7 +550,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         </motion.div>
       ) : paperMode ? (
         /* ── Full Text View — typeset paper with inline figures ── */
-        <motion.div key="paper" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }} className="grid gap-8 xl:grid-cols-[220px_minmax(0,1fr)]">
+        <motion.div key="paper" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={PAGE_TRANSITION} className="grid gap-8 xl:grid-cols-[220px_minmax(0,1fr)]">
           {/* TOC sidebar */}
           <aside className="hidden xl:block xl:sticky xl:top-40 xl:self-start">
             <div className="border border-rule rounded-lg p-4">
@@ -634,7 +634,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
                   </div>
 
                   {/* Body text — lede paragraph */}
-                  <div className="space-y-5 text-[15.5px] leading-[1.9] text-text-body font-serif">
+                  <div className="space-y-5 text-base leading-[1.9] text-text-body font-serif">
                     <p className="text-[1.0625rem] leading-[1.85] text-text-primary">
                       {narrative.lede}
                     </p>
@@ -660,7 +660,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
 
                   {/* Remaining paragraphs */}
                   {narrative.paragraphs.length > 1 && (
-                    <div className="space-y-5 text-[15.5px] leading-[1.9] text-text-body font-serif">
+                    <div className="space-y-5 text-base leading-[1.9] text-text-body font-serif">
                       {narrative.paragraphs.slice(1).map(p => (
                         <p key={p}>{p}</p>
                       ))}
@@ -709,7 +709,7 @@ export function PaperReaderPage({ onTabChange: _onTabChange }: { onTabChange?: (
         </motion.div>
       ) : (
 
-      <motion.div key={focusMode ? 'focus' : 'editorial'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }} className={cn('grid gap-8 overflow-hidden', focusMode ? 'xl:grid-cols-[minmax(0,1fr)]' : 'xl:grid-cols-[220px_minmax(0,1fr)]')}>
+      <motion.div key={focusMode ? 'focus' : 'editorial'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={PAGE_TRANSITION} className={cn('grid gap-8 overflow-hidden', focusMode ? 'xl:grid-cols-[minmax(0,1fr)]' : 'xl:grid-cols-[220px_minmax(0,1fr)]')}>
         {/* TOC sidebar */}
         {!focusMode && (
           <aside className="hidden xl:block xl:sticky xl:top-40 xl:self-start">
