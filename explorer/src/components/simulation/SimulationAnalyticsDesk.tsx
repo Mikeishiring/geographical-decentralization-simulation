@@ -229,7 +229,7 @@ export function SimulationAnalyticsDesk({
           className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
           variants={STAGGER_CONTAINER}
           initial="hidden"
-          animate="show"
+          animate="visible"
         >
           {metricCards.map(card => (
             <motion.div key={card.label} variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-white px-4 py-4 card-hover">

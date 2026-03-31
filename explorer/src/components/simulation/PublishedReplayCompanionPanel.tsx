@@ -485,7 +485,7 @@ export function PublishedReplayCompanionPanel({
           className="mt-3 flex flex-wrap gap-2 text-xs text-muted"
           variants={STAGGER_CONTAINER}
           initial="hidden"
-          animate="show"
+          animate="visible"
         >
           <motion.span variants={STAGGER_ITEM} className="lab-chip">{datasetLabel(dataset)}</motion.span>
           <motion.span variants={STAGGER_ITEM} className="lab-chip">{sourceRoleLabel(dataset?.sourceRole)}</motion.span>
@@ -660,7 +660,7 @@ export function PublishedReplayCompanionPanel({
                 className="mt-3 flex flex-wrap gap-2"
                 variants={STAGGER_CONTAINER}
                 initial="hidden"
-                animate="show"
+                animate="visible"
               >
                 {response.followUps.map(prompt => (
                   <motion.button

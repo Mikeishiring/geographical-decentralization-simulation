@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ArrowUpDown, ThumbsUp, ThumbsDown, Tag, ChevronDown, ChevronUp, Users, Sparkles, Link2 } from 'lucide-react'
+import { Search, ArrowUpDown, ThumbsUp, ThumbsDown, Tag, ChevronDown, ChevronUp, Users, Sparkles, FlaskConical, Award, Link2 } from 'lucide-react'
 import { NodeArc } from '../components/decorative/NodeArc'
 import { getExploration, listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
@@ -218,13 +218,13 @@ export function ExploreHistoryPage({
           detail="Reader-written notes that started from the Paper tab or a saved reading."
         />
         <SummaryCard
-          icon={<Sparkles className="h-4 w-4 text-warning" />}
+          icon={<FlaskConical className="h-4 w-4 text-warning" />}
           label="Published exact-run notes"
           value={publishedSimulationNotes.length}
           detail="Reader-written notes layered on top of exact manifests, figures, and artifacts."
         />
         <SummaryCard
-          icon={<Sparkles className="h-4 w-4 text-accent-warm" />}
+          icon={<Award className="h-4 w-4 text-accent-warm" />}
           label="Featured or verified"
           value={featuredContributions.length}
           detail="Researcher-verified or editorially surfaced notes."

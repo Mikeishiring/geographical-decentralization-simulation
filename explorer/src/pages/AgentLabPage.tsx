@@ -8,7 +8,7 @@
  * Users can switch modes freely. Both share the same research context.
  */
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, MessageSquare, FlaskConical, Link2, FileText } from 'lucide-react'
@@ -51,7 +51,10 @@ export default function AgentLabPage() {
   const [mode, setMode] = useState<AgentMode>('ask')
 
   // ── Ask mode state ──
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('q') ?? ''
+  })
   const [aiResponse, setAiResponse] = useState<ExploreResponse | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<ExploreError | null>(null)
@@ -126,6 +129,20 @@ export default function AgentLabPage() {
       setAiError(result.error)
     }
   }, [history, publishMutation])
+
+  // Auto-submit if query came from URL (e.g. topic chip → Agent tab)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const urlQuery = params.get('q')
+    if (urlQuery && !aiResponse && !aiLoading) {
+      void handleAskSubmit(urlQuery)
+      // Clear the q param so it doesn't re-fire
+      params.delete('q')
+      const url = new URL(window.location.href)
+      url.searchParams.delete('q')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleShare = useCallback(async () => {
     const id = publishedId ?? aiResponse?.provenance.explorationId

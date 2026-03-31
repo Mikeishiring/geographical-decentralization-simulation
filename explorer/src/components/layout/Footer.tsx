@@ -4,7 +4,7 @@ import { GlobeNetwork } from '../decorative/GlobeNetwork'
 
 const FOOTER_LINKS = [
   { label: 'Read the paper', href: 'https://arxiv.org/abs/2509.21475' },
-  { label: 'View source', href: 'https://github.com/syang-ng/geographical-decentralization-simulation' },
+  { label: 'View source', href: 'https://github.com/Mikeishiring/geographical-decentralization-simulation' },
   { label: 'Published demo', href: 'https://geo-decentralization.github.io/' },
 ] as const
 

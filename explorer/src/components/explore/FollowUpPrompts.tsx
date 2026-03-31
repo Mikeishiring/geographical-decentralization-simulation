@@ -22,7 +22,7 @@ export function FollowUpPrompts({ prompts, title, onSelect }: FollowUpPromptsPro
         className="flex flex-wrap gap-2"
         variants={STAGGER_CONTAINER}
         initial="hidden"
-        animate="show"
+        animate="visible"
       >
         {prompts.map((query, index) => (
           <motion.button

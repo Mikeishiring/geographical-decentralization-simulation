@@ -21,7 +21,7 @@ export function PaperHero({ onSectionClick }: PaperHeroProps) {
       }}
       variants={STAGGER_CONTAINER}
       initial="hidden"
-      animate="show"
+      animate="visible"
     >
       {/* Background globe motif */}
       <div className="absolute -right-6 -top-4 w-[180px] h-[180px] opacity-[0.18] pointer-events-none select-none sm:w-[220px] sm:h-[220px]" aria-hidden="true">

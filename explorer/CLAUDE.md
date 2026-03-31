@@ -11,18 +11,46 @@ npm run dev          # Frontend on :3200
 npx tsx server/index.ts  # API server on :3201 (needs ANTHROPIC_API_KEY in .env)
 ```
 
-## Current State (Session 6 — 2026-03-31)
+## Repository Structure (Two Layers)
+
+### Layer 1: Python Simulation (root)
+Mesa agent-based model simulating Ethereum consensus with geographical latency.
+
+| File | Purpose |
+|------|---------|
+| `simulation.py` | Main simulation entry point |
+| `consensus.py` | ConsensusSettings — slot timing, attestation thresholds, reward weights |
+| `models.py` | Mesa model definitions |
+| `validator_agent.py` | Validator agent behavior |
+| `source_agent.py` | Block source agent |
+| `distribution.py` | Geographical distribution logic |
+| `measure.py` | Simulation measurement/metrics |
+| `constants.py` | Protocol constants (slot duration, rewards) |
+| `preprocess_data.py` | Data preprocessing pipeline |
+| `visualization.py` | Matplotlib visualization |
+| `data/` | GCP latency CSVs, validator data, GeoJSON |
+| `params/` | YAML configs: SSP/MSP baselines, latency-aligned/misaligned scenarios |
+| `analysis/` | Post-hoc analysis scripts (trend, comparison, empirical) |
+| `plot/` | Publication-quality figure generation |
+| `figure/` | Generated PDFs (latency heatmaps, continent comparisons, marginal benefit) |
+| `.benchmarks/` | Archived pre-optimization simulation snapshots |
+
+### Layer 2: Explorer Frontend (`explorer/`)
+React + Express app wrapping the simulation with AI-powered paper exploration.
+
+## Current State (2026-03-31)
 
 ### What's Built
 
-**4 tabs:**
+**5 pages:**
 
 | Tab | Page | Status |
 |-----|------|--------|
-| Paper | `src/pages/PaperReaderPage.tsx` | Complete — 3 reader modes (Editorial, Focus, Original PDF), collapsible argument map in editorial, community note text anchoring |
-| Results | `src/pages/SimulationLabPage.tsx` | Complete — config builder, preset system, artifact viewer |
-| Agent | `src/pages/AgentLabPage.tsx` | Complete — AI query bar, follow-up chips, tool_use |
-| Community | `src/pages/ExploreHistoryPage.tsx` | Complete — gallery, voting, search, sort, tags, anchored notes |
+| Paper | `PaperReaderPage.tsx` | Complete — 4-view spectrum (Editorial, Focus, Argument Map, Original PDF), community note text anchoring, citation cross-links |
+| Results | `SimulationLabPage.tsx` | Complete — config builder, preset system, artifact viewer, analytics desk |
+| Agent | `AgentLabPage.tsx` | Complete — AI query bar, follow-up chips, tool_use |
+| Community | `ExploreHistoryPage.tsx` | Complete — gallery, voting, search, sort, tags, anchored notes |
+| Deep Dive | `DeepDivePage.tsx` | Complete — section-level paper exploration |
 
 **Server infrastructure:**
 
@@ -34,6 +62,20 @@ npx tsx server/index.ts  # API server on :3201 (needs ANTHROPIC_API_KEY in .env)
 | Python worker | `server/simulation_worker.py` | Wraps researchers' Mesa simulation, produces manifests |
 | Tool catalog | `server/catalog.ts` | Auto-generates Claude tool_use schema from Zod (single source of truth) |
 | Study context | `server/study-context.ts` | ~10K token system prompt with paper findings |
+| Agent loop | `server/agent-loop-*.ts` | Orchestrator, store, types for multi-turn agent execution |
+
+**Frontend component domains:**
+
+| Directory | Contents |
+|-----------|----------|
+| `components/blocks/` | 9 block renderers + BlockRenderer dispatcher |
+| `components/explore/` | QueryBar, BlockCanvas, QueryHistory, ShimmerBlock |
+| `components/paper/` | EditorialView, ArgumentMapView, FullTextView, CommunityPreview |
+| `components/community/` | SelectionPopover, InlineSectionNotes |
+| `components/simulation/` | SimConfigPanel, SimResultsPanel, analytics desk, published replay |
+| `components/agent/` | AgentStepCard, AgentConfigReview, AgentCostBar |
+| `components/decorative/` | GlobeWireframe, NodeConstellation, NodeArc |
+| `components/layout/` | Header, TabNav, Footer |
 
 **Key patterns:**
 - Block types defined once in Zod (`src/types/blocks.ts`), shared between frontend validation and server tool schemas
@@ -41,6 +83,8 @@ npx tsx server/index.ts  # API server on :3201 (needs ANTHROPIC_API_KEY in .env)
 - Web Worker for simulation artifact parsing (off main thread)
 - Spring physics animations everywhere (SPRING/SPRING_SOFT from `src/lib/theme.ts`)
 - Blueprint dark theme: Canvas #050505, Surface #111111, Accent #3B82F6 (SSP), Warm #d97757 (MSP)
+- Source provenance pills: fidelity spectrum (Exact → Derived → Interpreted → Speculative)
+- Citation pills with arXiv cross-links
 
 ### Phase Completion
 
@@ -55,69 +99,41 @@ npx tsx server/index.ts  # API server on :3201 (needs ANTHROPIC_API_KEY in .env)
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│ Frontend (Vite :3200)                       │
-│                                             │
-│  PaperReader (3 modes + PDF)         │      │
-│  SimulationLab ──→ /api/simulations ─┐      │
-│  AgentLab ──→ /api/explore ──────────┤      │
-│  ExploreHistory ──→ /api/explorations│      │
-│                                      ▼      │
-│  ┌─ Vite proxy /api/* ──→ :3201 ─────┐     │
-└──┘                                    │     │
+┌──────────────────────────────────────────────────────────────┐
+│ Python Simulation (root)                                     │
+│  simulation.py → Mesa ABM (validators, sources, consensus)   │
+│  params/*.yaml → scenario configs (SSP/MSP baselines)        │
+│  data/*.csv → GCP latency, validator locations               │
+└──────────────────────┬───────────────────────────────────────┘
+                       │ spawned by server/simulation_worker.py
+                       ▼
+┌──────────────────────────────────────────────────────────────┐
+│ Explorer Frontend (Vite :3200)                               │
+│                                                              │
+│  PaperReader (static, 4 views)                               │
+│  DeepDive (section narratives)                               │
+│  SimulationLab ──→ /api/simulations ─┐                       │
+│  AgentLab ──→ /api/explore ──────────┤                       │
+│  ExploreHistory ──→ /api/explorations│                       │
+│                                      ▼                       │
+│  ┌─ Vite proxy /api/* ──→ :3201 ─────┐                      │
+└──┘                                    │                      │
                                         ▼
-┌─────────────────────────────────────────────┐
-│ Express API Server (:3201)                  │
-│                                             │
-│  POST /api/explore ──→ Claude Sonnet        │
-│    └→ auto-save to ExplorationStore         │
-│  GET  /api/explorations ──→ list/search     │
-│  POST /api/explorations/:id/vote            │
-│  POST /api/simulations ──→ SimulationRuntime│
-│    └→ Python worker ──→ Mesa ABM            │
-│  GET  /api/simulations/:id                  │
-│  GET  /api/simulations/:id/manifest         │
-│  GET  /api/simulations/:id/artifacts/:name  │
-└─────────────────────────────────────────────┘
-```
+┌──────────────────────────────────────────────────────────────┐
+│ Express API Server (:3201)                                   │
+│                                                              │
+│  POST /api/explore ──→ Claude Sonnet (tool_use)              │
+│    └→ auto-save to ExplorationStore                          │
+│  GET  /api/explorations ──→ list/search                      │
+│  POST /api/explorations/:id/vote                             │
+│  POST /api/simulations ──→ SimulationRuntime                 │
+│    └→ Python worker ──→ Mesa ABM (root simulation)           │
+│  GET  /api/simulations/:id                                   │
+│  GET  /api/simulations/:id/manifest                          │
+│  GET  /api/simulations/:id/artifacts/:name                   │
+└──────────────────────────────────────────────────────────────┘
 
-## File Organization
-
-```
-explorer/
-├── src/
-│   ├── components/
-│   │   ├── blocks/          # 9 block renderers + BlockRenderer dispatcher
-│   │   ├── explore/         # QueryBar, BlockCanvas, QueryHistory, ShimmerBlock, ErrorDisplay
-│   │   ├── paper/           # EditorialView, ArgumentMapView, FullTextView, PaperViewModeBar, PaperSectionView
-│   │   ├── community/       # SelectionPopover (text selection → note CTA)
-│   │   └── layout/          # Header, TabNav, Footer
-│   ├── data/
-│   │   ├── default-blocks.ts    # 9 overview blocks + 8 topic cards
-│   │   ├── paper-narrative.ts   # Section narratives (lede, paragraphs, pull quotes)
-│   │   └── gcp-regions.ts       # 40 GCP region lat/lon lookup
-│   ├── hooks/
-│   │   └── useTextSelection.ts  # mouseup → TextAnchor + DOMRect for community notes
-│   ├── lib/
-│   │   ├── api.ts               # Explore + exploration API client
-│   │   ├── simulation-api.ts    # Simulation API client
-│   │   ├── theme.ts             # SPRING, SPRING_SOFT, BLOCK_COLORS constants
-│   │   └── cn.ts                # clsx + tailwind-merge utility
-│   ├── pages/                   # 4 page components (PaperReader, Results, Agent, Community)
-│   ├── types/
-│   │   ├── blocks.ts            # 9 Zod schemas + discriminated union + parseBlocks()
-│   │   └── anchors.ts           # TextAnchor type for community note positioning
-│   └── workers/                 # Web Worker for artifact parsing
-├── server/
-│   ├── index.ts                 # Express API proxy
-│   ├── catalog.ts               # Auto-generated tool_use schema from Zod
-│   ├── exploration-store.ts     # In-memory store + JSON persistence
-│   ├── simulation-runtime.ts    # Job queue + Python worker management
-│   ├── simulation_worker.py     # Mesa simulation wrapper
-│   └── study-context.ts         # Paper knowledge for system prompt
-├── PLAN.md                      # Full implementation plan
-├── DECISIONS.md                 # D1-D19 architectural decisions
-└── UPSTREAM_RECOMMENDATIONS.md  # Suggestions for researchers
+Deployment: Railway (Dockerfile at root)
 ```
 
 ## Key Decisions
@@ -142,13 +158,46 @@ See `DECISIONS.md` for full decision log (D1-D19).
 - Zod at boundaries for runtime validation
 - No console.log in committed code
 
+## Security Notes
+
+- **NEVER commit `.env` files** — `.gitignore` covers them but be vigilant
+- Anthropic API key goes in `explorer/.env` only (see `.env.example`)
+- Repo is currently PRIVATE — see "Open-Sourcing Checklist" before making public
+
+## TODO — Before Open-Sourcing
+
+### Critical (Blockers)
+- [ ] Audit full git history for any leaked secrets (`git log -S`, BFG Repo-Cleaner or `git filter-repo`)
+- [ ] Decision: fork to clean repo vs. rewrite history on current repo
+- [ ] Remove or redact any confidential research data not meant for public release
+- [ ] Ensure all `.env.example` files have only placeholder values (currently OK)
+- [ ] Add LICENSE file (choose: MIT, Apache-2.0, or academic)
+- [ ] Rotate any API keys that may have been exposed during development
+
+### Before Public Release
+- [ ] Write root README.md (project overview, paper link, setup instructions)
+- [ ] Add CONTRIBUTING.md with dev setup, PR conventions
+- [ ] Pin dependency versions in `package.json` and `requirements.txt`
+- [ ] Create `requirements.txt` or `pyproject.toml` for Python simulation deps (Mesa, etc.)
+- [ ] Remove `.benchmarks/` directory or confirm it's meant to be public
+- [ ] Review `dashboard/` directory — appears to be legacy Dash app, remove if unused
+- [ ] Remove `.claude/worktrees/` from repo if present
+
+### Nice-to-have
+- [ ] CI pipeline (GitHub Actions: lint, type-check, build)
+- [ ] Docker Compose for local dev (frontend + API + simulation)
+- [ ] Pre-commit hooks for secret scanning
+- [ ] Edge query cache (Vercel KV): hash(query) → cached Block[] response
+- [ ] Pre-warm example chip queries at deploy time
+- [ ] NL→config: LLM translates natural language to simulation presets
+
 ## Future Work
 
 ### Medium-term
-- Edge query cache (Vercel KV): hash(query) → cached Block[] response
-- Pre-warm 8 example chip queries at deploy time
 - "Ask about this section" mini-query bars in DeepDivePage
+- Edge query cache (Vercel KV): hash(query) → cached Block[] response
 - NL→config: LLM translates natural language questions to simulation presets
+- Improve simulation analytics desk with comparison views
 
 ### Long-term (Stage 5)
 - Agent-driven autonomous exploration

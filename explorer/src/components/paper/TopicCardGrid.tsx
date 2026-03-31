@@ -61,7 +61,7 @@ export function TopicCardGrid({
         aria-label="Topic cards"
         variants={STAGGER_CONTAINER}
         initial="hidden"
-        whileInView="show"
+        whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
       >
         {visibleCards.map(card => {
