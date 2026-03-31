@@ -68,25 +68,6 @@ export const INTENT_COLORS: Record<string, string> = {
   highlight: '#7C3AED',
 } as const
 
-/** Light-mode map surface palette — Observable / Stripe Atlas aesthetic */
-export const LIGHT_SURFACE = {
-  bg: '#FAFAF8',
-  countryFill: '#EEECE6',
-  countryStroke: '#D8D4CC',
-  graticule: '#E0DDD6',
-  labelText: '#78716C',
-  tooltipBg: '#FFFFFF',
-  tooltipBorder: '#E5E5E3',
-  tooltipText: '#1C1917',
-  subtleText: '#57534E',
-  edgeStroke: '#D6D3CE',
-  /** Mono-accent blue ramp — low → top stake */
-  blue100: '#BFDBFE',
-  blue400: '#60A5FA',
-  blue600: '#2563EB',
-  blue700: '#1D4ED8',
-} as const
-
 /** Dark-mode map/globe surface palette */
 export const DARK_SURFACE = {
   bg: '#0B0F14',
@@ -112,10 +93,21 @@ export const LIGHT_SURFACE = {
   labelText: '#8C8578',
   worldFill: '#ECEAE4',
   worldStroke: '#D6D2C8',
+  /** Aliases used by MapBlock (country-prefixed naming) */
+  countryFill: '#ECEAE4',
+  countryStroke: '#D6D2C8',
+  edgeStroke: '#D6D3CE',
   tooltipBg: '#FFFFFF',
+  tooltipBorder: '#E5E5E3',
+  tooltipText: '#1C1917',
   subtleText: '#5C5650',
   grayscaleFill: '#C4BFB6',
   grayscaleStroke: '#B0AAA0',
+  /** Mono-accent blue ramp — used by MapBlock node coloring */
+  blue100: '#BFDBFE',
+  blue400: '#60A5FA',
+  blue600: '#2563EB',
+  blue700: '#1D4ED8',
   /** Orb effects tuned for light bg — darker tints instead of white highlights */
   orbHighlight: 'rgba(255,255,255,0.55)',
   orbMid: 'rgba(255,255,255,0.18)',

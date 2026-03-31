@@ -114,7 +114,7 @@ export function EvidenceMapSidebar({
         <div className="lab-section-title">Top regions</div>
         <div className="space-y-0.5">
           {sorted.slice(0, 6).map((node, i) => {
-            const color = overlay === 'sources' ? PASTEL.mint! : nodeColor(node.count, maxCount)
+            const color = overlay === 'sources' ? MAP_NODE_COLORS.sources : nodeColor(node.count, maxCount)
             const pct = ((node.count / maxCount) * 100).toFixed(0)
             const sharePct = totalValidators > 0 ? ((node.count / totalValidators) * 100).toFixed(1) : '0'
             const isHovered = hoveredRegion === node.id
