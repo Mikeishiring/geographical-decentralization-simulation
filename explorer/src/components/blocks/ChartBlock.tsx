@@ -103,8 +103,8 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id={gradientId} x1="0%" x2="0%" y1="0%" y2="100%">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity={CHART.areaTopOpacity} />
-              <stop offset="100%" stopColor="#2563EB" stopOpacity={CHART.areaBottomOpacity} />
+              <stop offset="0%" stopColor={BLOCK_COLORS[0]} stopOpacity={CHART.areaTopOpacity} />
+              <stop offset="100%" stopColor={BLOCK_COLORS[0]} stopOpacity={CHART.areaBottomOpacity} />
             </linearGradient>
           </defs>
 
@@ -125,7 +125,7 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
               transition={{ ...SPRING_CRISP, delay: 0.12 }} />
           )}
 
-          <motion.path d={pathD} fill="none" stroke="#2563EB" strokeWidth={2}
+          <motion.path d={pathD} fill="none" stroke={BLOCK_COLORS[0]} strokeWidth={2}
             strokeLinecap="round" strokeLinejoin="round"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
             transition={SPRING_CRISP} />
@@ -133,7 +133,7 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
           {points.map((p, i) => (
             <g key={`${p.label}-${i}`}>
               <circle cx={p.x} cy={p.y} r={i === points.length - 1 ? 3.5 : 2}
-                fill="white" stroke="#2563EB" strokeWidth={1.5} />
+                fill="white" stroke={BLOCK_COLORS[0]} strokeWidth={1.5} />
               {labelIndices.has(i) && (
                 <text x={p.x} y={height - 5} textAnchor="middle"
                   className="fill-muted" style={{ fontSize: CHART.labelSize }}
@@ -176,7 +176,7 @@ function BarChart({
       {data.map((d, i) => {
         const barColor = d.category
           ? (categoryColors.get(d.category) ?? BLOCK_COLORS[i % BLOCK_COLORS.length])
-          : (d.value >= 0 ? '#2563EB' : '#DC2626')
+          : (d.value >= 0 ? BLOCK_COLORS[0] : BLOCK_COLORS[4])
         const isHovered = hoveredIndex === i
         const isDimmed = hoveredIndex !== null && !isHovered
 

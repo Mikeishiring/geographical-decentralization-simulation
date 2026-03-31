@@ -83,7 +83,7 @@ export function AgentStepCard({
 
       {/* Error */}
       {step.error ? (
-        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mt-4 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
           {step.error}
         </div>
       ) : null}
