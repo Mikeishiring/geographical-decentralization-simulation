@@ -6,7 +6,7 @@ import { NodeArc } from '../components/decorative/NodeArc'
 import { getExploration, listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { cn } from '../lib/cn'
-import { SPRING, SPRING_SOFT } from '../lib/theme'
+import { SPRING_CRISP, SPRING_SOFT, STAGGER_CONTAINER } from '../lib/theme'
 import type { TabId } from '../components/layout/TabNav'
 
 type SortMode = 'recent' | 'top'
@@ -405,7 +405,7 @@ function ContributionSection({
         <motion.div
           initial="hidden"
           animate="visible"
-          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
+          variants={STAGGER_CONTAINER}
           className="grid gap-4"
         >
           <AnimatePresence mode="popLayout">
@@ -503,7 +503,7 @@ function ExplorationCard({
       layout
       variants={{
         hidden: { opacity: 0, y: 12 },
-        visible: { opacity: 1, y: 0, transition: SPRING },
+        visible: { opacity: 1, y: 0, transition: SPRING_CRISP },
       }}
       className={cn(
         'overflow-hidden rounded-lg border border-rule bg-white',
