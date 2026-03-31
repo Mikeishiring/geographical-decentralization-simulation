@@ -641,6 +641,37 @@ button, a, [role="tab"], [role="button"] {
   opacity: 0.35;
 }
 
+/* ── Stripe-style elevated card — subtle lift on hover ── */
+.card-elevated {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.15s ease;
+}
+
+.card-elevated:hover {
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06), 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+/* ── Stripe-style minimal badge ── */
+.badge-subtle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.2rem 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(0, 0, 0, 0.5);
+}
+
 /* ── Skip-to-content link ── */
 .skip-to-content {
   position: absolute;

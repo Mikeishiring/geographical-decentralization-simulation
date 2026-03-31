@@ -24,13 +24,13 @@ export function SimulationSurfaceHeader({
   onSurfaceModeChange,
 }: SimulationSurfaceHeaderProps) {
   return (
-    <div className="mb-5 flex flex-col gap-3 rounded-[24px] border border-rule bg-white/88 p-4 shadow-[0_10px_28px_rgba(15,23,42,0.04)] lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
-        <h1 className="text-base font-semibold text-text-primary">Results</h1>
+    <div className="stripe-top-accent mb-5 flex flex-col gap-3 rounded-[24px] border border-rule bg-white/92 p-5 shadow-[0_12px_32px_rgba(15,23,42,0.05)] lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent dot-pulse" />
+        <h1 className="text-lg font-semibold tracking-tight text-text-primary">Results</h1>
       </div>
 
-      <div className="inline-flex w-full rounded-2xl border border-rule bg-surface-active p-1 lg:w-auto">
+      <div className="inline-flex w-full rounded-2xl border border-rule bg-surface-active/80 p-1 lg:w-auto">
         {SURFACE_OPTIONS.map(option => {
           const isActive = surfaceMode === option.id
           return (
@@ -39,10 +39,10 @@ export function SimulationSurfaceHeader({
               onClick={() => onSurfaceModeChange(option.id)}
               title={option.tooltip}
               className={cn(
-                'flex-1 rounded-xl px-4 py-2.5 text-center text-sm font-medium transition-all lg:min-w-[200px]',
+                'flex-1 rounded-xl px-5 py-2.5 text-center text-sm font-medium transition-all lg:min-w-[210px]',
                 isActive
-                  ? 'bg-white text-text-primary shadow-[0_8px_20px_rgba(15,23,42,0.06)]'
-                  : 'text-muted hover:text-text-primary',
+                  ? 'bg-white text-text-primary shadow-[0_4px_16px_rgba(15,23,42,0.08),0_1px_3px_rgba(15,23,42,0.06)]'
+                  : 'text-muted hover:text-text-primary hover:bg-white/40',
               )}
             >
               {option.title}
