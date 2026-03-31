@@ -189,7 +189,8 @@ export function PaperLandingPage({
       </AnimatePresence>
 
       {/* Navigation to other tabs */}
-      {!showTopic && onTabChange && (
+      {!showTopic && onTabChange && (<>
+        <div className="section-divider" />
         <div className="stagger-reveal grid gap-3 sm:grid-cols-3">
           {([
             { tab: 'original' as TabId, eyebrow: 'Canonical source', title: 'Original PDF', detail: 'Dark mode, annotations, exact published paper.', accent: 'accent' },
@@ -199,7 +200,7 @@ export function PaperLandingPage({
             <button
               key={item.tab}
               onClick={() => onTabChange(item.tab)}
-              className="group relative overflow-hidden rounded-xl border border-rule bg-white p-4 text-left transition-all hover:border-border-hover hover:shadow-sm globe-grid"
+              className="group relative overflow-hidden rounded-xl border border-rule bg-white p-4 text-left card-hover globe-grid"
             >
               {/* Node-arc motif — globe DNA */}
               <div className="absolute right-1 top-1 w-[80px] h-[40px] opacity-[0.35] pointer-events-none select-none" aria-hidden="true">
@@ -217,7 +218,7 @@ export function PaperLandingPage({
             </button>
           ))}
         </div>
-      )}
+      </>)}
 
       {/* Community preview */}
       <CommunityPreview
@@ -227,10 +228,11 @@ export function PaperLandingPage({
       />
 
       {/* View mode toggle */}
+      <div className="section-divider" />
       <div className="flex items-center justify-between gap-3">
         <div>
-          <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Full paper sections</span>
-          <div className="mt-1 text-sm font-medium text-text-primary">Section-by-section editorial reading</div>
+          <div className="lab-section-title">Full paper sections</div>
+          <div className="mt-1.5 text-[0.8125rem] font-medium text-text-primary">Section-by-section editorial reading</div>
         </div>
         <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1">
           {VIEW_MODES.map(mode => {
