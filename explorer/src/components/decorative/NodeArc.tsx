@@ -40,7 +40,7 @@ export function NodeArc({ className = '' }: { readonly className?: string }) {
         fill="none"
       />
 
-      {/* Nodes */}
+      {/* Nodes — with breathing glow animation */}
       {[
         { cx: 28, cy: 34, color: PASTEL[0], r: 2.5 },
         { cx: 52, cy: 22, color: PASTEL[1], r: 2 },
@@ -49,8 +49,13 @@ export function NodeArc({ className = '' }: { readonly className?: string }) {
         { cx: 48, cy: 38, color: PASTEL[4], r: 1.8 },
       ].map((node, i) => (
         <g key={i}>
-          <circle cx={node.cx} cy={node.cy} r={node.r * 3} fill={node.color} opacity="0.1" />
-          <circle cx={node.cx} cy={node.cy} r={node.r} fill={node.color} opacity="0.7" />
+          <circle cx={node.cx} cy={node.cy} r={node.r * 3} fill={node.color} opacity="0.1">
+            <animate attributeName="opacity" values="0.1;0.2;0.1" dur={`${3.2 + i * 0.4}s`} repeatCount="indefinite" />
+          </circle>
+          <circle cx={node.cx} cy={node.cy} r={node.r} fill={node.color} opacity="0.7">
+            <animate attributeName="opacity" values="0.7;1;0.7" dur={`${3.2 + i * 0.4}s`} repeatCount="indefinite" />
+            <animate attributeName="r" values={`${node.r};${node.r * 1.15};${node.r}`} dur={`${3.2 + i * 0.4}s`} repeatCount="indefinite" />
+          </circle>
         </g>
       ))}
     </svg>
