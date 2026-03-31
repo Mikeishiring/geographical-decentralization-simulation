@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ContributionComposer } from '../community/ContributionComposer'
 import { BlockCanvas } from '../explore/BlockCanvas'
@@ -6,6 +7,7 @@ import type { TabId } from '../layout/TabNav'
 import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
 import { createExploration, publishExploration } from '../../lib/api'
 import { cn } from '../../lib/cn'
+import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { listPublishedReplayNotes } from '../../lib/published-replay-notes-api'
 import type { PublishedReplayCopilotResponse } from '../../lib/published-replay-api'
 import { downloadBlobFile } from '../../lib/simulation-export'
@@ -2061,9 +2063,19 @@ export function ResearchDemoSurface({
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING}
+    >
       <div className="stripe-top-accent lab-stage overflow-hidden p-0">
-        <div className="border-b border-rule bg-white/96 px-5 py-4">
+        <motion.div
+          className="border-b border-rule bg-white/96 px-5 py-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ ...SPRING_CRISP, delay: 0.04 }}
+        >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <h2 className="text-lg font-semibold tracking-tight text-text-primary">
@@ -2120,23 +2132,31 @@ export function ResearchDemoSurface({
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="grid gap-3 px-5 py-4 md:grid-cols-2 xl:grid-cols-4">
+        <motion.div
+          className="grid gap-3 px-5 py-4 md:grid-cols-2 xl:grid-cols-4"
+          variants={STAGGER_CONTAINER}
+          initial="hidden"
+          animate="show"
+        >
           {heroSnapshotCards.map((card, index) => (
-            <div key={card.label} className={cn('lab-metric-card', index === 0 && 'border-accent/20')}>
+            <motion.div key={card.label} variants={STAGGER_ITEM} className={cn('lab-metric-card', index === 0 && 'border-accent/20')}>
               <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
               <div className="mt-1.5 text-sm font-semibold text-text-primary">{card.value}</div>
               <div className="mt-1 text-xs text-muted line-clamp-2" title={card.detail}>{card.detail}</div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
       {activeViewer && (
-        <section
+        <motion.section
           ref={viewerRef}
           className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1.04fr)_360px]"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...SPRING, delay: 0.08 }}
         >
           <div className="space-y-4">
             <div className="lab-stage overflow-hidden p-0">
@@ -2348,10 +2368,15 @@ export function ResearchDemoSurface({
               </div>
             </div>
           </aside>
-        </section>
+        </motion.section>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[360px_minmax(0,1fr)]">
+      <motion.div
+        className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[360px_minmax(0,1fr)]"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING, delay: 0.12 }}
+      >
         <aside className="xl:sticky xl:top-24 xl:self-start">
           <details className="lab-stage overflow-hidden">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
@@ -3090,8 +3115,8 @@ export function ResearchDemoSurface({
                 </div>
               </details>
             </div>
-          </div>
+          </motion.div>
 
-    </div>
+    </motion.div>
   )
 }

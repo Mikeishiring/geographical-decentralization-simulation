@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { cn } from '../../lib/cn'
+import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import type { SimulationCopilotResponse, SimulationConfig } from '../../lib/simulation-api'
 
 interface SimCopilotPanelProps {
@@ -43,7 +45,12 @@ export function SimCopilotPanel({
 
   if (!showAssistant) {
     return (
-      <div className="mb-5 rounded-2xl border border-rule bg-white/88 px-4 py-3">
+      <motion.div
+        className="mb-5 rounded-2xl border border-rule bg-white/88 px-4 py-3"
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING_CRISP}
+      >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="lab-section-title">Optional guide</div>
@@ -61,12 +68,17 @@ export function SimCopilotPanel({
             Open optional guide
           </button>
         </div>
-      </div>
+      </motion.div>
     )
   }
 
   return (
-    <div className="lab-stage mb-5 p-4">
+    <motion.div
+      className="lab-stage mb-5 p-4"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING}
+    >
       <div className="rounded-xl border border-rule bg-white p-5">
         <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -146,10 +158,16 @@ export function SimCopilotPanel({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <motion.div
+            className="mt-4 flex flex-wrap gap-2"
+            variants={STAGGER_CONTAINER}
+            initial="hidden"
+            animate="show"
+          >
             {promptSuggestions.map(prompt => (
-              <button
+              <motion.button
                 key={prompt}
+                variants={STAGGER_ITEM}
                 onClick={() => {
                   if (!copilotAvailable) return
                   onQuestionChange(prompt)
@@ -159,9 +177,9 @@ export function SimCopilotPanel({
                 className="lab-option-card rounded-full px-3 py-2 text-xs text-muted transition-colors hover:border-border-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {prompt}
-              </button>
+              </motion.button>
             ))}
-          </div>
+          </motion.div>
 
           {mutationError && (
             <div className="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
@@ -183,8 +201,16 @@ export function SimCopilotPanel({
             </div>
           )}
 
+          <AnimatePresence mode="wait">
           {copilotResponse && (
-            <div className="mt-5 space-y-4">
+            <motion.div
+              className="mt-5 space-y-4"
+              key="copilot-response"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={SPRING_CRISP}
+            >
               <div className="rounded-xl border border-warning/25 bg-warning/7 px-4 py-4">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-text-primary">
                   <span className="h-1.5 w-1.5 rounded-full bg-warning" />
@@ -219,31 +245,32 @@ export function SimCopilotPanel({
               </div>
 
               {copilotResponse.proposedConfig && (
-                <div className="grid grid-cols-2 gap-3 text-xs text-muted sm:grid-cols-4">
-                  <div className="lab-option-card px-4 py-3">
-                    <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Paradigm</span>
-                    <div className="mt-2 text-sm font-medium text-text-primary">{copilotResponse.proposedConfig.paradigm}</div>
-                  </div>
-                  <div className="lab-option-card px-4 py-3">
-                    <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Distribution</span>
-                    <div className="mt-2 text-sm font-medium text-text-primary">{copilotResponse.proposedConfig.distribution}</div>
-                  </div>
-                  <div className="lab-option-card px-4 py-3">
-                    <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Validators</span>
-                    <div className="mt-2 text-sm font-medium text-text-primary">{copilotResponse.proposedConfig.validators.toLocaleString()}</div>
-                  </div>
-                  <div className="lab-option-card px-4 py-3">
-                    <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Slots</span>
-                    <div className="mt-2 text-sm font-medium text-text-primary">{copilotResponse.proposedConfig.slots.toLocaleString()}</div>
-                  </div>
-                </div>
+                <motion.div
+                  className="grid grid-cols-2 gap-3 text-xs text-muted sm:grid-cols-4"
+                  variants={STAGGER_CONTAINER}
+                  initial="hidden"
+                  animate="show"
+                >
+                  {[
+                    { label: 'Paradigm', value: copilotResponse.proposedConfig.paradigm },
+                    { label: 'Distribution', value: copilotResponse.proposedConfig.distribution },
+                    { label: 'Validators', value: copilotResponse.proposedConfig.validators.toLocaleString() },
+                    { label: 'Slots', value: copilotResponse.proposedConfig.slots.toLocaleString() },
+                  ].map(card => (
+                    <motion.div key={card.label} variants={STAGGER_ITEM} className="lab-option-card px-4 py-3">
+                      <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</span>
+                      <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
+                    </motion.div>
+                  ))}
+                </motion.div>
               )}
 
               <BlockCanvas blocks={copilotResponse.blocks} />
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

@@ -1,5 +1,7 @@
+import { motion } from 'framer-motion'
 import { PRESETS, paperScenarioLabels } from './simulation-constants'
 import type { SimulationConfig } from '../../lib/simulation-api'
+import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 
 interface ExactLabIntroProps {
   readonly config: SimulationConfig
@@ -13,24 +15,40 @@ export function ExactLabIntro({
   onApplyPreset,
 }: ExactLabIntroProps) {
   return (
-    <div className="geo-accent-bar mb-4 rounded-2xl border border-rule bg-white/92 p-4">
-      <div className="flex flex-wrap gap-2 text-xs text-muted">
-        <span className="lab-chip bg-white/90">{config.paradigm}</span>
-        <span className="lab-chip bg-white/90">{config.validators.toLocaleString()} validators</span>
-        <span className="lab-chip bg-white/90">{config.slots.toLocaleString()} slots</span>
-        <span className="lab-chip bg-white/90">{comparabilityTitle}</span>
+    <motion.div
+      className="geo-accent-bar mb-4 rounded-2xl border border-rule bg-white/92 p-4"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING_CRISP}
+    >
+      <motion.div
+        className="flex flex-wrap gap-2 text-xs text-muted"
+        variants={STAGGER_CONTAINER}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.span variants={STAGGER_ITEM} className="lab-chip bg-white/90">{config.paradigm}</motion.span>
+        <motion.span variants={STAGGER_ITEM} className="lab-chip bg-white/90">{config.validators.toLocaleString()} validators</motion.span>
+        <motion.span variants={STAGGER_ITEM} className="lab-chip bg-white/90">{config.slots.toLocaleString()} slots</motion.span>
+        <motion.span variants={STAGGER_ITEM} className="lab-chip bg-white/90">{comparabilityTitle}</motion.span>
         {paperScenarioLabels(config).map(label => (
-          <span key={label} className="lab-chip bg-surface-active">
+          <motion.span key={label} variants={STAGGER_ITEM} className="lab-chip bg-surface-active">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             {label}
-          </span>
+          </motion.span>
         ))}
-      </div>
+      </motion.div>
 
-      <div className="stagger-reveal mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+      <motion.div
+        className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4"
+        variants={STAGGER_CONTAINER}
+        initial="hidden"
+        animate="show"
+      >
         {PRESETS.map(preset => (
-          <button
+          <motion.button
             key={preset.label}
+            variants={STAGGER_ITEM}
             onClick={() => onApplyPreset(preset.config)}
             className="lab-option-card px-3 py-3 text-left transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)]"
           >
@@ -43,9 +61,9 @@ export function ExactLabIntro({
                 Load
               </span>
             </div>
-          </button>
+          </motion.button>
         ))}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
