@@ -218,41 +218,24 @@ export function ExploreHistoryPage({
           />
         </div>
 
-        {/* View toggle */}
-        <div className="flex shrink-0 rounded-md border border-rule bg-white p-px">
-          <button
-            onClick={() => setViewMode('cards')}
-            className={cn(
-              'rounded p-1 transition-colors',
-              viewMode === 'cards' ? 'bg-surface-active text-text-primary' : 'text-muted hover:text-text-primary',
-            )}
-            aria-label="Card view"
-            title="Card view"
-          >
-            <LayoutGrid className="h-3 w-3" />
-          </button>
-          <button
-            onClick={() => setViewMode('compact')}
-            className={cn(
-              'rounded p-1 transition-colors',
-              viewMode === 'compact' ? 'bg-surface-active text-text-primary' : 'text-muted hover:text-text-primary',
-            )}
-            aria-label="Compact view"
-            title="Compact view"
-          >
-            <LayoutList className="h-3 w-3" />
-          </button>
-        </div>
+        {/* View toggle — ghost buttons, no border wrapper */}
+        <button
+          onClick={() => setViewMode(viewMode === 'cards' ? 'compact' : 'cards')}
+          className="shrink-0 rounded-md p-1.5 text-muted transition-colors hover:bg-surface-active hover:text-text-primary"
+          aria-label={viewMode === 'cards' ? 'Switch to compact view' : 'Switch to card view'}
+          title={viewMode === 'cards' ? 'Compact view' : 'Card view'}
+        >
+          {viewMode === 'cards' ? <LayoutList className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
+        </button>
 
-        {/* Sort dropdown */}
+        {/* Sort — ghost trigger, no border */}
         <div ref={sortMenuRef} className="relative shrink-0">
           <button
             onClick={() => setSortMenuOpen(prev => !prev)}
-            className="flex items-center gap-1 rounded-md border border-rule bg-white px-2 py-1 text-2xs font-medium text-muted transition-colors hover:text-text-primary hover:border-border-hover"
+            className="flex items-center gap-1 rounded-md px-1.5 py-1.5 text-2xs font-medium text-muted transition-colors hover:bg-surface-active hover:text-text-primary"
           >
-            <ArrowUpDown className="h-3 w-3" />
+            <ArrowUpDown className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">{SORT_OPTIONS.find(o => o.value === sort)?.label}</span>
-            <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', sortMenuOpen && 'rotate-180')} />
           </button>
           <AnimatePresence>
             {sortMenuOpen && (
