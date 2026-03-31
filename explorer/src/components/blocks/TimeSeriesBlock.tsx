@@ -57,21 +57,17 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
   const maxY = Math.max(...allPoints.map(point => point.y))
   const rangeX = maxX - minX || 1
   const rangeY = maxY - minY || 1
-  const latestValues = block.series.flatMap(series => {
-    const latest = series.data[series.data.length - 1]
-    return latest ? [{ label: series.label, value: latest.y }] : []
-  })
   const seriesSnapshots = block.series.flatMap((series, index) => {
     const first = series.data[0]
-    const latest = series.data[series.data.length - 1]
-    if (!first || !latest) return []
+    const latestPt = series.data[series.data.length - 1]
+    if (!first || !latestPt) return []
     return [{
       label: series.label,
       color: series.color ?? BLOCK_COLORS[index % BLOCK_COLORS.length],
       first: first.y,
-      latest: latest.y,
+      latest: latestPt.y,
       peak: Math.max(...series.data.map(point => point.y)),
-      delta: latest.y - first.y,
+      delta: latestPt.y - first.y,
     }]
   })
   const highestValue = Math.max(...allPoints.map(point => point.y))
@@ -168,87 +164,44 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
         </div>
       </div>
 
-      <div className="px-5 py-5">
-        <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {latestValues.map((entry, index) => (
-            <div
-              key={`${entry.label}-${index}`}
-              className="rounded-xl border border-rule bg-white px-3 py-2.5"
-            >
-              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Latest</div>
-              <div className="mt-1 text-xs font-medium text-text-primary">{entry.label}</div>
-              <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
-                {formatSeriesNumber(entry.value)}
-              </div>
+      <div className="px-5 py-4">
+        {seriesSnapshots.map(snapshot => (
+          <div
+            key={`snapshot-${snapshot.label}`}
+            className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-rule bg-white px-3 py-2"
+          >
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: snapshot.color }} />
+              <span className="text-xs font-medium text-text-primary">{snapshot.label}</span>
+              <span className="text-sm font-semibold tabular-nums text-text-primary">{formatSeriesNumber(snapshot.latest)}</span>
             </div>
-          ))}
-        </div>
-
-        <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {seriesSnapshots.map(snapshot => (
-            <div
-              key={`snapshot-${snapshot.label}`}
-              className="rounded-xl border border-rule bg-white px-3 py-3"
-            >
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: snapshot.color }} />
-                <div className="text-xs font-medium text-text-primary">{snapshot.label}</div>
-              </div>
-              <div className="mt-3 grid grid-cols-1 gap-2 text-11 sm:grid-cols-3">
-                <div>
-                  <div className="uppercase tracking-[0.1em] text-text-faint">Start</div>
-                  <div className="mt-1 font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.first)}</div>
-                </div>
-                <div>
-                  <div className="uppercase tracking-[0.1em] text-text-faint">Peak</div>
-                  <div className="mt-1 font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.peak)}</div>
-                </div>
-                <div>
-                  <div className="uppercase tracking-[0.1em] text-text-faint">Delta</div>
-                  <div className="mt-1 font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.delta)}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-rule bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Integrity</div>
-            <div className="mt-1 text-sm font-medium text-text-primary">
-              Raw slot series, full ordering, no smoothing.
-            </div>
-            <div className="mt-1 text-xs text-muted">
-              Hover the chart to inspect exact values at the nearest emitted slot.
+            <div className="flex items-center gap-3 text-11">
+              <span className="text-text-faint">Start <span className="font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.first)}</span></span>
+              <span className="text-text-faint">Peak <span className="font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.peak)}</span></span>
+              <span className="text-text-faint">Delta <span className="font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.delta)}</span></span>
             </div>
           </div>
-          {hoverSlot != null && (
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {hoverReadout.map(point => (
-                <div
-                  key={`${point.label}-${point.x}`}
-                  className="rounded-xl border border-rule bg-white/92 px-3 py-2 shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: point.color }} />
-                    <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Slot {point.x}</span>
-                  </div>
-                  <div className="mt-1 text-xs font-medium text-text-primary">{point.label}</div>
-                  <div className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
-                    {formatSeriesNumber(point.value)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        ))}
 
-        <div className="relative rounded-xl border border-rule bg-white px-3 py-4">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="text-11 uppercase tracking-[0.1em] text-text-faint">
-              Measurement deck
+        <div className="relative rounded-xl border border-rule bg-white px-3 py-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-3">
+              <span className="text-11 uppercase tracking-[0.1em] text-text-faint">
+                Measurement deck
+              </span>
+              {hoverSlot != null && (
+                <span className="text-11 font-medium tabular-nums text-text-primary">
+                  Slot {hoverSlot}
+                  {hoverReadout.map(point => (
+                    <span key={point.label} className="ml-2">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ backgroundColor: point.color }} />
+                      {' '}{formatSeriesNumber(point.value)}
+                    </span>
+                  ))}
+                </span>
+              )}
             </div>
-            <div className="text-11 text-muted">
+            <div className="text-11 text-muted tabular-nums">
               {block.series.length} series · x {formatSeriesNumber(minX)} to {formatSeriesNumber(maxX)}
             </div>
           </div>
