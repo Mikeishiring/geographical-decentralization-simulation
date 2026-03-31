@@ -506,10 +506,22 @@ function ExplorationCard({
         visible: { opacity: 1, y: 0, transition: SPRING_CRISP },
       }}
       className={cn(
-        'overflow-hidden rounded-xl border border-rule bg-white',
-        'transition-colors hover:border-border-hover',
-        isDeepLinked && 'border-accent/20 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent)_6%,transparent)]',
+        'overflow-hidden rounded-xl border bg-white transition-shadow duration-150',
+        isDeepLinked
+          ? 'border-accent/20 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent)_6%,transparent)]'
+          : 'border-black/[0.06]',
       )}
+      style={{
+        boxShadow: isDeepLinked
+          ? undefined
+          : '0 1px 3px rgba(0,0,0,0.04)',
+      }}
+      onMouseEnter={e => {
+        if (!isDeepLinked) (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'
+      }}
+      onMouseLeave={e => {
+        if (!isDeepLinked) (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'
+      }}
     >
       <div className="flex gap-3 p-4">
         {onVote ? (
@@ -690,37 +702,39 @@ function VoteControls({
   readonly onVote: (delta: 1 | -1) => void
 }) {
   return (
-    <div className="flex shrink-0 flex-col items-center gap-1">
-      <button
+    <div className="flex shrink-0 flex-col items-center gap-0.5">
+      <motion.button
         onClick={event => {
           event.stopPropagation()
           onVote(1)
         }}
-        className="flex items-center justify-center min-w-[32px] min-h-[32px] p-1.5 text-muted transition-colors hover:text-accent rounded-md hover:bg-surface-active"
+        whileTap={{ scale: 0.88 }}
+        className="flex items-center justify-center h-7 w-7 text-black/40 transition-colors hover:text-accent rounded-full hover:bg-accent/[0.06]"
         aria-label="Upvote"
       >
-        <ThumbsUp className="h-3.5 w-3.5" />
-      </button>
+        <ThumbsUp className="h-3 w-3" />
+      </motion.button>
       <span
         className={cn(
-          'text-xs font-medium tabular-nums',
+          'text-[11px] font-semibold tabular-nums',
           votes > 0 && 'text-accent',
-          votes < 0 && 'text-rose-400',
-          votes === 0 && 'text-muted',
+          votes < 0 && 'text-danger',
+          votes === 0 && 'text-black/30',
         )}
       >
         {votes}
       </span>
-      <button
+      <motion.button
         onClick={event => {
           event.stopPropagation()
           onVote(-1)
         }}
-        className="flex items-center justify-center min-w-[32px] min-h-[32px] p-1.5 text-muted transition-colors hover:text-rose-400 rounded-md hover:bg-surface-active"
+        whileTap={{ scale: 0.88 }}
+        className="flex items-center justify-center h-7 w-7 text-black/40 transition-colors hover:text-danger rounded-full hover:bg-danger/[0.06]"
         aria-label="Downvote"
       >
-        <ThumbsDown className="h-3.5 w-3.5" />
-      </button>
+        <ThumbsDown className="h-3 w-3" />
+      </motion.button>
     </div>
   )
 }
@@ -733,17 +747,17 @@ function FollowUpList({
   readonly onSelect?: (query: string) => void
 }) {
   return (
-    <div className="mt-4 border-t border-rule pt-3">
-      <span className="mb-2 block text-xs text-muted">
-        Useful next questions
+    <div className="mt-4 border-t border-black/[0.06] pt-3">
+      <span className="mb-2 block text-[10px] font-medium uppercase tracking-wide text-black/40">
+        Follow-up questions
       </span>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {followUps.map(question => (
           <button
             key={question}
             onClick={() => onSelect?.(question)}
             disabled={!onSelect}
-            className="text-left text-xs text-muted transition-colors hover:text-text-primary disabled:opacity-50 disabled:cursor-default disabled:hover:text-muted"
+            className="follow-up-chip disabled:opacity-40 disabled:cursor-default"
           >
             {question}
           </button>
