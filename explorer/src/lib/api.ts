@@ -181,6 +181,7 @@ export interface Exploration {
   readonly verified: boolean
   readonly surface: ExplorationSurface
   readonly anchor?: TextAnchor
+  readonly replies?: readonly Reply[]
   readonly publication: {
     readonly published: boolean
     readonly title: string
