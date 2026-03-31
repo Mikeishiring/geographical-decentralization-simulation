@@ -426,7 +426,7 @@ export function FindingsPage({
     <div>
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary font-serif leading-tight max-w-xl">
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary font-serif leading-tight max-w-xl text-balance">
           {showAi || showTopic ? heading : 'Geography shapes who wins in Ethereum block building'}
         </h1>
         <p className="mt-3 text-sm text-muted max-w-2xl leading-relaxed">
@@ -437,7 +437,7 @@ export function FindingsPage({
         {!showAi && !showTopic && !loading && apiHealthQuery.data && (
           <div className="mt-2 flex items-center gap-1.5 text-11 text-text-faint">
             <span className={cn(
-              'w-1.5 h-1.5 rounded-full',
+              'w-2 h-2 rounded-full',
               apiHealthQuery.data.anthropicEnabled ? 'bg-success' : 'bg-warning',
             )} />
             {apiHealthQuery.data.anthropicEnabled
@@ -536,7 +536,7 @@ export function FindingsPage({
                 className={cn(
                   'text-left rounded-lg border p-4 transition-colors group',
                   isActive
-                    ? 'border-accent bg-white'
+                    ? 'card-active bg-white'
                     : isDimmed
                       ? 'border-rule bg-white opacity-40'
                       : 'border-rule bg-white card-hover',

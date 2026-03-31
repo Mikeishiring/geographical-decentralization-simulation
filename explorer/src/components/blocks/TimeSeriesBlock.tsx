@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
+import { crosshairFadeNearLive } from '../../lib/chart-animations'
 import type { TimeSeriesBlock as TimeSeriesBlockType } from '../../types/blocks'
 
 interface TimeSeriesBlockProps {
@@ -115,6 +116,12 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
         return { sx, sy, flipX }
       })()
     : null
+
+  /* Liveline-inspired: compute crosshair opacity that fades near the latest data point */
+  const latestSvgX = toSvg(maxX, 0).sx
+  const crosshairOpacity = hover
+    ? CHART.crosshairOpacity * crosshairFadeNearLive(hover.svgX, latestSvgX, CHART.crosshairFadeDistance)
+    : 0
 
   return (
     <div className="lab-panel overflow-hidden rounded-xl">
@@ -247,7 +254,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
           </div>
           <svg
             viewBox={`0 0 ${svgW} ${svgH}`}
-            className="w-full"
+            className="w-full chart-edge-fade"
             preserveAspectRatio="xMidYMid meet"
             onMouseMove={event => {
               const rect = event.currentTarget.getBoundingClientRect()
@@ -278,10 +285,16 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
               })}
             </defs>
 
-            {yTicks.map(tick => {
+            {/* Grid lines — staggered fade-in */}
+            {yTicks.map((tick, tickIdx) => {
               const { sy } = toSvg(0, tick)
               return (
-                <g key={tick}>
+                <motion.g
+                  key={tick}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, delay: tickIdx * 0.04 }}
+                >
                   <line
                     x1={padding.left}
                     y1={sy}
@@ -300,23 +313,26 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                   >
                     {formatSeriesNumber(tick)}
                   </text>
-                </g>
+                </motion.g>
               )
             })}
 
             {xTicks.map((tick, index) => {
               const { sx } = toSvg(tick, minY)
               return (
-                <text
+                <motion.text
                   key={`${tick}-${index}`}
                   x={sx}
                   y={svgH - 5}
                   textAnchor="middle"
                   className="fill-muted"
                   style={{ fontSize: CHART.labelSize }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.2 + index * 0.04 }}
                 >
                   {tick}
-                </text>
+                </motion.text>
               )
             })}
 
@@ -345,17 +361,28 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
               </text>
             )}
 
-            {/* Crosshair — solid, subtle */}
-            {hover && (
-              <line
-                x1={hover.svgX}
-                y1={padding.top}
-                x2={hover.svgX}
-                y2={padding.top + chartH}
-                stroke="currentColor"
-                opacity={CHART.crosshairOpacity}
-                strokeWidth={1}
-              />
+            {/* Crosshair — fades near latest data point (liveline pattern) */}
+            {hover && crosshairOpacity > 0.01 && (
+              <>
+                <line
+                  x1={hover.svgX}
+                  y1={padding.top}
+                  x2={hover.svgX}
+                  y2={padding.top + chartH}
+                  stroke="currentColor"
+                  opacity={crosshairOpacity}
+                  strokeWidth={1}
+                />
+                {/* Dim region to the right of crosshair */}
+                <rect
+                  x={hover.svgX}
+                  y={padding.top}
+                  width={svgW - padding.right - hover.svgX}
+                  height={chartH}
+                  fill="currentColor"
+                  opacity={0.015}
+                />
+              </>
             )}
 
             {block.series.map((series, index) => {
@@ -379,15 +406,18 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
 
               return (
                 <g key={series.label}>
+                  {/* Area fill — staggered entrance */}
                   {areaD && (
                     <motion.path
                       d={areaD}
                       fill={`url(#${gradientBaseId}-${index})`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ ...SPRING_CRISP, delay: index * 0.04 }}
+                      transition={{ ...SPRING_CRISP, delay: 0.1 + index * 0.04 }}
                     />
                   )}
+
+                  {/* Line path — draw animation */}
                   <motion.path
                     d={pathD}
                     fill="none"
@@ -397,31 +427,83 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                     strokeLinejoin="round"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={{ ...SPRING_CRISP, delay: index * 0.06 }}
+                    transition={{ ...SPRING_CRISP, delay: 0.15 + index * 0.06 }}
                   />
-                  {coordinates.map((point, pointIndex) => (
-                    (pointIndex % pointStep === 0 || pointIndex === coordinates.length - 1) ? (
-                    <circle
-                      key={`${series.label}-${pointIndex}`}
-                      cx={point.sx}
-                      cy={point.sy}
-                      r={pointIndex === coordinates.length - 1 ? 3.75 : 1.8}
-                      fill={color}
-                      opacity={pointIndex === coordinates.length - 1 ? 0.95 : 0.65}
-                    />
-                    ) : null
-                  ))}
+
+                  {/* Data points — center-out entrance stagger */}
+                  {coordinates.map((point, pointIndex) => {
+                    if (pointIndex % pointStep !== 0 && pointIndex !== coordinates.length - 1) return null
+                    const isLast = pointIndex === coordinates.length - 1
+                    /* Center-out delay: center points appear first */
+                    const centerDist = Math.abs((pointIndex / Math.max(coordinates.length - 1, 1)) - 0.5) * 2
+                    const delay = 0.3 + centerDist * 0.15 + index * 0.04
+
+                    return (
+                      <motion.circle
+                        key={`${series.label}-${pointIndex}`}
+                        cx={point.sx}
+                        cy={point.sy}
+                        r={isLast ? 3.75 : 1.8}
+                        fill={color}
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: isLast ? 0.95 : 0.65 }}
+                        transition={{ ...SPRING_CRISP, delay }}
+                      />
+                    )
+                  })}
+
+                  {/* Liveline-style pulsing live dot at latest point */}
                   {latest && (
-                    <circle cx={latest.sx} cy={latest.sy} r={4} fill="white" stroke={color} strokeWidth={1.5} />
+                    <g>
+                      {/* Pulse ring — expanding and fading */}
+                      <circle
+                        cx={latest.sx}
+                        cy={latest.sy}
+                        r={CHART.liveDotRadius}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth={1.5}
+                        opacity={0.4}
+                        className="live-dot-pulse"
+                      />
+                      {/* Outer white ring */}
+                      <motion.circle
+                        cx={latest.sx}
+                        cy={latest.sy}
+                        r={5}
+                        fill="white"
+                        stroke={color}
+                        strokeWidth={2}
+                        filter={`drop-shadow(0 1px 3px ${color}40)`}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ ...SPRING_CRISP, delay: 0.4 + index * 0.06 }}
+                      />
+                      {/* Inner colored dot */}
+                      <motion.circle
+                        cx={latest.sx}
+                        cy={latest.sy}
+                        r={2.5}
+                        fill={color}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ ...SPRING_CRISP, delay: 0.45 + index * 0.06 }}
+                      />
+                    </g>
                   )}
+
+                  {/* Hover intersection dot — scale-in with spring */}
                   {hoveredCoordinate && (
-                    <circle
+                    <motion.circle
                       cx={hoveredCoordinate.sx}
                       cy={hoveredCoordinate.sy}
                       r={5.5}
                       fill="white"
                       stroke={color}
                       strokeWidth={2}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={CHART.tooltipSpring}
                     />
                   )}
                 </g>
@@ -497,37 +579,42 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
             })}
           </svg>
 
-          {/* ── Floating tooltip card (Stripe-style) ── */}
-          {hover && tooltipAnchor && hoverReadout.length > 0 && (
-            <div
-              className="pointer-events-none absolute z-20"
-              style={{
-                left: `${(tooltipAnchor.sx / svgW) * 100}%`,
-                top: `${((tooltipAnchor.sy / svgH) * 100) + 4}%`,
-                transform: tooltipAnchor.flipX ? 'translate(-100%, 0)' : 'translate(12px, 0)',
-              }}
-            >
-              <div
-                className="rounded-lg border border-rule bg-white px-3 py-2.5"
-                style={{ boxShadow: CHART.tooltipShadow }}
+          {/* ── Floating tooltip card — spring entrance with overshoot ── */}
+          <AnimatePresence>
+            {hover && tooltipAnchor && hoverReadout.length > 0 && (
+              <motion.div
+                className="pointer-events-none absolute z-20"
+                style={{
+                  left: `${(tooltipAnchor.sx / svgW) * 100}%`,
+                  top: `${((tooltipAnchor.sy / svgH) * 100) + 4}%`,
+                }}
+                initial={{ opacity: 0, scale: 0.92, x: tooltipAnchor.flipX ? '-100%' : 12, y: 0 }}
+                animate={{ opacity: 1, scale: 1, x: tooltipAnchor.flipX ? '-100%' : 12, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={CHART.tooltipSpring}
               >
-                <div className="text-2xs font-medium tabular-nums text-muted">
-                  Slot {hoverReadout[0].x}
+                <div
+                  className="rounded-lg border border-rule bg-white px-3 py-2.5"
+                  style={{ boxShadow: `${CHART.tooltipShadow}, 0 0 0 1px rgba(37,99,235,0.06)` }}
+                >
+                  <div className="text-2xs font-medium tabular-nums text-muted">
+                    Slot {hoverReadout[0].x}
+                  </div>
+                  <div className="mt-1.5 space-y-1">
+                    {hoverReadout.map(point => (
+                      <div key={point.label} className="flex items-center gap-2">
+                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: point.color }} />
+                        <span className="text-11 text-muted">{point.label}</span>
+                        <span className="ml-auto text-13 font-semibold tabular-nums text-text-primary">
+                          {formatSeriesNumber(point.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-1.5 space-y-1">
-                  {hoverReadout.map(point => (
-                    <div key={point.label} className="flex items-center gap-2">
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: point.color }} />
-                      <span className="text-11 text-muted">{point.label}</span>
-                      <span className="ml-auto text-13 font-semibold tabular-nums text-text-primary">
-                        {formatSeriesNumber(point.value)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {block.annotations && block.annotations.length > 0 && (

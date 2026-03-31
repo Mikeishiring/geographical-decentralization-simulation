@@ -624,7 +624,7 @@ function ExplorationCard({
             className="overflow-hidden"
           >
             <div className="border-t border-rule p-4">
-              <div className="mb-4 rounded-lg border border-rule bg-surface-active px-3 py-2 text-xs text-muted">
+              <div role="note" aria-label="Truth boundary" className="mb-4 rounded-lg border border-rule bg-surface-active px-3 py-2.5 text-xs text-muted">
                 <span className="font-medium text-text-primary">Truth boundary:</span>{' '}
                 {exploration.publication.published
                   ? 'This is a published human-authored note layered on top of a reading or exact-run artifact.'
@@ -741,7 +741,7 @@ function FollowUpList({
             key={question}
             onClick={() => onSelect?.(question)}
             disabled={!onSelect}
-            className="text-left text-xs text-muted transition-colors hover:text-text-primary disabled:cursor-default disabled:hover:text-muted"
+            className="text-left text-xs text-muted transition-colors hover:text-text-primary disabled:opacity-50 disabled:cursor-default disabled:hover:text-muted"
           >
             {question}
           </button>
@@ -775,9 +775,9 @@ function EmptyState({
             detail: 'Only intentionally published notes appear here. Drafts and saved readings stay off the public surface until someone makes that choice.',
           },
         ].map(item => (
-          <div key={item.title} className="rounded-xl border border-rule bg-white px-4 py-4">
+          <div key={item.title} className="rounded-xl border border-rule bg-white px-5 py-4 card-hover">
             <div className="text-sm font-medium text-text-primary">{item.title}</div>
-            <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
+            <div className="mt-1 text-xs leading-5 text-muted line-clamp-3">{item.detail}</div>
           </div>
         ))}
       </div>

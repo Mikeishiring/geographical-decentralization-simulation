@@ -13,7 +13,7 @@
   --color-text-primary: #111;
   --color-text-body: rgba(0, 0, 0, 0.7);
   --color-muted: rgba(0, 0, 0, 0.5);
-  --color-text-faint: rgba(0, 0, 0, 0.3);
+  --color-text-faint: rgba(0, 0, 0, 0.42);
 
   /* Geo-themed accent palette */
   --color-accent: #2563EB;          /* ocean blue — SSP, centralized flows */
@@ -305,7 +305,7 @@ body {
   font-size: 0.6875rem;
   font-weight: 450;
   line-height: 1;
-  color: rgba(0, 0, 0, 0.55);
+  color: rgba(0, 0, 0, 0.58);
   letter-spacing: 0.01em;
   transition: border-color 0.12s ease, background 0.12s ease;
 }
@@ -454,6 +454,91 @@ body {
   animation: reveal-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+/* ── Liveline-inspired chart enhancements ── */
+
+/* Edge fade — smoothly masks chart content at the left edge */
+.chart-edge-fade {
+  -webkit-mask-image: linear-gradient(to right, transparent, black 40px);
+  mask-image: linear-gradient(to right, transparent, black 40px);
+}
+
+/* Pulsing live dot — expanding ring at latest data point */
+@keyframes live-dot-pulse {
+  0% {
+    r: 3.5;
+    opacity: 0.6;
+  }
+  100% {
+    r: 12;
+    opacity: 0;
+  }
+}
+.live-dot-pulse {
+  animation: live-dot-pulse 1.5s ease-out infinite;
+}
+
+/* Breathing skeleton line — organic loading state for charts */
+@keyframes chart-breathe {
+  0%, 100% {
+    opacity: 0.22;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.30;
+    transform: scaleY(1.02);
+  }
+}
+.chart-skeleton-breathe {
+  animation: chart-breathe 2.4s ease-in-out infinite;
+}
+
+/* Tooltip entrance — scale-in with overshoot for premium feel */
+@keyframes tooltip-enter {
+  0% {
+    opacity: 0;
+    transform: translate(var(--tt-tx, 12px), var(--tt-ty, 0)) scale(0.92);
+  }
+  60% {
+    transform: translate(var(--tt-tx, 12px), var(--tt-ty, 0)) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(var(--tt-tx, 12px), var(--tt-ty, 0)) scale(1);
+  }
+}
+.chart-tooltip-enter {
+  animation: tooltip-enter 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Chart glow — hover highlight on bars and dots */
+.chart-glow {
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+.chart-glow:hover {
+  filter: brightness(1.08);
+}
+
+/* Momentum indicator arrow — subtle directional chevron */
+@keyframes momentum-cascade {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+.momentum-arrow {
+  animation: momentum-cascade 1.2s ease-in-out infinite;
+}
+.momentum-arrow:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+/* Heatmap cell bloom — smooth glow on hover */
+.heatmap-cell-bloom {
+  transition: box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.heatmap-cell-bloom:hover {
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5), 0 2px 8px rgba(37, 99, 235, 0.15);
+  transform: scale(1.04);
+}
+
 /* ── Reduced motion — respect OS preference ── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -462,7 +547,13 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .dot-pulse { animation: none; }
+  .dot-pulse,
+  .lab-skeleton,
+  .lab-loading-orb,
+  .shimmer::after,
+  .typing-caret::after { animation: none !important; }
+  .stagger-reveal > * { opacity: 1; animation: none; }
+  .card-hover { transform: none !important; }
 }
 
 /* Light scrollbar — near-invisible until hovered */
@@ -490,11 +581,23 @@ body {
 
 /* ── Subtle card hover — Agentation-style minimal lift ── */
 .card-hover {
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  transition: box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.15s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .card-hover:hover {
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06), 0 1px 4px rgba(15, 23, 42, 0.04);
   border-color: rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+.card-hover:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Active card state — accent-tinted selection ── */
+.card-active {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  background: rgba(37, 99, 235, 0.02);
 }
 
 /* ── Smooth all interactive elements — Benji three-tier timing ── */
@@ -721,12 +824,13 @@ button, a, [role="tab"], [role="button"] {
 
 .follow-up-chip-arrow {
   font-size: 0.625rem;
-  opacity: 0;
-  transform: translateX(-2px);
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  opacity: 0.25;
+  transform: translateX(0);
+  transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
 }
 
 .follow-up-chip:hover .follow-up-chip-arrow {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateX(2px);
+  color: var(--color-accent);
 }

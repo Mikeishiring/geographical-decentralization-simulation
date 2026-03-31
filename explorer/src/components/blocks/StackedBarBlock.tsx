@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
 import type { StackedBarBlock as StackedBarBlockType } from '../../types/blocks'
 
@@ -55,7 +55,12 @@ export function StackedBarBlock({ block }: StackedBarBlockProps) {
           const total = totals[catIdx]
 
           return (
-            <div key={category}>
+            <motion.div
+              key={category}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ ...SPRING_CRISP, delay: catIdx * 0.04 }}
+            >
               <div className="flex items-baseline justify-between gap-3 mb-1">
                 <span className="text-xs text-text-primary truncate">{category}</span>
                 <span className="text-xs text-text-primary tabular-nums font-medium shrink-0">
@@ -74,27 +79,43 @@ export function StackedBarBlock({ block }: StackedBarBlockProps) {
                       initial={{ width: 0 }}
                       animate={{ width: `${widthPct}%` }}
                       transition={{ ...SPRING_CRISP, delay: catIdx * CHART.stagger + seriesIdx * 0.02 }}
-                      className="h-full transition-opacity relative"
+                      className="h-full relative"
                       style={{
                         backgroundColor: seriesColors[seriesIdx],
                         opacity: hoveredBar !== null && !isHovered ? 0.4 : (isHovered ? 1 : 0.85),
+                        boxShadow: isHovered
+                          ? `${CHART.hoverGlow} ${seriesColors[seriesIdx]}${CHART.hoverGlowOpacity}`
+                          : 'none',
+                        transition: 'opacity 0.15s ease, box-shadow 0.15s ease',
                       }}
                       onMouseEnter={() => setHoveredBar({ catIdx, seriesIdx })}
                       onMouseLeave={() => setHoveredBar(null)}
                     >
-                      {isHovered && (
-                        <div className="absolute -top-9 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap">
-                          <div className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-11" style={{ boxShadow: CHART.tooltipShadow }}>
-                            <span className="text-muted">{series.label}</span>{' '}
-                            <span className="font-semibold tabular-nums text-text-primary">{value}{block.unit ? ` ${block.unit}` : ''}</span>
-                          </div>
-                        </div>
-                      )}
+                      {/* Tooltip — spring entrance with overshoot */}
+                      <AnimatePresence>
+                        {isHovered && (
+                          <motion.div
+                            className="absolute -top-9 left-1/2 z-10 whitespace-nowrap"
+                            initial={{ opacity: 0, scale: 0.92, x: '-50%', y: 4 }}
+                            animate={{ opacity: 1, scale: 1, x: '-50%', y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, x: '-50%', y: 2 }}
+                            transition={CHART.tooltipSpring}
+                          >
+                            <div
+                              className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-11"
+                              style={{ boxShadow: `${CHART.tooltipShadow}, 0 0 0 1px rgba(37,99,235,0.06)` }}
+                            >
+                              <span className="text-muted">{series.label}</span>{' '}
+                              <span className="font-semibold tabular-nums text-text-primary">{value}{block.unit ? ` ${block.unit}` : ''}</span>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </motion.div>
                   )
                 })}
               </div>
-            </div>
+            </motion.div>
           )
         })}
       </div>

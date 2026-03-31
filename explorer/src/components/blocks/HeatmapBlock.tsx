@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { SPRING_SOFT } from '../../lib/theme'
+import { motion, AnimatePresence } from 'framer-motion'
+import { CHART, SPRING_SOFT } from '../../lib/theme'
+import { centerOutReveal } from '../../lib/chart-animations'
 import type { HeatmapBlock as HeatmapBlockType } from '../../types/blocks'
 
 interface HeatmapBlockProps {
@@ -44,6 +45,7 @@ export function HeatmapBlock({ block }: HeatmapBlockProps) {
   const minVal = Math.min(...allValues)
   const maxVal = Math.max(...allValues)
   const colorFn = block.colorScale === 'diverging' ? divergingColor : sequentialColor
+  const totalCells = block.rows.length * block.columns.length
 
   return (
     <div className="overflow-hidden rounded-xl border border-rule bg-white">
@@ -81,19 +83,31 @@ export function HeatmapBlock({ block }: HeatmapBlockProps) {
                 {block.columns.map((_, colIdx) => {
                   const value = block.values[rowIdx]?.[colIdx] ?? 0
                   const isHovered = hoveredCell?.row === rowIdx && hoveredCell?.col === colIdx
+                  const isInRow = hoveredCell?.row === rowIdx
+                  const isInCol = hoveredCell?.col === colIdx
+                  /* Center-out entrance for heatmap cells */
+                  const flatIdx = rowIdx * block.columns.length + colIdx
+                  const revealFactor = centerOutReveal(flatIdx, totalCells, 1)
+                  const delay = (1 - revealFactor) * 0.2
 
                   return (
                     <td key={colIdx} className="p-0.5">
                       <motion.div
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ ...SPRING_SOFT, delay: (rowIdx * block.columns.length + colIdx) * 0.008 }}
-                        className="relative flex items-center justify-center rounded-sm transition-shadow"
+                        transition={{ ...SPRING_SOFT, delay }}
+                        className="heatmap-cell-bloom relative flex items-center justify-center rounded-sm"
                         style={{
                           backgroundColor: colorFn(value, minVal, maxVal),
                           minWidth: 32,
                           minHeight: 28,
-                          boxShadow: isHovered ? '0 0 0 2px rgba(37,99,235,0.5)' : 'none',
+                          /* Highlight row/column intersection */
+                          outline: isHovered
+                            ? '2px solid rgba(37,99,235,0.5)'
+                            : (isInRow || isInCol)
+                              ? '1px solid rgba(37,99,235,0.15)'
+                              : 'none',
+                          outlineOffset: isHovered ? 0 : -1,
                         }}
                         onMouseEnter={() => setHoveredCell({ row: rowIdx, col: colIdx })}
                         onMouseLeave={() => setHoveredCell(null)}
@@ -110,18 +124,27 @@ export function HeatmapBlock({ block }: HeatmapBlockProps) {
           </tbody>
         </table>
 
-        {hoveredCell && (
-          <div className="mt-2 text-xs text-muted">
-            <span className="text-text-primary font-medium">
-              {block.rows[hoveredCell.row]} × {block.columns[hoveredCell.col]}
-            </span>
-            {' = '}
-            <span className="text-text-primary font-medium tabular-nums">
-              {block.values[hoveredCell.row]?.[hoveredCell.col]?.toFixed(3) ?? '—'}
-            </span>
-            {block.unit && ` ${block.unit}`}
-          </div>
-        )}
+        {/* Hover readout — spring entrance */}
+        <AnimatePresence>
+          {hoveredCell && (
+            <motion.div
+              className="mt-2 text-xs text-muted"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 2 }}
+              transition={CHART.tooltipSpring}
+            >
+              <span className="text-text-primary font-medium">
+                {block.rows[hoveredCell.row]} × {block.columns[hoveredCell.col]}
+              </span>
+              {' = '}
+              <span className="text-text-primary font-medium tabular-nums">
+                {block.values[hoveredCell.row]?.[hoveredCell.col]?.toFixed(3) ?? '—'}
+              </span>
+              {block.unit && ` ${block.unit}`}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="mt-3 flex items-center gap-2">
           <span className="text-2xs text-muted">Low</span>
@@ -130,7 +153,14 @@ export function HeatmapBlock({ block }: HeatmapBlockProps) {
               const t = i / 19
               const val = minVal + t * (maxVal - minVal)
               return (
-                <div key={i} className="flex-1" style={{ backgroundColor: colorFn(val, minVal, maxVal) }} />
+                <motion.div
+                  key={i}
+                  className="flex-1"
+                  style={{ backgroundColor: colorFn(val, minVal, maxVal) }}
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 0.3, delay: i * 0.02 }}
+                />
               )
             })}
           </div>
