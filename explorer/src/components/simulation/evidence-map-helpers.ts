@@ -108,7 +108,7 @@ export function latencyColorGlow(normalized: number): string {
 
 export function nodeRadius(count: number, maxCount: number): number {
   const normalized = Math.max(count / Math.max(maxCount, 1), 0.03)
-  return 4 + Math.sqrt(normalized) * 12
+  return 3 + Math.pow(normalized, 0.4) * 14
 }
 
 export function nodeColor(count: number, maxCount: number): string {
@@ -216,4 +216,148 @@ export interface TooltipData {
   readonly rank: number
   readonly total: number
   readonly macroRegion: MacroRegion
+}
+
+// ── Label collision avoidance ──────────────────────────────────────────────
+
+export interface LabelPlacement {
+  readonly nodeId: string
+  readonly lx: number          // label center x
+  readonly ly: number          // label center y
+  readonly width: number       // pill width
+  readonly height: number      // pill height (constant 14)
+  readonly city: string        // display text
+  readonly rank: number        // 0-indexed rank
+  readonly anchorX: number     // node x for leader line
+  readonly anchorY: number     // node y for leader line
+  readonly needsLeader: boolean // true if label is displaced far from node
+}
+
+interface Rect {
+  x: number   // center x
+  y: number   // center y
+  w: number   // half-width
+  h: number   // half-height
+}
+
+function overlapArea(a: Rect, b: Rect): number {
+  const ox = Math.max(0, (a.w + b.w) - Math.abs(a.x - b.x))
+  const oy = Math.max(0, (a.h + b.h) - Math.abs(a.y - b.y))
+  return ox * oy
+}
+
+const LABEL_H = 14
+const CHAR_WIDTH = 4.8
+const LABEL_PAD = 14       // horizontal padding inside pill
+const LABEL_GAP = 4        // gap between node edge and label edge
+const RANK_BADGE_W = 14    // extra width for "#1" badge on top 3
+
+function labelWidth(city: string, rank: number): number {
+  const text = city.split(',')[0]!
+  const base = text.length * CHAR_WIDTH + LABEL_PAD
+  return rank < 3 ? base + RANK_BADGE_W : base
+}
+
+type Direction = 'above' | 'below' | 'left' | 'right' | 'above-left' | 'above-right'
+
+function candidatePosition(
+  nodeX: number, nodeY: number, nodeR: number,
+  halfW: number, halfH: number,
+  dir: Direction,
+): { x: number; y: number } {
+  const gap = LABEL_GAP + nodeR
+  switch (dir) {
+    case 'above':       return { x: nodeX, y: nodeY - gap - halfH }
+    case 'below':       return { x: nodeX, y: nodeY + gap + halfH }
+    case 'left':        return { x: nodeX - gap - halfW, y: nodeY - halfH }
+    case 'right':       return { x: nodeX + gap + halfW, y: nodeY - halfH }
+    case 'above-left':  return { x: nodeX - halfW * 0.6, y: nodeY - gap - halfH }
+    case 'above-right': return { x: nodeX + halfW * 0.6, y: nodeY - gap - halfH }
+  }
+}
+
+const DIRECTIONS: readonly Direction[] = ['above', 'above-left', 'above-right', 'right', 'left', 'below']
+
+/**
+ * Compute non-overlapping label positions for the top N nodes.
+ * Uses greedy placement: for each node (highest rank first), try 6 candidate
+ * positions and pick the one with minimum overlap against already-placed labels
+ * and other node circles. Falls back to the least-bad option.
+ */
+export function computeLabelPositions(
+  sortedNodes: readonly RegionNode[],
+  maxCount: number,
+  maxLabels = 10,
+): readonly LabelPlacement[] {
+  const candidates = sortedNodes.slice(0, maxLabels)
+  const placed: Rect[] = []
+  const result: LabelPlacement[] = []
+
+  // Pre-compute node rects as obstacles (all nodes, not just labeled ones)
+  const nodeObstacles: Rect[] = sortedNodes.map(n => {
+    const r = nodeRadius(n.count, maxCount)
+    return { x: n.x, y: n.y, w: r, h: r }
+  })
+
+  for (let i = 0; i < candidates.length; i++) {
+    const node = candidates[i]!
+    const rank = i
+    const w = labelWidth(node.city, rank)
+    const halfW = w / 2
+    const halfH = LABEL_H / 2
+    const r = nodeRadius(node.count, maxCount)
+
+    let bestPos = { x: node.x, y: node.y - r - LABEL_GAP - halfH }
+    let bestScore = Infinity
+
+    for (const dir of DIRECTIONS) {
+      const pos = candidatePosition(node.x, node.y, r, halfW, halfH, dir)
+
+      // Penalize out-of-bounds
+      const oobPenalty =
+        (pos.x - halfW < 0 ? (halfW - pos.x) * 10 : 0) +
+        (pos.x + halfW > SVG_W ? (pos.x + halfW - SVG_W) * 10 : 0) +
+        (pos.y - halfH < 0 ? (halfH - pos.y) * 10 : 0) +
+        (pos.y + halfH > MAP_VISIBLE_H ? (pos.y + halfH - MAP_VISIBLE_H) * 10 : 0)
+
+      const rect: Rect = { x: pos.x, y: pos.y, w: halfW, h: halfH }
+
+      // Score = total overlap with placed labels + node obstacles + out-of-bounds
+      let score = oobPenalty
+      for (const p of placed) {
+        score += overlapArea(rect, p) * 3  // heavy penalty for label-label overlap
+      }
+      for (const obs of nodeObstacles) {
+        if (obs.x === node.x && obs.y === node.y) continue // skip self
+        score += overlapArea(rect, obs)
+      }
+
+      // Small preference for 'above' placement (most natural)
+      if (dir !== 'above') score += 2
+
+      if (score < bestScore) {
+        bestScore = score
+        bestPos = pos
+      }
+    }
+
+    const finalRect: Rect = { x: bestPos.x, y: bestPos.y, w: halfW, h: halfH }
+    placed.push(finalRect)
+
+    const dist = Math.hypot(bestPos.x - node.x, bestPos.y - node.y)
+    result.push({
+      nodeId: node.id,
+      lx: bestPos.x,
+      ly: bestPos.y,
+      width: w,
+      height: LABEL_H,
+      city: node.city.split(',')[0]!,
+      rank,
+      anchorX: node.x,
+      anchorY: node.y,
+      needsLeader: dist > r + LABEL_GAP + halfH + 8,
+    })
+  }
+
+  return result
 }
