@@ -7,6 +7,9 @@ export const SPRING_SNAPPY = { type: 'spring' as const, stiffness: 360, damping:
 /** Critically-damped spring — Stripe-style: fast settle, no overshoot */
 export const SPRING_CRISP = { type: 'spring' as const, stiffness: 300, damping: 30, mass: 0.8 }
 
+/** Agentation-style popup spring — slight overshoot for premium entry feel */
+export const SPRING_POPUP = { type: 'spring' as const, stiffness: 380, damping: 22, mass: 0.7 }
+
 /** Instant transition — used when prefers-reduced-motion is active */
 export const INSTANT = { duration: 0 } as const
 
