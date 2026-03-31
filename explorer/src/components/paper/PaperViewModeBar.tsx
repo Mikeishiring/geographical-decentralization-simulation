@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, LayoutList, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
+import { Eye, LayoutList, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare, Sparkles } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
@@ -7,13 +7,14 @@ import type { TabId } from '../layout/TabNav'
 
 export type ReaderMode = 'editorial' | 'focus' | 'argument-map' | 'paper'
 
-export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; detail: string; fidelity: string; fidelityShort: string }> = {
+export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; detail: string; fidelity: string; fidelityShort: string; provenanceHint: string }> = {
   editorial: {
     icon: BookOpen,
     label: 'Editorial',
     detail: 'LLM-generated narrative walkthrough with source provenance',
     fidelity: 'LLM narrative',
     fidelityShort: 'Interpreted',
+    provenanceHint: 'Narrative text is LLM-generated. Source pills show provenance.',
   },
   focus: {
     icon: Eye,
@@ -21,6 +22,7 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
     detail: 'Same editorial content, distraction-free centered layout',
     fidelity: 'Clean reading',
     fidelityShort: 'Interpreted',
+    provenanceHint: 'Same editorial content in a clean layout.',
   },
   'argument-map': {
     icon: LayoutList,
@@ -28,6 +30,7 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
     detail: 'Paper claims organized as expandable structured cards',
     fidelity: 'Structured claims',
     fidelityShort: 'Extracted',
+    provenanceHint: 'Claims extracted from the paper with section references.',
   },
   paper: {
     icon: FileText,
@@ -35,6 +38,7 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
     detail: 'Published arXiv PDF — unmodified source document',
     fidelity: 'Original arXiv',
     fidelityShort: 'Source',
+    provenanceHint: 'Unmodified published document — no interpretation layer.',
   },
 }
 
@@ -118,31 +122,62 @@ export function PaperViewModeBar({
           </div>
           {/* Interpretation spectrum — animated dot tracks active mode */}
           <div className="hidden sm:flex items-center gap-2 px-1">
-            <span className="text-2xs text-accent/60 select-none whitespace-nowrap">Interpreted</span>
-            <div className="relative flex-1 h-3 flex items-center">
-              <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-accent/30 via-rule to-muted/30" />
-              {MODES_ORDERED.map((mode, i) => (
-                <div
-                  key={mode}
-                  className="absolute top-1/2 -translate-y-1/2 h-1 w-1 rounded-full bg-rule"
-                  style={{ left: `${(i / (MODES_ORDERED.length - 1)) * 100}%` }}
-                />
-              ))}
+            <span className="text-2xs select-none whitespace-nowrap flex items-center gap-1">
+              <Sparkles className="h-2.5 w-2.5 text-amber-500/50" />
+              <span className="text-amber-600/50">Interpreted</span>
+            </span>
+            <div className="relative flex-1 h-4 flex items-center">
+              <div className="absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 rounded-full bg-gradient-to-r from-amber-300/30 via-rule to-accent/20" />
+              {MODES_ORDERED.map((mode, i) => {
+                const isActive = readerMode === mode
+                return (
+                  <motion.div
+                    key={mode}
+                    className={cn(
+                      'absolute top-1/2 -translate-y-1/2 rounded-full transition-colors duration-200',
+                      isActive ? 'h-1.5 w-1.5 bg-accent' : 'h-1 w-1 bg-rule',
+                    )}
+                    style={{ left: `${(i / (MODES_ORDERED.length - 1)) * 100}%`, marginLeft: isActive ? -3 : -2 }}
+                  />
+                )
+              })}
               <motion.div
-                className="absolute top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-accent shadow-[0_0_4px_rgba(59,130,246,0.4)]"
-                animate={{ left: `${SPECTRUM_POSITIONS[readerMode]}%` }}
+                key={readerMode}
+                className="absolute top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-accent"
+                initial={{ scale: 1.6, opacity: 0.6 }}
+                animate={{
+                  left: `${SPECTRUM_POSITIONS[readerMode]}%`,
+                  scale: 1,
+                  opacity: 1,
+                }}
                 transition={SPRING_SNAPPY}
-                style={{ marginLeft: -4 }}
+                style={{ marginLeft: -5, boxShadow: '0 0 6px rgba(59,130,246,0.5), 0 0 2px rgba(59,130,246,0.3)' }}
               />
             </div>
-            <span className="text-2xs text-muted/60 select-none whitespace-nowrap">Source</span>
+            <span className="text-2xs select-none whitespace-nowrap flex items-center gap-1">
+              <span className="text-accent/50">Source</span>
+              <FileText className="h-2.5 w-2.5 text-accent/40" />
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Mobile fidelity badge — visible only on small screens */}
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={readerMode}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="sm:hidden text-2xs text-muted select-none"
+            >
+              {MODE_META[readerMode].fidelityShort}
+            </motion.span>
+          </AnimatePresence>
           {!argumentMapMode && !paperMode && (
             <div className="hidden sm:flex items-center gap-2 text-xs text-muted">
-              <span>{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
+              <span className="tabular-nums">{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
               <div className="h-1 w-20 overflow-hidden rounded-full bg-surface-active">
                 <motion.div
                   className="h-full rounded-full bg-accent"
@@ -243,6 +278,7 @@ export function PaperViewModeBar({
                   })}
                 </div>
                 <p className="mt-2 text-2xs text-muted leading-relaxed">{MODE_META[readerMode].detail}</p>
+                <p className="mt-1 text-2xs text-text-faint leading-relaxed italic">{MODE_META[readerMode].provenanceHint}</p>
               </div>
               <div>
                 <div className="text-xs font-medium text-text-primary">References & artifacts</div>
