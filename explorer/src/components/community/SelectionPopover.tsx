@@ -186,16 +186,11 @@ export function SelectionPopover({
           exit={{ opacity: 0, y: position.placeBelow ? -4 : 4, scale: 0.97 }}
           transition={SPRING_POPUP}
           data-annotation-popover
-          className={`fixed z-[100001] -translate-x-1/2 pointer-events-auto ${position.placeBelow ? '' : '-translate-y-full'}`}
+          className={`fixed z-[100001] -translate-x-1/2 pointer-events-auto rounded-2xl bg-white/[0.97] backdrop-blur-sm shadow-[0_4px_24px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] px-4 py-3 pb-3.5 ${position.placeBelow ? '' : '-translate-y-full'}`}
           style={{
             top: position.top,
             left: position.left,
             width: POPUP_WIDTH,
-            borderRadius: 16,
-            background: 'rgba(255, 255, 255, 0.97)',
-            backdropFilter: 'blur(12px)',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)',
-            padding: '12px 16px 14px',
           }}
           onMouseDown={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
@@ -214,18 +209,7 @@ export function SelectionPopover({
           </div>
 
           {/* Quoted selection (agentation: 80 char, italic, subtle bg) */}
-          <div
-            className="mb-2"
-            style={{
-              fontSize: 12,
-              fontStyle: 'italic',
-              lineHeight: 1.45,
-              color: 'rgba(0,0,0,0.55)',
-              background: 'rgba(0,0,0,0.04)',
-              borderRadius: 4,
-              padding: '6px 8px',
-            }}
-          >
+          <div className="mb-2 text-xs italic leading-[1.45] text-black/55 bg-black/[0.04] rounded px-2 py-1.5">
             &ldquo;{excerpt.length > 80 ? `${excerpt.slice(0, 80)}\u2026` : excerpt}&rdquo;
             {/* Share passage pill */}
             <button
@@ -249,20 +233,7 @@ export function SelectionPopover({
             onKeyDown={handleKeyDown}
             placeholder="Add context readers should know..."
             rows={2}
-            className="annotation-textarea w-full resize-none outline-none"
-            style={{
-              fontSize: 13,
-              fontFamily: 'inherit',
-              lineHeight: 1.5,
-              color: '#1a1a1a',
-              background: 'rgba(0,0,0,0.03)',
-              border: '1px solid rgba(0,0,0,0.12)',
-              borderRadius: 8,
-              padding: '8px 10px',
-              transition: 'border-color 0.15s ease',
-            }}
-            onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-accent, #3c82f7)' }}
-            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.12)' }}
+            className="annotation-textarea w-full resize-none outline-none text-[13px] font-[inherit] leading-normal text-[#1a1a1a] bg-black/[0.03] border border-black/[0.12] rounded-lg px-2.5 py-2 transition-colors focus:border-accent"
           />
 
           {/* Helper text */}
@@ -280,7 +251,8 @@ export function SelectionPopover({
                 type="button"
                 onClick={() => setShowEmoji(prev => !prev)}
                 whileTap={{ scale: 0.92 }}
-                className="flex h-7 w-7 items-center justify-center rounded-full text-black/40 transition-colors hover:bg-black/[0.06] hover:text-black/60"
+                aria-label="Add emoji reaction"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-black/40 transition-colors hover:bg-black/[0.06] hover:text-black/60 focus-visible:ring-2 focus-visible:ring-accent/30"
               >
                 <Smile className="h-4 w-4" />
               </motion.button>
@@ -302,8 +274,7 @@ export function SelectionPopover({
                 onClick={handleSubmit}
                 disabled={!comment.trim()}
                 whileTap={{ scale: 0.96 }}
-                className="rounded-2xl px-3.5 py-1.5 text-xs font-medium text-white transition-[filter,opacity] duration-150 hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-40"
-                style={{ backgroundColor: 'var(--color-accent, #3c82f7)' }}
+                className="rounded-2xl bg-accent px-3.5 py-1.5 text-xs font-medium text-white transition-[filter,opacity] duration-150 hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Publish note
               </motion.button>

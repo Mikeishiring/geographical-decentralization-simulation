@@ -61,7 +61,7 @@ export function AgentStepCard({
     >
       {/* Header */}
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-rule bg-surface-active text-xs font-medium text-text-primary">
+        <div aria-label={`Step ${step.index + 1}`} className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-rule bg-surface-active text-xs font-medium text-text-primary">
           {step.index + 1}
         </div>
         <div className="min-w-0 flex-1">

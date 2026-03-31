@@ -98,7 +98,7 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
                   key={tick}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3, delay: idx * 0.04 }}
+                  transition={{ ...SPRING_CRISP, delay: idx * 0.04 }}
                 >
                   <line x1={padding.left} y1={sy} x2={svgW - padding.right} y2={sy}
                     stroke="currentColor" strokeWidth={CHART.gridWidth} opacity={CHART.gridOpacity} />
@@ -118,7 +118,7 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
                   className="fill-muted" style={{ fontSize: CHART.labelSize }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3, delay: 0.2 + i * 0.04 }}
+                  transition={{ ...SPRING_CRISP, delay: 0.2 + i * 0.04 }}
                 >
                   {Number.isInteger(tick) ? tick : tick.toFixed(2)}
                 </motion.text>

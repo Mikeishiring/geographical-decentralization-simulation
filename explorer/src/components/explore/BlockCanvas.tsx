@@ -59,7 +59,7 @@ export function BlockCanvas({ blocks, showExport = true }: BlockCanvasProps) {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {blocks.slice(0, 3).map((block, i) => (
               <motion.div
-                key={i}
+                key={`${block.type}-${i}`}
                 variants={STAGGER_ITEM}
               >
                 <BlockRenderer block={block} />
@@ -69,7 +69,7 @@ export function BlockCanvas({ blocks, showExport = true }: BlockCanvasProps) {
           {/* Remaining blocks */}
           {blocks.slice(3).map((block, i) => (
             <motion.div
-              key={i + 3}
+              key={`${block.type}-${i + 3}`}
               variants={STAGGER_ITEM}
             >
               <BlockRenderer block={block} />
@@ -79,7 +79,7 @@ export function BlockCanvas({ blocks, showExport = true }: BlockCanvasProps) {
       ) : (
         blocks.map((block, i) => (
           <motion.div
-            key={i}
+            key={`${block.type}-${i}`}
             variants={STAGGER_ITEM}
           >
             <BlockRenderer block={block} />
