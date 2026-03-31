@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, LayoutList, FileText, BookOpen, ChevronDown, ChevronUp } from 'lucide-react'
+import { Eye, LayoutList, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
@@ -7,27 +7,44 @@ import type { TabId } from '../layout/TabNav'
 
 export type ReaderMode = 'editorial' | 'focus' | 'argument-map' | 'paper'
 
-export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; detail: string }> = {
+export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; detail: string; fidelity: string; fidelityShort: string }> = {
   editorial: {
     icon: BookOpen,
     label: 'Editorial',
-    detail: 'Narrative walkthrough with side-by-side evidence blocks',
+    detail: 'LLM-generated narrative walkthrough with source provenance',
+    fidelity: 'LLM narrative',
+    fidelityShort: 'Interpreted',
   },
   focus: {
     icon: Eye,
     label: 'Focus',
-    detail: 'Distraction-free reading, centered layout',
+    detail: 'Same editorial content, distraction-free centered layout',
+    fidelity: 'Clean reading',
+    fidelityShort: 'Interpreted',
   },
   'argument-map': {
     icon: LayoutList,
     label: 'Argument map',
-    detail: 'Expandable claims organized by section',
+    detail: 'Paper claims organized as expandable structured cards',
+    fidelity: 'Structured claims',
+    fidelityShort: 'Extracted',
   },
   paper: {
     icon: FileText,
     label: 'Original PDF',
-    detail: 'Published arXiv PDF with dark mode, annotations, and direct download',
+    detail: 'Published arXiv PDF — unmodified source document',
+    fidelity: 'Original arXiv',
+    fidelityShort: 'Source',
   },
+}
+
+const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'focus', 'argument-map', 'paper'] as const
+
+const SPECTRUM_POSITIONS: Record<ReaderMode, number> = {
+  editorial: 0,
+  focus: 33,
+  'argument-map': 67,
+  paper: 100,
 }
 
 interface PaperViewModeBarProps {
@@ -38,6 +55,11 @@ interface PaperViewModeBarProps {
   readonly onGuideToggle: () => void
   readonly onSectionClick: (id: string) => void
   readonly onTabChange?: (tab: TabId) => void
+  /** Whether inline community notes are shown on sections */
+  readonly notesVisible?: boolean
+  readonly onNotesToggle?: () => void
+  /** Total number of published notes across all sections */
+  readonly noteCount?: number
 }
 
 export function PaperViewModeBar({
@@ -48,6 +70,9 @@ export function PaperViewModeBar({
   onGuideToggle,
   onSectionClick,
   onTabChange,
+  notesVisible = false,
+  onNotesToggle,
+  noteCount = 0,
 }: PaperViewModeBarProps) {
   const argumentMapMode = readerMode === 'argument-map'
   const paperMode = readerMode === 'paper'
@@ -56,39 +81,62 @@ export function PaperViewModeBar({
   return (
     <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1">
-          {(Object.keys(MODE_META) as ReaderMode[]).map(mode => {
-            const meta = MODE_META[mode]
-            const Icon = meta.icon
-            const isActive = readerMode === mode
-            return (
-              <motion.button
-                key={mode}
-                onClick={() => onModeChange(mode)}
-                title={meta.detail}
-                whileTap={{ scale: 0.96 }}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1">
+            {MODES_ORDERED.map(mode => {
+              const meta = MODE_META[mode]
+              const Icon = meta.icon
+              const isActive = readerMode === mode
+              return (
+                <motion.button
+                  key={mode}
+                  onClick={() => onModeChange(mode)}
+                  title={meta.detail}
+                  whileTap={{ scale: 0.96 }}
+                  transition={SPRING_SNAPPY}
+                  className={cn(
+                    'relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors',
+                    isActive
+                      ? 'text-text-primary font-medium'
+                      : 'text-muted hover:text-text-primary',
+                  )}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="mode-pill"
+                      className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-black/[0.04]"
+                      transition={SPRING_SNAPPY}
+                    />
+                  )}
+                  <span className="relative flex items-center gap-1.5">
+                    <Icon className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{meta.label}</span>
+                  </span>
+                </motion.button>
+              )
+            })}
+          </div>
+          {/* Interpretation spectrum — animated dot tracks active mode */}
+          <div className="hidden sm:flex items-center gap-2 px-1">
+            <span className="text-2xs text-accent/60 select-none whitespace-nowrap">Interpreted</span>
+            <div className="relative flex-1 h-3 flex items-center">
+              <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-accent/30 via-rule to-muted/30" />
+              {MODES_ORDERED.map((mode, i) => (
+                <div
+                  key={mode}
+                  className="absolute top-1/2 -translate-y-1/2 h-1 w-1 rounded-full bg-rule"
+                  style={{ left: `${(i / (MODES_ORDERED.length - 1)) * 100}%` }}
+                />
+              ))}
+              <motion.div
+                className="absolute top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-accent shadow-[0_0_4px_rgba(59,130,246,0.4)]"
+                animate={{ left: `${SPECTRUM_POSITIONS[readerMode]}%` }}
                 transition={SPRING_SNAPPY}
-                className={cn(
-                  'relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors',
-                  isActive
-                    ? 'text-text-primary font-medium'
-                    : 'text-muted hover:text-text-primary',
-                )}
-              >
-                {isActive && (
-                  <motion.span
-                    layoutId="mode-pill"
-                    className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-black/[0.04]"
-                    transition={SPRING_SNAPPY}
-                  />
-                )}
-                <span className="relative flex items-center gap-1.5">
-                  <Icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{meta.label}</span>
-                </span>
-              </motion.button>
-            )
-          })}
+                style={{ marginLeft: -4 }}
+              />
+            </div>
+            <span className="text-2xs text-muted/60 select-none whitespace-nowrap">Source</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -103,6 +151,28 @@ export function PaperViewModeBar({
                 />
               </div>
             </div>
+          )}
+          {onNotesToggle && (
+            <button
+              onClick={onNotesToggle}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors',
+                notesVisible
+                  ? 'border-accent/30 bg-accent/5 text-accent'
+                  : 'border-rule text-muted hover:text-text-primary hover:border-border-hover',
+              )}
+            >
+              <MessageSquare className="h-3 w-3" />
+              Notes
+              {noteCount > 0 && (
+                <span className={cn(
+                  'ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold',
+                  notesVisible ? 'bg-accent text-white' : 'bg-surface-active text-text-faint',
+                )}>
+                  {noteCount}
+                </span>
+              )}
+            </button>
           )}
           <button
             onClick={onGuideToggle}
@@ -146,8 +216,33 @@ export function PaperViewModeBar({
                 </div>
               </div>
               <div>
-                <div className="text-xs font-medium text-text-primary">Current mode</div>
-                <p className="mt-2 text-sm text-muted">{MODE_META[readerMode].detail}</p>
+                <div className="text-xs font-medium text-text-primary">Fidelity spectrum</div>
+                <div className="mt-2 space-y-1.5">
+                  {MODES_ORDERED.map(mode => {
+                    const meta = MODE_META[mode]
+                    const Icon = meta.icon
+                    const isCurrent = readerMode === mode
+                    return (
+                      <button
+                        key={mode}
+                        onClick={() => onModeChange(mode)}
+                        className={cn(
+                          'flex items-center gap-2 w-full rounded-md px-2 py-1 text-xs transition-colors text-left',
+                          isCurrent
+                            ? 'bg-accent/8 text-accent font-medium'
+                            : 'text-muted hover:text-text-primary hover:bg-surface-active',
+                        )}
+                      >
+                        <Icon className="h-3 w-3 shrink-0" />
+                        <span>{meta.label}</span>
+                        <span className={cn('ml-auto text-2xs', isCurrent ? 'text-accent/60' : 'text-text-faint')}>
+                          {meta.fidelityShort}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="mt-2 text-2xs text-muted leading-relaxed">{MODE_META[readerMode].detail}</p>
               </div>
               <div>
                 <div className="text-xs font-medium text-text-primary">References & artifacts</div>
