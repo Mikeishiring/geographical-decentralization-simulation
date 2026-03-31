@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Link2, Quote, Check, ChevronDown, ChevronUp, Sparkles, Lightbulb } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Link2, Quote, Check, Lightbulb } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { ContributionComposer } from '../community/ContributionComposer'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_SOFT, SECTION_CATEGORY_STYLE } from '../../lib/theme'
+import { SPRING, SECTION_CATEGORY_STYLE } from '../../lib/theme'
 import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
 import { PAPER_NARRATIVE, type PaperNarrative } from '../../data/paper-narrative'
 import type { Exploration } from '../../lib/api'
@@ -50,12 +50,8 @@ export function PaperSectionView({
 }: PaperSectionViewProps) {
   const activeSectionId = activeSectionIdProp ?? PAPER_SECTIONS[0].id
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
-  const [guideOpen, setGuideOpen] = useState(false)
   const [publishedSections, setPublishedSections] = useState<Set<string>>(new Set())
 
-  const activeSectionIndex = Math.max(0, PAPER_SECTIONS.findIndex(s => s.id === activeSectionId))
-  const progressPercent = ((activeSectionIndex + 1) / PAPER_SECTIONS.length) * 100
-  const activeSection = PAPER_SECTIONS.find(s => s.id === activeSectionId) ?? PAPER_SECTIONS[0]
 
   const handleCopySectionLink = async (sectionId: string) => {
     const url = new URL(window.location.href)
@@ -74,77 +70,6 @@ export function PaperSectionView({
 
   return (
     <>
-      {/* Reading progress bar */}
-      <div className="sticky top-[4.5rem] z-10 -mx-4 px-4 py-2.5 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6 geo-accent-bar">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs text-muted min-w-0">
-            <span className="mono-xs text-accent shrink-0">{activeSection.number}</span>
-            <span className="text-text-primary text-sm font-medium truncate">{activeSection.title}</span>
-            <span className="hidden md:inline-flex items-center gap-1 shrink-0 rounded-full border border-amber-200/40 bg-amber-50/50 px-2 py-0.5 text-2xs text-amber-600/50 select-none" title="You are reading LLM-interpreted content. Hover text to see source provenance.">
-              <Sparkles className="h-2.5 w-2.5" />
-              Interpreted
-            </span>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="hidden sm:flex items-center gap-2 text-xs text-muted">
-              <span>{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
-              <div className="h-1 w-20 overflow-hidden rounded-full bg-surface-active">
-                <motion.div
-                  className="h-full rounded-full bg-accent"
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={SPRING_SOFT}
-                />
-              </div>
-            </div>
-            <button
-              onClick={() => setGuideOpen(prev => !prev)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors',
-                guideOpen
-                  ? 'border-accent/30 bg-accent/5 text-accent'
-                  : 'border-rule text-muted hover:text-text-primary hover:border-border-hover',
-              )}
-            >
-              {guideOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              Sections
-            </button>
-          </div>
-        </div>
-
-        <AnimatePresence>
-          {guideOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={SPRING}
-              className="overflow-hidden"
-            >
-              <nav className="grid gap-1.5 pt-3 sm:grid-cols-2 lg:grid-cols-5">
-                {PAPER_SECTIONS.map(section => (
-                  <a
-                    key={section.id}
-                    href={`#${section.id}`}
-                    onClick={() => { /* navigation handled by href hash */ }}
-                    className={cn(
-                      'block rounded-md px-3 py-2 text-xs transition-colors',
-                      activeSectionId === section.id
-                        ? 'bg-surface-active text-text-primary font-medium'
-                        : 'text-muted hover:bg-surface-active hover:text-text-primary',
-                    )}
-                  >
-                    <span className={cn('mono-xs', activeSectionId === section.id ? 'text-accent' : 'text-text-faint')}>
-                      {section.number}
-                    </span>{' '}
-                    {section.title}
-                  </a>
-                ))}
-              </nav>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
       {/* Sections grid */}
       <div className={cn('grid gap-8 overflow-hidden', focusMode ? 'xl:grid-cols-[minmax(0,1fr)]' : 'xl:grid-cols-[220px_minmax(0,1fr)]')}>
         {/* TOC sidebar */}
