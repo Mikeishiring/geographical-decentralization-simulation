@@ -1,11 +1,10 @@
 import { useState, useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SPRING, PAGE_TRANSITION } from '../../lib/theme'
+import { SPRING, SPRING_CRISP, PAGE_TRANSITION, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
 import { PAPER_NARRATIVE } from '../../data/paper-narrative'
-import { DEFAULT_BLOCKS, type TopicCard } from '../../data/default-blocks'
-import { BEST_FIRST_STOP_IDS, sectionEntryLine } from './paper-helpers'
+import { type TopicCard } from '../../data/default-blocks'
 import { createExploration, publishExploration } from '../../lib/api'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { PaperHero } from './PaperHero'
@@ -13,7 +12,7 @@ import { TopicCardGrid } from './TopicCardGrid'
 import { CommunityPreview } from './CommunityPreview'
 import { PaperSectionView } from './PaperSectionView'
 import { NodeArc } from '../decorative/NodeArc'
-import { Link2, Check, Quote } from 'lucide-react'
+import { Link2, Check, Quote, Sparkles } from 'lucide-react'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import type { Exploration } from '../../lib/api'
 import type { TabId } from '../layout/TabNav'
@@ -44,10 +43,6 @@ export function EditorialView({
   const queryClient = useQueryClient()
   const [activeTopic, setActiveTopic] = useState<TopicCard | null>(null)
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
-
-  const bestFirstStops = PAPER_SECTIONS.filter(section =>
-    BEST_FIRST_STOP_IDS.includes(section.id as (typeof BEST_FIRST_STOP_IDS)[number]),
-  )
 
   const publishMutation = useMutation({
     mutationFn: async (input: {
@@ -115,41 +110,11 @@ export function EditorialView({
 
   return (
     <motion.div key="editorial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={PAGE_TRANSITION}>
-      {/* Hero */}
-      <PaperHero />
+      {/* Compact hero with inline best-first-stops */}
+      <PaperHero onSectionClick={onSectionClick} />
 
-      {/* Best first stops */}
-      <section className="mt-10 rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="lab-section-title">Best first stops</div>
-            <div className="mt-1.5 text-13 font-medium text-text-primary">Four strong entry points into the paper</div>
-          </div>
-          <div className="max-w-2xl text-13 leading-[1.6] text-muted">
-            Start with the paradox, then check the realism question, the implications, and the limitations.
-          </div>
-        </div>
-        <div className="mt-4 divide-y divide-rule stagger-reveal">
-          {bestFirstStops.map(section => (
-            <a
-              key={section.id}
-              href={`#${section.id}`}
-              onClick={() => onSectionClick(section.id)}
-              className="group flex items-baseline justify-between gap-4 py-3 transition-colors"
-            >
-              <div className="min-w-0">
-                <span className="mono-xs text-accent uppercase">{section.number}</span>
-                <div className="mt-0.5 text-13 font-medium text-text-primary group-hover:text-accent transition-colors">{section.title}</div>
-                <div className="mt-0.5 text-xs leading-5 text-muted">{sectionEntryLine(section)}</div>
-              </div>
-              <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
-            </a>
-          ))}
-        </div>
-      </section>
-
-      {/* Topic cards + overview blocks */}
-      <div className="mt-10">
+      {/* Topic card strip — compact, one section */}
+      <div className="mt-6">
         <TopicCardGrid
           activeTopic={activeTopic}
           showingAi={false}
@@ -158,107 +123,68 @@ export function EditorialView({
         />
       </div>
 
-      {/* Default/topic blocks */}
-      <div className="mt-10">
-        <AnimatePresence mode="wait">
-          {showTopic ? (
-            <motion.div
-              key={activeTopic.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={SPRING}
-            >
-              <div className="mb-4">
-                <h2 className="text-base font-semibold text-text-primary font-serif">{activeTopic.title}</h2>
-                <p className="mt-1 text-sm text-muted">{activeTopic.description}</p>
+      {/* Topic detail blocks (only when a topic is selected) */}
+      <AnimatePresence mode="wait">
+        {showTopic && (
+          <motion.div
+            key={activeTopic.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={SPRING}
+            className="mt-6"
+          >
+            <div className="mb-4">
+              <h2 className="text-base font-semibold text-text-primary font-serif">{activeTopic.title}</h2>
+              <p className="mt-1 text-sm text-muted">{activeTopic.description}</p>
+            </div>
+            <BlockCanvas blocks={activeTopic.blocks} />
+            {activeTopic.prompts.length > 0 && onTabChange && (
+              <div className="mt-6 pt-4 border-t border-rule">
+                <span className="text-xs text-muted mb-2 block">Ask the Agent about this topic</span>
+                <motion.div
+                  className="flex flex-wrap gap-2"
+                  variants={STAGGER_CONTAINER}
+                  initial="hidden"
+                  animate="show"
+                >
+                  {activeTopic.prompts.slice(0, 4).map((prompt, i) => (
+                    <motion.button
+                      key={`${prompt}-${i}`}
+                      variants={STAGGER_ITEM}
+                      onClick={() => onTabChange('agent')}
+                      className="follow-up-chip"
+                      title={`Ask Agent: ${prompt}`}
+                    >
+                      {prompt}
+                    </motion.button>
+                  ))}
+                </motion.div>
               </div>
-              <BlockCanvas blocks={activeTopic.blocks} />
-              {activeTopic.prompts.length > 0 && onTabChange && (
-                <div className="mt-6 pt-4 border-t border-rule">
-                  <span className="text-xs text-muted mb-2 block">Ask the Agent about this topic</span>
-                  <div className="flex flex-wrap gap-2 stagger-reveal">
-                    {activeTopic.prompts.slice(0, 4).map((prompt, i) => (
-                      <button
-                        key={`${prompt}-${i}`}
-                        onClick={() => onTabChange('agent')}
-                        className="follow-up-chip"
-                        title={`Ask Agent: ${prompt}`}
-                      >
-                        {prompt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="default"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={SPRING}
-            >
-              <BlockCanvas blocks={DEFAULT_BLOCKS} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Navigation to other tabs */}
-      {!showTopic && onTabChange && (
-        <div className="mt-10 stagger-reveal grid gap-3 sm:grid-cols-3">
-          {([
-            { tab: 'results' as TabId, eyebrow: 'Simulation lab', title: 'Results', detail: 'Run scenarios, compare paradigms, export artifacts.' },
-            { tab: 'agent' as TabId, eyebrow: 'Questions & experiments', title: 'Agent workspace', detail: 'Ask the paper, run simulations, export results.' },
-            { tab: 'community' as TabId, eyebrow: 'Public responses', title: 'Community notes', detail: 'Human notes on readings and simulation runs.' },
-          ] as const).map(item => (
-            <button
-              key={item.tab}
-              onClick={() => onTabChange(item.tab)}
-              className="group relative overflow-hidden rounded-xl border border-rule bg-white p-4 text-left card-hover globe-grid"
-            >
-              <div className="absolute right-1 top-1 w-[80px] h-[40px] opacity-[0.35] pointer-events-none select-none" aria-hidden="true">
-                <NodeArc className="w-full h-full text-muted" />
-              </div>
-              <div className="relative">
-                <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{item.eyebrow}</span>
-                <div className="mt-1.5 flex items-center justify-between gap-2">
-                  <span className="text-13 font-medium text-text-primary group-hover:text-accent transition-colors">{item.title}</span>
-                  <span className="text-xs text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
-                </div>
-                <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Community preview */}
-      <div className="mt-10">
-        <CommunityPreview
-          isActive={isActive}
-          onOpenNote={openCommunityNote}
-          onTabChange={onTabChange}
-        />
-      </div>
-
-      {/* Section-by-section reading */}
-      <div className="mt-10">
+      {/* Section-by-section reading — the main content */}
+      <div className="mt-8">
         {focusMode ? (
           /* Focus mode: centered, distraction-free */
           <div className="space-y-12">
             {/* Focus mode section indicator */}
-            <div className="sticky top-40 z-10 rounded-lg border border-rule bg-white/95 backdrop-blur-sm px-4 py-2.5">
+            <div className="sticky top-40 z-10 rounded-xl border border-rule bg-white/95 backdrop-blur-sm px-4 py-2.5 geo-accent-bar">
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-xs font-mono text-accent">{activeSection.number}</span>
-                  <span className="text-text-primary">{activeSection.title}</span>
+                <div className="flex items-center gap-2 text-sm min-w-0">
+                  <span className="text-xs font-mono text-accent shrink-0">{activeSection.number}</span>
+                  <span className="text-text-primary truncate">{activeSection.title}</span>
+                  <span className="hidden md:inline-flex items-center gap-1 shrink-0 rounded-full border border-amber-200/40 bg-amber-50/50 px-2 py-0.5 text-2xs text-amber-600/50 select-none" title="Hover narrative text to see source provenance">
+                    <Sparkles className="h-2.5 w-2.5" />
+                    Interpreted
+                  </span>
                 </div>
                 <button
                   onClick={() => handleCopySectionLink(activeSection.id)}
-                  className="inline-flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-text-primary"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-text-primary shrink-0"
                 >
                   {copiedSectionId === activeSection.id ? <Check className="h-3 w-3 text-success" /> : <Link2 className="h-3 w-3" />}
                   {copiedSectionId === activeSection.id ? 'Copied!' : 'Copy link'}
@@ -281,7 +207,7 @@ export function EditorialView({
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.15 }}
                   transition={SPRING}
-                  className="group scroll-mt-40 mx-auto max-w-5xl rounded-lg border border-rule bg-white p-5 transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] sm:p-6"
+                  className="group scroll-mt-40 mx-auto max-w-5xl rounded-xl border border-rule bg-white p-5 card-hover geo-accent-bar sm:p-6"
                 >
                   <div className="mb-6 border-b border-rule pb-5">
                     <h2 className="mt-2 max-w-3xl text-2xl font-medium text-text-primary font-serif sm:text-3xl">
@@ -301,12 +227,12 @@ export function EditorialView({
                         <p key={paragraph}>{paragraph}</p>
                       ))}
                     </div>
-                    <div className="border-l-[3px] border-l-accent pl-5 py-2">
-                      <div className="flex items-center gap-1.5 text-xs text-muted mb-2">
+                    <div className="border-l-2 border-l-accent/40 pl-5 py-2">
+                      <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
                         <Quote className="h-3 w-3" />
                         Pull quote
                       </div>
-                      <p className="max-w-3xl text-xl leading-relaxed text-text-primary font-serif italic">
+                      <p className="max-w-3xl text-xl leading-relaxed text-text-primary font-serif italic text-balance">
                         {narrative.pullQuote}
                       </p>
                     </div>
@@ -362,8 +288,61 @@ export function EditorialView({
         )}
       </div>
 
+      {/* Navigation to other tabs — after the reading content */}
+      {!showTopic && onTabChange && (
+        <motion.div
+          className="mt-10 grid gap-3 sm:grid-cols-3"
+          variants={STAGGER_CONTAINER}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.3 }}
+        >
+          {([
+            { tab: 'results' as TabId, eyebrow: 'Simulation lab', title: 'Results', detail: 'Run scenarios, compare paradigms, export artifacts.' },
+            { tab: 'agent' as TabId, eyebrow: 'Questions & experiments', title: 'Agent workspace', detail: 'Ask the paper, run simulations, export results.' },
+            { tab: 'community' as TabId, eyebrow: 'Public responses', title: 'Community notes', detail: 'Human notes on readings and simulation runs.' },
+          ] as const).map(item => (
+            <motion.button
+              key={item.tab}
+              variants={STAGGER_ITEM}
+              whileTap={{ scale: 0.98 }}
+              transition={SPRING_CRISP}
+              onClick={() => onTabChange(item.tab)}
+              className="group relative overflow-hidden rounded-xl border border-rule bg-white p-4 text-left card-hover globe-grid"
+            >
+              <div className="absolute right-1 top-1 w-[80px] h-[40px] opacity-[0.35] pointer-events-none select-none" aria-hidden="true">
+                <NodeArc className="w-full h-full text-muted" />
+              </div>
+              <div className="relative">
+                <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{item.eyebrow}</span>
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <span className="text-13 font-medium text-text-primary group-hover:text-accent transition-colors">{item.title}</span>
+                  <span className="text-xs text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
+                </div>
+                <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
+              </div>
+            </motion.button>
+          ))}
+        </motion.div>
+      )}
+
+      {/* Community preview — after nav cards */}
+      <div className="mt-8">
+        <CommunityPreview
+          isActive={isActive}
+          onOpenNote={openCommunityNote}
+          onTabChange={onTabChange}
+        />
+      </div>
+
       {/* References footer */}
-      <section className="mt-10 rounded-xl border border-rule bg-white p-5 sm:p-6 geo-accent-bar">
+      <motion.section
+        className="mt-8 rounded-xl border border-rule bg-white p-5 sm:p-6 geo-accent-bar"
+        initial={{ opacity: 0, y: 10 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={SPRING}
+      >
         <div className="lab-section-title">References and intent</div>
         <p className="mt-3 max-w-2xl text-13 leading-[1.65] text-text-body font-serif">
           This reader view makes the paper easier to absorb without replacing the canonical study. The best first stops are the gamma paradox, the starting-geography section, and the limitations — they define the paper's surprise, realism, and confidence boundary.
@@ -381,7 +360,7 @@ export function EditorialView({
             </a>
           ))}
         </div>
-      </section>
+      </motion.section>
     </motion.div>
   )
 }

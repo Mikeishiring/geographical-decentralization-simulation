@@ -219,7 +219,7 @@ async function fetchPublishedAnalyticsPayload(
   datasetPath: string,
 ): Promise<PublishedAnalyticsPayload> {
   const normalizedBase = viewerBaseUrl.replace(/\/$/, '')
-  const response = await fetch(`${normalizedBase}/${datasetPath}`, { cache: 'force-cache' })
+  const response = await fetch(`${normalizedBase}/${datasetPath}`, { cache: 'default' })
   if (!response.ok) {
     throw new Error(`Failed to load analytics payload for ${datasetPath}`)
   }
@@ -1048,7 +1048,7 @@ export function ResearchDemoSurface({
       ...overrides,
     }
 
-    params.set('tab', 'agent')
+    // Don't override 'tab' — App.tsx owns top-level tab routing
     params.delete('q')
     params.delete('eid')
     if (nextState.selectedEvaluation) params.set('evaluation', nextState.selectedEvaluation)
@@ -1894,7 +1894,7 @@ export function ResearchDemoSurface({
     const url = new URL(window.location.href)
     const params = url.searchParams
 
-    params.set('tab', 'agent')
+    // Don't override 'tab' — App.tsx owns top-level tab routing
     params.delete('q')
     params.delete('eid')
     if (selectedEvaluation) params.set('evaluation', selectedEvaluation)
@@ -2374,7 +2374,7 @@ export function ResearchDemoSurface({
               <span className="text-xs text-muted">Scenario, presets, share</span>
             </summary>
 
-            <div className="space-y-6 border-t border-rule bg-[linear-gradient(180deg,rgba(250,250,249,0.94),rgba(255,255,255,0.98))] p-5">
+            <div className="space-y-6 border-t border-rule bg-gradient-to-b from-stone-50/94 to-white/98 p-5">
           <div className="lab-stage p-5">
             <div className="flex items-center justify-between gap-3 mb-4">
               <span className="text-sm font-medium text-text-primary">Scenario</span>
@@ -2618,7 +2618,7 @@ export function ResearchDemoSurface({
               <span className="text-xs text-muted">Questions, notes, publishing</span>
             </summary>
 
-            <div className="space-y-7 border-t border-rule bg-[linear-gradient(180deg,rgba(250,250,249,0.94),rgba(255,255,255,0.98))] p-5">
+            <div className="space-y-7 border-t border-rule bg-gradient-to-b from-stone-50/94 to-white/98 p-5">
             <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
             <div className="lab-stage p-5">
               <div className="text-sm font-medium text-text-primary mb-3">Scenario parameters</div>

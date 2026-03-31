@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { SPRING_SOFT } from '../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../data/paper-sections'
 import { createExploration, publishExploration, listExplorations, type Exploration } from '../lib/api'
+import { MOCK_COMMUNITY_NOTES } from '../data/mock-community-notes'
 import { PaperViewModeBar, type ReaderMode } from '../components/paper/PaperViewModeBar'
 import { EditorialView } from '../components/paper/EditorialView'
 import { ArgumentMapView } from '../components/paper/ArgumentMapView'
@@ -40,7 +41,7 @@ export function PaperReaderPage({
   })
 
   const [guideOpen, setGuideOpen] = useState(false)
-  const [notesVisible, setNotesVisible] = useState(false)
+  const [notesVisible, setNotesVisible] = useState(true)
 
   // Text selection for community notes
   const { containerRef, selection, selectionRect, clearSelection } = useTextSelection(readerMode)
@@ -54,21 +55,26 @@ export function PaperReaderPage({
     refetchInterval: isActive ? 60_000 : false,
   })
 
+  // Use real notes when available, fall back to mock data for demo
+  const resolvedNotes = useMemo(() => {
+    const real = notesQuery.data ?? []
+    return real.length > 0 ? real : [...MOCK_COMMUNITY_NOTES]
+  }, [notesQuery.data])
+
   // Group notes by sectionId
   const notesBySection = useMemo(() => {
     const map = new Map<string, Exploration[]>()
-    for (const note of notesQuery.data ?? []) {
+    for (const note of resolvedNotes) {
       const sectionId = note.anchor?.sectionId
       if (!sectionId) continue
       const existing = map.get(sectionId) ?? []
       map.set(sectionId, [...existing, note])
     }
     return map
-  }, [notesQuery.data])
+  }, [resolvedNotes])
 
-  const totalNoteCount = notesQuery.data?.length ?? 0
+  const totalNoteCount = resolvedNotes.length
 
-  // Count notes for the section the selection is in
   const selectionSectionNoteCount = selection?.sectionId
     ? (notesBySection.get(selection.sectionId)?.length ?? 0)
     : 0
@@ -195,12 +201,7 @@ export function PaperReaderPage({
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
           {PAPER_METADATA.keyClaims.map(claim => (
-            <span
-              key={claim}
-              className="lab-chip"
-            >
-              {claim}
-            </span>
+            <span key={claim} className="lab-chip">{claim}</span>
           ))}
         </div>
       </motion.section>

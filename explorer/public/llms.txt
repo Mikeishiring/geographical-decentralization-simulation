@@ -1,0 +1,56 @@
+# Geographical Centralization Resilience in Ethereum's Block-Building Paradigms
+
+> An interactive research explorer for Yang, Oz, Wu, and Zhang (2025), arXiv:2509.21475. This site provides four reading modes, an AI query bar, community annotations, and pre-computed simulation results for the geographic decentralization study of Ethereum validators.
+
+## Paper
+
+The paper models validators as geographically mobile agents who optimize for MEV capture and consensus latency across 40 GCP regions. Both SSP (external block building via relays) and MSP (local block building from distributed sources) drive geographic centralization, but through different mechanisms and with different sensitivities to protocol parameters.
+
+### Key Findings
+
+- Both SSP and MSP centralize geographically from a homogeneous baseline
+- MSP centralizes faster and more severely under baseline conditions
+- Information-source placement affects centralization differently by paradigm (SE1)
+- Initial validator distribution can dominate paradigm choice (SE2)
+- Attestation threshold gamma has opposite effects across paradigms — the paper's most surprising finding (SE4a)
+- Shorter slot times (EIP-7782) raise reward variance without changing equilibrium (SE4b)
+
+### Metrics
+
+- Gini_g: geographic Gini coefficient
+- HHI_g: geographic Herfindahl-Hirschman Index
+- CV_g: coefficient of variation of geographic payoffs
+- LC_g: liveness count (minimum regions to break liveness)
+
+## Site Structure
+
+- [Paper Reader](/) — Four reading modes: Editorial (LLM-inferred narrative with inline evidence), Focus (distraction-free), Argument Map (expandable claims by section), Original PDF
+- [Results Tab](/?tab=results) — Pre-computed and on-demand simulation results with config builder, artifact viewer, and copilot
+- [Agent Tab](/?tab=agent) — Natural language query bar: ask questions about the paper and get structured visual responses (charts, maps, tables, heatmaps) generated via Claude tool_use
+- [Community Tab](/?tab=community) — Exploration gallery with saved AI explorations, voting, tags, search; text-anchored community annotations
+
+## API
+
+- POST /api/explore — Submit a natural language question, returns structured visual blocks
+- GET /api/explorations — List community explorations (search, filter, sort)
+- GET /api/simulations/cached — Query pre-computed simulation results by paradigm, distribution, source placement
+- POST /api/simulations — Submit a new simulation run
+- GET /api/simulations/:id/manifest — Get completed simulation manifest with summary metrics and artifacts
+
+## Simulation Parameters
+
+| Parameter | Range | Paper Reference |
+|-----------|-------|-----------------|
+| Paradigm | SSP, MSP | — |
+| Validators | 1–1000 | 1000 |
+| Slots | 1–10000 | 10000 |
+| Distribution | homogeneous, homogeneous-gcp, heterogeneous, random | homogeneous |
+| Source Placement | homogeneous, latency-aligned, latency-misaligned | homogeneous |
+| Migration Cost | 0.0–0.02 ETH | 0.002 |
+| Gamma | 0–1 | 2/3 |
+| Slot Time | 6s, 8s, 12s | 12s |
+
+## Source
+
+- [arXiv Paper](https://arxiv.org/abs/2509.21475)
+- [Simulation Repository](https://github.com/syang-ng/geographical-decentralization-simulation)

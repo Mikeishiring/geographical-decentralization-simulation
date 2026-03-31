@@ -1,6 +1,9 @@
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
+import { Quote, ThumbsUp, MessageSquare, Users } from 'lucide-react'
 import { listExplorations, type Exploration } from '../../lib/api'
+import { MOCK_COMMUNITY_NOTES, MOCK_NOTE_EXTRAS } from '../../data/mock-community-notes'
 import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import type { TabId } from '../layout/TabNav'
 
@@ -33,9 +36,15 @@ export function CommunityPreview({
     refetchInterval: isActive ? 60_000 : false,
   })
 
-  const notes = (communityPreviewQuery.data ?? [])
-    .filter(exploration => exploration.publication.published)
-    .slice(0, 3)
+  const notes = useMemo(() => {
+    const real = (communityPreviewQuery.data ?? [])
+      .filter(exploration => exploration.publication.published)
+      .slice(0, 3)
+    if (real.length > 0) return real
+    return [...MOCK_COMMUNITY_NOTES]
+      .sort((a, b) => b.votes - a.votes)
+      .slice(0, 3)
+  }, [communityPreviewQuery.data])
 
   if (communityPreviewQuery.isLoading) {
     return (
@@ -61,8 +70,11 @@ export function CommunityPreview({
     >
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <div className="lab-section-title">Public responses</div>
-          <div className="mt-1.5 text-13 font-medium text-text-primary">How other readers turned evidence into public notes</div>
+          <div className="flex items-center gap-2">
+            <Users className="h-3.5 w-3.5 text-accent" />
+            <span className="lab-section-title">Public responses</span>
+          </div>
+          <div className="mt-1.5 text-13 font-medium text-text-primary">How other readers annotated the evidence</div>
         </div>
         {onTabChange && (
           <button
