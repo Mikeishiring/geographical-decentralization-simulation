@@ -121,24 +121,13 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
 
   return (
     <div className="lab-panel overflow-hidden rounded-xl">
-      <div className="border-b border-rule px-5 py-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-medium text-text-primary">
-              {block.title}
-            </h3>
-            <p className="mt-1 text-xs text-muted">
-              Hover the chart to inspect exact readings at any point.
-            </p>
-          </div>
+      <div className="border-b border-rule px-4 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h3 className="text-sm font-medium text-text-primary">
+            {block.title}
+          </h3>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="lab-chip">
-              range {formatSeriesNumber(minY)} to {formatSeriesNumber(maxY)}
-            </span>
-            <span className="lab-chip">
-              peak {formatSeriesNumber(highestValue)}
-            </span>
+          <div className="flex flex-wrap items-center gap-1.5">
             {block.series.map((series, index) => {
               const latest = series.data[series.data.length - 1]
               const color = series.color ?? BLOCK_COLORS[index % BLOCK_COLORS.length]
@@ -162,34 +151,26 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
             })}
           </div>
         </div>
+
+        {/* Compact snapshot strip */}
+        {seriesSnapshots.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-11 text-text-faint">
+            {seriesSnapshots.map(snapshot => (
+              <div key={`snapshot-${snapshot.label}`} className="flex items-center gap-2">
+                <span>range <span className="tabular-nums text-muted">{formatSeriesNumber(snapshot.first)}</span>–<span className="tabular-nums text-muted">{formatSeriesNumber(snapshot.peak)}</span></span>
+                <span className="text-rule">·</span>
+                <span>delta <span className="tabular-nums text-muted">{formatSeriesNumber(snapshot.delta)}</span></span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="px-5 py-4">
-        {seriesSnapshots.map(snapshot => (
-          <div
-            key={`snapshot-${snapshot.label}`}
-            className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-rule bg-white px-3 py-2"
-          >
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: snapshot.color }} />
-              <span className="text-xs font-medium text-text-primary">{snapshot.label}</span>
-              <span className="text-sm font-semibold tabular-nums text-text-primary">{formatSeriesNumber(snapshot.latest)}</span>
-            </div>
-            <div className="flex items-center gap-3 text-11">
-              <span className="text-text-faint">Start <span className="font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.first)}</span></span>
-              <span className="text-text-faint">Peak <span className="font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.peak)}</span></span>
-              <span className="text-text-faint">Delta <span className="font-medium tabular-nums text-text-primary">{formatSeriesNumber(snapshot.delta)}</span></span>
-            </div>
-          </div>
-        ))}
-
-        <div className="relative rounded-xl border border-rule bg-white px-3 py-3">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+      <div className="px-4 py-3">
+        <div className="relative rounded-xl border border-rule bg-white px-3 py-2.5">
+          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-3">
-              <span className="text-11 uppercase tracking-[0.1em] text-text-faint">
-                Measurement deck
-              </span>
-              {hoverSlot != null && (
+              {hoverSlot != null ? (
                 <span className="text-11 font-medium tabular-nums text-text-primary">
                   Slot {hoverSlot}
                   {hoverReadout.map(point => (
@@ -199,10 +180,11 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                     </span>
                   ))}
                 </span>
+              ) : (
+                <span className="text-11 text-text-faint tabular-nums">
+                  {block.series.length} series · slots {formatSeriesNumber(minX)}–{formatSeriesNumber(maxX)}
+                </span>
               )}
-            </div>
-            <div className="text-11 text-muted tabular-nums">
-              {block.series.length} series · x {formatSeriesNumber(minX)} to {formatSeriesNumber(maxX)}
             </div>
           </div>
           <svg

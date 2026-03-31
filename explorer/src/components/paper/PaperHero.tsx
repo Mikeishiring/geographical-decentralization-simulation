@@ -49,13 +49,13 @@ export function PaperHero({ onSectionClick }: PaperHeroProps) {
         {/* Best first stops — inline links */}
         {onSectionClick && (
           <motion.div variants={STAGGER_ITEM} className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-            <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Start here</span>
+            <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Start here</span>
             {bestStops.map((section, i) => (
               <a
                 key={section.id}
                 href={`#${section.id}`}
                 onClick={() => onSectionClick(section.id)}
-                className="text-xs text-muted hover:text-accent transition-colors"
+                className="text-xs text-muted hover:text-accent hover:underline underline-offset-2 transition-colors"
               >
                 <span className="text-accent mr-0.5">{i + 1}.</span>
                 {section.title}
