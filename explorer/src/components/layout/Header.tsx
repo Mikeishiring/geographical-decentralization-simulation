@@ -77,12 +77,12 @@ function AuthorChip({ author }: { readonly author: Author }) {
 export function Header() {
   return (
     <header className="relative overflow-hidden bg-white border-b border-rule stripe-top-accent">
-      {/* Globe wireframe — decorative background */}
+      {/* Globe wireframe — decorative background, right side */}
       <div className="absolute inset-0 pointer-events-none">
         <GlobeWireframe />
       </div>
 
-      {/* White gradient — text legibility on the left */}
+      {/* Soft gradient overlay — text legibility on the left */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
