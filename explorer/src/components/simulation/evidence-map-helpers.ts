@@ -4,7 +4,7 @@
  */
 import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
 import { getLatency, getLatencyNormalized } from '../../data/gcp-latency'
-import { PASTEL_PALETTE } from '../../lib/theme'
+import { PASTEL_PALETTE, MAP_NODE_COLORS } from '../../lib/theme'
 import type { PublishedAnalyticsPayload } from './simulation-analytics'
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -129,10 +129,15 @@ export function nodeRadius(count: number, maxCount: number): number {
 
 export function nodeColor(count: number, maxCount: number): string {
   const t = Math.min(count / Math.max(maxCount, 1), 1)
-  if (t < 0.1) return '#64748B'
-  if (t < 0.3) return PASTEL.sky!
-  if (t < 0.6) return PASTEL.lavender!
-  return PASTEL.peach!
+  if (t < 0.1) return MAP_NODE_COLORS.inactive
+  if (t < 0.3) return MAP_NODE_COLORS.low
+  if (t < 0.6) return MAP_NODE_COLORS.mid
+  return MAP_NODE_COLORS.high
+}
+
+/** Top-tier color for the #1 region — deeper blue for visual emphasis */
+export function nodeColorTop(): string {
+  return MAP_NODE_COLORS.top
 }
 
 // ── Slot data extraction ────────────────────────────────────────────────────
