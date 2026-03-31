@@ -177,14 +177,24 @@ export function PaperViewModeBar({
           </AnimatePresence>
           {!argumentMapMode && !paperMode && (
             <div className="hidden sm:flex items-center gap-2 text-xs text-muted">
-              <span className="tabular-nums">{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
-              <div className="h-1 w-20 overflow-hidden rounded-full bg-surface-active">
-                <motion.div
-                  className="h-full rounded-full bg-accent"
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={SPRING_SOFT}
-                />
+              <div className="relative h-6 w-6 shrink-0">
+                <svg viewBox="0 0 24 24" className="h-6 w-6 -rotate-90">
+                  <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.1" />
+                  <motion.circle
+                    cx="12" cy="12" r="9" fill="none"
+                    stroke="var(--color-accent)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 9}
+                    animate={{ strokeDashoffset: 2 * Math.PI * 9 * (1 - progressPercent / 100) }}
+                    transition={SPRING_SOFT}
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-medium tabular-nums text-accent">
+                  {activeSectionIndex + 1}
+                </span>
               </div>
+              <span className="text-text-faint text-2xs">/ {PAPER_SECTIONS.length}</span>
             </div>
           )}
           {onNotesToggle && (

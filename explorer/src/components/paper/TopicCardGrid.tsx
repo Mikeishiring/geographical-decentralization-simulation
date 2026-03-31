@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
+import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM, TOPIC_THEME_STYLE } from '../../lib/theme'
 import { TOPIC_CARDS, type TopicCard } from '../../data/default-blocks'
 
 const INITIAL_VISIBLE = 4
@@ -67,6 +67,7 @@ export function TopicCardGrid({
         {visibleCards.map(card => {
           const isActive = activeTopic?.id === card.id && !showingAi
           const isDimmed = (activeTopic !== null || showingAi) && !isActive
+          const themeStyle = TOPIC_THEME_STYLE[card.theme] ?? TOPIC_THEME_STYLE.finding
 
           return (
             <motion.button
@@ -80,17 +81,23 @@ export function TopicCardGrid({
               className={cn(
                 'text-left rounded-lg border px-3 py-2.5 transition-colors group card-hover',
                 isActive
-                  ? 'border-accent bg-white'
+                  ? `${themeStyle.activeBorder} ${themeStyle.activeBg}`
                   : isDimmed
                     ? 'border-rule bg-surface-active opacity-40'
                     : 'border-rule bg-surface-active hover:border-border-hover',
               )}
             >
-              <h4 className="text-xs font-medium text-text-primary leading-snug line-clamp-2">
-                {card.title}
-              </h4>
+              <div className="flex items-start gap-2">
+                <span
+                  className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: themeStyle.dot }}
+                />
+                <h4 className="text-xs font-medium text-text-primary leading-snug line-clamp-2">
+                  {card.title}
+                </h4>
+              </div>
               <span className={cn(
-                'mt-1 block text-11',
+                'mt-1 block text-11 pl-3.5',
                 isActive ? 'text-accent' : 'text-text-faint',
               )}>
                 {isActive ? 'Viewing' : 'Explore →'}

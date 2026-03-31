@@ -6,12 +6,11 @@ import {
   ThumbsUp,
   ThumbsDown,
   MessageSquare,
-  Quote,
+  Users,
   ExternalLink,
   Send,
 } from 'lucide-react'
-import { SPRING_SNAPPY, SPRING_CRISP } from '../../lib/theme'
-import { cn } from '../../lib/cn'
+import { SPRING_SNAPPY, SPRING_POPUP } from '../../lib/theme'
 import { MOCK_NOTE_EXTRAS, type MockReply } from '../../data/mock-community-notes'
 import type { Exploration } from '../../lib/api'
 
@@ -31,28 +30,42 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
   const remaining = published.length - 2
 
   return (
-    <div className="mt-4 lab-panel px-4 py-3">
+    <div
+      className="mt-4"
+      style={{
+        borderRadius: 12,
+        border: '1px solid rgba(0,0,0,0.06)',
+        background: 'rgba(0,0,0,0.015)',
+        padding: '12px 14px',
+      }}
+    >
       {/* Thread header */}
       <button
         type="button"
         onClick={() => setExpanded(prev => !prev)}
         className="flex w-full items-center gap-2 text-left"
       >
-        <span className="lab-section-title">
-          {published.length} community note{published.length !== 1 ? 's' : ''}
+        <Users className="h-3 w-3 text-accent" />
+        <span className="text-[11px] font-semibold tracking-wide uppercase text-black/50">
+          {published.length} note{published.length !== 1 ? 's' : ''}
         </span>
-        <span className="ml-auto text-text-faint">
+        <span className="ml-auto text-black/35">
           {expanded
-            ? <ChevronUp className="h-3.5 w-3.5" />
-            : <ChevronDown className="h-3.5 w-3.5" />
+            ? <ChevronUp className="h-3 w-3" />
+            : <ChevronDown className="h-3 w-3" />
           }
         </span>
       </button>
 
       {/* Preview cards */}
-      <div className="mt-3 space-y-2.5 stagger-reveal">
-        {preview.map(note => (
-          <NoteCard key={note.id} note={note} onOpen={onOpenNote} />
+      <div className="mt-2.5 space-y-1.5">
+        {preview.map((note, i) => (
+          <NoteCard
+            key={note.id}
+            note={note}
+            onOpen={onOpenNote}
+            delay={i * 0.04}
+          />
         ))}
       </div>
 
@@ -63,12 +76,17 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={SPRING_CRISP}
+            transition={SPRING_SNAPPY}
             className="overflow-hidden"
           >
-            <div className="mt-2.5 space-y-2.5">
-              {published.slice(2).map(note => (
-                <NoteCard key={note.id} note={note} onOpen={onOpenNote} />
+            <div className="mt-1.5 space-y-1.5">
+              {published.slice(2).map((note, i) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  onOpen={onOpenNote}
+                  delay={i * 0.04}
+                />
               ))}
             </div>
           </motion.div>
@@ -79,9 +97,9 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="arrow-link mt-2.5 !text-xs"
+          className="mt-2 text-[11px] font-medium text-black/40 transition-colors hover:text-accent"
         >
-          Show {remaining} more
+          Show {remaining} more &darr;
         </button>
       )}
     </div>
@@ -93,23 +111,23 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
 function ReplyCard({ reply }: { readonly reply: MockReply }) {
   return (
     <div className="flex gap-2.5 py-2 first:pt-0">
-      <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-active text-2xs font-medium text-text-faint">
+      <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/[0.04] text-[10px] font-medium text-black/40">
         {reply.author.charAt(0)}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-2xs font-medium text-text-primary">{reply.author}</span>
-          <span className="text-2xs text-text-faint">
+          <span className="text-[10px] font-medium text-[#111]">{reply.author}</span>
+          <span className="text-[10px] text-black/35">
             {new Date(reply.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </span>
           {reply.votes > 0 && (
-            <span className="ml-auto flex items-center gap-0.5 text-2xs text-text-faint">
+            <span className="ml-auto flex items-center gap-0.5 text-[10px] text-black/35">
               <ThumbsUp className="h-2 w-2" />
               {reply.votes}
             </span>
           )}
         </div>
-        <p className="mt-0.5 text-xs leading-relaxed text-text-body">
+        <p className="mt-0.5 text-xs leading-relaxed text-black/60">
           {reply.body}
         </p>
       </div>
@@ -122,9 +140,11 @@ function ReplyCard({ reply }: { readonly reply: MockReply }) {
 function NoteCard({
   note,
   onOpen,
+  delay = 0,
 }: {
   readonly note: Exploration
   readonly onOpen?: (id: string) => void
+  readonly delay?: number
 }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [replyOpen, setReplyOpen] = useState(false)
@@ -145,61 +165,75 @@ function NoteCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 4 }}
+      initial={{ opacity: 0, y: 3 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={SPRING_SNAPPY}
-      className={cn(
-        'rounded-lg border bg-white transition-shadow',
-        isExpanded
-          ? 'border-accent/20 shadow-[0_4px_20px_rgba(59,130,246,0.06)]'
-          : 'border-rule card-hover',
-      )}
+      transition={{ ...SPRING_POPUP, delay }}
+      className="group/card transition-shadow duration-150"
+      style={{
+        borderRadius: 10,
+        border: isExpanded ? '1px solid rgba(37,99,235,0.15)' : '1px solid rgba(0,0,0,0.06)',
+        background: '#fff',
+        boxShadow: isExpanded
+          ? '0 4px 20px rgba(59,130,246,0.06)'
+          : '0 1px 3px rgba(0,0,0,0.03)',
+      }}
+      onMouseEnter={e => {
+        if (!isExpanded) (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'
+      }}
+      onMouseLeave={e => {
+        if (!isExpanded) (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'
+      }}
     >
       {/* Collapsed header — always visible */}
       <button
         type="button"
         onClick={() => setIsExpanded(prev => !prev)}
-        className="w-full px-3.5 py-3 text-left"
+        className="w-full text-left"
+        style={{ padding: '10px 12px' }}
       >
         {/* Anchored excerpt */}
         {hasExcerpt && (
-          <div className="mb-1.5 flex items-start gap-1.5">
-            <Quote className="mt-0.5 h-2.5 w-2.5 shrink-0 text-accent/40" />
-            <span className="text-11 font-serif italic text-muted line-clamp-1">
-              {excerpt}
-            </span>
+          <div
+            className="mb-1.5 line-clamp-1"
+            style={{
+              fontSize: 11,
+              fontStyle: 'italic',
+              color: 'rgba(0,0,0,0.45)',
+              borderLeft: '2px solid rgba(37,99,235,0.25)',
+              paddingLeft: 8,
+              fontFamily: 'var(--font-serif)',
+            }}
+          >
+            &ldquo;{excerpt.length > 60 ? `${excerpt.slice(0, 60)}\u2026` : excerpt}&rdquo;
           </div>
         )}
 
         {/* Title + takeaway */}
-        <div className="text-13 font-medium leading-snug text-text-primary">
+        <div className="text-[13px] font-medium leading-snug text-[#111]">
           {note.publication.title}
         </div>
-        <div className={cn(
-          'mt-0.5 text-xs leading-relaxed text-muted',
-          isExpanded ? '' : 'line-clamp-2',
-        )}>
+        <div className={`mt-0.5 text-xs leading-relaxed text-black/50 ${isExpanded ? '' : 'line-clamp-2'}`}>
           {note.publication.takeaway}
         </div>
 
         {/* Meta row */}
         <div className="mt-2 flex items-center gap-3">
-          <span className="text-2xs text-text-faint">
+          <span className="text-[10px] font-medium text-black/35">
             {note.publication.author || 'Anonymous'}
           </span>
           {note.publication.featured && (
-            <span className="rounded-full border border-amber-200/60 bg-amber-50/80 px-1.5 py-0.5 text-2xs text-amber-600/70">
+            <span className="rounded-full border border-amber-200/60 bg-amber-50/80 px-1.5 py-0.5 text-[10px] text-amber-600/70">
               Featured
             </span>
           )}
           {note.verified && (
-            <span className="rounded-full border border-success/30 bg-success/8 px-1.5 py-0.5 text-2xs text-success">
+            <span className="rounded-full border border-emerald-300/30 bg-emerald-50/60 px-1.5 py-0.5 text-[10px] text-emerald-600">
               Verified
             </span>
           )}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-1.5">
             {note.votes !== 0 && (
-              <span className="mono-xs flex items-center gap-0.5 text-text-faint">
+              <span className="flex items-center gap-0.5 text-[10px] tabular-nums text-black/35">
                 {note.votes > 0
                   ? <ThumbsUp className="h-2.5 w-2.5" />
                   : <ThumbsDown className="h-2.5 w-2.5" />
@@ -208,12 +242,12 @@ function NoteCard({
               </span>
             )}
             {replies.length > 0 && (
-              <span className="flex items-center gap-0.5 text-2xs text-text-faint">
+              <span className="flex items-center gap-0.5 text-[10px] text-black/35">
                 <MessageSquare className="h-2.5 w-2.5" />
                 {replies.length}
               </span>
             )}
-            <span className="text-2xs text-text-faint">
+            <span className="text-black/30">
               {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </span>
           </div>
@@ -227,22 +261,30 @@ function NoteCard({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={SPRING_CRISP}
+            transition={SPRING_SNAPPY}
             className="overflow-hidden"
           >
-            <div className="border-t border-rule px-3.5 pb-3.5">
+            <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', padding: '0 12px 12px' }}>
               {/* Quoted section context */}
               {quotedPassage && (
-                <div className="mt-3 rounded-lg border border-accent/10 bg-accent/[0.03] px-3.5 py-3">
+                <div
+                  className="mt-3"
+                  style={{
+                    borderRadius: 8,
+                    border: '1px solid rgba(37,99,235,0.08)',
+                    background: 'rgba(37,99,235,0.02)',
+                    padding: '10px 12px',
+                  }}
+                >
                   {sectionTitle && (
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="mono-xs text-accent">{sectionNumber}</span>
-                      <span className="text-2xs font-medium text-text-primary">{sectionTitle}</span>
-                      <span className="text-2xs text-text-faint">— Original passage</span>
+                      <span className="text-[10px] font-mono font-medium text-accent">{sectionNumber}</span>
+                      <span className="text-[10px] font-medium text-[#111]">{sectionTitle}</span>
+                      <span className="text-[10px] text-black/35">&mdash; Original passage</span>
                     </div>
                   )}
-                  <div className="border-l-2 border-l-accent/25 pl-3">
-                    <p className="text-xs leading-relaxed text-text-body font-serif">
+                  <div style={{ borderLeft: '2px solid rgba(37,99,235,0.25)', paddingLeft: 10 }}>
+                    <p className="text-xs leading-relaxed text-black/60" style={{ fontFamily: 'var(--font-serif)' }}>
                       {quotedPassage}
                     </p>
                   </div>
@@ -251,7 +293,7 @@ function NoteCard({
 
               {/* Full takeaway (if was truncated above) */}
               {!quotedPassage && note.publication.takeaway.length > 120 && (
-                <div className="mt-3 text-xs leading-relaxed text-text-body">
+                <div className="mt-3 text-xs leading-relaxed text-black/60">
                   {note.publication.takeaway}
                 </div>
               )}
@@ -259,10 +301,10 @@ function NoteCard({
               {/* Reply thread */}
               {replies.length > 0 && (
                 <div className="mt-3">
-                  <div className="mb-2 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
+                  <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-black/40">
                     {replies.length} repl{replies.length !== 1 ? 'ies' : 'y'}
                   </div>
-                  <div className="divide-y divide-rule">
+                  <div className="divide-y divide-black/[0.06]">
                     {replies.map(reply => (
                       <ReplyCard key={reply.id} reply={reply} />
                     ))}
@@ -271,23 +313,25 @@ function NoteCard({
               )}
 
               {/* Actions */}
-              <div className="mt-3 flex items-center gap-2 border-t border-rule pt-3">
-                <button
+              <div className="mt-3 flex items-center gap-2" style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 10 }}>
+                <motion.button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setReplyOpen(prev => !prev) }}
-                  className="flex items-center gap-1.5 rounded-full border border-rule px-3 py-1.5 text-2xs font-medium text-muted transition-colors hover:border-border-hover hover:text-text-primary"
+                  whileTap={{ scale: 0.92 }}
+                  className="flex items-center gap-1 text-[10px] font-medium text-black/35 transition-colors hover:text-accent"
                 >
-                  <MessageSquare className="h-3 w-3" />
+                  <MessageSquare className="h-2.5 w-2.5" />
                   Reply
-                </button>
-                <button
+                </motion.button>
+                <motion.button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); handleClick() }}
-                  className="flex items-center gap-1.5 rounded-full border border-rule px-3 py-1.5 text-2xs font-medium text-muted transition-colors hover:border-border-hover hover:text-text-primary"
+                  whileTap={{ scale: 0.92 }}
+                  className="flex items-center gap-1 text-[10px] font-medium text-black/35 transition-colors hover:text-accent"
                 >
-                  <ExternalLink className="h-3 w-3" />
+                  <ExternalLink className="h-2.5 w-2.5" />
                   Open in Community
-                </button>
+                </motion.button>
               </div>
 
               {/* Inline reply composer */}
@@ -300,36 +344,44 @@ function NoteCard({
                     transition={SPRING_SNAPPY}
                     className="overflow-hidden"
                   >
-                    <div className="mt-2.5 flex gap-2">
-                      <div className="lab-input-shell flex-1 overflow-hidden">
-                        <textarea
-                          value={replyText}
-                          onChange={e => setReplyText(e.target.value)}
-                          placeholder="Reply to this note..."
-                          rows={2}
-                          className="w-full resize-none bg-transparent px-2.5 py-1.5 text-xs text-text-primary outline-none placeholder:text-text-faint"
-                          onClick={e => e.stopPropagation()}
-                          onKeyDown={e => {
-                            e.stopPropagation()
-                            if (e.key === 'Escape') setReplyOpen(false)
-                          }}
-                        />
-                      </div>
+                    <div className="mt-2 flex gap-2">
+                      <textarea
+                        value={replyText}
+                        onChange={e => setReplyText(e.target.value)}
+                        placeholder="Reply to this note..."
+                        rows={2}
+                        className="w-full flex-1 resize-none rounded-lg bg-black/[0.03] px-2.5 py-1.5 text-xs text-[#1a1a1a] outline-none placeholder:text-black/35"
+                        style={{
+                          border: '1px solid rgba(0,0,0,0.10)',
+                          borderRadius: 8,
+                          transition: 'border-color 0.15s ease',
+                        }}
+                        onClick={e => e.stopPropagation()}
+                        onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-accent, #3c82f7)' }}
+                        onBlur={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.10)' }}
+                        onKeyDown={e => {
+                          e.stopPropagation()
+                          if (e.key === 'Escape') setReplyOpen(false)
+                        }}
+                      />
                       <div className="flex flex-col gap-1">
-                        <button
+                        <motion.button
                           type="button"
                           onClick={e => { e.stopPropagation(); setReplyOpen(false); setReplyText('') }}
-                          className="rounded-md px-2 py-1 text-2xs text-muted transition-colors hover:text-text-primary"
+                          whileTap={{ scale: 0.96 }}
+                          className="rounded-2xl px-2.5 py-1 text-[10px] font-medium text-black/45 transition-colors hover:bg-black/[0.04] hover:text-black/70"
                         >
                           Cancel
-                        </button>
-                        <button
+                        </motion.button>
+                        <motion.button
                           type="button"
                           disabled={!replyText.trim()}
-                          className="flex items-center justify-center gap-1 rounded-md bg-text-primary px-2 py-1 text-2xs font-medium text-white transition-colors hover:bg-text-primary/90 disabled:opacity-40"
+                          whileTap={{ scale: 0.96 }}
+                          className="flex items-center justify-center gap-1 rounded-2xl px-2.5 py-1 text-[10px] font-medium text-white transition-[filter,opacity] hover:brightness-90 disabled:opacity-40"
+                          style={{ backgroundColor: 'var(--color-accent, #3c82f7)' }}
                         >
                           <Send className="h-2.5 w-2.5" />
-                        </button>
+                        </motion.button>
                       </div>
                     </div>
                   </motion.div>

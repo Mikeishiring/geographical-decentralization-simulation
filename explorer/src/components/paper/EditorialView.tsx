@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SPRING, SPRING_CRISP, PAGE_TRANSITION, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
+import { SPRING, SPRING_CRISP, PAGE_TRANSITION, STAGGER_CONTAINER, STAGGER_ITEM, SECTION_CATEGORY_STYLE } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
 import { PAPER_NARRATIVE } from '../../data/paper-narrative'
 import { type TopicCard } from '../../data/default-blocks'
@@ -12,10 +12,27 @@ import { TopicCardGrid } from './TopicCardGrid'
 import { CommunityPreview } from './CommunityPreview'
 import { PaperSectionView } from './PaperSectionView'
 import { NodeArc } from '../decorative/NodeArc'
-import { Link2, Check, Quote, Sparkles } from 'lucide-react'
+import { Link2, Check, Quote, Sparkles, Lightbulb } from 'lucide-react'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import type { Exploration } from '../../lib/api'
 import type { TabId } from '../layout/TabNav'
+
+/** Renders paragraph text with an optional keyClaim substring highlighted */
+function renderWithKeyClaim(text: string, keyClaim?: string): JSX.Element | string {
+  if (!keyClaim) return text
+  const idx = text.indexOf(keyClaim)
+  if (idx === -1) return text
+  return (
+    <>
+      {text.slice(0, idx)}
+      <span className="key-claim-highlight relative">
+        <Lightbulb className="inline-block h-3 w-3 text-accent/40 mr-0.5 -mt-0.5" />
+        {text.slice(idx, idx + keyClaim.length)}
+      </span>
+      {text.slice(idx + keyClaim.length)}
+    </>
+  )
+}
 
 interface EditorialViewProps {
   readonly isActive: boolean
@@ -199,8 +216,13 @@ export function EditorialView({
               const nextSection = PAPER_SECTIONS[index + 1]
 
               return (
+                <div key={`focus-${section.id}`}>
+                  {index > 0 && (
+                    <div className="section-journey-divider mb-10">
+                      <div className="section-journey-node" />
+                    </div>
+                  )}
                 <motion.section
-                  key={section.id}
                   id={section.id}
                   data-section-id={section.id}
                   initial={{ opacity: 0, y: 8 }}
@@ -210,7 +232,18 @@ export function EditorialView({
                   className="group scroll-mt-40 mx-auto max-w-5xl rounded-xl border border-rule bg-white p-5 card-hover geo-accent-bar sm:p-6"
                 >
                   <div className="mb-6 border-b border-rule pb-5">
-                    <h2 className="mt-2 max-w-3xl text-2xl font-medium text-text-primary font-serif sm:text-3xl">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="mono-xs text-accent">{section.number}</span>
+                      {(() => {
+                        const catStyle = SECTION_CATEGORY_STYLE[section.category]
+                        return catStyle ? (
+                          <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-2xs font-medium', catStyle.bg, catStyle.text, catStyle.border)}>
+                            {catStyle.label}
+                          </span>
+                        ) : null
+                      })()}
+                    </div>
+                    <h2 className="max-w-3xl text-2xl font-medium text-text-primary font-serif sm:text-3xl">
                       {section.title}
                     </h2>
                     <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted">
@@ -224,11 +257,11 @@ export function EditorialView({
                     </p>
                     <div className="max-w-3xl space-y-4 text-base leading-9 text-text-body font-serif">
                       {narrative.paragraphs.map(paragraph => (
-                        <p key={paragraph}>{paragraph}</p>
+                        <p key={paragraph}>{renderWithKeyClaim(paragraph, narrative.keyClaim)}</p>
                       ))}
                     </div>
-                    <div className="border-l-2 border-l-accent/40 pl-5 py-2">
-                      <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
+                    <div className="border-l-[3px] border-l-accent/50 rounded-r-lg bg-accent/[0.03] pl-5 pr-4 py-3">
+                      <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-accent/50 mb-2">
                         <Quote className="h-3 w-3" />
                         Pull quote
                       </div>
@@ -271,6 +304,7 @@ export function EditorialView({
                     )}
                   </div>
                 </motion.section>
+                </div>
               )
             })}
           </div>

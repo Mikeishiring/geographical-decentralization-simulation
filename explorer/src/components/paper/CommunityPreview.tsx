@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Quote, ThumbsUp, MessageSquare, Users } from 'lucide-react'
 import { listExplorations, type Exploration } from '../../lib/api'
 import { MOCK_COMMUNITY_NOTES, MOCK_NOTE_EXTRAS } from '../../data/mock-community-notes'
-import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
+import { SPRING_CRISP, SPRING_POPUP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import type { TabId } from '../layout/TabNav'
 
 interface CommunityPreviewProps {
@@ -52,10 +52,10 @@ export function CommunityPreview({
     return (
       <div className="mb-6 rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
         <div className="lab-section-title">Public responses</div>
-        <div className="mt-4 space-y-3">
-          <div className="h-4 w-1/3 animate-pulse rounded bg-surface-active" />
-          <div className="h-16 animate-pulse rounded-xl bg-surface-active" />
-          <div className="h-16 animate-pulse rounded-xl bg-surface-active" />
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-[140px] animate-pulse rounded-xl bg-surface-active" />
+          ))}
         </div>
       </div>
     )
@@ -92,7 +92,7 @@ export function CommunityPreview({
         className="grid gap-3 md:grid-cols-3"
         variants={STAGGER_CONTAINER}
         initial="hidden"
-        animate="show"
+        animate="visible"
       >
         {notes.map(exploration => {
           const extras = MOCK_NOTE_EXTRAS[exploration.id]
@@ -103,11 +103,22 @@ export function CommunityPreview({
             <motion.button
               key={exploration.id}
               variants={STAGGER_ITEM}
+              whileTap={{ scale: 0.98 }}
+              transition={SPRING_POPUP}
               onClick={() => onOpenNote(exploration.id)}
-              className="group rounded-lg border border-rule bg-surface-active px-4 py-4 text-left card-hover"
+              className="group/card rounded-xl border border-black/[0.06] bg-white px-4 py-4 text-left transition-shadow duration-150"
+              style={{
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'
+              }}
             >
               {/* Label */}
-              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-black/40">
                 {communityPreviewLabel(exploration)}
               </div>
 
@@ -115,28 +126,28 @@ export function CommunityPreview({
               {excerpt && (
                 <div className="mt-2 flex items-start gap-1.5 rounded-md border border-accent/10 bg-white/60 px-2 py-1.5">
                   <Quote className="mt-0.5 h-2.5 w-2.5 shrink-0 text-accent/40" />
-                  <span className="text-11 font-serif italic text-muted line-clamp-2">
+                  <span className="text-[11px] font-serif italic text-black/45 line-clamp-2">
                     {excerpt}
                   </span>
                 </div>
               )}
 
               {/* Title */}
-              <div className="mt-2 text-13 font-medium text-text-primary group-hover:text-accent transition-colors">
+              <div className="mt-2 text-13 font-medium leading-snug text-[#111] group-hover/card:text-accent transition-colors">
                 {exploration.publication.title}
               </div>
 
               {/* Takeaway */}
-              <div className="mt-1 text-xs leading-5 text-muted line-clamp-3">
+              <div className="mt-1 text-xs leading-5 text-black/50 line-clamp-3">
                 {exploration.publication.takeaway}
               </div>
 
               {/* Footer */}
-              <div className="mt-3 flex items-center justify-between gap-3 text-11 text-text-faint">
+              <div className="mt-3 flex items-center justify-between gap-2 text-[10px] font-medium text-black/35">
                 <span>{exploration.publication.author || 'Anonymous'}</span>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                   {exploration.votes > 0 && (
-                    <span className="flex items-center gap-0.5">
+                    <span className="flex items-center gap-0.5 tabular-nums">
                       <ThumbsUp className="h-2.5 w-2.5" />
                       {exploration.votes}
                     </span>
@@ -147,6 +158,7 @@ export function CommunityPreview({
                       {replyCount}
                     </span>
                   )}
+                  <span className="transition-all group-hover/card:text-accent group-hover/card:translate-x-0.5">&rarr;</span>
                 </div>
               </div>
             </motion.button>
