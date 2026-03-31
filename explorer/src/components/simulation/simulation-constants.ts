@@ -207,6 +207,31 @@ export function describePaperComparability(config: SimulationConfig): PaperCompa
   }
 }
 
+export type RuntimeTier = 'quick' | 'moderate' | 'long' | 'very-long'
+
+export interface RuntimeEstimate {
+  readonly label: string
+  readonly tier: RuntimeTier
+}
+
+export function estimateRuntime(validators: number, slots: number): RuntimeEstimate {
+  const scale = validators * slots
+  if (scale < 10_000) return { label: 'Under 10 seconds', tier: 'quick' }
+  if (scale < 100_000) return { label: '~30 seconds', tier: 'moderate' }
+  if (scale < 1_000_000) return { label: '1\u20132 minutes', tier: 'moderate' }
+  if (scale < 10_000_000) return { label: '2\u20134 minutes', tier: 'long' }
+  return { label: '5+ minutes', tier: 'very-long' }
+}
+
+export function hasNonDefaultProtocol(config: SimulationConfig): boolean {
+  return (
+    Math.abs(config.attestationThreshold - DEFAULT_CONFIG.attestationThreshold) > 0.01
+    || config.slotTime !== DEFAULT_CONFIG.slotTime
+    || Math.abs(config.migrationCost - DEFAULT_CONFIG.migrationCost) > 0.00005
+    || config.seed !== DEFAULT_CONFIG.seed
+  )
+}
+
 export function attestationCutoffMs(slotTime: number): number {
   if (slotTime === 6) return 3000
   if (slotTime === 8) return 4000

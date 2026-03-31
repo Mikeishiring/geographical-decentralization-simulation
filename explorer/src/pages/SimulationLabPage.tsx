@@ -198,16 +198,8 @@ export function SimulationLabPage({
             transition={{ ...SPRING, delay: 0.06 }}
           >
             <div className="px-5 py-4">
-              <div>
-                <div className="lab-section-title">Run your own experiment</div>
-                <div className="mt-1 text-xs leading-relaxed text-muted">Configure parameters and launch a fresh simulation against the exact paper engine.</div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
-                <span className="lab-chip bg-white/90">{config.paradigm}</span>
-                <span className="lab-chip bg-white/90">{config.validators.toLocaleString()} val</span>
-                <span className="lab-chip bg-white/90">{config.slots.toLocaleString()} slots</span>
-              </div>
+              <div className="lab-section-title">Run your own experiment</div>
+              <div className="mt-1 text-xs leading-relaxed text-muted">Configure parameters and launch a fresh simulation against the exact paper engine.</div>
             </div>
 
             <div className="border-t border-rule/70 px-5 py-4">

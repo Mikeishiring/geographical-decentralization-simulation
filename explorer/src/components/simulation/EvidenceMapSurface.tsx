@@ -14,6 +14,7 @@ import { THRESHOLDS, SENTIMENT_TEXT, sentimentLower, sentimentHigher } from './s
 import {
   SVG_W,
   SVG_H,
+  MAP_VISIBLE_H,
   GCP_REGION_MAP,
   PASTEL,
   latLonToMercator,
@@ -167,7 +168,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
   const tooltipStyle = useMemo(() => {
     if (!tooltip) return {}
     const xPct = (tooltip.x / SVG_W) * 100
-    const yPct = (tooltip.y / SVG_H) * 100
+    const yPct = (tooltip.y / MAP_VISIBLE_H) * 100
     const flipBelow = yPct < 15
     return {
       left: `clamp(5%, ${xPct}%, 95%)`,
@@ -232,37 +233,50 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
       {/* ── Map + Sidebar ── */}
       <div className="grid gap-0 lg:grid-cols-[1fr_260px]">
         {/* SVG Map */}
-        <div className="relative overflow-hidden" style={{ aspectRatio: `${SVG_W} / ${SVG_H}`, backgroundColor: DARK_SURFACE.bg }}>
+        <div className="relative overflow-hidden" style={{ aspectRatio: `${SVG_W} / ${MAP_VISIBLE_H}`, backgroundColor: DARK_SURFACE.bg }}>
           <svg
-            viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+            viewBox={`0 0 ${SVG_W} ${MAP_VISIBLE_H}`}
             className="block h-full w-full"
             preserveAspectRatio="xMidYMid meet"
             role="img"
             aria-label="Validator geography map"
           >
             <defs>
-              <radialGradient id={`${idPrefix}-bg`} cx="42%" cy="38%" r="68%">
-                <stop offset="0%" stopColor={DARK_SURFACE.gradientTop} />
-                <stop offset="100%" stopColor={DARK_SURFACE.gradientMid} />
+              {/* Ocean-depth background — subtle blue tint radiating from center */}
+              <radialGradient id={`${idPrefix}-bg`} cx="42%" cy="35%" r="72%">
+                <stop offset="0%" stopColor="#0D1926" />
+                <stop offset="50%" stopColor="#0A1118" />
+                <stop offset="100%" stopColor="#060A0F" />
               </radialGradient>
-              <radialGradient id={`${idPrefix}-atmos`} cx="50%" cy="50%" r="55%">
+              {/* Edge vignette — stronger fade at corners for depth */}
+              <radialGradient id={`${idPrefix}-atmos`} cx="50%" cy="42%" r="58%">
                 <stop offset="0%" stopColor="transparent" />
-                <stop offset="75%" stopColor="transparent" />
-                <stop offset="100%" stopColor={DARK_SURFACE.gradientBot} stopOpacity={0.7} />
+                <stop offset="65%" stopColor="transparent" />
+                <stop offset="88%" stopColor="#040810" stopOpacity={0.5} />
+                <stop offset="100%" stopColor="#020408" stopOpacity={0.85} />
+              </radialGradient>
+              {/* Subtle blue ocean wash behind land masses */}
+              <radialGradient id={`${idPrefix}-ocean`} cx="50%" cy="45%" r="50%">
+                <stop offset="0%" stopColor="#1E3A5F" stopOpacity={0.06} />
+                <stop offset="100%" stopColor="transparent" />
               </radialGradient>
               <filter id={`${idPrefix}-glow`}>
-                <feGaussianBlur in="SourceGraphic" stdDeviation="18" />
+                <feGaussianBlur in="SourceGraphic" stdDeviation="20" />
               </filter>
               <filter id={`${idPrefix}-arc-glow`}>
                 <feGaussianBlur in="SourceGraphic" stdDeviation="3" />
               </filter>
+              <filter id={`${idPrefix}-node-glow`}>
+                <feGaussianBlur in="SourceGraphic" stdDeviation="6" />
+              </filter>
             </defs>
 
             {/* Background */}
-            <rect width={SVG_W} height={SVG_H} fill={`url(#${idPrefix}-bg)`} />
+            <rect width={SVG_W} height={MAP_VISIBLE_H} fill={`url(#${idPrefix}-bg)`} />
+            <rect width={SVG_W} height={MAP_VISIBLE_H} fill={`url(#${idPrefix}-ocean)`} />
 
             {/* Graticule */}
-            {[-60, -30, 0, 30, 60].map(lat => {
+            {[-30, 0, 30, 60].map(lat => {
               const { y } = latLonToMercator(lat, 0, SVG_W, SVG_H)
               return (
                 <g key={`lat-${lat}`}>
@@ -275,7 +289,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             })}
             {[-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map(lon => {
               const { x } = latLonToMercator(0, lon, SVG_W, SVG_H)
-              return <line key={`lon-${lon}`} x1={x} y1={0} x2={x} y2={SVG_H} stroke={DARK_SURFACE.graticule} strokeWidth={0.5} strokeDasharray="3 6" />
+              return <line key={`lon-${lon}`} x1={x} y1={0} x2={x} y2={MAP_VISIBLE_H} stroke={DARK_SURFACE.graticule} strokeWidth={0.5} strokeDasharray="3 6" />
             })}
 
             {/* Country outlines */}
@@ -291,19 +305,24 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               />
             ))}
 
-            {/* Ambient glow behind top 3 regions */}
-            {sorted.slice(0, 3).map((node, i) => (
-              <circle
-                key={`glow-${node.id}`}
-                cx={node.x} cy={node.y} r={50}
-                fill={[PASTEL.sky, PASTEL.lavender, PASTEL.peach][i] ?? PASTEL.sky}
-                fillOpacity={0.05}
-                filter={`url(#${idPrefix}-glow)`}
-              />
-            ))}
+            {/* Ambient glow behind top 5 regions — layered for depth */}
+            {sorted.slice(0, 5).map((node, i) => {
+              const glowColors = [PASTEL.sky, PASTEL.lavender, PASTEL.peach, PASTEL.mint, PASTEL.rose]
+              const color = glowColors[i] ?? PASTEL.sky
+              const intensity = i < 3 ? 0.07 : 0.04
+              return (
+                <circle
+                  key={`glow-${node.id}`}
+                  cx={node.x} cy={node.y} r={55 - i * 5}
+                  fill={color}
+                  fillOpacity={intensity}
+                  filter={`url(#${idPrefix}-glow)`}
+                />
+              )
+            })}
 
             {/* Atmospheric vignette */}
-            <rect width={SVG_W} height={SVG_H} fill={`url(#${idPrefix}-atmos)`} />
+            <rect width={SVG_W} height={MAP_VISIBLE_H} fill={`url(#${idPrefix}-atmos)`} />
 
             {/* ── Latency arcs layer ── */}
             {overlay === 'latency' && latencyArcs.map((arc, i) => {
@@ -493,8 +512,8 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                 <div className="relative rounded-lg border border-white/10 bg-[#0C1220]/95 px-3.5 py-2.5 shadow-2xl backdrop-blur-md">
                   <div className="absolute left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-b border-r border-white/10 bg-[#0C1220]/95"
                     style={{
-                      bottom: (tooltip.y / SVG_H) * 100 < 15 ? 'auto' : '-5px',
-                      top: (tooltip.y / SVG_H) * 100 < 15 ? '-5px' : 'auto',
+                      bottom: (tooltip.y / MAP_VISIBLE_H) * 100 < 15 ? 'auto' : '-5px',
+                      top: (tooltip.y / MAP_VISIBLE_H) * 100 < 15 ? '-5px' : 'auto',
                     }}
                   />
                   <div className="text-11 font-medium text-white/90">{tooltip.city}</div>
