@@ -339,15 +339,10 @@ function ExactChartDeck({
 
   return (
     <div className="lab-stage p-4 mb-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="text-xs text-muted mb-1">Interactive chart deck</div>
-          <div className="text-sm text-text-primary">
-            Six emitted exact series, styled as one reading surface instead of a one-artifact-at-a-time browser.
-          </div>
-        </div>
-        <div className="text-xs text-muted">
-          Hover a card to preview it, click to pin it, then inspect the full raw slot curve below.
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-medium text-text-primary">Chart deck</div>
+        <div className="text-xs text-muted" title="Hover a card to preview, click to pin.">
+          {series.length} series
         </div>
       </div>
 
@@ -391,50 +386,10 @@ function ExactChartDeck({
               </div>
             </div>
 
-            <div className="mb-3 flex flex-wrap items-center gap-2 text-[0.6875rem] text-muted">
-              <span className="rounded-full border border-rule bg-white px-2 py-0.5">
-                Figure cue
-              </span>
-              <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5">
-                Read as trend
-              </span>
-              <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5">
-                Exact slot ordering preserved
-              </span>
-              <span className="rounded-full border border-rule bg-surface-active px-2 py-0.5">
-                Hover changes posture, not evidence
-              </span>
-            </div>
-
             <TimeSeriesBlock block={focusedBlock} />
           </div>
 
-          <div className="grid gap-3">
-            <aside className="rounded-xl border border-rule bg-white/82 px-4 py-3.5">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-                Chart marginalia
-              </div>
-              {focusedFigureNote ? (
-                <>
-                  <div className="mt-1.5 text-sm font-medium text-text-primary">
-                    {focusedFigureNote.title}
-                  </div>
-                  <div className="mt-1 text-xs leading-5 text-muted">
-                    {focusedFigureNote.detail}
-                  </div>
-                  <div className="mt-3 grid gap-2">
-                    <div className="rounded-lg border border-rule bg-surface-active/80 px-3 py-2 text-[0.75rem] leading-5 text-muted">
-                      Where does the curve bend, flatten, or accelerate?
-                    </div>
-                    <div className="rounded-lg border border-rule bg-surface-active/80 px-3 py-2 text-[0.75rem] leading-5 text-muted">
-                      Does the final value hide any instability earlier in the run?
-                    </div>
-                  </div>
-                </>
-              ) : null}
-            </aside>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
               {series.map(entry => {
                 const visual = CHART_VISUALS[entry.artifactName]
                 const latest = entry.values.at(-1) ?? 0
@@ -606,14 +561,8 @@ export function SimResultsPanel({
       <div className="lab-stage p-4 mb-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
-            <div className="lab-section-title">Exact Result Surface</div>
-            <div className="mt-1 text-base font-semibold tracking-tight text-text-primary sm:text-[1.1rem]">
-              Literal output from the current exact run.
-            </div>
-            <div className="mt-1 max-w-2xl text-xs leading-5 text-muted">
-              Charts, map, overview bundles, and artifact renders all come from this manifest and its emitted sidecars.
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="lab-section-title">Exact results</div>
+            <div className="mt-2 flex flex-wrap gap-2">
               {paperScenarioLabels(manifest.config).map(label => (
                 <span key={label} className="lab-chip bg-white/80">
                   <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -657,19 +606,6 @@ export function SimResultsPanel({
         </div>
       </div>
 
-      <div className="mb-5 rounded-2xl border border-rule bg-white/88 px-4 py-3">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-          <div className="text-sm font-medium text-text-primary">
-            Read the run in this order: chart deck, overview bundle, artifact render, then analytics desk.
-          </div>
-          <div className="flex flex-wrap gap-2 text-xs text-muted">
-            <span className="lab-chip bg-surface-active">{paperComparability.title}</span>
-            <span className="lab-chip bg-surface-active">Raw slot ordering preserved</span>
-            <span className="lab-chip bg-surface-active">No inferred paper metrics</span>
-          </div>
-        </div>
-      </div>
-
       <ExactChartDeck
         series={exactChartSeries}
         loading={isExactChartDeckLoading}
@@ -678,16 +614,7 @@ export function SimResultsPanel({
       <div className="lab-stage p-4 mb-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="text-xs text-muted mb-1">Run record</div>
-            <div className="text-sm text-text-primary">
-              {manifest.cacheHit ? 'Exact cache hit' : 'Fresh exact execution'}
-            </div>
-            <div className="text-xs text-muted mt-1 max-w-2xl">
-              {manifest.cacheHit
-                ? 'Reused an identical exact run from the shared exact cache. Outputs are unchanged for the same inputs.'
-                : 'Executed the canonical exact simulator with the current configuration and seed.'}
-            </div>
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="flex flex-wrap gap-2">
               <span
                 className={cn(
                   'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.6875rem] font-medium',
@@ -785,9 +712,6 @@ export function SimResultsPanel({
             <div className="rounded-xl border border-rule bg-surface-active/70 px-4 py-3">
               <div className="text-sm font-medium text-text-primary">{paperComparability.title}</div>
               <div className="mt-1 text-xs leading-5 text-muted">{paperComparability.detail}</div>
-              <div className="mt-1 text-xs text-muted">
-                Truth boundary: only values emitted by the exact manifest and derived sidecars appear here. This should not stand in for a published result unless the configuration is directly comparable.
-              </div>
             </div>
 
             <div className="grid gap-2 mt-3 text-xs text-muted sm:grid-cols-2 xl:grid-cols-4">
