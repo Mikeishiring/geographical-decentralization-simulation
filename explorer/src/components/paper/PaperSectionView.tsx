@@ -388,7 +388,7 @@ function SectionCard({
             ))}
           </div>
           <div className="border-l-2 border-l-accent/40 pl-5 py-2">
-            <div className="flex items-center gap-1.5 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
+            <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
               <Quote className="h-3 w-3" />
               Pull quote
             </div>

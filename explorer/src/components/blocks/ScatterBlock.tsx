@@ -69,7 +69,7 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
           </div>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
             <span>{block.points.length} points</span>
-            {block.unit && <span className="font-mono text-[0.625rem]">{block.unit}</span>}
+            {block.unit && <span className="font-mono text-2xs">{block.unit}</span>}
             {[...categoryColors.entries()].map(([cat, color]) => (
               <span key={cat} className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
@@ -215,13 +215,13 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
                 style={{ boxShadow: `${CHART.tooltipShadow}, 0 0 0 1px rgba(37,99,235,0.06)` }}
               >
                 {hoveredPoint.label && (
-                  <div className="text-[0.6875rem] font-medium text-text-primary">{hoveredPoint.label}</div>
+                  <div className="text-11 font-medium text-text-primary">{hoveredPoint.label}</div>
                 )}
                 <div className="mt-0.5 text-[0.75rem] font-semibold tabular-nums text-text-primary">
                   ({hoveredPoint.x.toFixed(2)}, {hoveredPoint.y.toFixed(2)})
                 </div>
                 {hoveredPoint.category && (
-                  <div className="mt-0.5 text-[0.625rem] text-muted">{hoveredPoint.category}</div>
+                  <div className="mt-0.5 text-2xs text-muted">{hoveredPoint.category}</div>
                 )}
               </div>
             </motion.div>

@@ -447,7 +447,7 @@ export function PublishedReplayCompanionPanel({
     <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Replay companion</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Replay companion</div>
           <div className="mt-2 text-sm font-medium text-text-primary">
             Ask against the selected published replay, not against generic paper copy.
           </div>
@@ -473,7 +473,7 @@ export function PublishedReplayCompanionPanel({
       </div>
 
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
-        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Live context</div>
+        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Live context</div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
           <span className="lab-chip">{datasetLabel(dataset)}</span>
           <span className="lab-chip">{sourceRoleLabel(dataset?.sourceRole)}</span>
@@ -493,13 +493,13 @@ export function PublishedReplayCompanionPanel({
         </div>
         <div className="mt-3 text-xs leading-5 text-muted">{currentViewSummary}</div>
         {paperSection ? (
-          <div className="mt-2 text-[0.6875rem] leading-5 text-text-faint">
+          <div className="mt-2 text-11 leading-5 text-text-faint">
             Canonical paper anchor: {paperSection.description}
           </div>
         ) : null}
         {quickPrompts.length > 0 ? (
           <div className="mt-4">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Prompt starters</div>
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Prompt starters</div>
             <div className="mt-3 flex flex-wrap gap-2">
               {quickPrompts.map(prompt => (
                 <button
@@ -555,13 +555,13 @@ export function PublishedReplayCompanionPanel({
         <div className="mt-4 space-y-4">
           {activeQuestion ? (
             <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Latest replay question</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Latest replay question</div>
               <div className="mt-2 text-sm leading-6 text-text-primary">{activeQuestion}</div>
             </div>
           ) : null}
 
           <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Evidence used</div>
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Evidence used</div>
             <div className="mt-2 text-xs leading-5 text-muted">
               Start from the replay posture and the linked source material. The assistant interpretation stays secondary.
             </div>
@@ -585,14 +585,14 @@ export function PublishedReplayCompanionPanel({
             <div className="mt-2 text-xs leading-5 text-muted">
               {response.truthBoundary.detail}
             </div>
-            <div className="mt-2 text-[0.6875rem] text-text-faint">
+            <div className="mt-2 text-11 text-text-faint">
               {answeredContext ?? 'Answered against the active published replay selection.'}
             </div>
           </div>
 
           {supportingBlocks.length > 0 ? (
             <div className="rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Reading discipline</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Reading discipline</div>
               <div className="mt-4">
                 <BlockCanvas blocks={supportingBlocks} showExport={false} />
               </div>
@@ -602,7 +602,7 @@ export function PublishedReplayCompanionPanel({
           <div className="rounded-xl border border-rule bg-white px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Assistant interpretation</div>
+                <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Assistant interpretation</div>
                 <div className="mt-2 text-xs leading-5 text-muted">
                   Collapsed by default so the replay evidence and source material lead the reading.
                 </div>
@@ -635,7 +635,7 @@ export function PublishedReplayCompanionPanel({
 
           {response.followUps.length > 0 ? (
             <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Follow-up prompts</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Follow-up prompts</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {response.followUps.map(prompt => (
                   <button
@@ -655,17 +655,17 @@ export function PublishedReplayCompanionPanel({
 
           {previousThreadEntries.length > 0 ? (
             <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Replay thread</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Replay thread</div>
               <div className="mt-3 space-y-3">
                 {previousThreadEntries.map((entry, index) => (
                   <div key={`${entry.question}-${index}`} className="rounded-xl border border-rule bg-white px-4 py-4">
                     <div className="text-xs font-medium text-text-primary">{entry.question}</div>
                     <div className="mt-2 text-xs leading-5 text-muted">{entry.response.summary}</div>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[0.6875rem] text-text-faint">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-11 text-text-faint">
                       <span>{entry.answeredContext}</span>
                       <button
                         onClick={() => onQuestionChange(entry.question)}
-                        className="rounded-full border border-rule bg-surface-active px-3 py-1 text-[0.6875rem] font-medium text-text-primary transition-colors hover:border-border-hover"
+                        className="rounded-full border border-rule bg-surface-active px-3 py-1 text-11 font-medium text-text-primary transition-colors hover:border-border-hover"
                       >
                         Reuse question
                       </button>

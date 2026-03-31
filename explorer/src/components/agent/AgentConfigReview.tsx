@@ -49,7 +49,7 @@ export function AgentConfigReview({
     <div className="space-y-4">
       {rationale ? (
         <div className="rounded-xl border border-rule bg-surface-active px-4 py-3">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
             Rationale
           </div>
           <div className="mt-2 text-sm leading-6 text-text-primary">{rationale}</div>
@@ -65,7 +65,7 @@ export function AgentConfigReview({
               key={field.key}
               className="rounded-xl border border-rule bg-white px-3 py-2.5"
             >
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
                 {field.label}
               </div>
               <div className="mt-1 text-sm font-medium text-text-primary">{display}</div>
@@ -82,7 +82,7 @@ export function AgentConfigReview({
             'rounded-xl px-5 py-2.5 text-sm font-medium transition-all',
             busy
               ? 'cursor-not-allowed border border-rule bg-surface-active text-muted'
-              : 'bg-[#0F172A] text-white hover:bg-[#111C31]',
+              : 'bg-slate-900 text-white hover:bg-slate-800',
           )}
           aria-label="Approve proposed configuration and run simulation"
         >

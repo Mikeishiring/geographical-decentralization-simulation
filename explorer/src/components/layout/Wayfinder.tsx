@@ -16,7 +16,7 @@ export function Wayfinder({ links }: WayfinderProps) {
 
   return (
     <div className="mt-12 border-t border-rule pt-6">
-      <span className="mb-4 block text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+      <span className="mb-4 block text-11 font-medium uppercase tracking-[0.1em] text-text-faint">
         Continue exploring
       </span>
       <div className="divide-y divide-rule">
@@ -29,7 +29,7 @@ export function Wayfinder({ links }: WayfinderProps) {
             className="group flex w-full items-baseline justify-between gap-4 py-3 text-left"
           >
             <div className="min-w-0">
-              <span className="text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">
+              <span className="text-13 font-medium text-text-primary group-hover:text-accent transition-colors">
                 {link.label}
               </span>
               <span className="mt-0.5 block text-[0.75rem] leading-5 text-muted">

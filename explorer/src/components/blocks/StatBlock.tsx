@@ -45,7 +45,7 @@ export function StatBlock({ block }: StatBlockProps) {
       </motion.div>
       {block.sentiment && <span className="sr-only">({block.sentiment})</span>}
       <motion.div
-        className="text-[0.8125rem] font-medium text-text-primary mt-2.5"
+        className="text-13 font-medium text-text-primary mt-2.5"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3, delay: 0.12 }}

@@ -107,7 +107,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
     <div className="rounded-xl border border-rule bg-canvas px-5 py-6 sm:px-8 sm:py-8">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Question a claim</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Question a claim</div>
           <div className="mt-1 text-sm font-medium text-text-primary">
             Use one bounded paper question: claim, mechanism, implication, or comparison
           </div>
@@ -136,7 +136,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
             placeholder={placeholder}
             disabled={!isEnabled}
             aria-label="Search the paper"
-            className="flex-1 bg-transparent text-[0.8125rem] text-text-primary placeholder:text-muted/70 outline-none disabled:opacity-50"
+            className="flex-1 bg-transparent text-13 text-text-primary placeholder:text-muted/70 outline-none disabled:opacity-50"
           />
           {query.trim() && isEnabled && (
             <button
@@ -159,7 +159,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
             className="mt-3"
           >
             <div className="mb-3">
-              <span className="text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+              <span className="text-11 font-medium uppercase tracking-[0.1em] text-text-faint">
                 Prompt starters
               </span>
             </div>
@@ -174,7 +174,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
                   onClick={() => handleChip(group.prompt)}
                   className="group rounded-xl border border-rule bg-white px-3 py-2.5 text-left card-hover"
                 >
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint transition-colors group-hover:text-muted">
+                  <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint transition-colors group-hover:text-muted">
                     {group.label}
                   </div>
                   <div className="mt-1 text-xs leading-5 text-text-body transition-colors group-hover:text-text-primary">
@@ -191,7 +191,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
         {loading ? (
           <div
             aria-live="polite"
-            className="flex items-center justify-center gap-1.5 text-[0.6875rem] text-text-faint"
+            className="flex items-center justify-center gap-1.5 text-11 text-text-faint"
           >
             <Loader2 className="h-3 w-3 animate-spin text-accent" />
             <span>
@@ -202,7 +202,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
           </div>
         ) : (
           <div className="text-center">
-            <p className="text-[0.6875rem] text-text-faint leading-relaxed">
+            <p className="text-11 text-text-faint leading-relaxed">
               {helperText ?? 'Ask about a mechanism, paradox, comparison, or implication. The guide stays tied to the paper.'}
               <span className="text-rule"> · </span>
               This opens or reopens a private reading. Publishing to Community is a separate, intentional step.
@@ -212,7 +212,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
       </div>
 
       {disabled && disabledReason && (
-        <p className="text-[0.6875rem] text-text-faint text-center mt-1.5">
+        <p className="text-11 text-text-faint text-center mt-1.5">
           {disabledReason}
         </p>
       )}

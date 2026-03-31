@@ -1,7 +1,7 @@
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { AlertTriangle, Ban, CheckCircle2, Clock3, LoaderCircle } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { CHART, SPRING, SPRING_CRISP } from '../../lib/theme'
+import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import type { SimulationJob } from '../../lib/simulation-api'
 
 type JobStatus = 'idle' | 'submitting' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
@@ -115,7 +115,7 @@ export function SimJobStatus({
     >
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-2xl">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
             Job status
           </div>
           <div className="mt-3 flex items-center gap-3">
@@ -177,7 +177,7 @@ export function SimJobStatus({
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...SPRING_CRISP, delay: 0.1 + i * 0.04 }}
             >
-              <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</span>
+              <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</span>
               <div className="mt-2 text-base font-semibold text-text-primary">{card.value}</div>
               <div className="mt-1 text-xs text-muted">{card.detail}</div>
             </motion.div>
