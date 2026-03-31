@@ -13,7 +13,7 @@
   --color-text-primary: #111;
   --color-text-body: rgba(0, 0, 0, 0.7);
   --color-muted: rgba(0, 0, 0, 0.5);
-  --color-text-faint: rgba(0, 0, 0, 0.3);
+  --color-text-faint: rgba(0, 0, 0, 0.42);
 
   /* Geo-themed accent palette */
   --color-accent: #2563EB;          /* ocean blue — SSP, centralized flows */
@@ -300,7 +300,7 @@ body {
   font-size: 0.6875rem;
   font-weight: 450;
   line-height: 1;
-  color: rgba(0, 0, 0, 0.55);
+  color: rgba(0, 0, 0, 0.58);
   letter-spacing: 0.01em;
   transition: border-color 0.12s ease, background 0.12s ease;
 }
@@ -542,7 +542,13 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .dot-pulse { animation: none; }
+  .dot-pulse,
+  .lab-skeleton,
+  .lab-loading-orb,
+  .shimmer::after,
+  .typing-caret::after { animation: none !important; }
+  .stagger-reveal > * { opacity: 1; animation: none; }
+  .card-hover { transform: none !important; }
 }
 
 /* Light scrollbar — near-invisible until hovered */
@@ -570,11 +576,23 @@ body {
 
 /* ── Subtle card hover — Agentation-style minimal lift ── */
 .card-hover {
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  transition: box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.15s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .card-hover:hover {
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06), 0 1px 4px rgba(15, 23, 42, 0.04);
   border-color: rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+.card-hover:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Active card state — accent-tinted selection ── */
+.card-active {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  background: rgba(37, 99, 235, 0.02);
 }
 
 /* ── Smooth all interactive elements — Benji three-tier timing ── */
@@ -801,12 +819,13 @@ button, a, [role="tab"], [role="button"] {
 
 .follow-up-chip-arrow {
   font-size: 0.625rem;
-  opacity: 0;
-  transform: translateX(-2px);
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  opacity: 0.25;
+  transform: translateX(0);
+  transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
 }
 
 .follow-up-chip:hover .follow-up-chip-arrow {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateX(2px);
+  color: var(--color-accent);
 }

@@ -26,7 +26,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
   const [hoveredTab, setHoveredTab] = useState<TabId | null>(null)
 
   return (
-    <div className="sticky top-0 z-20 border-b border-rule bg-white/92 backdrop-blur-lg">
+    <div className="sticky top-0 z-20 border-b border-rule bg-white/92 backdrop-blur-lg shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto hide-scrollbar">
         <nav className="flex gap-1 min-w-max" role="tablist" aria-label="Explorer sections">
           {tabs.map(tab => {
