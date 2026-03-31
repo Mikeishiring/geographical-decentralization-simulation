@@ -15,12 +15,11 @@ npx tsx server/index.ts  # API server on :3201 (needs ANTHROPIC_API_KEY in .env)
 
 ### What's Built
 
-**5 tabs:**
+**4 tabs:**
 
 | Tab | Page | Status |
 |-----|------|--------|
-| Paper | `src/pages/PaperReaderPage.tsx` | Complete — 4-view spectrum (Editorial, Focus, Argument Map, Full Text), community note text anchoring |
-| Original | `src/pages/OriginalPaperPage.tsx` | Complete — dark mode PDF viewer with annotations |
+| Paper | `src/pages/PaperReaderPage.tsx` | Complete — 4-view spectrum (Editorial, Focus, Argument Map, Original PDF), community note text anchoring |
 | Results | `src/pages/SimulationLabPage.tsx` | Complete — config builder, preset system, artifact viewer |
 | Agent | `src/pages/AgentLabPage.tsx` | Complete — AI query bar, follow-up chips, tool_use |
 | Community | `src/pages/ExploreHistoryPage.tsx` | Complete — gallery, voting, search, sort, tags, anchored notes |
@@ -60,7 +59,7 @@ npx tsx server/index.ts  # API server on :3201 (needs ANTHROPIC_API_KEY in .env)
 │ Frontend (Vite :3200)                       │
 │                                             │
 │  PaperReader (static, 4 views)       │      │
-│  OriginalPaper (static PDF viewer)   │      │
+│  PaperReader (4 views inc. PDF)      │      │
 │  SimulationLab ──→ /api/simulations ─┐      │
 │  AgentLab ──→ /api/explore ──────────┤      │
 │  ExploreHistory ──→ /api/explorations│      │
@@ -105,7 +104,7 @@ explorer/
 │   │   ├── simulation-api.ts    # Simulation API client
 │   │   ├── theme.ts             # SPRING, SPRING_SOFT, BLOCK_COLORS constants
 │   │   └── cn.ts                # clsx + tailwind-merge utility
-│   ├── pages/                   # 5 page components (PaperReader, Original, Results, Agent, Community)
+│   ├── pages/                   # 4 page components (PaperReader, Results, Agent, Community)
 │   ├── types/
 │   │   ├── blocks.ts            # 9 Zod schemas + discriminated union + parseBlocks()
 │   │   └── anchors.ts           # TextAnchor type for community note positioning

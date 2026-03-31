@@ -1,11 +1,11 @@
 import * as React from 'react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BookOpen, FileText, FlaskConical, BarChart3, Users } from 'lucide-react'
+import { BookOpen, FlaskConical, BarChart3, Users } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SNAPPY } from '../../lib/theme'
 
-export type TabId = 'paper' | 'original' | 'results' | 'agent' | 'community'
+export type TabId = 'paper' | 'results' | 'agent' | 'community'
 
 interface TabNavProps {
   activeTab: TabId
@@ -14,8 +14,7 @@ interface TabNavProps {
 }
 
 const tabs: { id: TabId; label: string; icon: typeof BookOpen; hint: string }[] = [
-  { id: 'paper', label: 'Paper', icon: BookOpen, hint: 'Editorial reading with visual evidence and community annotations' },
-  { id: 'original', label: 'Original', icon: FileText, hint: 'Full PDF with dark mode and annotation tools' },
+  { id: 'paper', label: 'Paper', icon: BookOpen, hint: 'Editorial reading with visual evidence — 4 views from custom to original PDF' },
   { id: 'results', label: 'Results', icon: BarChart3, hint: 'Simulation lab — run scenarios, compare paradigms, export artifacts' },
   { id: 'agent', label: 'Agent', icon: FlaskConical, hint: 'Ask questions and run autonomous research loops' },
   { id: 'community', label: 'Community', icon: Users, hint: 'Published human notes over paper and exact-run evidence' },

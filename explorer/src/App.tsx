@@ -9,21 +9,14 @@ import { AGENT_ROUTE_PARAM_KEYS, readRouteStateFromLocation, type ExplorerRouteS
 import { PAPER_SECTIONS } from './data/paper-sections'
 
 const DEFAULT_TAB: TabId = 'paper'
-const ORIGINAL_TAB: TabId = 'original'
 const RESULTS_TAB: TabId = 'results'
 const AGENT_TAB: TabId = 'agent'
 const COMMUNITY_TAB: TabId = 'community'
 const PAPER_SECTION_IDS = new Set(PAPER_SECTIONS.map(section => section.id))
 
-const loadOriginalPaperPageModule = () => import('./pages/OriginalPaperPage')
 const loadSimulationLabPageModule = () => import('./pages/SimulationLabPage')
 const loadAgentLabPageModule = () => import('./pages/AgentLabPage')
 const loadExploreHistoryPageModule = () => import('./pages/ExploreHistoryPage')
-
-const OriginalPaperPage = lazy(async () => {
-  const module = await loadOriginalPaperPageModule()
-  return { default: module.OriginalPaperPage }
-})
 
 const SimulationLabPage = lazy(async () => {
   const module = await loadSimulationLabPageModule()
@@ -86,10 +79,6 @@ function readRouteState() {
 }
 
 function preloadTab(tab: TabId) {
-  if (tab === ORIGINAL_TAB) {
-    void loadOriginalPaperPageModule()
-    return
-  }
   if (tab === RESULTS_TAB) {
     void loadSimulationLabPageModule()
     return
@@ -124,7 +113,6 @@ function App() {
   const [sharedExplorationId, setSharedExplorationId] = useState<string | null>(initialRoute.explorationId)
   const [visitedTabs, setVisitedTabs] = useState<Record<TabId, boolean>>({
     paper: initialRoute.tab === DEFAULT_TAB,
-    original: initialRoute.tab === ORIGINAL_TAB,
     results: initialRoute.tab === RESULTS_TAB,
     agent: initialRoute.tab === AGENT_TAB,
     community: initialRoute.tab === COMMUNITY_TAB,
@@ -169,7 +157,7 @@ function App() {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      ;([ORIGINAL_TAB, RESULTS_TAB, AGENT_TAB, COMMUNITY_TAB] as const)
+      ;([RESULTS_TAB, AGENT_TAB, COMMUNITY_TAB] as const)
         .filter(tab => tab !== activeTab)
         .forEach(preloadTab)
     }, 1200)
@@ -230,16 +218,6 @@ function App() {
             />
           </ErrorBoundary>
         </div>
-
-        {visitedTabs.original && (
-          <div hidden={activeTab !== 'original'} aria-hidden={activeTab !== 'original'}>
-            <ErrorBoundary fallbackLabel="The Original tab encountered an error.">
-              <Suspense fallback={<PageFallback label="Loading paper viewer" />}>
-                <OriginalPaperPage onTabChange={handleTabChange} />
-              </Suspense>
-            </ErrorBoundary>
-          </div>
-        )}
 
         {visitedTabs.results && (
           <div hidden={activeTab !== 'results'} aria-hidden={activeTab !== 'results'}>
