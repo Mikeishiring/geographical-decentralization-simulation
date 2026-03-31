@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { cn } from '../../lib/cn'
-import { SPRING, SPRING_SNAPPY, PAGE_TRANSITION } from '../../lib/theme'
+import { SPRING, PAGE_TRANSITION } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
 import { PAPER_NARRATIVE } from '../../data/paper-narrative'
 import { DEFAULT_BLOCKS, type TopicCard } from '../../data/default-blocks'
@@ -16,13 +15,6 @@ import { PaperSectionView } from './PaperSectionView'
 import { NodeArc } from '../decorative/NodeArc'
 import { Link2, Check, Quote } from 'lucide-react'
 import type { TabId } from '../layout/TabNav'
-
-type EditorialViewMode = 'editorial' | 'focus'
-
-const EDITORIAL_VIEW_MODES: { id: EditorialViewMode; label: string }[] = [
-  { id: 'editorial', label: 'Editorial' },
-  { id: 'focus', label: 'Focus' },
-]
 
 interface EditorialViewProps {
   readonly isActive: boolean
@@ -42,11 +34,8 @@ export function EditorialView({
   onTabChange,
 }: EditorialViewProps) {
   const queryClient = useQueryClient()
-  const [viewMode, setViewMode] = useState<EditorialViewMode>(focusMode ? 'focus' : 'editorial')
   const [activeTopic, setActiveTopic] = useState<TopicCard | null>(null)
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
-
-  const isFocusMode = viewMode === 'focus'
 
   const bestFirstStops = PAPER_SECTIONS.filter(section =>
     BEST_FIRST_STOP_IDS.includes(section.id as (typeof BEST_FIRST_STOP_IDS)[number]),
@@ -247,43 +236,9 @@ export function EditorialView({
         />
       </div>
 
-      {/* View mode toggle for sections below */}
-      <div className="mt-10 flex items-center justify-between gap-3">
-        <div>
-          <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Full paper sections</span>
-          <div className="mt-1 text-sm font-medium text-text-primary">Section-by-section editorial reading</div>
-        </div>
-        <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1">
-          {EDITORIAL_VIEW_MODES.map(mode => {
-            const isActiveMode = viewMode === mode.id
-            return (
-              <motion.button
-                key={mode.id}
-                onClick={() => setViewMode(mode.id)}
-                whileTap={{ scale: 0.96 }}
-                transition={SPRING_SNAPPY}
-                className={cn(
-                  'relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors',
-                  isActiveMode ? 'text-text-primary font-medium' : 'text-muted hover:text-text-primary',
-                )}
-              >
-                {isActiveMode && (
-                  <motion.span
-                    layoutId="editorial-view-pill"
-                    className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-black/[0.04]"
-                    transition={SPRING_SNAPPY}
-                  />
-                )}
-                <span className="relative">{mode.label}</span>
-              </motion.button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Section-by-section reading with editorial/focus toggle */}
-      <div className="mt-6">
-        {isFocusMode ? (
+      {/* Section-by-section reading */}
+      <div className="mt-10">
+        {focusMode ? (
           /* Focus mode: centered, distraction-free */
           <div className="space-y-12">
             {/* Focus mode section indicator */}
@@ -330,7 +285,7 @@ export function EditorialView({
                   </div>
 
                   <div className="space-y-5">
-                    <p className="max-w-3xl text-[1.65rem] leading-relaxed text-text-primary font-serif">
+                    <p className="max-w-3xl text-2xl leading-relaxed text-text-primary font-serif">
                       {narrative.lede}
                     </p>
                     <div className="max-w-3xl space-y-4 text-base leading-9 text-text-body font-serif">
