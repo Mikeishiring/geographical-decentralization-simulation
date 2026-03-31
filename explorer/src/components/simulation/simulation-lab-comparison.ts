@@ -15,7 +15,7 @@ import type {
 import type { SimulationConfig } from '../../lib/simulation-api'
 
 export async function fetchResearchCatalog(catalogScriptUrl: string): Promise<ResearchCatalog> {
-  const response = await fetch(catalogScriptUrl, { cache: 'force-cache' })
+  const response = await fetch(catalogScriptUrl, { cache: 'default' })
   if (!response.ok) {
     throw new Error('Failed to load the published research catalog for exact-run comparison.')
   }
@@ -48,7 +48,7 @@ export async function fetchPublishedAnalyticsPayload(
   datasetPath: string,
 ): Promise<PublishedAnalyticsPayload> {
   const normalizedBase = viewerBaseUrl.replace(/\/$/, '')
-  const response = await fetch(`${normalizedBase}/${datasetPath}`, { cache: 'force-cache' })
+  const response = await fetch(`${normalizedBase}/${datasetPath}`, { cache: 'default' })
   if (!response.ok) {
     throw new Error(`Failed to load analytics payload for ${datasetPath}`)
   }

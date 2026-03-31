@@ -868,7 +868,7 @@ export function PublishedDatasetViewer({
     const load = async () => {
       try {
         const response = await fetch(`${normalizedBase}/${dataset.path}`, {
-          cache: 'force-cache',
+          cache: 'default',
           signal: controller.signal,
         })
         if (!response.ok) throw new Error(`Failed to load ${dataset.path}`)
