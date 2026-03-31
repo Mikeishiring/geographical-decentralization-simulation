@@ -179,8 +179,7 @@ function buildTaggedChartBlocks(payload: PublishedAnalyticsPayload): readonly Ta
   }
   const sourceBlock = buildSourceFootprintBlock(payload)
   if (sourceBlock) tagged.push({ category: 'geography', key: 'source-footprint', block: sourceBlock })
-  const mapBlock = buildMapBlock(payload)
-  if (mapBlock) tagged.push({ category: 'geography', key: 'map', block: mapBlock })
+  // Map is rendered by EvidenceMapSurface — no duplicate MapBlock here
   const tableBlock = buildTopRegionsTable(payload)
   if (tableBlock) tagged.push({ category: 'geography', key: 'top-regions', block: tableBlock })
   return tagged
@@ -483,23 +482,21 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
           {taggedBlocks.length > 0 && (
             <div className="lab-stage px-5 py-4">
               <PlotFilterToolbar activeCategory={activeCategory} onCategoryChange={setActiveCategory} counts={categoryCounts} />
-              <motion.div initial="hidden" animate="visible" variants={STAGGER_CONTAINER} className="space-y-3">
-                <AnimatePresence mode="popLayout">
+              <div className="space-y-3">
+                <AnimatePresence initial={false}>
                   {visibleBlocks.map(({ key, block }) => (
                     <motion.div
                       key={key}
-                      variants={STAGGER_ITEM}
-                      layout
-                      initial={{ opacity: 0, y: 12 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                      exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
                       transition={SPRING_CRISP}
                     >
                       <BlockRenderer block={block} />
                     </motion.div>
                   ))}
                 </AnimatePresence>
-              </motion.div>
+              </div>
             </div>
           )}
 
