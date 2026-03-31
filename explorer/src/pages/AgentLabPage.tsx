@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useState } from 'react'
+import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { cn } from '../lib/cn'
 import type { SimulationConfig } from '../lib/simulation-api'
@@ -19,6 +20,7 @@ import {
 } from '../components/agent/agent-hooks'
 import { AgentStepCard } from '../components/agent/AgentStepCard'
 import { AgentCostBar } from '../components/agent/AgentCostBar'
+import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM, ERROR_BANNER, CTA_BUTTON } from '../lib/theme'
 
 export default function AgentLabPage() {
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -136,7 +138,7 @@ export default function AgentLabPage() {
                 'rounded-xl px-5 py-2.5 text-sm font-medium transition-all',
                 isCreating || questionDraft.trim().length < 10
                   ? 'cursor-not-allowed border border-rule bg-surface-active text-muted'
-                  : 'bg-[#0F172A] text-white hover:bg-[#111C31]',
+                  : `${CTA_BUTTON.base} ${CTA_BUTTON.hover}`,
               )}
               aria-label="Start autonomous research loop"
             >
@@ -151,7 +153,7 @@ export default function AgentLabPage() {
           </div>
 
           {createSession.isError ? (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className={`mt-4 rounded-xl border ${ERROR_BANNER.border} ${ERROR_BANNER.bg} px-4 py-3 text-sm ${ERROR_BANNER.text}`}>
               {(createSession.error as Error).message}
             </div>
           ) : null}
@@ -181,10 +183,15 @@ export default function AgentLabPage() {
           </div>
 
           {/* Step timeline */}
-          <div className="space-y-4">
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={STAGGER_CONTAINER}
+            className="space-y-4"
+          >
             {session.steps.map((step, index) => (
+              <motion.div key={step.id} variants={STAGGER_ITEM}>
               <AgentStepCard
-                key={step.id}
                 step={step}
                 isLatest={index === session.steps.length - 1}
                 onApprove={handleApprove}
@@ -192,8 +199,9 @@ export default function AgentLabPage() {
                 isApproving={approveStep.isPending}
                 isRejecting={rejectStep.isPending}
               />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
           {/* Session controls */}
           {session.status === 'active' ? (

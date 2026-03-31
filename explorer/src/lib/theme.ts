@@ -41,6 +41,29 @@ export const REGION_COORDS = [
   { region: 'Oceania', coord: '33.9°S 151.2°E', short: 'OC' },
 ] as const
 
+/** Page-level transition — used for view switches (argument map ↔ full text, etc.) */
+export const PAGE_TRANSITION = { type: 'spring' as const, stiffness: 260, damping: 28, mass: 0.9 }
+
+/** Inline error banner styling tokens */
+export const ERROR_BANNER = {
+  border: 'border-red-200/60',
+  bg: 'bg-red-50/60',
+  text: 'text-red-700',
+} as const
+
+/** Reusable shadow tokens */
+export const SHADOW = {
+  card: '0 1px 3px rgba(0,0,0,0.04)',
+  elevated: '0 4px 12px rgba(0,0,0,0.06)',
+  deepLinked: '0 0 0 1px color-mix(in srgb, var(--color-accent) 6%, transparent)',
+} as const
+
+/** Primary CTA button — dark bg used across lab pages */
+export const CTA_BUTTON = {
+  base: 'bg-text-primary text-white',
+  hover: 'hover:bg-text-primary/90',
+} as const
+
 /** Chart design tokens — Stripe-aligned defaults */
 export const CHART = {
   gridOpacity: 0.05,

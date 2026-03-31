@@ -12,7 +12,7 @@ import { QueryHistory, type HistoryEntry } from '../components/explore/QueryHist
 import { ShimmerLoading } from '../components/explore/ShimmerBlock'
 import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { createExploration, explore, getApiHealth, getExploration, listExplorations, publishExploration, type Exploration, type ExploreError, type ExploreProvenance, type ExploreResponse } from '../lib/api'
-import { SPRING } from '../lib/theme'
+import { SPRING_CRISP } from '../lib/theme'
 import { blocksToMarkdown } from '../lib/export'
 import type { TabId } from '../components/layout/TabNav'
 
@@ -532,7 +532,7 @@ export function FindingsPage({
                 key={card.id}
                 onClick={() => handleTopicClick(card)}
                 whileTap={{ scale: 0.985 }}
-                transition={SPRING}
+                transition={SPRING_CRISP}
                 aria-label={card.title}
                 aria-pressed={isActive}
                 className={cn(
@@ -693,7 +693,7 @@ export function FindingsPage({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={SPRING}
+            transition={SPRING_CRISP}
           >
             <ShimmerLoading />
           </motion.div>
@@ -703,7 +703,7 @@ export function FindingsPage({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={SPRING}
+            transition={SPRING_CRISP}
           >
             <ErrorDisplay error={error} onRetry={handleRetry} />
           </motion.div>
@@ -713,7 +713,7 @@ export function FindingsPage({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={SPRING}
+            transition={SPRING_CRISP}
           >
             <BlockCanvas blocks={aiResponse.blocks} />
 
@@ -787,7 +787,7 @@ export function FindingsPage({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={SPRING}
+            transition={SPRING_CRISP}
           >
             <BlockCanvas blocks={activeTopic.blocks} />
             {readingPublishContextKey && (
@@ -840,7 +840,7 @@ export function FindingsPage({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={SPRING}
+            transition={SPRING_CRISP}
           >
             <BlockCanvas blocks={DEFAULT_BLOCKS} />
             {promptOptions.length > 0 && (
