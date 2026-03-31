@@ -182,10 +182,10 @@ export function PaperSectionView({
   return (
     <>
       {/* Reading progress bar */}
-      <div className="sticky top-[4.5rem] z-10 -mx-4 px-4 py-2.5 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6">
+      <div className="sticky top-[4.5rem] z-10 -mx-4 px-4 py-2.5 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6 geo-accent-bar">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs text-muted">
-            <span className="text-xs font-mono text-accent">{activeSection.number}</span>
+            <span className="mono-xs text-accent">{activeSection.number}</span>
             <span className="text-text-primary text-sm font-medium">{activeSection.title}</span>
           </div>
           <div className="flex items-center gap-3">
@@ -236,7 +236,7 @@ export function PaperSectionView({
                         : 'text-muted hover:bg-surface-active hover:text-text-primary',
                     )}
                   >
-                    <span className={cn('font-mono', activeSectionId === section.id ? 'text-accent' : 'text-text-faint')}>
+                    <span className={cn('mono-xs', activeSectionId === section.id ? 'text-accent' : 'text-text-faint')}>
                       {section.number}
                     </span>{' '}
                     {section.title}
@@ -253,8 +253,8 @@ export function PaperSectionView({
         {/* TOC sidebar */}
         {!focusMode && (
           <aside className="hidden xl:block xl:sticky xl:top-40 xl:self-start">
-            <div className="border border-rule rounded-lg p-4">
-              <span className="text-xs text-muted">Sections</span>
+            <div className="lab-panel rounded-xl p-4">
+              <div className="lab-section-title">Sections</div>
               <nav className="mt-3 space-y-1">
                 {PAPER_SECTIONS.map(section => (
                   <a
@@ -268,7 +268,7 @@ export function PaperSectionView({
                         : 'text-muted hover:bg-surface-active hover:text-text-primary',
                     )}
                   >
-                    <div className={cn('text-xs', activeSectionId === section.id ? 'text-accent' : 'text-muted')}>
+                    <div className={cn('mono-xs', activeSectionId === section.id ? 'text-accent' : 'text-muted')}>
                       {section.number}
                     </div>
                     <div className="mt-0.5 leading-snug">{section.title}</div>
@@ -350,14 +350,14 @@ function SectionCard({
       viewport={{ once: true, amount: 0.15 }}
       transition={SPRING}
       className={cn(
-        'group scroll-mt-40 rounded-lg border border-rule bg-white p-5 transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] sm:p-6',
+        'group scroll-mt-40 rounded-xl border border-rule bg-white p-5 card-hover geo-accent-bar sm:p-6',
         focusMode && 'mx-auto max-w-5xl',
       )}
     >
       {/* Header */}
       <div className="mb-6 border-b border-rule pb-5">
         <div className="flex items-baseline gap-3">
-          <span className="text-xs font-mono text-accent tabular-nums">{section.number}</span>
+          <span className="mono-xs text-accent">{section.number}</span>
           <button
             onClick={() => onCopyLink(section.id)}
             className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted opacity-0 transition-all group-hover:opacity-100 hover:bg-surface-active hover:text-text-primary"
@@ -387,8 +387,8 @@ function SectionCard({
               </p>
             ))}
           </div>
-          <div className="border-l-[3px] border-l-accent pl-5 py-2">
-            <div className="flex items-center gap-1.5 text-xs text-muted mb-2">
+          <div className="border-l-2 border-l-accent/40 pl-5 py-2">
+            <div className="flex items-center gap-1.5 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint mb-2">
               <Quote className="h-3 w-3" />
               Pull quote
             </div>
@@ -399,7 +399,7 @@ function SectionCard({
         </div>
 
         <div className={cn(focusMode ? 'space-y-4' : 'xl:col-span-5 space-y-4', figuresFirst && 'xl:order-1')}>
-          <div className="border border-rule rounded-md p-4 bg-surface-active">
+          <div className="rounded-lg border border-rule bg-surface-active p-4">
             <BlockCanvas blocks={section.blocks} showExport={false} />
           </div>
           <p className="px-1 text-xs leading-6 text-muted">
@@ -434,10 +434,9 @@ function SectionCard({
           <a
             href={`#${previousSection.id}`}
             onClick={() => onNavigate(previousSection.id)}
-            className="group/nav inline-flex items-center gap-1.5 text-[0.8125rem] text-muted transition-colors hover:text-text-primary"
+            className="arrow-link flex-row-reverse"
           >
-            <span className="transition-transform group-hover/nav:-translate-x-0.5">←</span>
-            {previousSection.number} {previousSection.title}
+            <span>← {previousSection.number} {previousSection.title}</span>
           </a>
         ) : (
           <span className="text-xs text-text-faint">Beginning of paper</span>
@@ -446,10 +445,9 @@ function SectionCard({
           <a
             href={`#${nextSection.id}`}
             onClick={() => onNavigate(nextSection.id)}
-            className="group/nav inline-flex items-center gap-1.5 text-[0.8125rem] text-muted transition-colors hover:text-accent"
+            className="arrow-link"
           >
             {nextSection.number} {nextSection.title}
-            <span className="transition-transform group-hover/nav:translate-x-0.5">→</span>
           </a>
         ) : (
           <span className="text-xs text-text-faint">End of paper</span>

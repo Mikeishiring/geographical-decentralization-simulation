@@ -539,7 +539,7 @@ export function FindingsPage({
                     ? 'border-accent bg-white'
                     : isDimmed
                       ? 'border-rule bg-white opacity-40'
-                      : 'border-rule bg-white hover:border-border-hover',
+                      : 'border-rule bg-white card-hover',
                 )}
               >
                 <h4 className="text-xs font-medium text-text-primary leading-snug mb-1 line-clamp-2">
@@ -565,7 +565,7 @@ export function FindingsPage({
         <div className="stagger-reveal mb-6 rounded-xl border border-rule bg-white divide-y divide-rule">
           {([
             { tab: 'paper' as TabId, eyebrow: 'Read the canonical source', title: 'Open the paper guide', detail: 'Go section by section through the paper when you want the exact claim, method, or caveat.' },
-            { tab: 'agent' as TabId, eyebrow: 'Inspect evidence', title: 'Open Results', detail: 'Start with the published replay, then open the exact lab only if you need fresh evidence.' },
+            { tab: 'results' as TabId, eyebrow: 'Inspect evidence', title: 'Open Results', detail: 'Start with the published replay, then open the exact lab only if you need fresh evidence.' },
             { tab: 'community' as TabId, eyebrow: 'Read public responses', title: 'Browse community notes', detail: 'Human-authored notes layered on top of paper readings and exact simulation runs.' },
           ] as const).map(item => (
             <button
@@ -606,7 +606,7 @@ export function FindingsPage({
               <button
                 key={exploration.id}
                 onClick={() => openCommunityNote(exploration.id)}
-                className="rounded-xl border border-rule bg-white px-4 py-4 text-left transition-colors hover:border-border-hover"
+                className="rounded-xl border border-rule bg-white px-4 py-4 text-left card-hover"
               >
                 <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                   {communityPreviewLabel(exploration)}
@@ -671,10 +671,10 @@ export function FindingsPage({
                   </a>
                   {onTabChange && (
                     <button
-                      onClick={() => onTabChange('results')}
+                      onClick={() => onTabChange('agent')}
                       className="arrow-link"
                     >
-                      Open simulation tab
+                      Open Agent workspace
                     </button>
                   )}
                 </div>
@@ -769,10 +769,11 @@ export function FindingsPage({
                     <button
                       key={`${query}-${index}`}
                       onClick={() => handleQuery(query)}
-                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                      className="follow-up-chip"
                       title={`Ask: ${query}`}
                     >
-                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+                      {query}
+                      <span aria-hidden="true" className="follow-up-chip-arrow">→</span>
                     </button>
                   ))}
                 </div>
@@ -822,10 +823,11 @@ export function FindingsPage({
                     <button
                       key={`${query}-${index}`}
                       onClick={() => handleQuery(query)}
-                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                      className="follow-up-chip"
                       title={`Ask: ${query}`}
                     >
-                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+                      {query}
+                      <span aria-hidden="true" className="follow-up-chip-arrow">→</span>
                     </button>
                   ))}
                 </div>
@@ -851,10 +853,11 @@ export function FindingsPage({
                     <button
                       key={`${query}-${index}`}
                       onClick={() => handleQuery(query)}
-                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                      className="follow-up-chip"
                       title={`Ask: ${query}`}
                     >
-                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+                      {query}
+                      <span aria-hidden="true" className="follow-up-chip-arrow">→</span>
                     </button>
                   ))}
                 </div>

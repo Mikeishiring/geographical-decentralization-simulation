@@ -10,7 +10,9 @@ import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const DATA_DIR = join(__dirname, 'data')
+const DATA_DIR = process.env.DATA_DIR
+  ? resolve(process.env.DATA_DIR)
+  : join(__dirname, 'data')
 const DATA_FILE = process.env.EXPLORATION_STORE_FILE
   ? resolve(process.env.EXPLORATION_STORE_FILE)
   : join(DATA_DIR, 'explorations.json')
