@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { BookOpen, FileText, FlaskConical, Users } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SNAPPY } from '../../lib/theme'
 
@@ -12,11 +13,11 @@ interface TabNavProps {
   onTabIntent?: (tab: TabId) => void
 }
 
-const tabs: { id: TabId; label: string; shortLabel: string; hint: string }[] = [
-  { id: 'paper', label: 'Paper', shortLabel: 'Paper', hint: 'Editorial reading with visual evidence and community annotations' },
-  { id: 'original', label: 'Original', shortLabel: 'Original', hint: 'Full PDF with dark mode and annotation tools' },
-  { id: 'agent', label: 'Agent', shortLabel: 'Agent', hint: 'Ask questions, run simulations, build custom dashboards' },
-  { id: 'community', label: 'Community', shortLabel: 'Community', hint: 'Published human notes over paper and exact-run evidence' },
+const tabs: { id: TabId; label: string; icon: typeof BookOpen; hint: string }[] = [
+  { id: 'paper', label: 'Paper', icon: BookOpen, hint: 'Editorial reading with visual evidence and community annotations' },
+  { id: 'original', label: 'Original', icon: FileText, hint: 'Full text reading mode with section navigation' },
+  { id: 'agent', label: 'Agent', icon: FlaskConical, hint: 'Ask questions, run simulations, build custom dashboards' },
+  { id: 'community', label: 'Community', icon: Users, hint: 'Published human notes over paper and exact-run evidence' },
 ]
 
 export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
@@ -26,10 +27,11 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
   return (
     <div className="sticky top-0 z-20 border-b border-rule bg-white/92 backdrop-blur-lg">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto hide-scrollbar">
-        <nav className="flex gap-0.5 min-w-max" role="tablist" aria-label="Explorer sections">
+        <nav className="flex gap-1 min-w-max" role="tablist" aria-label="Explorer sections">
           {tabs.map(tab => {
             const isActive = activeTab === tab.id
             const isHovered = hoveredTab === tab.id
+            const Icon = tab.icon
             return (
               <div key={tab.id} className="relative">
                 <button
@@ -58,26 +60,23 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                   aria-selected={isActive}
                   tabIndex={isActive ? 0 : -1}
                   className={cn(
-                    'relative flex items-center gap-1.5 px-3 py-2.5 text-[0.8125rem] transition-colors',
+                    'relative flex items-center gap-2 px-3.5 py-3 text-[0.8125rem] transition-colors',
                     isActive
                       ? 'text-text-primary font-medium'
                       : 'text-muted hover:text-text-primary',
                   )}
                 >
-                  {isActive && (
-                    <motion.span
-                      className="w-1.5 h-1.5 rounded-full bg-accent shrink-0"
-                      layoutId="tab-dot"
-                      transition={SPRING}
-                    />
-                  )}
-                  <span className="text-xs sm:text-sm">{tab.shortLabel}</span>
+                  <Icon className={cn(
+                    'h-3.5 w-3.5 shrink-0 transition-colors',
+                    isActive ? 'text-accent' : 'text-muted/60',
+                  )} />
+                  <span className="text-xs sm:text-sm">{tab.label}</span>
 
                   {/* Hover background pill */}
                   {isHovered && !isActive && (
                     <motion.div
                       layoutId="tab-hover-bg"
-                      className="absolute inset-x-1 inset-y-1.5 rounded-md bg-surface-active -z-10"
+                      className="absolute inset-x-1 inset-y-1.5 rounded-lg bg-surface-active -z-10"
                       transition={SPRING_SNAPPY}
                     />
                   )}
@@ -105,7 +104,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                       transition={SPRING_SNAPPY}
                       className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-30 whitespace-nowrap pointer-events-none"
                     >
-                      <div className="relative rounded-md bg-text-primary/90 px-2.5 py-1.5 text-[0.6875rem] text-white/85 shadow-lg">
+                      <div className="relative rounded-lg bg-text-primary/92 px-3 py-2 text-[0.6875rem] text-white/90 shadow-lg backdrop-blur-sm">
                         {tab.hint}
                       </div>
                     </motion.div>
