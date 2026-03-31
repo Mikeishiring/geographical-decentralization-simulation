@@ -4,7 +4,9 @@
  * "waiting for network activity" with the same pastel/wireframe language.
  */
 
-const PASTEL = ['#c3b1e1', '#a8d8ea', '#ffd3b6', '#a8e6cf', '#f6b8d1'] as const
+import { PASTEL_PALETTE } from '../../lib/theme'
+
+const PASTEL = PASTEL_PALETTE
 
 export function NodeArc({ className = '' }: { readonly className?: string }) {
   return (

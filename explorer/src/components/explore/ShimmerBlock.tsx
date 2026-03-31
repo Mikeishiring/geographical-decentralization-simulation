@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { SPRING } from '../../lib/theme'
+import { SPRING, SHIMMER_COLOR } from '../../lib/theme'
 import { breathingSineWave, breathingAlpha } from '../../lib/chart-animations'
 
 /** Breathing chart skeleton — a living sine wave that indicates "chart incoming" */
@@ -26,8 +26,8 @@ function BreathingChartSkeleton() {
       <svg viewBox="0 0 500 140" className="w-full" preserveAspectRatio="xMidYMid meet">
         <defs>
           <linearGradient id="skeleton-grad" x1="0%" x2="0%" y1="0%" y2="100%">
-            <stop offset="0%" stopColor="#CBD5E1" stopOpacity={0.12} />
-            <stop offset="100%" stopColor="#CBD5E1" stopOpacity={0.02} />
+            <stop offset="0%" stopColor={SHIMMER_COLOR} stopOpacity={0.12} />
+            <stop offset="100%" stopColor={SHIMMER_COLOR} stopOpacity={0.02} />
           </linearGradient>
         </defs>
 
@@ -51,7 +51,7 @@ function BreathingChartSkeleton() {
             <path
               d={pathD}
               fill="none"
-              stroke="#CBD5E1"
+              stroke={SHIMMER_COLOR}
               strokeWidth={2}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -65,7 +65,7 @@ function BreathingChartSkeleton() {
           cx={500}
           cy={70}
           r={3.5}
-          fill="#CBD5E1"
+          fill={SHIMMER_COLOR}
           opacity={alpha + 0.1}
           className="chart-skeleton-breathe"
         />

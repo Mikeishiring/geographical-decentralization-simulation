@@ -1,7 +1,7 @@
 import { useId, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
-import { CHART, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
+import { CHART, DARK_SURFACE, PASTEL_PALETTE, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { WORLD_PATHS } from '../../data/world-paths'
 import type { MapBlock as MapBlockType } from '../../types/blocks'
@@ -10,13 +10,13 @@ interface MapBlockProps {
   block: MapBlockType
 }
 
-/* ── Pastel palette — matches the GlobeWireframe node colors ── */
+/* ── Pastel palette — shared from theme.ts ── */
 const PASTEL = {
-  lavender: '#c3b1e1',
-  sky: '#a8d8ea',
-  peach: '#ffd3b6',
-  mint: '#a8e6cf',
-  rose: '#f6b8d1',
+  lavender: PASTEL_PALETTE[0],
+  sky: PASTEL_PALETTE[1],
+  peach: PASTEL_PALETTE[2],
+  mint: PASTEL_PALETTE[3],
+  rose: PASTEL_PALETTE[4],
 } as const
 
 const PASTEL_SCALE = [PASTEL.sky, PASTEL.mint, PASTEL.lavender, PASTEL.peach, PASTEL.rose] as const
@@ -37,14 +37,14 @@ function getDotRadius(value: number, maxValue: number): number {
 }
 
 function getDotColor(value: number, maxValue: number, colorScale?: string): string {
-  if (colorScale === 'binary') return value > 0 ? PASTEL.mint : '#3B3B3B'
+  if (colorScale === 'binary') return value > 0 ? PASTEL.mint : DARK_SURFACE.grayscaleStroke
   if (colorScale === 'change') {
     if (value > 0) return PASTEL.mint
     if (value < 0) return PASTEL.rose
-    return '#667788'
+    return DARK_SURFACE.grayscaleFill
   }
   const t = Math.min(value / Math.max(maxValue, 1), 1)
-  if (t < 0.1) return '#556677'
+  if (t < 0.1) return DARK_SURFACE.grayscaleStroke
   if (t < 0.3) return PASTEL.sky
   if (t < 0.6) return PASTEL.lavender
   return PASTEL.peach
@@ -185,8 +185,8 @@ export function MapBlock({ block }: MapBlockProps) {
         {/* ── Map canvas ── */}
         <div
           ref={mapRef}
-          className="relative overflow-hidden bg-[#0B0F14]"
-          style={{ aspectRatio: `${SVG_W} / ${SVG_H}`, minHeight: 0 }}
+          className="relative overflow-hidden"
+          style={{ aspectRatio: `${SVG_W} / ${SVG_H}`, minHeight: 0, backgroundColor: DARK_SURFACE.bg }}
         >
           <svg
             viewBox={`0 0 ${SVG_W} ${SVG_H}`}
@@ -197,8 +197,8 @@ export function MapBlock({ block }: MapBlockProps) {
           >
             <defs>
               <radialGradient id={bgId} cx="42%" cy="38%" r="68%">
-                <stop offset="0%" stopColor="#0E1520" />
-                <stop offset="100%" stopColor="#080C12" />
+                <stop offset="0%" stopColor={DARK_SURFACE.gradientTop} />
+                <stop offset="100%" stopColor={DARK_SURFACE.gradientMid} />
               </radialGradient>
               <radialGradient id={glowId} cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor={PASTEL.lavender} stopOpacity={0.14} />
@@ -208,7 +208,7 @@ export function MapBlock({ block }: MapBlockProps) {
               <radialGradient id={`${bgId}-atmos`} cx="50%" cy="50%" r="55%">
                 <stop offset="0%" stopColor="transparent" />
                 <stop offset="75%" stopColor="transparent" />
-                <stop offset="100%" stopColor="#060A0F" stopOpacity={0.6} />
+                <stop offset="100%" stopColor={DARK_SURFACE.gradientBot} stopOpacity={0.6} />
               </radialGradient>
               <filter id={`${bgId}-blur`}>
                 <feGaussianBlur in="SourceGraphic" stdDeviation="22" />
@@ -222,8 +222,8 @@ export function MapBlock({ block }: MapBlockProps) {
               const { y } = latLonToMercator(lat, 0, SVG_W, SVG_H)
               return (
                 <g key={`lat-${lat}`}>
-                  <line x1={0} y1={y} x2={SVG_W} y2={y} stroke="#1C2A3E" strokeWidth={0.5} strokeDasharray={lat === 0 ? 'none' : '3 6'} />
-                  <text x={8} y={y - 3} fill="#2A3D5A" fontSize="6" fontFamily="var(--font-mono)" opacity={0.7}>
+                  <line x1={0} y1={y} x2={SVG_W} y2={y} stroke={DARK_SURFACE.graticule} strokeWidth={0.5} strokeDasharray={lat === 0 ? 'none' : '3 6'} />
+                  <text x={8} y={y - 3} fill={DARK_SURFACE.labelText} fontSize="6" fontFamily="var(--font-mono)" opacity={0.7}>
                     {Math.abs(lat)}°{lat >= 0 ? 'N' : 'S'}
                   </text>
                 </g>
@@ -231,7 +231,7 @@ export function MapBlock({ block }: MapBlockProps) {
             })}
             {[-120, -60, 0, 60, 120].map(lon => {
               const { x } = latLonToMercator(0, lon, SVG_W, SVG_H)
-              return <line key={`lon-${lon}`} x1={x} y1={0} x2={x} y2={SVG_H} stroke="#1C2A3E" strokeWidth={0.5} strokeDasharray="3 6" />
+              return <line key={`lon-${lon}`} x1={x} y1={0} x2={x} y2={SVG_H} stroke={DARK_SURFACE.graticule} strokeWidth={0.5} strokeDasharray="3 6" />
             })}
 
             {/* Country outlines — real GeoJSON silhouettes, softer fill */}
@@ -239,8 +239,8 @@ export function MapBlock({ block }: MapBlockProps) {
               <path
                 key={i}
                 d={d}
-                fill="#111B28"
-                stroke="#1E3048"
+                fill={DARK_SURFACE.worldFill}
+                stroke={DARK_SURFACE.worldStroke}
                 strokeWidth={0.4}
                 strokeLinejoin="round"
                 opacity={0.85}
@@ -351,7 +351,7 @@ export function MapBlock({ block }: MapBlockProps) {
                         x={x}
                         y={y - radius - 7}
                         textAnchor="middle"
-                        fill="#B0C4D8"
+                        fill={DARK_SURFACE.subtleText}
                         fontSize="7"
                         fontFamily="var(--font-mono)"
                         fontWeight={500}
@@ -537,7 +537,7 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
       <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Stake concentration</div>
       <div className="grid grid-cols-2 gap-x-2 gap-y-1">
         <span className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#556677' }} />
+          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: DARK_SURFACE.grayscaleStroke }} />
           <span className="text-2xs">Low</span>
         </span>
         <span className="flex items-center gap-1.5">
