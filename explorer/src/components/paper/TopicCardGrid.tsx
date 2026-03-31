@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM, TOPIC_THEME_STYLE } from '../../lib/theme'
@@ -20,7 +20,10 @@ export function TopicCardGrid({
   onBackToOverview,
 }: TopicCardGridProps) {
   const [expanded, setExpanded] = useState(false)
-  const visibleCards = expanded ? TOPIC_CARDS : TOPIC_CARDS.slice(0, INITIAL_VISIBLE)
+  const visibleCards = useMemo(
+    () => expanded ? TOPIC_CARDS : TOPIC_CARDS.slice(0, INITIAL_VISIBLE),
+    [expanded],
+  )
   const hasMore = TOPIC_CARDS.length > INITIAL_VISIBLE
 
   return (

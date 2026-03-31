@@ -246,7 +246,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                   key={tick}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3, delay: tickIdx * 0.04 }}
+                  transition={{ ...SPRING_CRISP, delay: tickIdx * 0.04 }}
                 >
                   <line
                     x1={padding.left}
@@ -282,7 +282,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                   style={{ fontSize: CHART.labelSize }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3, delay: 0.2 + index * 0.04 }}
+                  transition={{ ...SPRING_CRISP, delay: 0.2 + index * 0.04 }}
                 >
                   {tick}
                 </motion.text>

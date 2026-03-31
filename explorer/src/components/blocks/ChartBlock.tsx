@@ -138,7 +138,7 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
                 stroke="currentColor" strokeWidth={CHART.gridWidth} opacity={CHART.gridOpacity}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: CHART.gridOpacity }}
-                transition={{ duration: 0.3, delay: i * 0.04 }}
+                transition={{ ...SPRING_CRISP, delay: i * 0.04 }}
               />
             )
           })}

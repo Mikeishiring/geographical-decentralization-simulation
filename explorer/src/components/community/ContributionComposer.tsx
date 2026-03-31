@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { motion } from 'framer-motion'
 import { MessageSquarePlus } from 'lucide-react'
 import { SPRING_CRISP } from '../../lib/theme'
@@ -37,6 +37,7 @@ export function ContributionComposer({
   onViewPublished,
   onPublish,
 }: ContributionComposerProps) {
+  const formId = useId()
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState(defaultTitle)
   const [takeaway, setTakeaway] = useState(defaultTakeaway)
@@ -113,8 +114,9 @@ export function ContributionComposer({
       <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-muted">Title</label>
+            <label htmlFor={`${formId}-title`} className="mb-1 block text-xs text-muted">Title</label>
             <input
+              id={`${formId}-title`}
               type="text"
               value={title}
               onChange={event => setTitle(event.target.value)}
@@ -123,8 +125,9 @@ export function ContributionComposer({
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-muted">Takeaway</label>
+            <label htmlFor={`${formId}-takeaway`} className="mb-1 block text-xs text-muted">Takeaway</label>
             <textarea
+              id={`${formId}-takeaway`}
               value={takeaway}
               onChange={event => setTakeaway(event.target.value)}
               rows={3}
@@ -136,8 +139,9 @@ export function ContributionComposer({
 
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-muted">Name (optional)</label>
+            <label htmlFor={`${formId}-author`} className="mb-1 block text-xs text-muted">Name (optional)</label>
             <input
+              id={`${formId}-author`}
               type="text"
               value={author}
               onChange={event => setAuthor(event.target.value)}
