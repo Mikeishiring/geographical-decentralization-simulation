@@ -54,6 +54,13 @@ export interface ExplorationPublication {
   readonly editorNote: string
 }
 
+export interface TextAnchor {
+  readonly sectionId?: string
+  readonly blockId?: string
+  readonly excerpt: string
+  readonly viewMode?: string
+}
+
 export interface Exploration {
   readonly id: string
   readonly query: string
@@ -70,6 +77,7 @@ export interface Exploration {
   readonly experimentTags: string[]
   readonly verified: boolean
   readonly surface: ExplorationSurface
+  readonly anchor?: TextAnchor
   readonly publication: ExplorationPublication
 }
 
@@ -258,6 +266,7 @@ function hydrateExploration(raw: Partial<Exploration> & Pick<Exploration, 'query
     experimentTags: raw.experimentTags ?? extractExperimentTags(raw.blocks),
     verified: raw.verified ?? false,
     surface: raw.surface ?? 'reading',
+    anchor: raw.anchor,
     publication: {
       published: raw.publication?.published ?? false,
       title: raw.publication?.title ?? '',
@@ -308,6 +317,7 @@ export class ExplorationStore {
     readonly model: string
     readonly cached: boolean
     readonly surface?: ExplorationSurface
+    readonly anchor?: TextAnchor
     readonly publication?: Partial<ExplorationPublication>
   }): Exploration {
     const exploration = hydrateExploration({
@@ -319,6 +329,7 @@ export class ExplorationStore {
       model: data.model,
       cached: data.cached,
       surface: data.surface ?? 'reading',
+      anchor: data.anchor,
       publication: data.publication,
     })
 

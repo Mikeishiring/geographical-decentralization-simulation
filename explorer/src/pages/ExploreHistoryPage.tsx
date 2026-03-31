@@ -182,7 +182,7 @@ export function ExploreHistoryPage({
             )}
             {onTabChange && (
               <button
-                onClick={() => onTabChange('agent')}
+                onClick={() => onTabChange('results')}
                 className="group flex w-full items-baseline justify-between gap-4 py-3 text-left"
               >
                 <div>
@@ -284,7 +284,7 @@ export function ExploreHistoryPage({
             )}
             {hiddenDraftExploration.surface === 'simulation' && onTabChange && (
               <button
-                onClick={() => onTabChange('agent')}
+                onClick={() => onTabChange('results')}
                 className="rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
               >
                 Open Simulation
@@ -307,7 +307,7 @@ export function ExploreHistoryPage({
             onToggleExpand={toggleExpand}
             onVote={delta => voteMutation.mutate(delta)}
             onOpenQuery={onOpenQuery}
-            onOpenSimulation={onTabChange ? () => onTabChange('agent') : undefined}
+            onOpenSimulation={onTabChange ? () => onTabChange('results') : undefined}
             onShare={handleShare}
             sharedId={sharedId}
             deepLinkedExplorationId={initialExplorationId}
@@ -323,7 +323,7 @@ export function ExploreHistoryPage({
             onToggleExpand={toggleExpand}
             onVote={delta => voteMutation.mutate(delta)}
             onOpenQuery={onOpenQuery}
-            onOpenSimulation={onTabChange ? () => onTabChange('agent') : undefined}
+            onOpenSimulation={onTabChange ? () => onTabChange('results') : undefined}
             onShare={handleShare}
             sharedId={sharedId}
             deepLinkedExplorationId={initialExplorationId}
@@ -590,6 +590,20 @@ function ExplorationCard({
               ))}
             </div>
           )}
+
+          {/* Anchored text excerpt */}
+          {exploration.anchor?.excerpt && (
+            <div className="mt-2 rounded-md border-l-2 border-l-accent/40 bg-canvas px-3 py-2">
+              <p className="text-xs italic text-muted line-clamp-2">
+                &ldquo;{exploration.anchor.excerpt}&rdquo;
+              </p>
+              {exploration.anchor.sectionId && (
+                <span className="mt-1 block text-[0.625rem] text-text-faint">
+                  from {exploration.anchor.sectionId.replace(/-/g, ' ')}
+                </span>
+              )}
+            </div>
+          )}
         </button>
 
         <button
@@ -800,7 +814,7 @@ function EmptyState({
                 Read the paper
               </button>
               <button
-                onClick={() => onTabChange('agent')}
+                onClick={() => onTabChange('results')}
                 className="rounded-lg border border-rule bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
                 Open Simulation

@@ -6,18 +6,19 @@ export interface ExplorerRouteState {
   readonly explorationId: string | null
 }
 
-const VALID_TABS: readonly TabId[] = ['paper', 'original', 'agent', 'community']
+const VALID_TABS: readonly TabId[] = ['paper', 'original', 'results', 'agent', 'community']
 const DEFAULT_TAB: TabId = 'paper'
 const AGENT_TAB: TabId = 'agent'
+const RESULTS_TAB: TabId = 'results'
 
 /** Legacy tab IDs → new tab IDs for URL migration */
 const TAB_MIGRATION: Record<string, TabId> = {
   explore: 'paper',
   findings: 'paper',
-  'deep-dive': 'original',
+  'deep-dive': 'paper',
   paper: 'paper',
-  results: 'agent',
-  simulation: 'agent',
+  results: 'results',
+  simulation: 'results',
   history: 'community',
   community: 'community',
   agent: 'agent',
@@ -49,7 +50,7 @@ export const AGENT_ROUTE_PARAM_KEYS = [
   'analytics',
 ] as const
 
-/** @deprecated Alias for backward compatibility */
+/** Simulation-specific route params that belong on the Results tab */
 export const RESULTS_ROUTE_PARAM_KEYS = AGENT_ROUTE_PARAM_KEYS
 
 export function hasPaperSectionHash(hash: string, paperSectionIds: ReadonlySet<string>): boolean {
@@ -61,7 +62,6 @@ export function hasAgentRouteParams(params: URLSearchParams): boolean {
   return AGENT_ROUTE_PARAM_KEYS.some(key => params.has(key))
 }
 
-/** @deprecated Alias for backward compatibility */
 export const hasResultsRouteParams = hasAgentRouteParams
 
 export function getInitialTabFromLocation(
@@ -77,14 +77,14 @@ export function getInitialTabFromLocation(
   const hasAgentParams = hasAgentRouteParams(params)
 
   if (tab && VALID_TABS.includes(tab)) {
-    // Legacy: ?tab=explore with simulation params → agent
+    // Legacy: ?tab=explore with simulation params → results
     if (tab === 'paper' && hasAgentParams) {
-      return 'agent'
+      return 'results'
     }
     return tab
   }
 
-  if (hasAgentParams) return 'agent'
+  if (hasAgentParams) return 'results'
   if (params.get('q')) return 'agent'
   if (params.get('eid')) return 'community'
   if (params.get('topic')) return 'paper'
@@ -99,7 +99,8 @@ export function readRouteStateFromLocation(
 ): ExplorerRouteState {
   const params = new URLSearchParams(search)
   const tab = getInitialTabFromLocation(search, hash, paperSectionIds)
-  const isAgentRoute = tab === AGENT_TAB && hasAgentRouteParams(params)
+  const isResultsRoute = tab === RESULTS_TAB && hasResultsRouteParams(params)
+  const isAgentRoute = tab === AGENT_TAB || isResultsRoute
 
   return {
     tab,

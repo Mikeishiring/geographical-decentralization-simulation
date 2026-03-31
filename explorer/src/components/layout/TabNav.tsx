@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SNAPPY } from '../../lib/theme'
 
-export type TabId = 'paper' | 'original' | 'agent' | 'community'
+export type TabId = 'paper' | 'original' | 'results' | 'agent' | 'community'
 
 interface TabNavProps {
   activeTab: TabId
@@ -15,7 +15,8 @@ interface TabNavProps {
 const tabs: { id: TabId; label: string; shortLabel: string; hint: string }[] = [
   { id: 'paper', label: 'Paper', shortLabel: 'Paper', hint: 'Editorial reading with visual evidence and community annotations' },
   { id: 'original', label: 'Original', shortLabel: 'Original', hint: 'Full PDF with dark mode and annotation tools' },
-  { id: 'agent', label: 'Agent', shortLabel: 'Agent', hint: 'Ask questions, run simulations, build custom dashboards' },
+  { id: 'results', label: 'Results', shortLabel: 'Results', hint: 'Simulation lab — run scenarios, compare paradigms, export artifacts' },
+  { id: 'agent', label: 'Agent', shortLabel: 'Agent', hint: 'Ask questions and run autonomous research loops' },
   { id: 'community', label: 'Community', shortLabel: 'Community', hint: 'Published human notes over paper and exact-run evidence' },
 ]
 

@@ -671,7 +671,7 @@ export function FindingsPage({
                   </a>
                   {onTabChange && (
                     <button
-                      onClick={() => onTabChange('agent')}
+                      onClick={() => onTabChange('results')}
                       className="arrow-link"
                     >
                       Open simulation tab

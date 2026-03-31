@@ -1,0 +1,413 @@
+import { useState, useCallback } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { motion, AnimatePresence } from 'framer-motion'
+import { cn } from '../../lib/cn'
+import { SPRING, SPRING_SNAPPY, PAGE_TRANSITION } from '../../lib/theme'
+import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
+import { PAPER_NARRATIVE } from '../../data/paper-narrative'
+import { DEFAULT_BLOCKS, type TopicCard } from '../../data/default-blocks'
+import { BEST_FIRST_STOP_IDS, sectionEntryLine } from './paper-helpers'
+import { createExploration, publishExploration } from '../../lib/api'
+import { BlockCanvas } from '../explore/BlockCanvas'
+import { PaperHero } from './PaperHero'
+import { TopicCardGrid } from './TopicCardGrid'
+import { CommunityPreview } from './CommunityPreview'
+import { PaperSectionView } from './PaperSectionView'
+import { NodeArc } from '../decorative/NodeArc'
+import { Link2, Check, Quote } from 'lucide-react'
+import type { TabId } from '../layout/TabNav'
+
+type EditorialViewMode = 'editorial' | 'focus'
+
+const EDITORIAL_VIEW_MODES: { id: EditorialViewMode; label: string }[] = [
+  { id: 'editorial', label: 'Editorial' },
+  { id: 'focus', label: 'Focus' },
+]
+
+interface EditorialViewProps {
+  readonly isActive: boolean
+  readonly focusMode: boolean
+  readonly activeSectionId: string
+  readonly onSectionClick: (id: string) => void
+  readonly onOpenCommunityExploration?: (explorationId: string) => void
+  readonly onTabChange?: (tab: TabId) => void
+}
+
+export function EditorialView({
+  isActive,
+  focusMode,
+  activeSectionId,
+  onSectionClick,
+  onOpenCommunityExploration,
+  onTabChange,
+}: EditorialViewProps) {
+  const queryClient = useQueryClient()
+  const [viewMode, setViewMode] = useState<EditorialViewMode>(focusMode ? 'focus' : 'editorial')
+  const [activeTopic, setActiveTopic] = useState<TopicCard | null>(null)
+  const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
+
+  const isFocusMode = viewMode === 'focus'
+
+  const bestFirstStops = PAPER_SECTIONS.filter(section =>
+    BEST_FIRST_STOP_IDS.includes(section.id as (typeof BEST_FIRST_STOP_IDS)[number]),
+  )
+
+  const publishMutation = useMutation({
+    mutationFn: async (input: {
+      sectionId: string
+      title: string
+      takeaway: string
+      author: string
+    }) => {
+      const section = PAPER_SECTIONS.find(s => s.id === input.sectionId)
+      if (!section) throw new Error('Section not found')
+
+      const created = await createExploration({
+        query: section.title,
+        summary: section.description,
+        blocks: [...section.blocks],
+        followUps: [],
+        model: '',
+        cached: false,
+        surface: 'reading',
+      })
+
+      return await publishExploration(created.id, {
+        title: input.title,
+        takeaway: input.takeaway,
+        author: input.author || undefined,
+      })
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['explorations'] })
+    },
+  })
+
+  const handleTopicClick = (card: TopicCard) => {
+    setActiveTopic(prev => (prev?.id === card.id ? null : card))
+  }
+
+  const handleBackToOverview = () => {
+    setActiveTopic(null)
+  }
+
+  const handleSectionPublish = useCallback((sectionId: string, payload: { title: string; takeaway: string; author: string }) => {
+    publishMutation.mutate({ sectionId, ...payload })
+  }, [publishMutation])
+
+  const openCommunityNote = useCallback((explorationId: string) => {
+    onOpenCommunityExploration?.(explorationId)
+  }, [onOpenCommunityExploration])
+
+  const handleCopySectionLink = async (sectionId: string) => {
+    const url = new URL(window.location.href)
+    url.hash = sectionId
+    try {
+      await navigator.clipboard.writeText(url.toString())
+      setCopiedSectionId(sectionId)
+      window.setTimeout(() => {
+        setCopiedSectionId(current => (current === sectionId ? null : current))
+      }, 1600)
+    } catch {
+      // Ignore clipboard failures
+    }
+  }
+
+  const activeSection = PAPER_SECTIONS.find(section => section.id === activeSectionId) ?? PAPER_SECTIONS[0]
+  const showTopic = activeTopic !== null
+
+  return (
+    <motion.div key="editorial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={PAGE_TRANSITION}>
+      {/* Hero */}
+      <PaperHero />
+
+      {/* Best first stops */}
+      <section className="mt-10 rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="lab-section-title">Best first stops</div>
+            <div className="mt-1.5 text-[0.8125rem] font-medium text-text-primary">Four strong entry points into the paper</div>
+          </div>
+          <div className="max-w-2xl text-[0.8125rem] leading-[1.6] text-muted">
+            Start with the paradox, then check the realism question, the implications, and the limitations.
+          </div>
+        </div>
+        <div className="mt-4 divide-y divide-rule stagger-reveal">
+          {bestFirstStops.map(section => (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              onClick={() => onSectionClick(section.id)}
+              className="group flex items-baseline justify-between gap-4 py-3 transition-colors"
+            >
+              <div className="min-w-0">
+                <span className="mono-xs text-accent uppercase">{section.number}</span>
+                <div className="mt-0.5 text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">{section.title}</div>
+                <div className="mt-0.5 text-xs leading-5 text-muted">{sectionEntryLine(section)}</div>
+              </div>
+              <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* Topic cards + overview blocks */}
+      <div className="mt-10">
+        <TopicCardGrid
+          activeTopic={activeTopic}
+          showingAi={false}
+          onTopicClick={handleTopicClick}
+          onBackToOverview={handleBackToOverview}
+        />
+      </div>
+
+      {/* Default/topic blocks */}
+      <div className="mt-8">
+        <AnimatePresence mode="wait">
+          {showTopic ? (
+            <motion.div
+              key={activeTopic.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={SPRING}
+            >
+              <div className="mb-4">
+                <h2 className="text-base font-semibold text-text-primary font-serif">{activeTopic.title}</h2>
+                <p className="mt-1 text-sm text-muted">{activeTopic.description}</p>
+              </div>
+              <BlockCanvas blocks={activeTopic.blocks} />
+              {activeTopic.prompts.length > 0 && onTabChange && (
+                <div className="mt-6 pt-4 border-t border-rule">
+                  <span className="text-xs text-muted mb-2 block">Ask the Agent about this topic</span>
+                  <div className="flex flex-wrap gap-2 stagger-reveal">
+                    {activeTopic.prompts.slice(0, 4).map((prompt, i) => (
+                      <button
+                        key={`${prompt}-${i}`}
+                        onClick={() => onTabChange('agent')}
+                        className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                        title={`Ask Agent: ${prompt}`}
+                      >
+                        <span className="group-hover/followup:underline underline-offset-2">{prompt}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="default"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={SPRING}
+            >
+              <BlockCanvas blocks={DEFAULT_BLOCKS} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Navigation to other tabs */}
+      {!showTopic && onTabChange && (
+        <div className="mt-10 stagger-reveal grid gap-3 sm:grid-cols-3">
+          {([
+            { tab: 'original' as TabId, eyebrow: 'Canonical source', title: 'Original PDF', detail: 'Dark mode, annotations, exact published paper.', accent: 'accent' },
+            { tab: 'agent' as TabId, eyebrow: 'Questions & experiments', title: 'Agent workspace', detail: 'Ask the paper, run simulations, export results.', accent: 'accent-warm' },
+            { tab: 'community' as TabId, eyebrow: 'Public responses', title: 'Community notes', detail: 'Human notes on readings and simulation runs.', accent: 'success' },
+          ] as const).map(item => (
+            <button
+              key={item.tab}
+              onClick={() => onTabChange(item.tab)}
+              className="group relative overflow-hidden rounded-xl border border-rule bg-white p-4 text-left transition-all hover:border-border-hover hover:shadow-sm globe-grid"
+            >
+              <div className="absolute right-1 top-1 w-[80px] h-[40px] opacity-[0.35] pointer-events-none select-none" aria-hidden="true">
+                <NodeArc className="w-full h-full text-muted" />
+              </div>
+              <div className="relative">
+                <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{item.eyebrow}</span>
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <span className="text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">{item.title}</span>
+                  <span className="text-xs text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
+                </div>
+                <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Community preview */}
+      <div className="mt-10">
+        <CommunityPreview
+          isActive={isActive}
+          onOpenNote={openCommunityNote}
+          onTabChange={onTabChange}
+        />
+      </div>
+
+      {/* View mode toggle for sections below */}
+      <div className="mt-10 flex items-center justify-between gap-3">
+        <div>
+          <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Full paper sections</span>
+          <div className="mt-1 text-sm font-medium text-text-primary">Section-by-section editorial reading</div>
+        </div>
+        <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1">
+          {EDITORIAL_VIEW_MODES.map(mode => {
+            const isActiveMode = viewMode === mode.id
+            return (
+              <motion.button
+                key={mode.id}
+                onClick={() => setViewMode(mode.id)}
+                whileTap={{ scale: 0.96 }}
+                transition={SPRING_SNAPPY}
+                className={cn(
+                  'relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors',
+                  isActiveMode ? 'text-text-primary font-medium' : 'text-muted hover:text-text-primary',
+                )}
+              >
+                {isActiveMode && (
+                  <motion.span
+                    layoutId="editorial-view-pill"
+                    className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-black/[0.04]"
+                    transition={SPRING_SNAPPY}
+                  />
+                )}
+                <span className="relative">{mode.label}</span>
+              </motion.button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Section-by-section reading with editorial/focus toggle */}
+      <div className="mt-6">
+        {isFocusMode ? (
+          /* Focus mode: centered, distraction-free */
+          <div className="space-y-12">
+            {/* Focus mode section indicator */}
+            <div className="sticky top-40 z-10 rounded-lg border border-rule bg-white/95 backdrop-blur-sm px-4 py-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-xs font-mono text-accent">{activeSection.number}</span>
+                  <span className="text-text-primary">{activeSection.title}</span>
+                </div>
+                <button
+                  onClick={() => handleCopySectionLink(activeSection.id)}
+                  className="inline-flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-text-primary"
+                >
+                  {copiedSectionId === activeSection.id ? <Check className="h-3 w-3 text-success" /> : <Link2 className="h-3 w-3" />}
+                  {copiedSectionId === activeSection.id ? 'Copied!' : 'Copy link'}
+                </button>
+              </div>
+            </div>
+
+            {PAPER_SECTIONS.map((section, index) => {
+              const narrative = PAPER_NARRATIVE[section.id]
+              if (!narrative) return null
+              const previousSection = PAPER_SECTIONS[index - 1]
+              const nextSection = PAPER_SECTIONS[index + 1]
+
+              return (
+                <motion.section
+                  key={section.id}
+                  id={section.id}
+                  data-section-id={section.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.15 }}
+                  transition={SPRING}
+                  className="group scroll-mt-40 mx-auto max-w-5xl rounded-lg border border-rule bg-white p-5 transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] sm:p-6"
+                >
+                  <div className="mb-6 border-b border-rule pb-5">
+                    <h2 className="mt-2 max-w-3xl text-2xl font-medium text-text-primary font-serif sm:text-3xl">
+                      {section.title}
+                    </h2>
+                    <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted">
+                      {section.description}
+                    </p>
+                  </div>
+
+                  <div className="space-y-5">
+                    <p className="max-w-3xl text-[1.65rem] leading-relaxed text-text-primary font-serif">
+                      {narrative.lede}
+                    </p>
+                    <div className="max-w-3xl space-y-4 text-base leading-9 text-text-body font-serif">
+                      {narrative.paragraphs.map(paragraph => (
+                        <p key={paragraph}>{paragraph}</p>
+                      ))}
+                    </div>
+                    <div className="border-l-[3px] border-l-accent pl-5 py-2">
+                      <div className="flex items-center gap-1.5 text-xs text-muted mb-2">
+                        <Quote className="h-3 w-3" />
+                        Pull quote
+                      </div>
+                      <p className="max-w-3xl text-xl leading-relaxed text-text-primary font-serif italic">
+                        {narrative.pullQuote}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-4">
+                    <div className="border border-rule rounded-md p-4 bg-surface-active">
+                      <BlockCanvas blocks={section.blocks} showExport={false} />
+                    </div>
+                  </div>
+
+                  <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-5">
+                    {previousSection ? (
+                      <a href={`#${previousSection.id}`} onClick={() => onSectionClick(previousSection.id)} className="group/nav inline-flex items-center gap-1.5 text-[0.8125rem] text-muted transition-colors hover:text-text-primary">
+                        <span className="transition-transform group-hover/nav:-translate-x-0.5">←</span>
+                        {previousSection.number} {previousSection.title}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-text-faint">Beginning of paper</span>
+                    )}
+                    {nextSection ? (
+                      <a href={`#${nextSection.id}`} onClick={() => onSectionClick(nextSection.id)} className="group/nav inline-flex items-center gap-1.5 text-[0.8125rem] text-muted transition-colors hover:text-accent">
+                        {nextSection.number} {nextSection.title}
+                        <span className="transition-transform group-hover/nav:translate-x-0.5">→</span>
+                      </a>
+                    ) : (
+                      <span className="text-xs text-text-faint">End of paper</span>
+                    )}
+                  </div>
+                </motion.section>
+              )
+            })}
+          </div>
+        ) : (
+          /* Editorial mode: uses PaperSectionView with sidebar */
+          <PaperSectionView
+            focusMode={false}
+            onPublish={handleSectionPublish}
+            isPublishing={publishMutation.isPending}
+            publishError={(publishMutation.error as Error | null)?.message ?? null}
+          />
+        )}
+      </div>
+
+      {/* References footer */}
+      <section className="mt-10 rounded-xl border border-rule bg-white p-5 sm:p-6 geo-accent-bar">
+        <div className="lab-section-title">References and intent</div>
+        <p className="mt-3 max-w-2xl text-[0.8125rem] leading-[1.65] text-text-body font-serif">
+          This reader view makes the paper easier to absorb without replacing the canonical study. The best first stops are the gamma paradox, the starting-geography section, and the limitations — they define the paper's surprise, realism, and confidence boundary.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+          {[...PAPER_METADATA.references, { label: 'Original published demo', url: 'https://geo-decentralization.github.io/' }].map(ref => (
+            <a
+              key={ref.label}
+              href={ref.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="arrow-link"
+            >
+              {ref.label}
+            </a>
+          ))}
+        </div>
+      </section>
+    </motion.div>
+  )
+}
