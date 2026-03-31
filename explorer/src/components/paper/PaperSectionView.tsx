@@ -377,10 +377,10 @@ function SectionCard({
       {/* Content grid */}
       <div className={cn('grid gap-6', focusMode ? 'xl:grid-cols-[minmax(0,1fr)]' : 'xl:grid-cols-12')}>
         <div className={cn(focusMode ? 'space-y-5' : 'xl:col-span-7 space-y-5', figuresFirst && 'xl:order-2')}>
-          <p className={cn('text-xl leading-relaxed text-text-primary font-serif', focusMode ? 'max-w-3xl text-[1.65rem]' : 'max-w-2xl')}>
+          <p className={cn('text-xl leading-relaxed text-text-primary font-serif', focusMode ? 'max-w-3xl text-2xl' : 'max-w-2xl')}>
             {narrative.lede}
           </p>
-          <div className={cn('space-y-4 text-[15px] text-text-body font-serif', focusMode ? 'max-w-3xl text-base leading-9' : 'leading-8')}>
+          <div className={cn('space-y-4 text-base text-text-body font-serif', focusMode ? 'max-w-3xl text-base leading-9' : 'leading-8')}>
             {narrative.paragraphs.map(paragraph => (
               <p key={paragraph} className={cn(focusMode ? 'max-w-3xl' : 'max-w-2xl')}>
                 {paragraph}
