@@ -23,7 +23,7 @@ export function InsightBlock({ block }: InsightBlockProps) {
   return (
     <div
       className={cn(
-        'bg-white border border-rule rounded-xl p-5 border-l-2 topo-bg',
+        'bg-white border border-rule rounded-xl p-5 border-l-2 topo-bg card-hover',
         emphasisStyles[emphasis],
       )}
     >

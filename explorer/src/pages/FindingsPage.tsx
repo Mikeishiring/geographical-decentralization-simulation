@@ -539,7 +539,7 @@ export function FindingsPage({
                     ? 'border-accent bg-white'
                     : isDimmed
                       ? 'border-rule bg-white opacity-40'
-                      : 'border-rule bg-white hover:border-border-hover',
+                      : 'border-rule bg-white card-hover',
                 )}
               >
                 <h4 className="text-xs font-medium text-text-primary leading-snug mb-1 line-clamp-2">
@@ -606,7 +606,7 @@ export function FindingsPage({
               <button
                 key={exploration.id}
                 onClick={() => openCommunityNote(exploration.id)}
-                className="rounded-xl border border-rule bg-white px-4 py-4 text-left transition-colors hover:border-border-hover"
+                className="rounded-xl border border-rule bg-white px-4 py-4 text-left card-hover"
               >
                 <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
                   {communityPreviewLabel(exploration)}
@@ -769,10 +769,11 @@ export function FindingsPage({
                     <button
                       key={`${query}-${index}`}
                       onClick={() => handleQuery(query)}
-                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                      className="follow-up-chip"
                       title={`Ask: ${query}`}
                     >
-                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+                      {query}
+                      <span aria-hidden="true" className="follow-up-chip-arrow">→</span>
                     </button>
                   ))}
                 </div>
@@ -822,10 +823,11 @@ export function FindingsPage({
                     <button
                       key={`${query}-${index}`}
                       onClick={() => handleQuery(query)}
-                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                      className="follow-up-chip"
                       title={`Ask: ${query}`}
                     >
-                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+                      {query}
+                      <span aria-hidden="true" className="follow-up-chip-arrow">→</span>
                     </button>
                   ))}
                 </div>
@@ -851,10 +853,11 @@ export function FindingsPage({
                     <button
                       key={`${query}-${index}`}
                       onClick={() => handleQuery(query)}
-                      className="text-xs text-muted hover:text-accent transition-colors group/followup"
+                      className="follow-up-chip"
                       title={`Ask: ${query}`}
                     >
-                      <span className="group-hover/followup:underline underline-offset-2">{query}</span>
+                      {query}
+                      <span aria-hidden="true" className="follow-up-chip-arrow">→</span>
                     </button>
                   ))}
                 </div>

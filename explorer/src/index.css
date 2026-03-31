@@ -692,3 +692,36 @@ button, a, [role="tab"], [role="button"] {
 .skip-to-content:focus {
   top: 0;
 }
+
+/* ── Follow-up chip — pill-shaped prompt button ── */
+.follow-up-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.02);
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: rgba(0, 0, 0, 0.5);
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.follow-up-chip:hover {
+  background: rgba(37, 99, 235, 0.05);
+  border-color: rgba(37, 99, 235, 0.18);
+  color: var(--color-accent);
+}
+
+.follow-up-chip-arrow {
+  font-size: 0.625rem;
+  opacity: 0;
+  transform: translateX(-2px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.follow-up-chip:hover .follow-up-chip-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
