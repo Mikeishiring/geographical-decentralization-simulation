@@ -43,7 +43,7 @@ export function HistogramBlock({ block }: HistogramBlockProps) {
           </div>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
             <span>{block.bins.length} bins</span>
-            {block.unit && <span className="font-mono text-[0.625rem]">{block.unit}</span>}
+            {block.unit && <span className="font-mono text-2xs">{block.unit}</span>}
             {[...categoryColors.entries()].map(([cat, color]) => (
               <span key={cat} className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
@@ -120,8 +120,8 @@ export function HistogramBlock({ block }: HistogramBlockProps) {
               className="rounded-lg border border-rule bg-white px-3 py-2"
               style={{ boxShadow: CHART.tooltipShadow }}
             >
-              <div className="text-[0.6875rem] font-medium text-text-primary">{hoveredBin.range}</div>
-              <div className="mt-0.5 text-[0.8125rem] font-semibold tabular-nums text-text-primary">
+              <div className="text-11 font-medium text-text-primary">{hoveredBin.range}</div>
+              <div className="mt-0.5 text-13 font-semibold tabular-nums text-text-primary">
                 {hoveredBin.count}{block.unit ? ` ${block.unit}` : ''}
               </div>
             </div>

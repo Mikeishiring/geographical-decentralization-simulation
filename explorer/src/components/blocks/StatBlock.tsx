@@ -19,7 +19,7 @@ export function StatBlock({ block }: StatBlockProps) {
         {block.value}
       </div>
       {block.sentiment && <span className="sr-only">({block.sentiment})</span>}
-      <div className="text-[0.8125rem] font-medium text-text-primary mt-2.5">
+      <div className="text-13 font-medium text-text-primary mt-2.5">
         {block.label}
       </div>
       {block.sublabel && (

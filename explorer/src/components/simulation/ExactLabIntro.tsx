@@ -39,7 +39,7 @@ export function ExactLabIntro({
                 <div className="text-sm font-medium text-text-primary">{preset.label}</div>
                 <div className="mt-1 text-xs leading-5 text-muted">{preset.description}</div>
               </div>
-              <span className="rounded-full border border-accent/20 bg-accent/5 px-2 py-1 text-[0.625rem] font-medium uppercase tracking-[0.1em] text-accent">
+              <span className="rounded-full border border-accent/20 bg-accent/5 px-2 py-1 text-2xs font-medium uppercase tracking-[0.1em] text-accent">
                 Load
               </span>
             </div>

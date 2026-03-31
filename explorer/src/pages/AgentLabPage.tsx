@@ -194,7 +194,7 @@ export default function AgentLabPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="reveal-up">
-        <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+        <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
           Research workspace
         </span>
         <h1 className="mt-1 text-xl font-semibold text-text-primary">
@@ -274,7 +274,7 @@ export default function AgentLabPage() {
 
             {/* API health indicator */}
             {apiHealthQuery.data && (
-              <div className="mt-2 flex items-center gap-1.5 text-[0.6875rem] text-text-faint">
+              <div className="mt-2 flex items-center gap-1.5 text-11 text-text-faint">
                 <span className={cn(
                   'w-1.5 h-1.5 rounded-full',
                   apiHealthQuery.data.anthropicEnabled ? 'bg-success' : 'bg-warning',
@@ -421,7 +421,7 @@ export default function AgentLabPage() {
               <AgentCostBar session={session} />
 
               <div className="rounded-xl border border-rule bg-surface-active px-4 py-3">
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Research question</div>
+                <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Research question</div>
                 <div className="mt-2 text-sm font-medium text-text-primary">{session.researchQuestion}</div>
               </div>
 

@@ -115,9 +115,9 @@ export function EditorialView({
         <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="lab-section-title">Best first stops</div>
-            <div className="mt-1.5 text-[0.8125rem] font-medium text-text-primary">Four strong entry points into the paper</div>
+            <div className="mt-1.5 text-13 font-medium text-text-primary">Four strong entry points into the paper</div>
           </div>
-          <div className="max-w-2xl text-[0.8125rem] leading-[1.6] text-muted">
+          <div className="max-w-2xl text-13 leading-[1.6] text-muted">
             Start with the paradox, then check the realism question, the implications, and the limitations.
           </div>
         </div>
@@ -131,7 +131,7 @@ export function EditorialView({
             >
               <div className="min-w-0">
                 <span className="mono-xs text-accent uppercase">{section.number}</span>
-                <div className="mt-0.5 text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">{section.title}</div>
+                <div className="mt-0.5 text-13 font-medium text-text-primary group-hover:text-accent transition-colors">{section.title}</div>
                 <div className="mt-0.5 text-xs leading-5 text-muted">{sectionEntryLine(section)}</div>
               </div>
               <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
@@ -215,9 +215,9 @@ export function EditorialView({
                 <NodeArc className="w-full h-full text-muted" />
               </div>
               <div className="relative">
-                <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{item.eyebrow}</span>
+                <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{item.eyebrow}</span>
                 <div className="mt-1.5 flex items-center justify-between gap-2">
-                  <span className="text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">{item.title}</span>
+                  <span className="text-13 font-medium text-text-primary group-hover:text-accent transition-colors">{item.title}</span>
                   <span className="text-xs text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
                 </div>
                 <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
@@ -312,7 +312,7 @@ export function EditorialView({
 
                   <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-5">
                     {previousSection ? (
-                      <a href={`#${previousSection.id}`} onClick={() => onSectionClick(previousSection.id)} className="group/nav inline-flex items-center gap-1.5 text-[0.8125rem] text-muted transition-colors hover:text-text-primary">
+                      <a href={`#${previousSection.id}`} onClick={() => onSectionClick(previousSection.id)} className="group/nav inline-flex items-center gap-1.5 text-13 text-muted transition-colors hover:text-text-primary">
                         <span className="transition-transform group-hover/nav:-translate-x-0.5">←</span>
                         {previousSection.number} {previousSection.title}
                       </a>
@@ -320,7 +320,7 @@ export function EditorialView({
                       <span className="text-xs text-text-faint">Beginning of paper</span>
                     )}
                     {nextSection ? (
-                      <a href={`#${nextSection.id}`} onClick={() => onSectionClick(nextSection.id)} className="group/nav inline-flex items-center gap-1.5 text-[0.8125rem] text-muted transition-colors hover:text-accent">
+                      <a href={`#${nextSection.id}`} onClick={() => onSectionClick(nextSection.id)} className="group/nav inline-flex items-center gap-1.5 text-13 text-muted transition-colors hover:text-accent">
                         {nextSection.number} {nextSection.title}
                         <span className="transition-transform group-hover/nav:translate-x-0.5">→</span>
                       </a>
@@ -346,7 +346,7 @@ export function EditorialView({
       {/* References footer */}
       <section className="mt-10 rounded-xl border border-rule bg-white p-5 sm:p-6 geo-accent-bar">
         <div className="lab-section-title">References and intent</div>
-        <p className="mt-3 max-w-2xl text-[0.8125rem] leading-[1.65] text-text-body font-serif">
+        <p className="mt-3 max-w-2xl text-13 leading-[1.65] text-text-body font-serif">
           This reader view makes the paper easier to absorb without replacing the canonical study. The best first stops are the gamma paradox, the starting-geography section, and the limitations — they define the paper's surprise, realism, and confidence boundary.
         </p>
         <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">

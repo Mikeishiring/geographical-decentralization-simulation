@@ -61,7 +61,7 @@ export function TopicCardGrid({
                 {card.description}
               </p>
               <span className={cn(
-                'text-[0.6875rem]',
+                'text-11',
                 isActive ? 'text-accent' : 'text-text-faint',
               )}>
                 {isActive ? 'Viewing' : 'Explore →'}

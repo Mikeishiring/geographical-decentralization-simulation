@@ -87,7 +87,7 @@ export function PendingRunSurface({
 
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between relative">
         <div>
-          <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-accent font-medium">
+          <div className="text-11 uppercase tracking-[0.1em] text-accent font-medium">
             {stage.eyebrow}
           </div>
           <h2 className="mt-1.5 text-xl font-semibold tracking-tight text-text-primary sm:text-2xl">
@@ -111,19 +111,19 @@ export function PendingRunSurface({
 
         <div className="stagger-reveal grid gap-3 sm:grid-cols-3 xl:min-w-[380px]">
           <div className="lab-metric-card">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Queue</div>
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Queue</div>
             <div className="mt-1 text-lg font-semibold tabular-nums text-text-primary">
               {jobData?.queuePosition != null ? jobData.queuePosition.toLocaleString() : 'Live'}
             </div>
           </div>
           <div className="lab-metric-card">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Cache</div>
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Cache</div>
             <div className="mt-1 text-lg font-semibold text-text-primary">
               {jobData?.cacheHit == null ? 'Pending' : jobData.cacheHit ? 'Reused' : 'Fresh'}
             </div>
           </div>
           <div className="lab-metric-card">
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Updated</div>
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Updated</div>
             <div className="mt-1 text-base font-semibold text-text-primary">
               {updatedLabel ?? createdLabel ?? 'Waiting'}
             </div>
@@ -142,7 +142,7 @@ export function PendingRunSurface({
               <span
                 key={step}
                 className={cn(
-                  'text-[0.6875rem]',
+                  'text-11',
                   stepIndex > index && 'text-emerald-600',
                   stepIndex === index && 'text-accent font-medium',
                 )}
@@ -165,19 +165,19 @@ export function PendingRunSurface({
       {/* Run snapshot */}
       <div className="stagger-reveal mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="lab-option-card px-3 py-2.5">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Source</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Source</div>
           <div className="mt-1 text-sm font-medium text-text-primary">{config.sourcePlacement}</div>
         </div>
         <div className="lab-option-card px-3 py-2.5">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Distribution</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Distribution</div>
           <div className="mt-1 text-sm font-medium text-text-primary">{config.distribution}</div>
         </div>
         <div className="lab-option-card px-3 py-2.5">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Timing</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Timing</div>
           <div className="mt-1 mono-sm text-text-primary">{config.slotTime}s · γ {config.attestationThreshold.toFixed(2)}</div>
         </div>
         <div className="lab-option-card px-3 py-2.5">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Migration cost</div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Migration cost</div>
           <div className="mt-1 mono-sm text-text-primary">{formatEthValue(config.migrationCost)}</div>
         </div>
       </div>

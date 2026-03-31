@@ -32,7 +32,7 @@ export function TableBlock({ block }: TableBlockProps) {
               {block.headers.map((header, i) => (
                 <th
                   key={i}
-                  className="text-left text-[0.6875rem] text-text-faint font-normal uppercase tracking-[0.06em] px-3 py-2 border-b border-rule"
+                  className="text-left text-11 text-text-faint font-normal uppercase tracking-[0.06em] px-3 py-2 border-b border-rule"
                 >
                   {header}
                 </th>

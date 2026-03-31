@@ -24,7 +24,7 @@ export function AgentInterpretationView({
       <div className="rounded-xl border border-rule bg-white px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
               Interpretation
             </div>
             <div className="mt-2 text-sm leading-6 text-text-primary">
@@ -33,7 +33,7 @@ export function AgentInterpretationView({
           </div>
           <span
             className={cn(
-              'shrink-0 rounded-full border px-2.5 py-0.5 text-[0.625rem] font-medium',
+              'shrink-0 rounded-full border px-2.5 py-0.5 text-2xs font-medium',
               confidenceColor(interpretation.confidence),
             )}
           >
@@ -44,7 +44,7 @@ export function AgentInterpretationView({
 
       {interpretation.hypothesis ? (
         <div className="rounded-xl border border-rule bg-surface-active px-4 py-3">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
             Hypothesis
           </div>
           <div className="mt-2 text-sm leading-6 text-text-primary">
@@ -54,7 +54,7 @@ export function AgentInterpretationView({
       ) : null}
 
       <div className="rounded-xl border border-rule bg-surface-active px-4 py-3">
-        <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
           {interpretation.truthBoundary.label}
         </div>
         <div className="mt-2 text-xs leading-5 text-muted">
@@ -64,7 +64,7 @@ export function AgentInterpretationView({
 
       {interpretation.suggestedNextQuestion ? (
         <div className="rounded-xl border border-accent/30 bg-accent/5 px-4 py-3">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-accent">
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-accent">
             Suggested next question
           </div>
           <div className="mt-2 text-sm leading-6 text-text-primary">

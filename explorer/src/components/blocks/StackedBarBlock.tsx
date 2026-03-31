@@ -39,7 +39,7 @@ export function StackedBarBlock({ block }: StackedBarBlockProps) {
             <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
-            {block.unit && <span className="font-mono text-[0.625rem]">{block.unit}</span>}
+            {block.unit && <span className="font-mono text-2xs">{block.unit}</span>}
             {block.series.map((s, i) => (
               <span key={s.label} className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: seriesColors[i] }} />
@@ -84,7 +84,7 @@ export function StackedBarBlock({ block }: StackedBarBlockProps) {
                     >
                       {isHovered && (
                         <div className="absolute -top-9 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap">
-                          <div className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-[0.6875rem]" style={{ boxShadow: CHART.tooltipShadow }}>
+                          <div className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-11" style={{ boxShadow: CHART.tooltipShadow }}>
                             <span className="text-muted">{series.label}</span>{' '}
                             <span className="font-semibold tabular-nums text-text-primary">{value}{block.unit ? ` ${block.unit}` : ''}</span>
                           </div>

@@ -435,7 +435,7 @@ export function FindingsPage({
             : 'This paper simulates how validator geography and block-building paradigms (SSP vs MSP) shape centralization in Ethereum. Start from a canonical claim, ask one bounded question, then carry only stronger interpretations into Results or Community.'}
         </p>
         {!showAi && !showTopic && !loading && apiHealthQuery.data && (
-          <div className="mt-2 flex items-center gap-1.5 text-[0.6875rem] text-text-faint">
+          <div className="mt-2 flex items-center gap-1.5 text-11 text-text-faint">
             <span className={cn(
               'w-1.5 h-1.5 rounded-full',
               apiHealthQuery.data.anthropicEnabled ? 'bg-success' : 'bg-warning',
@@ -451,7 +451,7 @@ export function FindingsPage({
         <div className="mb-6">
           {paperSectionHint && onTabChange && (
             <div className="mb-4 rounded-xl border border-accent/20 bg-accent/[0.04] px-4 py-4">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical section available</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Canonical section available</div>
               <div className="mt-1 text-sm font-medium text-text-primary">
                 This link points to {paperSectionHint} in the paper guide.
               </div>
@@ -469,7 +469,7 @@ export function FindingsPage({
 
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Start here</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Start here</div>
               <div className="mt-1 text-sm font-medium text-text-primary">Canonical claims to open first</div>
             </div>
             <span className="text-xs text-muted">Read one claim, question it, then move into the paper, results, or public notes only when you need to.</span>
@@ -483,8 +483,8 @@ export function FindingsPage({
                 className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
               >
                 <div className="min-w-0">
-                  <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical claim</span>
-                  <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">{card.title}</div>
+                  <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Canonical claim</span>
+                  <div className="mt-1 text-13 font-medium leading-6 text-text-primary">{card.title}</div>
                   <div className="mt-0.5 text-xs leading-5 text-muted">{card.description}</div>
                 </div>
                 <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
@@ -507,7 +507,7 @@ export function FindingsPage({
       {/* Topic cards */}
       <div className="mb-6">
         <div className="mb-3 flex items-center justify-between">
-          <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+          <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
             {showTopic || showAi ? 'Paper topics' : 'Key findings'}
           </span>
           {(showTopic || showAi) && (
@@ -549,7 +549,7 @@ export function FindingsPage({
                   {card.description}
                 </p>
                 <span className={cn(
-                  'text-[0.6875rem]',
+                  'text-11',
                   isActive ? 'text-accent' : 'text-text-faint',
                 )}>
                   {isActive ? 'Viewing' : 'Explore →'}
@@ -574,8 +574,8 @@ export function FindingsPage({
               className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
             >
               <div className="min-w-0">
-                <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{item.eyebrow}</span>
-                <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">{item.title}</div>
+                <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{item.eyebrow}</span>
+                <div className="mt-1 text-13 font-medium leading-6 text-text-primary">{item.title}</div>
                 <div className="mt-0.5 text-xs leading-5 text-muted">{item.detail}</div>
               </div>
               <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
@@ -588,7 +588,7 @@ export function FindingsPage({
         <div className="mb-6">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Public responses</div>
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Public responses</div>
               <div className="mt-1 text-sm font-medium text-text-primary">How other readers turned evidence into public notes</div>
             </div>
             {onTabChange && (
@@ -608,16 +608,16 @@ export function FindingsPage({
                 onClick={() => openCommunityNote(exploration.id)}
                 className="rounded-xl border border-rule bg-white px-4 py-4 text-left card-hover"
               >
-                <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
                   {communityPreviewLabel(exploration)}
                 </div>
-                <div className="mt-2 text-[0.8125rem] font-medium text-text-primary">
+                <div className="mt-2 text-13 font-medium text-text-primary">
                   {exploration.publication.title}
                 </div>
                 <div className="mt-1 text-xs leading-5 text-muted line-clamp-4">
                   {exploration.publication.takeaway}
                 </div>
-                <div className="mt-3 flex items-center justify-between gap-3 text-[0.6875rem] text-text-faint">
+                <div className="mt-3 flex items-center justify-between gap-3 text-11 text-text-faint">
                   <span>{exploration.surface === 'simulation' ? 'Exact-run backed' : 'Paper-reading backed'}</span>
                   <span>{exploration.publication.author || 'Anonymous'}</span>
                 </div>
@@ -652,7 +652,7 @@ export function FindingsPage({
             <div className="rounded-xl border border-rule bg-white px-4 py-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="max-w-2xl">
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Research integrity</div>
+                  <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Research integrity</div>
                   <div className="mt-2 text-sm font-medium text-text-primary">{displayProvenance.label}</div>
                   <div className="mt-1 text-sm text-muted">{displayProvenance.detail || interpretationBoundary}</div>
                   <div className="mt-2 text-xs text-muted">
