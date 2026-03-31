@@ -449,7 +449,7 @@ export function SimConfigPanel({
               disabled={isSubmitting || canCancel}
               className={cn(
                 'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all',
-                'bg-text-primary text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60',
+                'bg-text-primary text-white hover:bg-text-primary/85 disabled:cursor-not-allowed disabled:opacity-60',
               )}
             >
               <Play className="h-4 w-4" />
@@ -471,7 +471,7 @@ export function SimConfigPanel({
                 className={cn(
                   'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm transition-colors',
                   canCancel
-                    ? 'border-red-300/30 bg-red-50 text-red-700 hover:bg-red-100'
+                    ? 'border-danger/30 bg-danger/5 text-danger hover:bg-danger/10'
                     : 'cursor-not-allowed border-rule bg-surface-active text-text-faint',
                 )}
               >
