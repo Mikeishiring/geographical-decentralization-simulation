@@ -132,22 +132,24 @@ export function EditorialView({
 
   return (
     <motion.div key="editorial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={PAGE_TRANSITION}>
-      {/* Compact hero with inline best-first-stops */}
-      <PaperHero onSectionClick={onSectionClick} />
+      {/* Compact hero with inline best-first-stops — hidden in focus mode */}
+      {!focusMode && <PaperHero onSectionClick={onSectionClick} />}
 
-      {/* Topic card strip — compact, one section */}
-      <div className="mt-6">
-        <TopicCardGrid
-          activeTopic={activeTopic}
-          showingAi={false}
-          onTopicClick={handleTopicClick}
-          onBackToOverview={handleBackToOverview}
-        />
-      </div>
+      {/* Topic card strip — compact, one section — hidden in focus mode */}
+      {!focusMode && (
+        <div className="mt-6">
+          <TopicCardGrid
+            activeTopic={activeTopic}
+            showingAi={false}
+            onTopicClick={handleTopicClick}
+            onBackToOverview={handleBackToOverview}
+          />
+        </div>
+      )}
 
-      {/* Topic detail blocks (only when a topic is selected) */}
+      {/* Topic detail blocks (only when a topic is selected, hidden in focus mode) */}
       <AnimatePresence mode="wait">
-        {showTopic && (
+        {showTopic && !focusMode && (
           <motion.div
             key={activeTopic.id}
             initial={{ opacity: 0, y: 8 }}
@@ -188,8 +190,8 @@ export function EditorialView({
         )}
       </AnimatePresence>
 
-      {/* Argument map — collapsible structured claims */}
-      {!showTopic && (
+      {/* Argument map — collapsible structured claims, hidden in focus mode */}
+      {!showTopic && !focusMode && (
         <details className="mt-8 rounded-xl border border-rule bg-white overflow-hidden group/argmap">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-surface-active/50 [&::-webkit-details-marker]:hidden">
             <div>
