@@ -9,7 +9,7 @@ const FOOTER_LINKS = [
 export function Footer() {
   return (
     <footer className="mt-16 relative overflow-hidden">
-      <div className="h-px bg-rule" />
+      <div className="section-divider" />
 
       {/* Bookend globe — bottom hemisphere, mirroring the header's top hemisphere */}
       <div
@@ -21,7 +21,7 @@ export function Footer() {
 
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-col gap-5">
-          {/* Arrow links */}
+          {/* Arrow links — Stripe-style lightweight CTAs */}
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             {FOOTER_LINKS.map(({ label, href }) => (
               <a
@@ -36,10 +36,15 @@ export function Footer() {
             ))}
           </div>
 
-          {/* Attribution */}
-          <p className="text-[0.6875rem] text-text-faint">
-            Yang, Oz, Wu, Zhang (2025) · arXiv:2509.21475 · MIT License
-          </p>
+          {/* Attribution + coordinate */}
+          <div className="flex items-center gap-3">
+            <p className="text-[0.6875rem] text-text-faint">
+              Yang, Oz, Wu, Zhang (2025) · arXiv:2509.21475 · MIT License
+            </p>
+            <span className="hidden sm:inline mono-xs text-meridian" aria-hidden="true">
+              50.1°N 8.7°E
+            </span>
+          </div>
         </div>
       </div>
     </footer>

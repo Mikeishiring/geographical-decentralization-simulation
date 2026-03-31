@@ -37,50 +37,19 @@ export function PrecomputedSimulationSurface({
   const dataset = recommendation?.dataset ?? datasets[0] ?? null
 
   return (
-    <div className="mb-5 overflow-hidden rounded-[28px] border border-rule bg-white shadow-[0_24px_64px_rgba(15,23,42,0.08)]">
-      <div className="flex flex-col gap-3 border-b border-rule bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.9))] px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="max-w-3xl">
-          <div className="lab-section-title">Start with published evidence</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">
-            Read the nearest checked-in scenario before you touch the exact lab.
-          </div>
-          <div className="mt-1 text-xs leading-5 text-muted">
-            This replay gives you paper-backed charts and the map immediately. Use the controls below only if this fixed result does not answer the question.
-          </div>
+    <div className="geo-accent-bar mb-5 overflow-hidden rounded-[28px] border border-rule bg-white shadow-[0_24px_64px_rgba(15,23,42,0.06)]">
+      <div className="flex items-center justify-between border-b border-rule bg-[linear-gradient(180deg,rgba(250,250,248,0.98),rgba(255,255,255,0.92))] px-5 py-3.5">
+        <div
+          className="lab-section-title"
+          title="Paper-backed charts and map from the nearest checked-in scenario."
+        >
+          Published evidence
         </div>
-
         {dataset ? (
-          <div className="flex flex-wrap gap-2">
-            <span className="lab-chip bg-white/85">
-              {formatPublishedDatasetLabel(dataset)}
-            </span>
-            <span className="lab-chip bg-white/85">
-              {recommendation?.reason ?? 'Nearest checked-in result for the current controls.'}
-            </span>
-          </div>
+          <span className="lab-chip bg-white/90">
+            {formatPublishedDatasetLabel(dataset)}
+          </span>
         ) : null}
-      </div>
-
-      <div className="grid gap-2 border-b border-rule bg-surface-active/35 px-4 py-3 md:grid-cols-3">
-        {[
-          {
-            title: '1. Read the replay',
-            detail: 'Start with the checked-in result tied to the current scenario family.',
-          },
-          {
-            title: '2. Use the desk',
-            detail: 'Inspect the map, charts, and figure framing before changing any parameters.',
-          },
-          {
-            title: '3. Rerun only if needed',
-            detail: 'Open the exact lab below when you need fresh evidence rather than a published replay.',
-          },
-        ].map(item => (
-          <div key={item.title} className="rounded-xl border border-rule bg-white/85 px-3 py-3">
-            <div className="text-sm font-medium text-text-primary">{item.title}</div>
-            <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
-          </div>
-        ))}
       </div>
 
       {catalogQuery.isLoading ? (

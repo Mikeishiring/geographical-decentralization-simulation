@@ -4,6 +4,7 @@ import { Sun, Moon, MessageSquarePlus, Trash2, ExternalLink } from 'lucide-react
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SNAPPY } from '../lib/theme'
 import { PAPER_METADATA } from '../data/paper-sections'
+import { NodeArc } from '../components/decorative/NodeArc'
 import type { TabId } from '../components/layout/TabNav'
 
 const ARXIV_PDF_URL = 'https://arxiv.org/pdf/2509.21475'
@@ -84,13 +85,16 @@ export function OriginalPaperPage({ onTabChange }: { onTabChange?: (tab: TabId) 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="reveal-up">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="reveal-up relative overflow-hidden">
+        {/* Node-arc motif — globe DNA */}
+        <div className="absolute right-2 top-2 w-[140px] h-[70px] opacity-[0.4] pointer-events-none select-none" aria-hidden="true">
+          <NodeArc className="w-full h-full text-muted" />
+        </div>
+
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
-              Original publication
-            </span>
-            <h1 className="mt-1 text-xl font-medium text-text-primary font-serif">
+            <div className="lab-section-title">Original publication</div>
+            <h1 className="mt-1.5 text-xl font-medium text-text-primary font-serif">
               {PAPER_METADATA.title}
             </h1>
             <p className="mt-1 text-sm text-muted">{PAPER_METADATA.citation}</p>
@@ -110,7 +114,7 @@ export function OriginalPaperPage({ onTabChange }: { onTabChange?: (tab: TabId) 
       </div>
 
       {/* Toolbar */}
-      <div className="reveal-up flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rule bg-white px-4 py-3">
+      <div className="reveal-up flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rule bg-white px-4 py-3 geo-accent-bar">
         <div className="flex items-center gap-2">
           {/* Dark/Light mode toggle */}
           <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1">

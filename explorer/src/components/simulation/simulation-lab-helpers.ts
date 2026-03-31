@@ -29,13 +29,13 @@ function parseOptionalSlotIndex(value: string | null): number | undefined {
 }
 
 export function readInitialSimulationLabState(): InitialSimulationLabState {
-  if (typeof window === 'undefined') return { surfaceMode: 'lab' }
+  if (typeof window === 'undefined') return { surfaceMode: 'research' }
 
   const params = new URLSearchParams(window.location.search)
   const jobId = params.get('simulationJob') ?? undefined
   const requestedSurfaceMode = parseSurfaceMode(params.get('simulationSurface'))
   return {
-    surfaceMode: requestedSurfaceMode ?? 'lab',
+    surfaceMode: requestedSurfaceMode ?? 'research',
     jobId,
     analyticsView: parseAnalyticsDeckView(params.get('exactAnalytics')),
     analyticsMetric: parseAnalyticsQueryMetric(params.get('exactMetric')),

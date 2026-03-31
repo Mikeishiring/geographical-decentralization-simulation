@@ -2,7 +2,7 @@ import { GlobeWireframe } from '../decorative/GlobeWireframe'
 
 export function Header() {
   return (
-    <header className="border-b border-rule relative overflow-hidden">
+    <header className="border-b border-rule relative overflow-hidden stripe-top-accent">
       {/* Half-globe: canvas is taller than header, clipped by overflow-hidden.
           The globe's center sits at cy=92% of canvas height, so we see the top cap. */}
       <div
@@ -31,12 +31,17 @@ export function Header() {
               How validator geography and paradigm choice shape centralization pressure under SSP and MSP.
             </p>
 
-            {/* Authors */}
-            <p className="mt-2 text-[0.6875rem] text-text-faint">
-              Yang, Oz, Wu, Zhang (2025)
-              <span className="text-rule"> · </span>
-              arXiv:2509.21475
-            </p>
+            {/* Authors + coordinate label */}
+            <div className="mt-2 flex items-center gap-3">
+              <p className="text-[0.6875rem] text-text-faint">
+                Yang, Oz, Wu, Zhang (2025)
+                <span className="text-rule"> · </span>
+                arXiv:2509.21475
+              </p>
+              <span className="hidden sm:inline mono-xs text-meridian" aria-hidden="true">
+                37.4°N 122.1°W
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0 pt-6">
@@ -44,17 +49,17 @@ export function Header() {
               href="https://arxiv.org/abs/2509.21475"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center rounded-full border border-rule bg-white px-2.5 py-1 text-[0.6875rem] text-muted transition-colors hover:text-accent hover:border-accent/20"
+              className="inline-flex items-center rounded-full border border-rule bg-white/80 backdrop-blur-sm px-2.5 py-1 text-[0.6875rem] text-muted transition-all hover:text-accent hover:border-accent/20 hover:shadow-sm"
             >
-              Paper →
+              Paper <span className="ml-1 text-text-faint">→</span>
             </a>
             <a
               href="https://github.com/syang-ng/geographical-decentralization-simulation"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center rounded-full border border-rule bg-white px-2.5 py-1 text-[0.6875rem] text-muted transition-colors hover:text-accent hover:border-accent/20"
+              className="inline-flex items-center rounded-full border border-rule bg-white/80 backdrop-blur-sm px-2.5 py-1 text-[0.6875rem] text-muted transition-all hover:text-accent hover:border-accent/20 hover:shadow-sm"
             >
-              Source →
+              Source <span className="ml-1 text-text-faint">→</span>
             </a>
           </div>
         </div>
