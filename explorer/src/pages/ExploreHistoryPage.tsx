@@ -174,7 +174,7 @@ export function ExploreHistoryPage({
               >
                 <div>
                   <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper-backed reading</span>
-                  <div className="mt-0.5 text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">Start in Explore</div>
+                  <div className="mt-0.5 text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">Open Paper</div>
                   <div className="mt-0.5 text-xs leading-5 text-muted">Open a canonical claim or ask a bounded question before writing a public note.</div>
                 </div>
                 <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
@@ -215,7 +215,7 @@ export function ExploreHistoryPage({
           icon={<Users className="h-4 w-4 text-accent" />}
           label="Published reading notes"
           value={publishedReadingNotes.length}
-          detail="Reader-written notes that started from Findings or a saved paper reading."
+          detail="Reader-written notes that started from the Paper tab or a saved reading."
         />
         <SummaryCard
           icon={<Sparkles className="h-4 w-4 text-warning" />}
@@ -279,7 +279,7 @@ export function ExploreHistoryPage({
                 onClick={() => onOpenQuery(hiddenDraftExploration.query)}
                 className="rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
               >
-                Open in Findings
+                Open in Agent
               </button>
             )}
             {hiddenDraftExploration.surface === 'simulation' && onTabChange && (
@@ -645,7 +645,7 @@ function ExplorationCard({
                     onClick={() => onOpenQuery(exploration.query)}
                     className="rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
                   >
-                    Reopen in Findings
+                    Reopen in Agent
                   </button>
                 )}
 
@@ -794,7 +794,7 @@ function EmptyState({
         <Tag className="relative mb-4 h-8 w-8 text-text-faint" />
         <h2 className="mb-2 text-lg font-medium text-text-primary">No community notes yet</h2>
         <p className="mb-5 max-w-lg text-sm text-muted">
-          Start from Findings for a paper-backed reading, or from Simulation for an exact run. Then publish a note intentionally with your own title and takeaway.
+          Start from the Paper for a section-backed reading, or from Results for an exact run. Then publish a note intentionally with your own title and takeaway.
         </p>
         <div className="flex flex-wrap justify-center gap-2">
           {onGoToFindings && (
@@ -802,7 +802,7 @@ function EmptyState({
               onClick={onGoToFindings}
               className="rounded-lg bg-accent px-4 py-2 text-sm text-white transition-colors hover:bg-accent/80"
             >
-              Open Findings
+              Open Paper
             </button>
           )}
           {onTabChange && (

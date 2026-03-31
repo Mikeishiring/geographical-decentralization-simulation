@@ -101,7 +101,7 @@ export function FullTextView({ activeSectionId, onSectionClick }: FullTextViewPr
 
               {/* Body text — lede paragraph */}
               <div className="space-y-5 text-base leading-[1.9] text-text-body font-serif">
-                <p className="text-[1.0625rem] leading-[1.85] text-text-primary">
+                <p className="text-lg leading-[1.85] text-text-primary">
                   {narrative.lede}
                 </p>
                 {narrative.paragraphs[0] && (
@@ -133,7 +133,7 @@ export function FullTextView({ activeSectionId, onSectionClick }: FullTextViewPr
 
               {/* Pull quote as blockquote */}
               <blockquote className="my-8 border-l-[3px] border-l-accent/40 pl-6 py-1">
-                <p className="text-[1.0625rem] leading-[1.85] text-text-primary/80 font-serif italic">
+                <p className="text-lg leading-[1.85] text-text-primary/80 font-serif italic">
                   {narrative.pullQuote}
                 </p>
               </blockquote>
