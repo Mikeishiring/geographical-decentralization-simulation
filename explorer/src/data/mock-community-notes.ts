@@ -432,7 +432,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
     sectionTitle: 'Limitations',
     sectionNumber: '§5',
     quotedPassage:
-      'For the website, this section should remain close to the end of the reading flow rather than hidden behind a footnote. It keeps the project aligned with the researchers\' intent: truth first, then interpretation.',
+      'The model omits home-staker latency profiles, strategic coalition behavior among large staking providers, and non-linear MEV functions. Each simplification trades realism for tractability, but together they define the confidence boundary of the quantitative results.',
     replies: [
       {
         id: 'reply-19a',
