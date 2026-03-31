@@ -11,18 +11,19 @@ npm run dev          # Frontend on :3200
 npx tsx server/index.ts  # API server on :3201 (needs ANTHROPIC_API_KEY in .env)
 ```
 
-## Current State (Session 5 — 2026-03-29)
+## Current State (Session 6 — 2026-03-31)
 
 ### What's Built
 
-**4 fully functional tabs:**
+**5 tabs:**
 
 | Tab | Page | Status |
 |-----|------|--------|
-| Findings | `src/pages/FindingsPage.tsx` | Complete — 8 topic cards, AI query bar, follow-up chips |
-| Explore History | `src/pages/ExploreHistoryPage.tsx` | Complete — gallery, voting, search, sort, tags |
-| Deep Dive | `src/pages/DeepDivePage.tsx` | Complete — 10 expandable paper sections |
-| Simulation Lab | `src/pages/SimulationLabPage.tsx` | Complete — config builder, preset system, artifact viewer |
+| Paper | `src/pages/PaperReaderPage.tsx` | Complete — 4-view spectrum (Editorial, Focus, Argument Map, Full Text), community note text anchoring |
+| Original | `src/pages/OriginalPaperPage.tsx` | Complete — dark mode PDF viewer with annotations |
+| Results | `src/pages/SimulationLabPage.tsx` | Complete — config builder, preset system, artifact viewer |
+| Agent | `src/pages/AgentLabPage.tsx` | Complete — AI query bar, follow-up chips, tool_use |
+| Community | `src/pages/ExploreHistoryPage.tsx` | Complete — gallery, voting, search, sort, tags, anchored notes |
 
 **Server infrastructure:**
 
@@ -58,10 +59,11 @@ npx tsx server/index.ts  # API server on :3201 (needs ANTHROPIC_API_KEY in .env)
 ┌─────────────────────────────────────────────┐
 │ Frontend (Vite :3200)                       │
 │                                             │
-│  FindingsPage ──→ /api/explore ─────┐       │
+│  PaperReader (static, 4 views)       │      │
+│  OriginalPaper (static PDF viewer)   │      │
+│  SimulationLab ──→ /api/simulations ─┐      │
+│  AgentLab ──→ /api/explore ──────────┤      │
 │  ExploreHistory ──→ /api/explorations│      │
-│  SimulationLab ──→ /api/simulations  │      │
-│  DeepDive (static, no API)           │      │
 │                                      ▼      │
 │  ┌─ Vite proxy /api/* ──→ :3201 ─────┐     │
 └──┘                                    │     │
@@ -89,17 +91,24 @@ explorer/
 │   ├── components/
 │   │   ├── blocks/          # 9 block renderers + BlockRenderer dispatcher
 │   │   ├── explore/         # QueryBar, BlockCanvas, QueryHistory, ShimmerBlock, ErrorDisplay
+│   │   ├── paper/           # EditorialView, ArgumentMapView, FullTextView, PaperViewModeBar, PaperSectionView
+│   │   ├── community/       # SelectionPopover (text selection → note CTA)
 │   │   └── layout/          # Header, TabNav, Footer
 │   ├── data/
 │   │   ├── default-blocks.ts    # 9 overview blocks + 8 topic cards
+│   │   ├── paper-narrative.ts   # Section narratives (lede, paragraphs, pull quotes)
 │   │   └── gcp-regions.ts       # 40 GCP region lat/lon lookup
+│   ├── hooks/
+│   │   └── useTextSelection.ts  # mouseup → TextAnchor + DOMRect for community notes
 │   ├── lib/
 │   │   ├── api.ts               # Explore + exploration API client
 │   │   ├── simulation-api.ts    # Simulation API client
 │   │   ├── theme.ts             # SPRING, SPRING_SOFT, BLOCK_COLORS constants
 │   │   └── cn.ts                # clsx + tailwind-merge utility
-│   ├── pages/                   # 4 page components (Findings, History, DeepDive, SimulationLab)
-│   ├── types/blocks.ts          # 9 Zod schemas + discriminated union + parseBlocks()
+│   ├── pages/                   # 5 page components (PaperReader, Original, Results, Agent, Community)
+│   ├── types/
+│   │   ├── blocks.ts            # 9 Zod schemas + discriminated union + parseBlocks()
+│   │   └── anchors.ts           # TextAnchor type for community note positioning
 │   └── workers/                 # Web Worker for artifact parsing
 ├── server/
 │   ├── index.ts                 # Express API proxy
