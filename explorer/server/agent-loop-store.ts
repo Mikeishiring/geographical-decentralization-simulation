@@ -11,7 +11,6 @@ import {
   type AgentSession,
   type AgentSessionStatus,
   type AgentStep,
-  type AgentStepPhase,
 } from './agent-loop-types.ts'
 
 function nowIso(): string {

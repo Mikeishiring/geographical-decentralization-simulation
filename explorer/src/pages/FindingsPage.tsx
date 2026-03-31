@@ -507,7 +507,7 @@ export function FindingsPage({
       </div>
 
       {/* Topic cards */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
             {showTopic || showAi ? 'Paper topics' : 'Key findings'}
@@ -564,7 +564,7 @@ export function FindingsPage({
 
       {/* Navigation cards — cross-tab wayfinding (default state only) */}
       {!showAi && !showTopic && onTabChange && (
-        <div className="stagger-reveal mb-8 rounded-xl border border-rule bg-white divide-y divide-rule">
+        <div className="stagger-reveal mb-6 rounded-xl border border-rule bg-white divide-y divide-rule">
           {([
             { tab: 'paper' as TabId, eyebrow: 'Read the canonical source', title: 'Open the paper guide', detail: 'Go section by section through the paper when you want the exact claim, method, or caveat.' },
             { tab: 'results' as TabId, eyebrow: 'Inspect evidence', title: 'Open Results', detail: 'Start with the published replay, then open the exact lab only if you need fresh evidence.' },
@@ -587,7 +587,7 @@ export function FindingsPage({
       )}
 
       {!showAi && !showTopic && communityPreviewNotes.length > 0 && (
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Public responses</div>
