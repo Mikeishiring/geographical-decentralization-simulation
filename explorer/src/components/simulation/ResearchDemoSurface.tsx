@@ -219,7 +219,7 @@ async function fetchPublishedAnalyticsPayload(
   datasetPath: string,
 ): Promise<PublishedAnalyticsPayload> {
   const normalizedBase = viewerBaseUrl.replace(/\/$/, '')
-  const response = await fetch(`${normalizedBase}/${datasetPath}`, { cache: 'force-cache' })
+  const response = await fetch(`${normalizedBase}/${datasetPath}`, { cache: 'default' })
   if (!response.ok) {
     throw new Error(`Failed to load analytics payload for ${datasetPath}`)
   }
