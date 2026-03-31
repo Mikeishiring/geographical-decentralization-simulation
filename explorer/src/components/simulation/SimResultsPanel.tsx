@@ -373,13 +373,14 @@ function ExactChartDeck({
                 </div>
                 <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
                   {[
-                    { label: 'Latest', value: focusedLatest },
-                    { label: 'Peak', value: focusedPeak },
-                    { label: 'Delta', value: focusedDelta },
+                    { label: 'Latest', value: focusedLatest, detail: 'Value at the final recorded slot' },
+                    { label: 'Peak', value: focusedPeak, detail: 'Highest value reached during the run' },
+                    { label: 'Delta', value: focusedDelta, detail: 'Change from start to final slot' },
                   ].map((metric, mi) => (
                     <motion.div
                       key={metric.label}
                       className="rounded-xl border border-rule bg-surface-active/60 px-3 py-2.5"
+                      title={metric.detail}
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ ...SPRING_CRISP, delay: 0.06 + mi * 0.03 }}
@@ -464,11 +465,11 @@ function ExactChartDeck({
 
                     <div className="mt-3 grid grid-cols-1 gap-2 text-11 sm:grid-cols-3">
                       {[
-                        { label: 'Start', value: start },
-                        { label: 'Peak', value: peak },
-                        { label: 'Delta', value: delta },
+                        { label: 'Start', value: start, detail: 'Value at slot 0 (beginning of run)' },
+                        { label: 'Peak', value: peak, detail: 'Highest value reached during the run' },
+                        { label: 'Delta', value: delta, detail: 'Change from start to final slot' },
                       ].map(metric => (
-                        <div key={metric.label} className="rounded-lg border border-rule bg-white/82 px-2.5 py-2">
+                        <div key={metric.label} className="rounded-lg border border-rule bg-white/82 px-2.5 py-2" title={metric.detail}>
                           <div className="font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
                           <div className="mt-1 font-medium tabular-nums text-text-primary">
                             {formatExactChartValue(metric.value)}

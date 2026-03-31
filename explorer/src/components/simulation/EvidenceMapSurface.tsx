@@ -26,6 +26,7 @@ import {
   getSourceNodes,
   buildLatencyArcs,
   computeLabelPositions,
+  spreadOverlappingNodes,
   type OverlayMode,
   type TooltipData,
 } from './evidence-map-helpers'
@@ -218,6 +219,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={SPRING_SNAPPY}
+                  title="Distinct GCP regions with at least one validator at this slot"
                 >
                   {displayNodes.length} regions
                 </motion.span>
@@ -227,6 +229,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ ...SPRING_SNAPPY, delay: 0.05 }}
+                  title="Total validator agents distributed across regions"
                 >
                   {totalValidators.toLocaleString()} validators
                 </motion.span>
@@ -236,6 +239,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ ...SPRING_SNAPPY, delay: 0.1 }}
+                  title="Current consensus round in the simulation timeline"
                 >
                   slot {(slot + 1).toLocaleString()}
                 </motion.span>
@@ -246,13 +250,14 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
           {/* Overlay mode toggle */}
           <div className="flex items-center rounded-full border border-rule bg-surface-active p-0.5 gap-0.5">
             {([
-              { mode: 'validators' as const, icon: Radio, label: 'Validators' },
-              { mode: 'latency' as const, icon: Zap, label: 'Latency' },
-              { mode: 'sources' as const, icon: Layers, label: 'Sources' },
-            ]).map(({ mode, icon: Icon, label }) => (
+              { mode: 'validators' as const, icon: Radio, label: 'Validators', detail: 'Show validator stake distribution across regions' },
+              { mode: 'latency' as const, icon: Zap, label: 'Latency', detail: 'Show inter-region network latency arcs' },
+              { mode: 'sources' as const, icon: Layers, label: 'Sources', detail: 'Show information source placement' },
+            ]).map(({ mode, icon: Icon, label, detail }) => (
               <button
                 key={mode}
                 onClick={() => setOverlay(mode)}
+                title={detail}
                 className={cn(
                   'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all',
                   overlay === mode
