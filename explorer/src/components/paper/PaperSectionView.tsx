@@ -14,7 +14,8 @@ import type { Exploration } from '../../lib/api'
 const PAPER_NARRATIVE = IMPORTED_NARRATIVE
 
 /** Provenance pill — shows source origin for each editorial element.
- *  Low-opacity by default, fully visible on parent group-hover. */
+ *  Low-opacity by default, fully visible on parent group-hover/prose.
+ *  Two variants: amber for editorial, accent-blue for paper sources. */
 function SourceRefPill({ source }: { readonly source: SourceRef }) {
   const isEditorial = source.kind === 'editorial'
   const Icon = isEditorial ? Sparkles : FileText
@@ -27,10 +28,18 @@ function SourceRefPill({ source }: { readonly source: SourceRef }) {
     editorial: 'Interpretation',
   }
 
+  const kindIcon: Record<SourceRef['kind'], string> = {
+    section: '§',
+    figure: 'Fig.',
+    table: 'Tbl.',
+    equation: 'Eq.',
+    editorial: '',
+  }
+
   if (isEditorial) {
     return (
       <span
-        className="inline-flex items-center gap-1 rounded-full border border-amber-200/60 bg-amber-50/80 px-2 py-0.5 text-2xs text-amber-600/70 select-none opacity-40 transition-opacity duration-200 group-hover/prose:opacity-100"
+        className="inline-flex items-center gap-1 rounded-full border border-amber-200/50 bg-amber-50/60 px-2 py-0.5 text-2xs text-amber-600/60 select-none opacity-0 transition-opacity duration-300 ease-out group-hover/prose:opacity-80"
         title="LLM editorial interpretation — not a direct paraphrase of the paper"
       >
         <Icon className="h-2.5 w-2.5" />
@@ -46,12 +55,12 @@ function SourceRefPill({ source }: { readonly source: SourceRef }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 rounded-full border border-accent/15 bg-accent/5 px-2 py-0.5 text-2xs text-accent/60 transition-all duration-200 hover:bg-accent/12 hover:text-accent hover:border-accent/30 select-none opacity-40 group-hover/prose:opacity-100"
+      className="inline-flex items-center gap-1 rounded-full border border-accent/12 bg-accent/4 px-2 py-0.5 text-2xs text-accent/50 transition-all duration-300 ease-out hover:bg-accent/12 hover:text-accent hover:border-accent/30 hover:shadow-[0_0_8px_rgba(59,130,246,0.1)] select-none opacity-0 group-hover/prose:opacity-80"
       title={`${kindLabel[source.kind]}: ${source.label}${source.page ? ` — opens PDF page ${source.page}` : ''}`}
     >
       <Icon className="h-2.5 w-2.5" />
-      {source.label}
-      {source.page && <span className="text-accent/40">p.{source.page}</span>}
+      <span className="font-medium">{kindIcon[source.kind] || ''}{source.label.replace(/^§/, '')}</span>
+      {source.page && <span className="text-accent/35 tabular-nums">p.{source.page}</span>}
     </a>
   )
 }
@@ -145,9 +154,9 @@ export function PaperSectionView({
           <div className="flex items-center gap-2 text-xs text-muted min-w-0">
             <span className="mono-xs text-accent shrink-0">{activeSection.number}</span>
             <span className="text-text-primary text-sm font-medium truncate">{activeSection.title}</span>
-            <span className="hidden md:inline-flex items-center gap-1 shrink-0 rounded-full border border-amber-200/50 bg-amber-50/60 px-1.5 py-0.5 text-2xs text-amber-600/60 select-none">
-              <Sparkles className="h-2 w-2" />
-              Editorial view
+            <span className="hidden md:inline-flex items-center gap-1 shrink-0 rounded-full border border-amber-200/40 bg-amber-50/50 px-2 py-0.5 text-2xs text-amber-600/50 select-none" title="You are reading LLM-interpreted content. Hover text to see source provenance.">
+              <Sparkles className="h-2.5 w-2.5" />
+              Interpreted
             </span>
           </div>
           <div className="flex items-center gap-3 shrink-0">
