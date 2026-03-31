@@ -224,7 +224,7 @@ export default function AgentLabPage() {
             {mode === m.id && (
               <motion.span
                 layoutId="agent-mode-pill"
-                className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-black/[0.04]"
+                className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-rule"
                 transition={SPRING_SNAPPY}
               />
             )}
@@ -373,7 +373,7 @@ export default function AgentLabPage() {
                     id="max-steps"
                     value={maxSteps}
                     onChange={e => setMaxSteps(Number(e.target.value))}
-                    className="rounded-lg border border-rule bg-surface-active px-2.5 py-1.5 text-xs font-medium text-text-primary outline-none"
+                    className="rounded-lg border border-rule bg-surface-active px-2.5 py-1.5 text-xs font-medium text-text-primary outline-none focus:border-accent/30 focus:ring-2 focus:ring-accent/10"
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
                       <option key={n} value={n}>{n}</option>

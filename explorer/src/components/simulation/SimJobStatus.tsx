@@ -122,7 +122,7 @@ export function SimJobStatus({
               className={cn(
                 'inline-flex h-9 w-9 items-center justify-center rounded-full border',
                 meta.tone === 'success' && 'border-emerald-300/30 bg-emerald-50 text-emerald-700',
-                meta.tone === 'danger' && 'border-red-300/30 bg-red-50 text-red-700',
+                meta.tone === 'danger' && 'border-danger/30 bg-danger/5 text-danger',
                 meta.tone === 'muted' && 'border-rule bg-surface-active text-text-primary',
                 meta.tone === 'idle' && 'border-rule bg-white text-text-primary',
                 meta.tone === 'active' && 'border-sky-300/28 bg-sky-50 text-sky-700',
@@ -193,7 +193,7 @@ export function SimJobStatus({
       </div>
 
       {errorMessage && (
-        <div className="mt-4 rounded-2xl border border-red-300/30 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mt-4 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
           {errorMessage}
         </div>
       )}

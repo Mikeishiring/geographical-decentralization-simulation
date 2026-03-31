@@ -17,11 +17,11 @@ export function TopicCardGrid({
   onBackToOverview,
 }: TopicCardGridProps) {
   return (
-    <div className="mb-6">
+    <div className="mb-6 rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+        <div className="lab-section-title">
           {activeTopic || showingAi ? 'Paper topics' : 'Key findings'}
-        </span>
+        </div>
         {(activeTopic || showingAi) && (
           <button
             onClick={onBackToOverview}
@@ -46,12 +46,12 @@ export function TopicCardGrid({
               aria-label={card.title}
               aria-pressed={isActive}
               className={cn(
-                'text-left rounded-lg border p-4 transition-colors group',
+                'text-left rounded-lg border p-4 transition-colors group card-hover',
                 isActive
                   ? 'border-accent bg-white'
                   : isDimmed
-                    ? 'border-rule bg-white opacity-40'
-                    : 'border-rule bg-white hover:border-border-hover',
+                    ? 'border-rule bg-surface-active opacity-40'
+                    : 'border-rule bg-surface-active hover:border-border-hover',
               )}
             >
               <h4 className="text-xs font-medium text-text-primary leading-snug mb-1 line-clamp-2">

@@ -12,6 +12,7 @@ export interface Author {
   readonly name: string
   readonly role?: string
   readonly url?: string
+  readonly focus?: string
 }
 
 export const PAPER_METADATA = {
@@ -19,10 +20,10 @@ export const PAPER_METADATA = {
   subtitle: 'An editorial reading layer over Yang, Oz, Wu, and Zhang (2025).',
   citation: 'Yang, Oz, Wu, Zhang (2025) · arXiv:2509.21475',
   authors: [
-    { name: 'Sen Yang', role: 'Yale University', url: 'https://scholar.google.com/citations?user=7mGQ22cAAAAJ' },
-    { name: 'Burak Öz', role: 'TU Munich', url: 'https://scholar.google.com/citations?user=_YL_ZSIAAAAJ' },
-    { name: 'Fei Wu' },
-    { name: 'Fan Zhang', role: 'Yale University', url: 'https://scholar.google.com/citations?user=YTokrfkAAAAJ' },
+    { name: 'Sen Yang', role: 'Yale University', focus: 'Blockchain economics, geographic decentralization', url: 'https://scholar.google.com/citations?user=7mGQ22cAAAAJ' },
+    { name: 'Burak Öz', role: 'TU Munich', focus: 'Mechanism design, distributed systems', url: 'https://scholar.google.com/citations?user=_YL_ZSIAAAAJ' },
+    { name: 'Fei Wu', focus: 'Co-author' },
+    { name: 'Fan Zhang', role: 'Yale University', focus: 'MEV, cryptographic protocols, trusted execution', url: 'https://scholar.google.com/citations?user=YTokrfkAAAAJ' },
   ] as readonly Author[],
   abstract: 'The paper models validators as geographically mobile agents who optimize for MEV capture and consensus latency. Even under simplified assumptions, both SSP and MSP push validators toward a small set of low-latency regions, with different mechanisms and sensitivities.',
   keyClaims: [

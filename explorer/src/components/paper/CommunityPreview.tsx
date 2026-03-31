@@ -38,13 +38,16 @@ export function CommunityPreview({
   if (notes.length === 0) return null
 
   return (
-    <div className="mb-6">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="text-sm font-medium text-text-primary">Community notes</div>
+    <div className="mb-6 rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <div className="lab-section-title">Public responses</div>
+          <div className="mt-1.5 text-[0.8125rem] font-medium text-text-primary">How other readers turned evidence into public notes</div>
+        </div>
         {onTabChange && (
           <button
             onClick={() => onTabChange('community')}
-            className="text-xs text-accent transition-colors hover:text-accent/80"
+            className="arrow-link shrink-0"
           >
             Open Community
           </button>
@@ -56,7 +59,7 @@ export function CommunityPreview({
           <button
             key={exploration.id}
             onClick={() => onOpenNote(exploration.id)}
-            className="rounded-xl border border-rule bg-white px-4 py-4 text-left transition-colors hover:border-border-hover"
+            className="rounded-lg border border-rule bg-surface-active px-4 py-4 text-left card-hover"
           >
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
               {communityPreviewLabel(exploration)}
