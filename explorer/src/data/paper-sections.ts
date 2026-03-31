@@ -1,10 +1,13 @@
 import type { Block } from '../types/blocks'
 
+export type SectionCategory = 'methodology' | 'finding' | 'caveat' | 'discussion'
+
 export interface PaperSection {
   readonly id: string
   readonly number: string
   readonly title: string
   readonly description: string
+  readonly category: SectionCategory
   readonly blocks: readonly Block[]
 }
 
@@ -43,6 +46,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     number: '§3',
     title: 'System Model',
     description: 'Geography, consensus, MEV extraction, and information sources.',
+    category: 'methodology',
     blocks: [
       {
         type: 'insight',
@@ -71,6 +75,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     number: '§4.1',
     title: 'Simulation Design',
     description: 'Agent-based model setup, migration dynamics, and metric definitions.',
+    category: 'methodology',
     blocks: [
       {
         type: 'stat',
@@ -105,6 +110,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     number: '§4.2',
     title: 'Baseline Results',
     description: 'Convergence analysis with the homogeneous initial distribution.',
+    category: 'finding',
     blocks: [
       {
         type: 'comparison',
@@ -139,6 +145,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     number: '§4.4',
     title: 'SE1: Information-Source Placement',
     description: 'Latency-aligned vs misaligned sources and their paradigm-specific effects.',
+    category: 'finding',
     blocks: [
       {
         type: 'table',
@@ -165,6 +172,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     number: '§4.5',
     title: 'SE2: Heterogeneous Validator Distribution',
     description: 'Starting from real Ethereum validator distribution (Chainbound/Dune data).',
+    category: 'finding',
     blocks: [
       {
         type: 'insight',
@@ -180,6 +188,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     number: '§4.5 + App. E',
     title: 'SE3: Joint Heterogeneity',
     description: 'Combined source placement + distribution effects, including transient decentralization.',
+    category: 'finding',
     blocks: [
       {
         type: 'insight',
@@ -199,6 +208,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     number: 'App. E.3',
     title: 'SE4a: Attestation Threshold (gamma)',
     description: 'The paper\'s most surprising finding — opposite effects across paradigms.',
+    category: 'finding',
     blocks: [
       {
         type: 'table',
@@ -224,6 +234,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     number: 'App. E.4',
     title: 'SE4b: Shorter Slot Times (EIP-7782)',
     description: 'Impact of 6-second slots vs the current 12-second slots.',
+    category: 'finding',
     blocks: [
       {
         type: 'insight',
@@ -239,6 +250,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     number: '§5',
     title: 'Discussion & Mitigations',
     description: 'Policy implications and potential mitigation strategies.',
+    category: 'discussion',
     blocks: [
       {
         type: 'table',
@@ -263,6 +275,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     number: '§5',
     title: 'Limitations',
     description: 'Acknowledged assumptions and their potential impact.',
+    category: 'caveat',
     blocks: [
       {
         type: 'table',

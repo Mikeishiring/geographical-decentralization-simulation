@@ -3,6 +3,8 @@ export interface PaperNarrative {
   readonly paragraphs: readonly string[]
   readonly pullQuote: string
   readonly figureCaption: string
+  /** Substring within paragraphs to highlight as the key claim callout */
+  readonly keyClaim?: string
 }
 
 export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
@@ -14,6 +16,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'The mechanism differs, but the pressure is the same: latency becomes an allocation rule for where validators want to live.',
     figureCaption: 'The core comparison is the latency path itself: SSP optimizes a best relay path, while MSP optimizes over many direct information inputs.',
+    keyClaim: 'both transform regional network position into economic advantage',
   },
   'simulation-design': {
     lede: 'The simulation is deliberately simplified, but it is simplified in a way that makes the causal story easy to inspect.',
@@ -23,6 +26,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'This is a paper about structural pressure, not about reproducing every empirical detail of block production.',
     figureCaption: 'The simulation design is intentionally legible: 40 measured regions, 1,000 validators, and paper-facing runs commonly reported over 10,000 slots under bounded modeling assumptions.',
+    keyClaim: 'MEV is modeled as deterministic and linear in latency, migration cost is fixed, and information is complete',
   },
   'baseline-results': {
     lede: 'Under the homogeneous starting baseline, both paradigms centralize. The interesting part is how differently they get there.',
@@ -32,6 +36,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'Baseline results matter here because they show centralization without needing exotic assumptions.',
     figureCaption: 'The baseline comparison sets the tone for the rest of the paper: MSP is more aggressive in the default geography, SSP is more path-dependent.',
+    keyClaim: 'MSP moves faster and ends more concentrated in the baseline runs',
   },
   'se1-source-placement': {
     lede: 'Infrastructure placement is not a neutral background condition. It changes the shape of the optimization problem itself.',
@@ -41,6 +46,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'The same geography can be stabilizing in one paradigm and destabilizing in the other.',
     figureCaption: 'SE1 is the cleanest demonstration that the paper is not merely comparing two labels; it is comparing two different latency geometries.',
+    keyClaim: 'aligned and misaligned placements invert the severity of centralization depending on the paradigm',
   },
   'se2-distribution': {
     lede: 'The paper then asks a harder question: what if the system is already geographically unequal before agents start moving?',
@@ -50,6 +56,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'If the system starts centralized, the paradigm mostly changes how the imbalance amplifies, not whether it exists.',
     figureCaption: 'SE2 reframes the story from "which paradigm centralizes more?" to "how much of the outcome was already baked into the starting distribution?"',
+    keyClaim: 'starting distribution matters more than the paradigm label for the first-order result',
   },
   'se3-joint': {
     lede: 'Joint heterogeneity is where the paper briefly finds something that looks like relief, then carefully refuses to overclaim it.',
@@ -59,6 +66,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'A temporary dip in Gini is not the same thing as a decentralization mechanism.',
     figureCaption: 'SE3 is best read as a warning against overinterpreting transient trajectories as stable system improvements.',
+    keyClaim: 'temporary artifact of competing geographic pulls, not a recipe for decentralization',
   },
   'se4a-attestation': {
     lede: 'SE4a is the paper\'s signature result because it shows the same protocol parameter producing opposite geographic effects across paradigms.',
@@ -68,6 +76,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'The most surprising result in the paper is also the most revealing: timing rules are not paradigm-neutral.',
     figureCaption: 'Attestation threshold is where the paper most clearly shows that "faster consensus" and "more centralization" do not move identically in SSP and MSP.',
+    keyClaim: 'same protocol parameter producing opposite geographic effects across paradigms',
   },
   'se4b-slots': {
     lede: 'Shorter slots do less to change where validators end up than to change how unevenly rewards are distributed on the way there.',
@@ -77,6 +86,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'Shorter slots amplify inequality faster than they rewrite the geography.',
     figureCaption: 'The slot-time experiment is a reminder that not every protocol change moves the concentration map, but many still change who gets paid.',
+    keyClaim: 'a fixed latency advantage consumes a bigger fraction of the available timing budget',
   },
   discussion: {
     lede: 'The discussion section is diagnostic rather than prescriptive, and that is the right tone to preserve in the UI.',
@@ -86,6 +96,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'The strongest claim here is about diagnosis: the protocol and infrastructure together create concentration pressure.',
     figureCaption: 'Mitigation ideas are included as design directions, not as recommendations validated by this model.',
+    keyClaim: 'geographic concentration is endogenous to the timing structure of the system',
   },
   limitations: {
     lede: 'The limitations section is one of the most important parts of the paper because it defines where confidence should stop.',
@@ -95,5 +106,6 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     ],
     pullQuote: 'A good research interface should make the caveats feel structural, not optional.',
     figureCaption: 'The limitations list is part of the paper\'s core meaning, not an appendix to ignore.',
+    keyClaim: 'Every simplification in the model trades realism for tractability',
   },
 }

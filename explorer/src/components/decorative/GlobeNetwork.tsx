@@ -190,16 +190,22 @@ export function GlobeNetwork({ className = '', flip = false }: GlobeNetworkProps
         />
       )}
 
-      {/* Nodes */}
+      {/* Nodes — with breathing glow animation */}
       {NODES.filter(n => n.visible).map((node, i) => {
         const alpha = 0.4 + node.z * 0.5
         const r = 1.8 + node.z * 1.2
+        const dur = `${3.0 + i * 0.3}s`
         return (
           <g key={i}>
             {/* Glow */}
-            <circle cx={node.x} cy={node.y} r={r * 3} fill={node.color} opacity={alpha * 0.12} />
+            <circle cx={node.x} cy={node.y} r={r * 3} fill={node.color} opacity={alpha * 0.12}>
+              <animate attributeName="opacity" values={`${(alpha * 0.12).toFixed(3)};${(alpha * 0.24).toFixed(3)};${(alpha * 0.12).toFixed(3)}`} dur={dur} repeatCount="indefinite" />
+            </circle>
             {/* Core */}
-            <circle cx={node.x} cy={node.y} r={r} fill={node.color} opacity={alpha * 0.8} />
+            <circle cx={node.x} cy={node.y} r={r} fill={node.color} opacity={alpha * 0.8}>
+              <animate attributeName="opacity" values={`${(alpha * 0.8).toFixed(2)};${Math.min(1, alpha * 1.1).toFixed(2)};${(alpha * 0.8).toFixed(2)}`} dur={dur} repeatCount="indefinite" />
+              <animate attributeName="r" values={`${r.toFixed(1)};${(r * 1.12).toFixed(1)};${r.toFixed(1)}`} dur={dur} repeatCount="indefinite" />
+            </circle>
           </g>
         )
       })}
