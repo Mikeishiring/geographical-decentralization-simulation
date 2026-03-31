@@ -11,9 +11,9 @@ interface AgentInterpretationViewProps {
 }
 
 function confidenceColor(confidence: AgentInterpretation['confidence']): string {
-  if (confidence === 'high') return 'border-[#D7F1E6] bg-[#F7FDF9] text-[#0F766E]'
-  if (confidence === 'medium') return 'border-[#F4E0C2] bg-[#FFF9F2] text-[#9A3412]'
-  return 'border-[#F7D8E0] bg-[#FFF8FA] text-[#9F1239]'
+  if (confidence === 'high') return 'border-teal-200 bg-emerald-50 text-teal-700'
+  if (confidence === 'medium') return 'border-amber-200 bg-orange-50 text-orange-800'
+  return 'border-rose-200 bg-rose-50 text-rose-700'
 }
 
 export function AgentInterpretationView({
