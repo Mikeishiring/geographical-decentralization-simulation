@@ -11,14 +11,45 @@ import {
 } from './simulation-analytics'
 import type { ResearchMetadata } from './simulation-lab-types'
 
+// ── Inline sparkline ────────────────────────────────────────────────────────
+
+function Sparkline({ data, color, width = 48, height = 16 }: {
+  data: readonly number[]; color: string; width?: number; height?: number
+}) {
+  if (data.length < 2) return null
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  const step = width / (data.length - 1)
+  const points = data.map((v, i) => `${(i * step).toFixed(1)},${(height - ((v - min) / range) * height).toFixed(1)}`).join(' ')
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0" aria-hidden>
+      <polyline points={points} fill="none" stroke={color} strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function sampleForSpark(raw: readonly number[] | undefined, maxPoints = 20): number[] {
+  if (!raw || raw.length === 0) return []
+  const step = Math.max(1, Math.ceil(raw.length / maxPoints))
+  const out: number[] = []
+  for (let i = 0; i < raw.length; i += step) out.push(raw[i]!)
+  const last = raw[raw.length - 1]!
+  if (out[out.length - 1] !== last) out.push(last)
+  return out
+}
+
 // ── KPI card builder ────────────────────────────────────────────────────────
 
 interface KpiCard {
   readonly label: string
   readonly value: string
   readonly delta: string | null
+  readonly direction: 'up' | 'down' | 'flat'
   readonly note: string
   readonly sentiment: 'positive' | 'neutral' | 'negative'
+  readonly sparkData: readonly number[]
+  readonly sparkColor: string
 }
 
 function computeDelta(
@@ -38,6 +69,23 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   const finalSlot = Math.max(0, totalSlots - 1)
   const cards: KpiCard[] = []
 
+  // Gini — inequality index
+  const giniEnd = metrics.gini?.[finalSlot]
+  const giniDelta = computeDelta(metrics.gini?.[0], giniEnd)
+  if (giniEnd != null) {
+    cards.push({
+      label: 'Inequality',
+      value: formatNumber(giniEnd, 3),
+      delta: giniDelta?.formatted ?? null,
+      direction: giniDelta?.direction ?? 'flat',
+      note: giniEnd < 0.4 ? 'Relatively equal' : giniEnd < 0.6 ? 'Moderate inequality' : 'Highly unequal',
+      sentiment: giniEnd < 0.4 ? 'positive' : giniEnd < 0.6 ? 'neutral' : 'negative',
+      sparkData: sampleForSpark(metrics.gini),
+      sparkColor: '#C2553A',
+    })
+  }
+
+  // HHI — market concentration
   const hhiEnd = metrics.hhi?.[finalSlot]
   const hhiDelta = computeDelta(metrics.hhi?.[0], hhiEnd)
   if (hhiEnd != null) {
@@ -45,11 +93,15 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       label: 'Concentration',
       value: formatNumber(hhiEnd, 4),
       delta: hhiDelta?.formatted ?? null,
+      direction: hhiDelta?.direction ?? 'flat',
       note: hhiEnd < 0.15 ? 'Unconcentrated market' : hhiEnd < 0.25 ? 'Moderate concentration' : 'Highly concentrated',
       sentiment: hhiEnd < 0.15 ? 'positive' : hhiEnd < 0.25 ? 'neutral' : 'negative',
+      sparkData: sampleForSpark(metrics.hhi),
+      sparkColor: '#2563EB',
     })
   }
 
+  // Liveness — region coverage
   const livenessEnd = metrics.liveness?.[finalSlot]
   const livenessDelta = computeDelta(metrics.liveness?.[0], livenessEnd)
   const topRegion = topRegionsForSlot(payload, finalSlot, 1)[0]
@@ -58,11 +110,15 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       label: 'Coverage',
       value: `${formatNumber(livenessEnd, 1)}%`,
       delta: livenessDelta ? `${livenessDelta.formatted}%` : null,
+      direction: livenessDelta?.direction ?? 'flat',
       note: topRegion ? `Led by ${topRegion.label}` : 'Network liveness rate',
       sentiment: livenessEnd > 95 ? 'positive' : livenessEnd > 80 ? 'neutral' : 'negative',
+      sparkData: sampleForSpark(metrics.liveness),
+      sparkColor: '#16A34A',
     })
   }
 
+  // Attestation — coordination health
   const attestEnd = metrics.attestations?.[finalSlot]
   const attestDelta = computeDelta(metrics.attestations?.[0], attestEnd)
   if (attestEnd != null) {
@@ -70,11 +126,15 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       label: 'Attestation',
       value: formatNumber(attestEnd, 1),
       delta: attestDelta?.formatted ?? null,
+      direction: attestDelta?.direction ?? 'flat',
       note: 'Coordination health',
       sentiment: 'neutral',
+      sparkData: sampleForSpark(metrics.attestations),
+      sparkColor: '#0F766E',
     })
   }
 
+  // Proposal latency — pipeline speed
   const proposalEnd = metrics.proposal_times?.[finalSlot]
   const proposalDelta = computeDelta(metrics.proposal_times?.[0], proposalEnd)
   if (proposalEnd != null) {
@@ -82,20 +142,26 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       label: 'Proposal latency',
       value: `${formatNumber(proposalEnd, 1)} ms`,
       delta: proposalDelta ? `${proposalDelta.formatted} ms` : null,
+      direction: proposalDelta?.direction ?? 'flat',
       note: 'Pipeline responsiveness',
       sentiment: proposalEnd < 200 ? 'positive' : proposalEnd < 500 ? 'neutral' : 'negative',
+      sparkData: sampleForSpark(metrics.proposal_times),
+      sparkColor: '#D97706',
     })
   }
 
-  const mevEnd = metrics.mev?.[finalSlot]
-  const mevDelta = computeDelta(metrics.mev?.[0], mevEnd)
-  if (mevEnd != null) {
+  // Active regions — geographic spread
+  const activeEnd = activeRegionCountAtSlot(payload, finalSlot)
+  if (activeEnd > 0) {
     cards.push({
-      label: 'Block value',
-      value: `${formatNumber(mevEnd, 6)} ETH`,
-      delta: mevDelta ? `${mevDelta.formatted} ETH` : null,
-      note: 'Relay distance reference',
-      sentiment: 'neutral',
+      label: 'Active regions',
+      value: String(activeEnd),
+      delta: null,
+      direction: 'flat',
+      note: activeEnd > 20 ? 'Well-distributed' : activeEnd > 10 ? 'Moderate spread' : 'Geographically narrow',
+      sentiment: activeEnd > 20 ? 'positive' : activeEnd > 10 ? 'neutral' : 'negative',
+      sparkData: [],
+      sparkColor: '#7C3AED',
     })
   }
 
@@ -110,6 +176,11 @@ const SENTIMENT_DOT: Record<string, string> = {
   negative: 'bg-rose-500',
 }
 
+const DELTA_ARROW: Record<string, string> = { up: '↑', down: '↓', flat: '→' }
+const DELTA_COLOR: Record<string, string> = {
+  up: 'text-emerald-600', down: 'text-rose-500', flat: 'text-text-faint',
+}
+
 interface KpiStripProps {
   readonly payload: PublishedAnalyticsPayload
 }
@@ -120,7 +191,7 @@ export function EvidenceKpiStrip({ payload }: KpiStripProps) {
 
   return (
     <motion.div
-      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2"
+      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2"
       initial="hidden"
       animate="visible"
       variants={STAGGER_CONTAINER}
@@ -131,13 +202,21 @@ export function EvidenceKpiStrip({ payload }: KpiStripProps) {
           variants={STAGGER_ITEM}
           className="lab-option-card px-3 py-2.5"
         >
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
-            <span className="text-2xs uppercase tracking-[0.08em] text-text-faint font-medium truncate">{card.label}</span>
+          <div className="flex items-center justify-between gap-1 mb-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
+              <span className="text-2xs uppercase tracking-[0.08em] text-text-faint font-medium truncate">{card.label}</span>
+            </div>
+            {card.sparkData.length > 1 && (
+              <Sparkline data={card.sparkData} color={card.sparkColor} />
+            )}
           </div>
           <div className="text-[15px] font-semibold text-text-primary tabular-nums leading-tight">{card.value}</div>
           {card.delta && (
-            <div className="mt-0.5 text-2xs text-muted tabular-nums">{card.delta}</div>
+            <div className={cn('mt-0.5 text-2xs tabular-nums flex items-center gap-0.5', DELTA_COLOR[card.direction])}>
+              <span>{DELTA_ARROW[card.direction]}</span>
+              <span>{card.delta}</span>
+            </div>
           )}
           <div className="mt-1 text-2xs text-text-faint leading-snug">{card.note}</div>
         </motion.div>
@@ -254,6 +333,37 @@ export function PlotFilterToolbar({ activeCategory, onCategoryChange, counts }: 
   )
 }
 
+// ── Takeaway generator ─────────────────────────────────────────────────────
+
+function buildTakeaway(payload: PublishedAnalyticsPayload): string {
+  const m = payload.metrics ?? {}
+  const totalSlots = totalSlotsFromPayload(payload)
+  const f = Math.max(0, totalSlots - 1)
+  const parts: string[] = []
+
+  const gini = m.gini?.[f]
+  if (gini != null) {
+    parts.push(gini < 0.4 ? 'Stake is relatively well-distributed' : gini < 0.6 ? 'Moderate stake inequality exists' : 'Stake is heavily concentrated')
+  }
+
+  const hhi = m.hhi?.[f]
+  if (hhi != null) {
+    parts.push(hhi < 0.15 ? 'with an unconcentrated market structure' : hhi < 0.25 ? 'with moderate market concentration' : 'with high market concentration')
+  }
+
+  const liveness = m.liveness?.[f]
+  if (liveness != null) {
+    parts.push(liveness > 95 ? 'and strong geographic coverage' : liveness > 80 ? 'and adequate coverage' : 'but weak geographic coverage')
+  }
+
+  const activeRegions = activeRegionCountAtSlot(payload, f)
+  if (activeRegions > 0) {
+    parts.push(`across ${activeRegions} active region${activeRegions !== 1 ? 's' : ''}`)
+  }
+
+  return parts.length > 0 ? `${parts.join(' ')}.` : 'Simulation complete — examine metrics for details.'
+}
+
 // ── Slot narrative metrics grid ─────────────────────────────────────────────
 
 interface SlotMetricsGridProps {
@@ -264,7 +374,8 @@ export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
   const metrics = payload.metrics ?? {}
   const totalSlots = totalSlotsFromPayload(payload)
   const finalSlot = Math.max(0, totalSlots - 1)
-  const topRegion = topRegionsForSlot(payload, finalSlot, 1)[0]
+  const topRegions = topRegionsForSlot(payload, finalSlot, 3)
+  const takeaway = useMemo(() => buildTakeaway(payload), [payload])
 
   const items: Array<{ label: string; value: string }> = []
   if (metrics.clusters?.[finalSlot] != null)
@@ -286,6 +397,9 @@ export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
         <span className="text-2xs text-muted">Final slot — what this snapshot says</span>
       </div>
 
+      {/* Auto-generated takeaway */}
+      <p className="text-xs leading-relaxed text-muted mb-2.5 italic">{takeaway}</p>
+
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
         {items.map(item => (
           <div key={item.label} className="py-0.5">
@@ -295,15 +409,24 @@ export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
         ))}
       </div>
 
-      {topRegion && (
-        <div className="mt-2 pt-2 border-t border-rule/50 flex items-center gap-6">
-          <div>
-            <div className="text-2xs text-text-faint">Lead region</div>
-            <div className="text-xs font-medium text-text-primary">{topRegion.label} ({formatNumber(topRegion.share, 1)}%)</div>
-          </div>
-          <div>
-            <div className="text-2xs text-text-faint">Progress</div>
-            <div className="text-xs font-medium text-text-primary">100% — final slot</div>
+      {/* Top 3 regions with share bars */}
+      {topRegions.length > 0 && (
+        <div className="mt-2.5 pt-2.5 border-t border-rule/50">
+          <div className="text-2xs text-text-faint mb-1.5">Top regions</div>
+          <div className="space-y-1">
+            {topRegions.map((region, i) => (
+              <div key={region.label} className="flex items-center gap-2">
+                <span className="text-2xs text-text-faint w-4 tabular-nums text-right">#{i + 1}</span>
+                <span className="text-xs text-text-primary min-w-[80px] truncate">{region.label}</span>
+                <div className="flex-1 h-[5px] rounded-full bg-rule/30 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-accent/60"
+                    style={{ width: `${Math.min(region.share, 100)}%` }}
+                  />
+                </div>
+                <span className="text-2xs text-muted tabular-nums w-10 text-right">{formatNumber(region.share, 1)}%</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

@@ -890,3 +890,57 @@ button, a, [role="tab"], [role="button"] {
   transform: translateX(2px);
   color: var(--color-accent);
 }
+
+/* ── Evidence map scrubber — custom range input ── */
+.evidence-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.06);
+  outline: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.evidence-scrubber:hover {
+  background: rgba(0, 0, 0, 0.09);
+}
+
+.evidence-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.3);
+  cursor: grab;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.evidence-scrubber::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+.evidence-scrubber::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+}
+
+.evidence-scrubber::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.3);
+  cursor: grab;
+}
+
+.evidence-scrubber::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.06);
+}
