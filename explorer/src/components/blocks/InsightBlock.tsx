@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING_CRISP } from '../../lib/theme'
 import type { InsightBlock as InsightBlockType } from '../../types/blocks'
+import { CiteBadge } from './CiteBadge'
 
 interface InsightBlockProps {
   block: InsightBlockType
@@ -41,6 +42,11 @@ export function InsightBlock({ block }: InsightBlockProps) {
       <p className="text-sm leading-[1.65] text-text-body font-serif">
         <InlineMarkdown text={block.text} />
       </p>
+      {block.cite && (
+        <div className="mt-2.5 pt-2 border-t border-rule/50">
+          <CiteBadge cite={block.cite} />
+        </div>
+      )}
     </motion.div>
   )
 }
