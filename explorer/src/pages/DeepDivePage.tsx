@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
-import { SPRING } from '../lib/theme'
+import { SPRING_CRISP } from '../lib/theme'
 import { PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
 
 function summarizeSection(section: PaperSection): string[] {
@@ -172,7 +172,7 @@ export function DeepDivePage() {
                         </span>
                         <motion.div
                           animate={{ rotate: isExpanded ? 180 : 0 }}
-                          transition={SPRING}
+                          transition={SPRING_CRISP}
                         >
                           <ChevronDown className="h-4 w-4 shrink-0 text-text-faint" />
                         </motion.div>
@@ -190,18 +190,24 @@ export function DeepDivePage() {
                 </div>
               </button>
 
-              <div className="accordion-body" data-open={isExpanded || undefined}>
-                <div className="overflow-hidden">
-                  {isExpanded && (
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={SPRING_CRISP}
+                    className="overflow-hidden"
+                  >
                     <div className="border-t border-rule px-5 pb-4 pt-3">
                       <div className="mb-4 rounded-md border border-rule bg-surface-active px-3 py-3 text-xs text-muted">
                         <span className="font-medium text-text-primary">Start here if:</span> {sectionEntryLine(section)}
                       </div>
                       <BlockCanvas blocks={section.blocks} />
                     </div>
-                  )}
-                </div>
-              </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )
         })}
