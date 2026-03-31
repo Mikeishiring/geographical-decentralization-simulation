@@ -77,58 +77,58 @@ export function PendingRunSurface({
   const createdLabel = formatJobTimestamp(jobData?.createdAt)
 
   return (
-    <div className="lab-stage-soft p-5 mb-5 relative overflow-hidden">
+    <div className="stripe-top-accent lab-stage-soft p-5 mb-5 relative overflow-hidden">
       <div
-        className="absolute -right-6 -top-6 w-[200px] h-[200px] sm:w-[240px] sm:h-[240px] opacity-[0.15] pointer-events-none select-none"
+        className="absolute -right-6 -top-6 w-[200px] h-[200px] sm:w-[240px] sm:h-[240px] opacity-[0.12] pointer-events-none select-none"
         aria-hidden="true"
       >
-        <GlobeNetwork className="w-full h-full text-muted" />
+        <GlobeNetwork className="w-full h-full text-meridian" />
       </div>
 
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between relative">
         <div>
-          <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">
+          <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-accent font-medium">
             {stage.eyebrow}
           </div>
-          <h2 className="mt-1 text-xl font-semibold tracking-tight text-text-primary sm:text-2xl">
+          <h2 className="mt-1.5 text-xl font-semibold tracking-tight text-text-primary sm:text-2xl">
             {stage.headline}
           </h2>
           <div className="mt-3 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary">
-              <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+            <span className="lab-chip bg-white/90">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               {config.paradigm}
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            <span className="lab-chip bg-white/90">
+              <span className="h-1.5 w-1.5 rounded-full bg-warning" />
               {config.validators.toLocaleString()} validators
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-rule bg-white px-3 py-1 text-[0.6875rem] font-medium text-text-primary">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="lab-chip bg-white/90">
+              <span className="h-1.5 w-1.5 rounded-full bg-success" />
               {config.slots.toLocaleString()} slots
             </span>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[380px]">
-          <div className="rounded-2xl border border-rule bg-white/88 px-4 py-3">
+        <div className="stagger-reveal grid gap-3 sm:grid-cols-3 xl:min-w-[380px]">
+          <div className="lab-metric-card">
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Queue</div>
-            <div className="mt-1 text-lg font-semibold text-text-primary">
+            <div className="mt-1 text-lg font-semibold tabular-nums text-text-primary">
               {jobData?.queuePosition != null ? jobData.queuePosition.toLocaleString() : 'Live'}
             </div>
           </div>
-          <div className="rounded-2xl border border-rule bg-white/88 px-4 py-3">
+          <div className="lab-metric-card">
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Cache</div>
             <div className="mt-1 text-lg font-semibold text-text-primary">
               {jobData?.cacheHit == null ? 'Pending' : jobData.cacheHit ? 'Reused' : 'Fresh'}
             </div>
           </div>
-          <div className="rounded-2xl border border-rule bg-white/88 px-4 py-3">
+          <div className="lab-metric-card">
             <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Updated</div>
             <div className="mt-1 text-base font-semibold text-text-primary">
               {updatedLabel ?? createdLabel ?? 'Waiting'}
             </div>
             {jobData?.id && (
-              <div className="mt-0.5 text-xs text-muted">{jobData.id.slice(0, 8)}</div>
+              <div className="mt-0.5 mono-xs">{jobData.id.slice(0, 8)}</div>
             )}
           </div>
         </div>
@@ -163,22 +163,22 @@ export function PendingRunSurface({
       </div>
 
       {/* Run snapshot */}
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-rule bg-white px-3 py-2.5">
+      <div className="stagger-reveal mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="lab-option-card px-3 py-2.5">
           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Source</div>
           <div className="mt-1 text-sm font-medium text-text-primary">{config.sourcePlacement}</div>
         </div>
-        <div className="rounded-xl border border-rule bg-white px-3 py-2.5">
+        <div className="lab-option-card px-3 py-2.5">
           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Distribution</div>
           <div className="mt-1 text-sm font-medium text-text-primary">{config.distribution}</div>
         </div>
-        <div className="rounded-xl border border-rule bg-white px-3 py-2.5">
+        <div className="lab-option-card px-3 py-2.5">
           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Timing</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">{config.slotTime}s · γ {config.attestationThreshold.toFixed(2)}</div>
+          <div className="mt-1 mono-sm text-text-primary">{config.slotTime}s · γ {config.attestationThreshold.toFixed(2)}</div>
         </div>
-        <div className="rounded-xl border border-rule bg-white px-3 py-2.5">
+        <div className="lab-option-card px-3 py-2.5">
           <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Migration cost</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">{formatEthValue(config.migrationCost)}</div>
+          <div className="mt-1 mono-sm text-text-primary">{formatEthValue(config.migrationCost)}</div>
         </div>
       </div>
     </div>
