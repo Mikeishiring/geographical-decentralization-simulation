@@ -411,9 +411,7 @@ export function FindingsPage({
     : showTopic && activeTopic
       ? activeTopic.description
       : ''
-  const readingPublishHelper = aiResponse
-    ? 'Add your own title and takeaway before publishing. This turns a guided reading into an intentional community note instead of dumping raw model output into the feed.'
-    : 'Publishing a curated lens still requires your own title and takeaway. Community notes should carry a human-authored framing layer, not just the default card.'
+  const readingPublishHelper = 'Edit the title and takeaway to reflect your own read of the evidence.'
   const currentReadingPublished = readingPublishContextKey !== null && publishedContextKey === readingPublishContextKey
   const paperSectionHint = PAPER_SECTION_DETAILS.get(activeHash) ?? null
   const interpretationBoundary = aiResponse
@@ -739,12 +737,12 @@ export function FindingsPage({
             {readingPublishContextKey && (
               <ContributionComposer
                 key={readingPublishContextKey}
-                sourceLabel="Turn this reading into an intentional community note"
+                sourceLabel="Add a community note"
                 defaultTitle={readingPublishTitle}
                 defaultTakeaway={readingPublishTakeaway}
                 helperText={readingPublishHelper}
-                publishLabel="Publish human-authored note"
-                successLabel="Published human-authored note"
+                publishLabel="Publish note"
+                successLabel="Published"
                 viewPublishedLabel="Open Community"
                 published={currentReadingPublished}
                 isPublishing={publishMutation.isPending}
@@ -793,12 +791,12 @@ export function FindingsPage({
             {readingPublishContextKey && (
               <ContributionComposer
                 key={readingPublishContextKey}
-                sourceLabel="Publish this curated lens as a community reading"
+                sourceLabel="Add a community note"
                 defaultTitle={readingPublishTitle}
                 defaultTakeaway={readingPublishTakeaway}
                 helperText={readingPublishHelper}
-                publishLabel="Publish human-authored note"
-                successLabel="Note published"
+                publishLabel="Publish note"
+                successLabel="Published"
                 viewPublishedLabel="View published"
                 published={currentReadingPublished}
                 isPublishing={publishMutation.isPending}

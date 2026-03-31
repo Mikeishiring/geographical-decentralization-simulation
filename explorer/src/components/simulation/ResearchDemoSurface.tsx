@@ -3339,12 +3339,12 @@ export function ResearchDemoSurface({
                         <div className="mt-4">
                           <ContributionComposer
                             key={replayPublishContextKey}
-                            sourceLabel="Publish this replay-backed reading to the community surface"
+                            sourceLabel="Add a community note"
                             defaultTitle={replayPublishTitle}
                             defaultTakeaway={replayPublishTakeaway}
-                            helperText="The published note carries the current replay question, the selected paper section, and the active slot posture in its evidence bundle. Edit the title or takeaway so the public note reflects your own reading of the replay."
-                            publishLabel="Publish replay note"
-                            successLabel="Published replay note"
+                            helperText="Edit the title and takeaway to reflect your read of this replay."
+                            publishLabel="Publish note"
+                            successLabel="Published"
                             viewPublishedLabel="Open Community"
                             published={publishedReplayContextKey === replayPublishContextKey}
                             isPublishing={publishReplayMutation.isPending}

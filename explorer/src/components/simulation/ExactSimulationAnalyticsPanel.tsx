@@ -65,7 +65,7 @@ export function ExactSimulationAnalyticsPanel({
 
   return (
     <SimulationAnalyticsDesk
-      description="This exact run emits the same analytics contract as the frozen paper datasets, so you can read the exact evidence and only then decide what interpretation or note is warranted."
+      description="Exact-run analytics — same contract as the frozen paper datasets."
       copyLabel="Copy exact analytics view"
       onCopyShareUrl={() => onCopyShareUrl()}
       onCopyQueryJson={() => onCopyQueryJson()}
@@ -83,42 +83,15 @@ export function ExactSimulationAnalyticsPanel({
       statusMessage={analyticsStatusMessage}
       metricCards={metricCards}
       blocks={blocks}
-      queryHint="Use this desk in order: pick a stable dashboard, inspect one slot, then compare it against the closest frozen paper foil. Interpretation should follow the measurements, not lead them."
     >
       {exactAnalyticsPayload ? (
         <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-xl border border-accent/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.92))] px-4 py-3 xl:col-span-2">
-            <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">How to read this desk</div>
-            <div className="mt-1 text-sm font-medium text-text-primary">
-              Treat the exact run like a publication artifact: evidence first, comparison second, takeaway last.
-            </div>
-            <div className="mt-3 grid gap-2 md:grid-cols-3">
-              {[
-                {
-                  title: '1. Pick one stable read',
-                  detail: 'Open one dashboard and stay in that posture.',
-                },
-                {
-                  title: '2. Inspect a slot directly',
-                  detail: 'Bind cards and comparisons to one moment in the run.',
-                },
-                {
-                  title: '3. Compare before publishing',
-                  detail: 'Add the closest foil, then decide whether it is worth a public note.',
-                },
-              ].map(item => (
-                <div key={item.title} className="rounded-xl border border-white/70 bg-white/80 px-3 py-2.5">
-                  <div className="text-sm font-medium text-text-primary">{item.title}</div>
-                  <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="rounded-xl border border-rule bg-white px-4 py-3">
-            <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Named dashboards</div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              These are reusable dashboard reads over the same exact-run payload, so you can move between stable analysis postures instead of rebuilding the query each time.
+            <div
+              className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint"
+              title="Reusable dashboard reads over the same exact-run payload."
+            >
+              Named dashboards
             </div>
             <div className="mt-3 grid gap-2 md:grid-cols-2">
               {dashboardPresets.map(preset => {
@@ -184,12 +157,14 @@ export function ExactSimulationAnalyticsPanel({
           <div className="rounded-xl border border-rule bg-white px-4 py-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Slot posture</div>
+                <div
+                  className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint"
+                  title="Cards and comparisons stay bound to the selected slot."
+                >
+                  Slot posture
+                </div>
                 <div className="mt-1 text-sm font-medium text-text-primary">
                   Slot {slot + 1} of {totalSlots.toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs leading-5 text-muted">
-                  Scrub the exact run directly from the analytics desk. The cards, sources, and comparison table stay bound to this slot.
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -230,12 +205,14 @@ export function ExactSimulationAnalyticsPanel({
           </div>
 
           <div className="rounded-xl border border-rule bg-white px-4 py-3 xl:col-span-2">
-            <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Published foil</div>
+            <div
+              className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint"
+              title="Compare against a checked-in paper dataset in the same desk."
+            >
+              Published foil
+            </div>
             <div className="mt-1 text-sm font-medium text-text-primary">
               {selectedComparisonDataset ? formatPublishedDatasetLabel(selectedComparisonDataset) : 'No published scenario selected'}
-            </div>
-            <div className="mt-1 text-xs leading-5 text-muted">
-              {selectedComparisonDataset?.metadata?.description ?? 'Choose a checked-in paper dataset so the exact run can be compared against frozen evidence in the same desk.'}
             </div>
 
             <label className="mt-3 block text-xs text-muted">
@@ -302,9 +279,6 @@ export function ExactSimulationAnalyticsPanel({
               </button>
             </div>
 
-            <div className="mt-3 text-xs leading-5 text-muted">
-              Shared exact-analytics links preserve the active foil dataset, analytics view, and slot posture.
-            </div>
           </div>
         </div>
       ) : null}
