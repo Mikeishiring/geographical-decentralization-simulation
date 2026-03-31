@@ -28,7 +28,6 @@ function renderWithKeyClaim(text: string, keyClaim?: string): ReactNode {
 }
 
 interface PaperSectionViewProps {
-  readonly focusMode?: boolean
   readonly activeSectionId?: string
   readonly onPublish?: (sectionId: string, payload: { title: string; takeaway: string; author: string }) => void
   readonly isPublishing?: boolean
@@ -40,7 +39,6 @@ interface PaperSectionViewProps {
 }
 
 export function PaperSectionView({
-  focusMode = false,
   activeSectionId: activeSectionIdProp,
   onPublish,
   isPublishing = false,
@@ -73,10 +71,9 @@ export function PaperSectionView({
   return (
     <>
       {/* Sections grid */}
-      <div className={cn('grid gap-8 overflow-hidden', focusMode ? 'xl:grid-cols-[minmax(0,1fr)]' : 'xl:grid-cols-[220px_minmax(0,1fr)]')}>
+      <div className="grid gap-8 overflow-hidden xl:grid-cols-[220px_minmax(0,1fr)]">
         {/* TOC sidebar */}
-        {!focusMode && (
-          <aside className="hidden xl:block xl:sticky xl:top-40 xl:self-start">
+        <aside className="hidden xl:block xl:sticky xl:top-40 xl:self-start">
             <div className="lab-panel rounded-xl p-4">
               <div className="lab-section-title">Sections</div>
               <nav className="mt-3 space-y-1">
@@ -101,7 +98,6 @@ export function PaperSectionView({
               </nav>
             </div>
           </aside>
-        )}
 
         {/* Paper sections */}
         <div className="space-y-8">
@@ -122,7 +118,7 @@ export function PaperSectionView({
                 section={section}
                 narrative={narrative}
                 figuresFirst={figuresFirst}
-                focusMode={focusMode}
+
                 previousSection={previousSection}
                 nextSection={nextSection}
                 copiedSectionId={copiedSectionId}
@@ -151,7 +147,6 @@ function SectionCard({
   section,
   narrative,
   figuresFirst,
-  focusMode,
   previousSection,
   nextSection,
   copiedSectionId,
@@ -168,7 +163,6 @@ function SectionCard({
   section: PaperSection
   narrative: PaperNarrative
   figuresFirst: boolean
-  focusMode: boolean
   previousSection?: PaperSection
   nextSection?: PaperSection
   copiedSectionId: string | null
@@ -190,10 +184,7 @@ function SectionCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.15 }}
       transition={SPRING}
-      className={cn(
-        'group scroll-mt-40 rounded-xl border border-rule bg-white p-5 card-hover geo-accent-bar sm:p-6',
-        focusMode && 'mx-auto max-w-5xl',
-      )}
+      className="group scroll-mt-40 rounded-xl border border-rule bg-white p-5 card-hover geo-accent-bar sm:p-6"
     >
       {/* Header */}
       <div className="mb-6 border-b border-rule pb-5">
@@ -215,24 +206,24 @@ function SectionCard({
             {copiedSectionId === section.id ? 'Copied!' : 'Link'}
           </button>
         </div>
-        <h2 className={cn('mt-2 text-2xl font-medium text-text-primary font-serif sm:text-3xl text-balance', focusMode && 'max-w-3xl')}>
+        <h2 className="mt-2 text-2xl font-medium text-text-primary font-serif sm:text-3xl text-balance">
           {section.title}
         </h2>
-        <p className={cn('mt-3 text-base leading-relaxed text-muted', focusMode ? 'max-w-3xl' : 'max-w-2xl')}>
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">
           {section.description}
         </p>
       </div>
 
       {/* Content grid */}
-      <div className={cn('grid gap-6', focusMode ? 'xl:grid-cols-[minmax(0,1fr)]' : 'xl:grid-cols-12')}>
+      <div className="grid gap-6 xl:grid-cols-12">
         {/* Prose column */}
-        <div className={cn(focusMode ? 'space-y-5' : 'xl:col-span-7 space-y-5', figuresFirst && 'xl:order-2')}>
-          <p className={cn('text-xl leading-relaxed text-text-primary font-serif', focusMode ? 'max-w-3xl text-2xl' : 'max-w-2xl')}>
+        <div className={cn('xl:col-span-7 space-y-5', figuresFirst && 'xl:order-2')}>
+          <p className="max-w-2xl text-xl leading-relaxed text-text-primary font-serif">
             {narrative.lede}
           </p>
-          <div className={cn('space-y-4 text-base text-text-body font-serif', focusMode ? 'max-w-3xl text-base leading-9' : 'leading-8')}>
+          <div className="space-y-4 text-base leading-8 text-text-body font-serif">
             {narrative.paragraphs.map(paragraph => (
-              <p key={paragraph} className={cn(focusMode ? 'max-w-3xl' : 'max-w-2xl')}>
+              <p key={paragraph} className="max-w-2xl">
                 {renderWithKeyClaim(paragraph, narrative.keyClaim)}
               </p>
             ))}
@@ -242,13 +233,13 @@ function SectionCard({
               <Quote className="h-3 w-3" />
               Pull quote
             </div>
-            <p className={cn('leading-relaxed text-text-primary font-serif italic text-balance', focusMode ? 'max-w-3xl text-xl' : 'max-w-2xl text-lg')}>
+            <p className="max-w-2xl text-lg leading-relaxed text-text-primary font-serif italic text-balance">
               {narrative.pullQuote}
             </p>
           </div>
         </div>
 
-        <div className={cn(focusMode ? 'space-y-4' : 'xl:col-span-5 space-y-4', figuresFirst && 'xl:order-1')}>
+        <div className={cn('xl:col-span-5 space-y-4', figuresFirst && 'xl:order-1')}>
           <div className="rounded-lg border border-rule bg-surface-active p-4">
             <BlockCanvas blocks={section.blocks} showExport={false} />
           </div>

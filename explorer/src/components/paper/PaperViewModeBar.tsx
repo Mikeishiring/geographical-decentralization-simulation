@@ -1,13 +1,13 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare, Sparkles } from 'lucide-react'
+import { ListTree, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare, Sparkles } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
 import type { TabId } from '../layout/TabNav'
 
-export type ReaderMode = 'editorial' | 'focus' | 'paper'
+export type ReaderMode = 'editorial' | 'arguments' | 'paper'
 
-export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; detail: string; fidelity: string; fidelityShort: string; provenanceHint: string }> = {
+export const MODE_META: Record<ReaderMode, { icon: typeof ListTree; label: string; detail: string; fidelity: string; fidelityShort: string; provenanceHint: string }> = {
   editorial: {
     icon: BookOpen,
     label: 'Editorial',
@@ -16,13 +16,13 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
     fidelityShort: 'Interpreted',
     provenanceHint: 'Narrative text is LLM-generated. Source pills show provenance.',
   },
-  focus: {
-    icon: Eye,
-    label: 'Focus',
-    detail: 'Same editorial content, distraction-free centered layout',
-    fidelity: 'Clean reading',
-    fidelityShort: 'Interpreted',
-    provenanceHint: 'Same editorial content in a clean layout.',
+  arguments: {
+    icon: ListTree,
+    label: 'Arguments',
+    detail: 'Core claims organized by argument structure with cited evidence',
+    fidelity: 'Structured claims',
+    fidelityShort: 'Arguments',
+    provenanceHint: 'Claims and evidence extracted from the paper. Narrative is minimal; source pills show provenance.',
   },
   paper: {
     icon: FileText,
@@ -34,11 +34,11 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
   },
 }
 
-const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'focus', 'paper'] as const
+const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'arguments', 'paper'] as const
 
 const SPECTRUM_POSITIONS: Record<ReaderMode, number> = {
   editorial: 0,
-  focus: 50,
+  arguments: 50,
   paper: 100,
 }
 
