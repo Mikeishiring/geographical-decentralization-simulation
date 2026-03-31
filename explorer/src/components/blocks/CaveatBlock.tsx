@@ -10,8 +10,8 @@ export function CaveatBlock({ block }: CaveatBlockProps) {
       <div className="flex gap-2.5">
         <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0 mt-1.5" />
         <div>
-          <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Caveat</span>
-          <p className="mt-1 text-[0.8125rem] text-text-body leading-relaxed font-serif">
+          <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Caveat</span>
+          <p className="mt-1 text-13 text-text-body leading-relaxed font-serif">
             {block.text}
           </p>
         </div>

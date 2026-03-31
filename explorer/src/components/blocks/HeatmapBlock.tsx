@@ -57,7 +57,7 @@ export function HeatmapBlock({ block }: HeatmapBlockProps) {
           </div>
           <div className="flex items-center gap-3 text-xs text-muted">
             <span>{block.rows.length} × {block.columns.length}</span>
-            {block.unit && <span className="font-mono text-[0.625rem]">{block.unit}</span>}
+            {block.unit && <span className="font-mono text-2xs">{block.unit}</span>}
           </div>
         </div>
       </div>
@@ -68,7 +68,7 @@ export function HeatmapBlock({ block }: HeatmapBlockProps) {
             <tr>
               <th className="p-1" />
               {block.columns.map(col => (
-                <th key={col} className="p-1 text-[0.625rem] font-medium text-muted text-center whitespace-nowrap">
+                <th key={col} className="p-1 text-2xs font-medium text-muted text-center whitespace-nowrap">
                   {col}
                 </th>
               ))}
@@ -77,7 +77,7 @@ export function HeatmapBlock({ block }: HeatmapBlockProps) {
           <tbody>
             {block.rows.map((row, rowIdx) => (
               <tr key={row}>
-                <td className="p-1 text-[0.625rem] font-medium text-muted whitespace-nowrap text-right pr-2">
+                <td className="p-1 text-2xs font-medium text-muted whitespace-nowrap text-right pr-2">
                   {row}
                 </td>
                 {block.columns.map((_, colIdx) => {
@@ -147,7 +147,7 @@ export function HeatmapBlock({ block }: HeatmapBlockProps) {
         </AnimatePresence>
 
         <div className="mt-3 flex items-center gap-2">
-          <span className="text-[0.625rem] text-muted">Low</span>
+          <span className="text-2xs text-muted">Low</span>
           <div className="flex-1 h-2 rounded-full overflow-hidden flex">
             {Array.from({ length: 20 }, (_, i) => {
               const t = i / 19
@@ -164,7 +164,7 @@ export function HeatmapBlock({ block }: HeatmapBlockProps) {
               )
             })}
           </div>
-          <span className="text-[0.625rem] text-muted">High</span>
+          <span className="text-2xs text-muted">High</span>
         </div>
       </div>
     </div>

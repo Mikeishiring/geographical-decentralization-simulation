@@ -108,7 +108,7 @@ export function SimulationAnalyticsDesk({
 
       <div className="grid gap-3 border-b border-rule px-5 py-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4">
-          <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Dashboard view</div>
+          <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Dashboard view</div>
           <div className="mt-2 flex flex-wrap gap-2">
             {analyticsViewOptions.map(view => (
               <button
@@ -129,7 +129,7 @@ export function SimulationAnalyticsDesk({
 
         {analyticsMetricOptions.length > 0 ? (
           <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4">
-            <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Metric query</div>
+            <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Metric query</div>
             <div className="mt-2 flex flex-wrap gap-2">
               {analyticsMetricOptions.map(option => (
                 <button
@@ -152,7 +152,7 @@ export function SimulationAnalyticsDesk({
 
         {compareModeOptions.length > 0 ? (
           <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4">
-            <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">Compare mode</div>
+            <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Compare mode</div>
             <div className="mt-2 flex flex-wrap gap-2">
               {compareModeOptions.map(option => (
                 <button
@@ -182,7 +182,7 @@ export function SimulationAnalyticsDesk({
           </div>
           {activeCompareMode ? (
             <span
-              className="lab-chip bg-white/85 text-[0.625rem]"
+              className="lab-chip bg-white/85 text-2xs"
               title={activeCompareMode.description}
             >
               {activeCompareMode.label}
@@ -203,7 +203,7 @@ export function SimulationAnalyticsDesk({
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {metricCards.map(card => (
             <div key={card.label} className="rounded-xl border border-rule bg-white px-4 py-4">
-              <div className="text-[0.625rem] uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+              <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
               <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
               <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
             </div>

@@ -76,7 +76,7 @@ export function SimCopilotPanel({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="text-[0.6875rem] leading-5 text-text-faint">
+            <div className="text-11 leading-5 text-text-faint">
               Guide output stays private until you publish a separate note.
             </div>
             <button
@@ -196,13 +196,13 @@ export function SimCopilotPanel({
               </div>
 
                 <div className="rounded-xl border border-rule bg-white/90 px-5 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-                  <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+                  <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
                     Guide framing
                   </div>
                   <div className="mt-2 text-sm leading-6 text-text-primary">{copilotResponse.summary}</div>
                 {copilotResponse.guidance && (
                   <div className="mt-3 rounded-xl border border-rule bg-surface-active px-4 py-3">
-                    <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">Guide interpretation</div>
+                    <div className="text-11 uppercase tracking-[0.1em] text-text-faint">Guide interpretation</div>
                     <div className="mt-1 text-xs leading-5 text-muted">{copilotResponse.guidance}</div>
                   </div>
                 )}
@@ -221,19 +221,19 @@ export function SimCopilotPanel({
               {copilotResponse.proposedConfig && (
                 <div className="grid grid-cols-2 gap-3 text-xs text-muted sm:grid-cols-4">
                   <div className="lab-option-card px-4 py-3">
-                    <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paradigm</span>
+                    <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Paradigm</span>
                     <div className="mt-2 text-sm font-medium text-text-primary">{copilotResponse.proposedConfig.paradigm}</div>
                   </div>
                   <div className="lab-option-card px-4 py-3">
-                    <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Distribution</span>
+                    <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Distribution</span>
                     <div className="mt-2 text-sm font-medium text-text-primary">{copilotResponse.proposedConfig.distribution}</div>
                   </div>
                   <div className="lab-option-card px-4 py-3">
-                    <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Validators</span>
+                    <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Validators</span>
                     <div className="mt-2 text-sm font-medium text-text-primary">{copilotResponse.proposedConfig.validators.toLocaleString()}</div>
                   </div>
                   <div className="lab-option-card px-4 py-3">
-                    <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Slots</span>
+                    <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Slots</span>
                     <div className="mt-2 text-sm font-medium text-text-primary">{copilotResponse.proposedConfig.slots.toLocaleString()}</div>
                   </div>
                 </div>

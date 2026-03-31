@@ -77,25 +77,25 @@ export function DeepDivePage() {
       <div className="reveal-up mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Paper deep dive</span>
+            <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Paper deep dive</span>
             <h1 className="mt-1 text-lg font-semibold text-text-primary text-balance">
               Argument, paradoxes, and caveats
             </h1>
-            <p className="mt-1 text-[0.8125rem] text-muted">
+            <p className="mt-1 text-13 text-muted">
               Ten sections from model design through limitations — expand any to see the evidence blocks.
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0 pt-1">
             <button
               onClick={expandAll}
-              className="text-[0.8125rem] text-muted transition-colors hover:text-text-primary"
+              className="text-13 text-muted transition-colors hover:text-text-primary"
             >
               Expand all
             </button>
             <span className="text-rule">·</span>
             <button
               onClick={collapseAll}
-              className="text-[0.8125rem] text-muted transition-colors hover:text-text-primary"
+              className="text-13 text-muted transition-colors hover:text-text-primary"
             >
               Collapse all
             </button>
@@ -111,8 +111,8 @@ export function DeepDivePage() {
           className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 transition-colors hover:bg-surface-active/50"
         >
           <div className="min-w-0">
-            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical paper</span>
-            <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">Open arXiv source</div>
+            <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Canonical paper</span>
+            <div className="mt-1 text-13 font-medium leading-6 text-text-primary">Open arXiv source</div>
           </div>
           <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
         </a>
@@ -121,8 +121,8 @@ export function DeepDivePage() {
           className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 transition-colors hover:bg-surface-active/50"
         >
           <div className="min-w-0">
-            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Canonical results</span>
-            <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">Open published simulation selector</div>
+            <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Canonical results</span>
+            <div className="mt-1 text-13 font-medium leading-6 text-text-primary">Open published simulation selector</div>
           </div>
           <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
         </a>
@@ -133,8 +133,8 @@ export function DeepDivePage() {
           className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 transition-colors hover:bg-surface-active/50"
         >
           <div className="min-w-0">
-            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Implementation source</span>
-            <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">Open repository</div>
+            <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Implementation source</span>
+            <div className="mt-1 text-13 font-medium leading-6 text-text-primary">Open repository</div>
           </div>
           <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
         </a>
@@ -152,13 +152,13 @@ export function DeepDivePage() {
                 className="w-full px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
               >
                 <div className="flex items-start gap-3">
-                  <span className="mt-0.5 w-8 shrink-0 text-[0.6875rem] font-mono text-accent">
+                  <span className="mt-0.5 w-8 shrink-0 text-11 font-mono text-accent">
                     {section.number}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="text-[0.8125rem] font-medium text-text-primary line-clamp-2">
+                        <h3 className="text-13 font-medium text-text-primary line-clamp-2">
                           {section.title}
                         </h3>
                         <p className="mt-1 text-xs text-muted">
