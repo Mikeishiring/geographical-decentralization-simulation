@@ -1,11 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, LayoutList, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare, Sparkles } from 'lucide-react'
+import { Eye, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
 import type { TabId } from '../layout/TabNav'
 
-export type ReaderMode = 'editorial' | 'focus' | 'argument-map' | 'paper'
+export type ReaderMode = 'editorial' | 'focus' | 'paper'
 
 export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; detail: string; fidelity: string; fidelityShort: string; provenanceHint: string }> = {
   editorial: {
@@ -24,14 +24,6 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
     fidelityShort: 'Interpreted',
     provenanceHint: 'Same editorial content in a clean layout.',
   },
-  'argument-map': {
-    icon: LayoutList,
-    label: 'Argument map',
-    detail: 'Paper claims organized as expandable structured cards',
-    fidelity: 'Structured claims',
-    fidelityShort: 'Extracted',
-    provenanceHint: 'Claims extracted from the paper with section references.',
-  },
   paper: {
     icon: FileText,
     label: 'Original PDF',
@@ -42,14 +34,7 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
   },
 }
 
-const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'focus', 'argument-map', 'paper'] as const
-
-const SPECTRUM_POSITIONS: Record<ReaderMode, number> = {
-  editorial: 0,
-  focus: 33,
-  'argument-map': 67,
-  paper: 100,
-}
+const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'focus', 'paper'] as const
 
 interface PaperViewModeBarProps {
   readonly readerMode: ReaderMode
@@ -78,15 +63,17 @@ export function PaperViewModeBar({
   onNotesToggle,
   noteCount = 0,
 }: PaperViewModeBarProps) {
-  const argumentMapMode = readerMode === 'argument-map'
   const paperMode = readerMode === 'paper'
   const progressPercent = ((activeSectionIndex + 1) / PAPER_SECTIONS.length) * 100
 
+  const activeSection = !paperMode ? PAPER_SECTIONS[activeSectionIndex] : null
+
   return (
-    <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-3 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1">
+    <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-2.5 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6">
+      <div className="flex items-center justify-between gap-3">
+        {/* Mode switcher + active section */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-0.5 shrink-0">
             {MODES_ORDERED.map(mode => {
               const meta = MODE_META[mode]
               const Icon = meta.icon
@@ -99,7 +86,7 @@ export function PaperViewModeBar({
                   whileTap={{ scale: 0.96 }}
                   transition={SPRING_SNAPPY}
                   className={cn(
-                    'relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors',
+                    'relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors',
                     isActive
                       ? 'text-text-primary font-medium'
                       : 'text-muted hover:text-text-primary',
@@ -120,83 +107,28 @@ export function PaperViewModeBar({
               )
             })}
           </div>
-          {/* Interpretation spectrum — animated dot tracks active mode */}
-          <div className="hidden sm:flex items-center gap-2 px-1">
-            <span className="text-2xs select-none whitespace-nowrap flex items-center gap-1">
-              <Sparkles className="h-2.5 w-2.5 text-amber-500/50" />
-              <span className="text-amber-600/50">Interpreted</span>
-            </span>
-            <div className="relative flex-1 h-4 flex items-center">
-              <div className="absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 rounded-full bg-gradient-to-r from-amber-300/30 via-rule to-accent/20" />
-              {MODES_ORDERED.map((mode, i) => {
-                const isActive = readerMode === mode
-                return (
-                  <motion.div
-                    key={mode}
-                    className={cn(
-                      'absolute top-1/2 -translate-y-1/2 rounded-full transition-colors duration-200',
-                      isActive ? 'h-1.5 w-1.5 bg-accent' : 'h-1 w-1 bg-rule',
-                    )}
-                    style={{ left: `${(i / (MODES_ORDERED.length - 1)) * 100}%`, marginLeft: isActive ? -3 : -2 }}
-                  />
-                )
-              })}
-              <motion.div
-                key={readerMode}
-                className="absolute top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-accent"
-                initial={{ scale: 1.6, opacity: 0.6 }}
-                animate={{
-                  left: `${SPECTRUM_POSITIONS[readerMode]}%`,
-                  scale: 1,
-                  opacity: 1,
-                }}
-                transition={SPRING_SNAPPY}
-                style={{ marginLeft: -5, boxShadow: '0 0 6px rgba(59,130,246,0.5), 0 0 2px rgba(59,130,246,0.3)' }}
-              />
-            </div>
-            <span className="text-2xs select-none whitespace-nowrap flex items-center gap-1">
-              <span className="text-accent/50">Source</span>
-              <FileText className="h-2.5 w-2.5 text-accent/40" />
-            </span>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {/* Mobile fidelity badge — visible only on small screens */}
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={readerMode}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15 }}
-              className="sm:hidden text-2xs text-muted select-none"
-            >
-              {MODE_META[readerMode].fidelityShort}
-            </motion.span>
-          </AnimatePresence>
-          {!argumentMapMode && !paperMode && (
-            <div className="hidden sm:flex items-center gap-2 text-xs text-muted">
-              <div className="relative h-6 w-6 shrink-0">
-                <svg viewBox="0 0 24 24" className="h-6 w-6 -rotate-90">
-                  <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.1" />
-                  <motion.circle
-                    cx="12" cy="12" r="9" fill="none"
-                    stroke="var(--color-accent)"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 9}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 9 * (1 - progressPercent / 100) }}
+          {/* Active section label + progress */}
+          {activeSection && (
+            <div className="hidden md:flex items-center gap-2.5 min-w-0">
+              <span className="text-rule">·</span>
+              <span className="mono-xs text-accent shrink-0">{activeSection.number}</span>
+              <span className="text-xs text-text-primary truncate">{activeSection.title}</span>
+              <div className="flex items-center gap-1.5 shrink-0 text-xs text-muted">
+                <span>{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
+                <div className="h-1 w-14 overflow-hidden rounded-full bg-surface-active">
+                  <motion.div
+                    className="h-full rounded-full bg-accent"
+                    animate={{ width: `${progressPercent}%` }}
                     transition={SPRING_SOFT}
                   />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-medium tabular-nums text-accent">
-                  {activeSectionIndex + 1}
-                </span>
+                </div>
               </div>
-              <span className="text-text-faint text-2xs">/ {PAPER_SECTIONS.length}</span>
             </div>
           )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
           {onNotesToggle && (
             <button
               onClick={onNotesToggle}
