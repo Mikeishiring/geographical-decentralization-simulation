@@ -163,7 +163,7 @@ export function ExploreHistoryPage({
     <div className="space-y-6">
       {(onGoToPaper || onTabChange) && (
         <div className="rounded-xl border border-rule bg-white px-5 py-5">
-          <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Read evidence, then publish</span>
+          <div className="lab-section-title">Read evidence, then publish</div>
           <div className="mt-1 text-13 font-medium text-text-primary">Community works best when notes start from a canonical reading or an exact run, not from raw guide output.</div>
 
           <div className="mt-4 divide-y divide-rule">
@@ -518,7 +518,7 @@ function ExplorationCard({
           <div className="w-8 shrink-0" />
         )}
 
-        <button onClick={onToggleExpand} className="min-w-0 flex-1 text-left">
+        <button onClick={onToggleExpand} className="min-w-0 flex-1 text-left" aria-expanded={isExpanded}>
           <p className="truncate text-sm font-medium text-text-primary">
             {cardTitle(exploration)}
           </p>
@@ -609,6 +609,8 @@ function ExplorationCard({
         <button
           onClick={onToggleExpand}
           className="self-start p-1 text-muted transition-colors hover:text-text-primary"
+          aria-label={isExpanded ? 'Collapse note' : 'Expand note'}
+          aria-expanded={isExpanded}
         >
           {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </button>
