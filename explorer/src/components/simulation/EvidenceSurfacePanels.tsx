@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
-import { STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
+import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { formatNumber } from './simulation-constants'
 import {
   totalSlotsFromPayload,
@@ -12,6 +12,7 @@ import {
 import type { ResearchMetadata } from './simulation-lab-types'
 import {
   CHART_COLORS,
+  CATEGORY_DESCRIPTIONS,
   THRESHOLDS,
   sentimentLower,
   sentimentHigher,
@@ -56,6 +57,7 @@ interface KpiCard {
   readonly sentiment: 'positive' | 'neutral' | 'negative'
   readonly sparkData: readonly number[]
   readonly sparkColor: string
+  readonly linkedCategory: PlotCategory
 }
 
 function computeDelta(
@@ -89,6 +91,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       sentiment: giniSentiment!,
       sparkData: sampleForSpark(metrics.gini),
       sparkColor: CHART_COLORS.gini,
+      linkedCategory: 'decentralization',
     })
   }
 
@@ -106,6 +109,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       sentiment: hhiSentiment!,
       sparkData: sampleForSpark(metrics.hhi),
       sparkColor: CHART_COLORS.hhi,
+      linkedCategory: 'decentralization',
     })
   }
 
@@ -123,6 +127,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       sentiment: sentimentHigher(livenessEnd, THRESHOLDS.liveness),
       sparkData: sampleForSpark(metrics.liveness),
       sparkColor: CHART_COLORS.liveness,
+      linkedCategory: 'coverage',
     })
   }
 
@@ -139,6 +144,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       sentiment: 'neutral',
       sparkData: sampleForSpark(metrics.attestations),
       sparkColor: CHART_COLORS.attestation,
+      linkedCategory: 'economics',
     })
   }
 
@@ -155,6 +161,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       sentiment: sentimentLower(proposalEnd, THRESHOLDS.proposalTime),
       sparkData: sampleForSpark(metrics.proposal_times),
       sparkColor: CHART_COLORS.proposalTime,
+      linkedCategory: 'latency',
     })
   }
 
@@ -171,6 +178,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       sentiment: regionSentiment,
       sparkData: [],
       sparkColor: CHART_COLORS.activeRegions,
+      linkedCategory: 'topology',
     })
   }
 
@@ -192,9 +200,11 @@ const DELTA_COLOR: Record<string, string> = {
 
 interface KpiStripProps {
   readonly payload: PublishedAnalyticsPayload
+  readonly activeCategory: PlotCategory
+  readonly onCategoryChange: (category: PlotCategory) => void
 }
 
-export function EvidenceKpiStrip({ payload }: KpiStripProps) {
+export function EvidenceKpiStrip({ payload, activeCategory, onCategoryChange }: KpiStripProps) {
   const cards = useMemo(() => buildKpiCards(payload), [payload])
   if (cards.length === 0) return null
 
@@ -205,31 +215,38 @@ export function EvidenceKpiStrip({ payload }: KpiStripProps) {
       animate="visible"
       variants={STAGGER_CONTAINER}
     >
-      {cards.map(card => (
-        <motion.div
-          key={card.label}
-          variants={STAGGER_ITEM}
-          className="lab-option-card px-3 py-2.5"
-        >
-          <div className="flex items-center justify-between gap-1 mb-1">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
-              <span className="text-2xs uppercase tracking-[0.08em] text-text-faint font-medium truncate">{card.label}</span>
-            </div>
-            {card.sparkData.length > 1 && (
-              <Sparkline data={card.sparkData} color={card.sparkColor} />
+      {cards.map(card => {
+        const isActive = activeCategory === card.linkedCategory
+        return (
+          <motion.button
+            key={card.label}
+            variants={STAGGER_ITEM}
+            onClick={() => onCategoryChange(isActive ? 'all' : card.linkedCategory)}
+            className={cn(
+              'lab-option-card px-3 py-2.5 text-left transition-all',
+              isActive && 'border-accent/40 ring-1 ring-accent/10',
             )}
-          </div>
-          <div className="text-[15px] font-semibold text-text-primary tabular-nums leading-tight">{card.value}</div>
-          {card.delta && (
-            <div className={cn('mt-0.5 text-2xs tabular-nums flex items-center gap-0.5', DELTA_COLOR[card.direction])}>
-              <span>{DELTA_ARROW[card.direction]}</span>
-              <span>{card.delta}</span>
+          >
+            <div className="flex items-center justify-between gap-1 mb-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
+                <span className="text-2xs uppercase tracking-[0.08em] text-text-faint font-medium truncate">{card.label}</span>
+              </div>
+              {card.sparkData.length > 1 && (
+                <Sparkline data={card.sparkData} color={card.sparkColor} />
+              )}
             </div>
-          )}
-          <div className="mt-1 text-2xs text-text-faint leading-snug">{card.note}</div>
-        </motion.div>
-      ))}
+            <div className="text-[15px] font-semibold text-text-primary tabular-nums leading-tight">{card.value}</div>
+            {card.delta && (
+              <div className={cn('mt-0.5 text-2xs tabular-nums flex items-center gap-0.5', DELTA_COLOR[card.direction])}>
+                <span>{DELTA_ARROW[card.direction]}</span>
+                <span>{card.delta}</span>
+              </div>
+            )}
+            <div className="mt-1 text-2xs text-text-faint leading-snug">{card.note}</div>
+          </motion.button>
+        )
+      })}
     </motion.div>
   )
 }
@@ -345,6 +362,91 @@ export function PlotFilterToolbar({ activeCategory, onCategoryChange, counts }: 
   )
 }
 
+// ── Sticky category bar ───────────────────────────────────────────────────
+
+interface EvidenceCategoryBarProps {
+  readonly activeCategory: PlotCategory
+  readonly onCategoryChange: (category: PlotCategory) => void
+  readonly counts: Record<PlotCategory, number>
+  readonly chartGridRef?: React.RefObject<HTMLDivElement | null>
+}
+
+export function EvidenceCategoryBar({ activeCategory, onCategoryChange, counts, chartGridRef }: EvidenceCategoryBarProps) {
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const [isStuck, setIsStuck] = useState(false)
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsStuck(entry ? !entry.isIntersecting : false),
+      { threshold: 0 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  const handleCategoryChange = (category: PlotCategory) => {
+    onCategoryChange(category)
+    if (category !== 'all' && chartGridRef?.current) {
+      chartGridRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }
+
+  return (
+    <>
+      <div ref={sentinelRef} className="h-0" aria-hidden />
+      <div
+        className={cn(
+          'sticky top-0 z-20 -mx-px px-px py-3 transition-shadow duration-200',
+          isStuck
+            ? 'bg-white/92 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-b border-rule/50'
+            : 'bg-transparent',
+        )}
+      >
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="lab-section-title">Analytical lens</div>
+          <span className="text-2xs text-muted tabular-nums">
+            {counts[activeCategory]} panel{counts[activeCategory] !== 1 ? 's' : ''}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {PLOT_CATEGORIES.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => handleCategoryChange(cat.id)}
+              className={cn(
+                'lab-option-card rounded-full px-3 py-1 text-xs font-medium transition-all',
+                activeCategory === cat.id
+                  ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
+                  : 'text-muted',
+                counts[cat.id] === 0 && cat.id !== 'all' && 'opacity-30 pointer-events-none',
+              )}
+            >
+              {cat.label}
+              {cat.id !== 'all' && counts[cat.id] > 0 && (
+                <span className="ml-1 opacity-50">({counts[cat.id]})</span>
+              )}
+            </button>
+          ))}
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={activeCategory}
+            className="mt-1.5 text-xs text-muted leading-relaxed"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={SPRING_CRISP}
+          >
+            {CATEGORY_DESCRIPTIONS[activeCategory] ?? ''}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+    </>
+  )
+}
+
 // ── Takeaway generator ─────────────────────────────────────────────────────
 
 function buildTakeaway(payload: PublishedAnalyticsPayload): string {
@@ -392,6 +494,7 @@ export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
   const topRegions = topRegionsForSlot(payload, finalSlot, 3)
   const takeaway = useMemo(() => buildTakeaway(payload), [payload])
 
+  // Only show metrics NOT duplicated in the KPI strip (gini, hhi, liveness, attestation, proposal_times, active regions)
   const items: Array<{ label: string; value: string }> = []
   if (metrics.clusters?.[finalSlot] != null)
     items.push({ label: 'Clusters', value: String(Math.round(metrics.clusters[finalSlot]!)) })
@@ -399,11 +502,12 @@ export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
     items.push({ label: 'Total distance', value: formatNumber(metrics.total_distance[finalSlot]!, 0) })
   if (metrics.mev?.[finalSlot] != null)
     items.push({ label: 'MEV', value: `${formatNumber(metrics.mev[finalSlot]!, 6)} ETH` })
-  if (metrics.attestations?.[finalSlot] != null)
-    items.push({ label: 'Attestation', value: formatNumber(metrics.attestations[finalSlot]!, 1) })
-  if (metrics.proposal_times?.[finalSlot] != null)
-    items.push({ label: 'Proposal time', value: `${formatNumber(metrics.proposal_times[finalSlot]!, 1)} ms` })
-  items.push({ label: 'Active regions', value: String(activeRegionCountAtSlot(payload, finalSlot)) })
+  if (metrics.failed_block_proposals?.[finalSlot] != null)
+    items.push({ label: 'Failed proposals', value: String(Math.round(metrics.failed_block_proposals[finalSlot]!)) })
+  if (metrics.profit_variance?.[finalSlot] != null)
+    items.push({ label: 'Profit CV', value: formatNumber(metrics.profit_variance[finalSlot]!, 4) })
+  if (metrics.nni?.[finalSlot] != null)
+    items.push({ label: 'NNI', value: formatNumber(metrics.nni[finalSlot]!, 3) })
 
   return (
     <div className="lab-stage-soft px-4 py-3">

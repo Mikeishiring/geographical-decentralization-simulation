@@ -97,16 +97,36 @@ export function PaperReaderPage({
         anchor,
       })
 
-      await publishExploration(created.id, {
-        title: `Note on: ${anchor.excerpt.slice(0, 60)}${anchor.excerpt.length > 60 ? '...' : ''}`,
-        takeaway: comment,
-      })
+      const title = `Note on: ${anchor.excerpt.slice(0, 60)}${anchor.excerpt.length > 60 ? '...' : ''}`
+
+      await publishExploration(created.id, { title, takeaway: comment })
+
+      // Optimistically add the note to the cache so it appears instantly
+      queryClient.setQueryData<readonly Exploration[]>(
+        ['explorations', 'reading-notes'],
+        (old) => {
+          const optimistic: Exploration = {
+            ...created,
+            anchor,
+            publication: {
+              published: true,
+              title,
+              takeaway: comment,
+              author: '',
+              publishedAt: new Date().toISOString(),
+              featured: false,
+              editorNote: '',
+            },
+          }
+          return old ? [optimistic, ...old] : [optimistic]
+        },
+      )
 
       clearSelection()
       window.getSelection()?.removeAllRanges()
 
-      // Refresh notes so the new one appears inline
-      void queryClient.invalidateQueries({ queryKey: ['explorations'] })
+      // Reconcile with server data
+      await queryClient.invalidateQueries({ queryKey: ['explorations'] })
     } catch {
       setNoteError('Failed to publish note. Please try again.')
       window.setTimeout(() => setNoteError(null), 4000)
