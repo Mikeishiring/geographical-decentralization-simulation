@@ -7,6 +7,7 @@ import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
 import type { Block } from '../../types/blocks'
 import { formatNumber } from './simulation-constants'
+import { CHART_COLORS } from './simulation-evidence-constants'
 import {
   totalSlotsFromPayload,
   topRegionsForSlot,
@@ -100,11 +101,6 @@ function sampleSeries(raw: readonly number[] | undefined, maxPoints = 200): Arra
   return points
 }
 
-const CHART_COLORS = {
-  gini: '#C2553A', hhi: '#2563EB', liveness: '#16A34A', totalDistance: '#C2553A',
-  proposalTime: '#D97706', mev: '#2563EB', attestation: '#0F766E',
-  failedProposals: '#BE123C', clusters: '#7C3AED',
-} as const
 
 function buildTimeseriesBlocks(payload: PublishedAnalyticsPayload): Block[] {
   const metrics = payload.metrics ?? {}
@@ -121,6 +117,10 @@ function buildTimeseriesBlocks(payload: PublishedAnalyticsPayload): Block[] {
   push('Attestation rate \u2014 coordination health', 'Attestations', sampleSeries(metrics.attestations), CHART_COLORS.attestation, 'Successful attestations')
   push('Failed block proposals \u2014 operational friction', 'Failed proposals', sampleSeries(metrics.failed_block_proposals), CHART_COLORS.failedProposals, 'Missed proposal count')
   push('Proposal latency \u2014 pipeline responsiveness', 'Proposal time', sampleSeries(metrics.proposal_times), CHART_COLORS.proposalTime, 'Milliseconds (lower = better)')
+  push('Coefficient of variation \u2014 profit disparity', 'CV', sampleSeries(metrics.profit_variance), CHART_COLORS.cv, 'Variance ratio (lower = fairer)')
+  push('Average nearest-neighbor distance \u2014 local spacing', 'Avg NND', sampleSeries(metrics.avg_nnd), CHART_COLORS.avgNnd, 'Distance between nearest validators')
+  push('Nearest neighbor index \u2014 spatial regularity', 'NNI', sampleSeries(metrics.nni), CHART_COLORS.nni, 'Ratio (< 1 = clustered, > 1 = dispersed)')
+  push('Relay distance \u2014 source accessibility', 'Relay dist', sampleSeries(metrics.info_avg_distance), CHART_COLORS.relayDist, 'Avg distance to information sources')
   return blocks
 }
 
@@ -159,10 +159,10 @@ function buildTaggedChartBlocks(payload: PublishedAnalyticsPayload): readonly Ta
     tagged.push({ category: categorizeChart(title), key: title, block })
   }
   const sourceBlock = buildSourceFootprintBlock(payload)
-  if (sourceBlock) tagged.push({ category: 'geography', key: 'source-footprint', block: sourceBlock })
+  if (sourceBlock) tagged.push({ category: 'sources', key: 'source-footprint', block: sourceBlock })
   // Map is rendered by EvidenceMapSurface — no duplicate MapBlock here
   const tableBlock = buildTopRegionsTable(payload)
-  if (tableBlock) tagged.push({ category: 'geography', key: 'top-regions', block: tableBlock })
+  if (tableBlock) tagged.push({ category: 'topology', key: 'top-regions', block: tableBlock })
   return tagged
 }
 
