@@ -141,7 +141,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
           {query.trim() && isEnabled && (
             <button
               onClick={handleSubmit}
-              className="px-3 py-1.5 rounded-lg bg-accent text-white text-[0.75rem] font-medium hover:bg-accent/90 transition-colors"
+              className="px-4 py-2 rounded-lg bg-accent text-white text-xs font-medium hover:bg-accent/90 transition-colors"
             >
               Ask guide
             </button>
@@ -172,7 +172,7 @@ export function QueryBar({ onSubmit, disabled, loading, disabledReason, helperTe
                   animate={{ opacity: 1 }}
                   transition={{ ...SPRING, delay: i * 0.04 }}
                   onClick={() => handleChip(group.prompt)}
-                  className="group rounded-lg border border-rule bg-white px-3 py-2.5 text-left transition-all hover:border-border-hover"
+                  className="group rounded-xl border border-rule bg-white px-3 py-2.5 text-left transition-all hover:border-border-hover"
                 >
                   <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint transition-colors group-hover:text-muted">
                     {group.label}

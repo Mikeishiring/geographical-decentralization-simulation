@@ -250,7 +250,7 @@ export function PaperLandingPage({
                 {isActive && (
                   <motion.span
                     layoutId="view-mode-pill"
-                    className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-black/[0.04]"
+                    className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-rule"
                     transition={SPRING_SNAPPY}
                   />
                 )}
