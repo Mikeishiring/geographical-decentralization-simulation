@@ -283,7 +283,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
               <span className="text-11 text-text-faint tabular-nums">{selectedCost.toFixed(4)} ETH</span>
             )}
           </div>
-          <div className={cn('grid gap-1.5', costResults.length <= 5 ? `grid-cols-${costResults.length}` : 'grid-cols-3 sm:grid-cols-5')}>
+          <div className={cn('grid gap-1.5', costResults.length <= 5 ? ({ 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5' } as Record<number, string>)[costResults.length] ?? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-5')}>
             {costResults.map(({ result, cost }) => (
               <button
                 key={result}

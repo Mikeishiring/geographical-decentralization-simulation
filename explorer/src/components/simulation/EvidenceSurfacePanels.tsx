@@ -79,16 +79,16 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
 
   // Gini — inequality index
   const giniEnd = metrics.gini?.[finalSlot]
-  const giniDelta = computeDelta(metrics.gini?.[0], giniEnd)
-  const giniSentiment = giniEnd != null ? sentimentLower(giniEnd, THRESHOLDS.gini) : undefined
   if (giniEnd != null) {
+    const giniDelta = computeDelta(metrics.gini?.[0], giniEnd)
+    const giniSentiment = sentimentLower(giniEnd, THRESHOLDS.gini)
     cards.push({
       label: 'Inequality',
       value: formatNumber(giniEnd, 3),
       delta: giniDelta?.formatted ?? null,
       direction: giniDelta?.direction ?? 'flat',
       note: giniSentiment === 'positive' ? 'Relatively equal' : giniSentiment === 'neutral' ? 'Moderate inequality' : 'Highly unequal',
-      sentiment: giniSentiment!,
+      sentiment: giniSentiment,
       sparkData: sampleForSpark(metrics.gini),
       sparkColor: CHART_COLORS.gini,
       linkedCategory: 'decentralization',
@@ -97,16 +97,16 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
 
   // HHI — market concentration
   const hhiEnd = metrics.hhi?.[finalSlot]
-  const hhiDelta = computeDelta(metrics.hhi?.[0], hhiEnd)
-  const hhiSentiment = hhiEnd != null ? sentimentLower(hhiEnd, THRESHOLDS.hhi) : undefined
   if (hhiEnd != null) {
+    const hhiDelta = computeDelta(metrics.hhi?.[0], hhiEnd)
+    const hhiSentiment = sentimentLower(hhiEnd, THRESHOLDS.hhi)
     cards.push({
       label: 'Concentration',
       value: formatNumber(hhiEnd, 4),
       delta: hhiDelta?.formatted ?? null,
       direction: hhiDelta?.direction ?? 'flat',
       note: hhiSentiment === 'positive' ? 'Unconcentrated market' : hhiSentiment === 'neutral' ? 'Moderate concentration' : 'Highly concentrated',
-      sentiment: hhiSentiment!,
+      sentiment: hhiSentiment,
       sparkData: sampleForSpark(metrics.hhi),
       sparkColor: CHART_COLORS.hhi,
       linkedCategory: 'decentralization',
