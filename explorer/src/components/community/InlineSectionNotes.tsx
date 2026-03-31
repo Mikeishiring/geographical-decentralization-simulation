@@ -376,6 +376,7 @@ function NoteCard({
                         <motion.button
                           type="button"
                           disabled={!replyText.trim()}
+                          onClick={e => { e.stopPropagation(); setReplyText(''); setReplyOpen(false) }}
                           whileTap={{ scale: 0.96 }}
                           className="flex items-center justify-center gap-1 rounded-2xl px-2.5 py-1 text-[10px] font-medium text-white transition-[filter,opacity] hover:brightness-90 disabled:opacity-40"
                           style={{ backgroundColor: 'var(--color-accent, #3c82f7)' }}
