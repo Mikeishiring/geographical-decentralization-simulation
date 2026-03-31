@@ -32,19 +32,19 @@ export function ErrorDisplay({ error, onRetry }: ErrorDisplayProps) {
     <div className="rounded-xl border border-rule bg-white px-5 py-6">
       <div className="flex items-center gap-2 mb-2">
         <span className="h-1.5 w-1.5 rounded-full bg-warning" />
-        <h3 className="text-[0.8125rem] font-medium text-text-primary">
+        <h3 className="text-13 font-medium text-text-primary">
           {title}
         </h3>
       </div>
 
-      <p className="text-[0.8125rem] leading-[1.6] text-muted max-w-md">
+      <p className="text-13 leading-[1.6] text-muted max-w-md">
         {detail}
       </p>
 
       {!isAuth && !isMissingConfig && (
         <button
           onClick={onRetry}
-          className="mt-4 inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-text-primary hover:text-accent transition-colors"
+          className="mt-4 inline-flex items-center gap-1.5 text-13 font-medium text-text-primary hover:text-accent transition-colors"
         >
           <RefreshCw className="w-3 h-3" />
           Try again

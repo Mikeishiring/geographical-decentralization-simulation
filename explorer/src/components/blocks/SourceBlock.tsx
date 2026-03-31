@@ -9,7 +9,7 @@ export function SourceBlock({ block }: SourceBlockProps) {
 
   return (
     <div className="rounded-xl border border-rule bg-white px-4 py-3">
-      <span className="mb-2 block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+      <span className="mb-2 block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
         Sources
       </span>
       <div className="divide-y divide-rule">
@@ -22,7 +22,7 @@ export function SourceBlock({ block }: SourceBlockProps) {
               href={ref.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-baseline justify-between gap-2 py-2 text-[0.8125rem] text-accent hover:text-accent/80 transition-colors"
+              className="flex items-baseline justify-between gap-2 py-2 text-13 text-accent hover:text-accent/80 transition-colors"
             >
               <span>
                 {ref.label}
@@ -33,7 +33,7 @@ export function SourceBlock({ block }: SourceBlockProps) {
               <span className="shrink-0 text-xs text-text-faint">→</span>
             </a>
           ) : (
-            <div key={i} className="flex items-baseline gap-2 py-2 text-[0.8125rem] text-muted">
+            <div key={i} className="flex items-baseline gap-2 py-2 text-13 text-muted">
               <span>
                 {ref.label}
                 {ref.section && (

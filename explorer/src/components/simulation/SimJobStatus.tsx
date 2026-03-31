@@ -114,7 +114,7 @@ export function SimJobStatus({
     >
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-2xl">
-          <div className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
             Job status
           </div>
           <div className="mt-3 flex items-center gap-3">
@@ -142,7 +142,7 @@ export function SimJobStatus({
 
         <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[320px]">
           <div className="rounded-xl border border-rule bg-white/88 px-4 py-3">
-            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Queue</span>
+            <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Queue</span>
             <div className="mt-2 text-base font-semibold text-text-primary">
               {jobData?.queuePosition ?? 'Live'}
             </div>
@@ -153,7 +153,7 @@ export function SimJobStatus({
             </div>
           </div>
           <div className="rounded-xl border border-rule bg-white/88 px-4 py-3">
-            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Cache path</span>
+            <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Cache path</span>
             <div className="mt-2 text-base font-semibold text-text-primary">
               {jobData?.cacheHit == null ? 'Pending' : jobData.cacheHit ? 'Hit' : 'Fresh'}
             </div>
@@ -162,14 +162,14 @@ export function SimJobStatus({
             </div>
           </div>
           <div className="rounded-xl border border-rule bg-white/88 px-4 py-3">
-            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Created</span>
+            <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Created</span>
             <div className="mt-2 text-base font-semibold text-text-primary">{createdLabel ?? 'Waiting'}</div>
             <div className="mt-1 text-xs text-muted">
               {jobData?.id ? `Job ${jobData.id.slice(0, 8)}` : 'Ticket pending'}
             </div>
           </div>
           <div className="rounded-xl border border-rule bg-white/88 px-4 py-3">
-            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Updated</span>
+            <span className="block text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Updated</span>
             <div className="mt-2 text-base font-semibold text-text-primary">{updatedLabel ?? 'Waiting'}</div>
             <div className="mt-1 text-xs text-muted">
               {status === 'completed' ? 'Ready to inspect' : 'Stream stays live'}

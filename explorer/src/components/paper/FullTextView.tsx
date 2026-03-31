@@ -115,7 +115,7 @@ export function FullTextView({ activeSectionId, onSectionClick }: FullTextViewPr
                   <div className="rounded-xl border border-rule bg-white p-5">
                     <BlockCanvas blocks={section.blocks} showExport={false} />
                   </div>
-                  <figcaption className="mt-3 px-1 text-[0.8125rem] leading-relaxed text-muted font-serif">
+                  <figcaption className="mt-3 px-1 text-13 leading-relaxed text-muted font-serif">
                     <span className="font-semibold text-text-primary">Figure {figureNumber}.</span>{' '}
                     {narrative.figureCaption}
                   </figcaption>
@@ -142,7 +142,7 @@ export function FullTextView({ activeSectionId, onSectionClick }: FullTextViewPr
               {index < PAPER_SECTIONS.length - 1 && (
                 <div className="flex items-center gap-4 pt-4">
                   <hr className="flex-1 border-rule" />
-                  <span className="text-[0.625rem] font-mono text-text-faint tracking-widest uppercase">
+                  <span className="text-2xs font-mono text-text-faint tracking-widest uppercase">
                     {PAPER_SECTIONS[index + 1]?.number}
                   </span>
                   <hr className="flex-1 border-rule" />
@@ -154,7 +154,7 @@ export function FullTextView({ activeSectionId, onSectionClick }: FullTextViewPr
 
         {/* References */}
         <section className="border-t border-rule pt-8 pb-4">
-          <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">References</span>
+          <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">References</span>
           <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
             {PAPER_METADATA.references.map(ref => (
               <a
