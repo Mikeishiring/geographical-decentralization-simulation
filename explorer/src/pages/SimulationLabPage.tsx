@@ -243,6 +243,7 @@ export function SimulationLabPage({
               jobData={jobQuery.data ?? null}
               submitError={(workflow.submitMutation.error as Error | null) ?? null}
               cancelError={(workflow.cancelMutation.error as Error | null) ?? null}
+              config={config}
             />
           )}
 

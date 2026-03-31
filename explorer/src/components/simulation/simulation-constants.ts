@@ -214,13 +214,21 @@ export interface RuntimeEstimate {
   readonly tier: RuntimeTier
 }
 
-export function estimateRuntime(validators: number, slots: number): RuntimeEstimate {
-  const scale = validators * slots
-  if (scale < 10_000) return { label: 'Under 10 seconds', tier: 'quick' }
-  if (scale < 100_000) return { label: '~30 seconds', tier: 'moderate' }
-  if (scale < 1_000_000) return { label: '1\u20132 minutes', tier: 'moderate' }
-  if (scale < 10_000_000) return { label: '2\u20134 minutes', tier: 'long' }
-  return { label: '5+ minutes', tier: 'very-long' }
+export function estimateRuntime(validators: number, slots: number, slotTime = 12): RuntimeEstimate {
+  const stepsPerSlot = (slotTime * 1000) / 100
+  const estimatedSeconds = validators * slots * stepsPerSlot * 0.000028
+
+  if (estimatedSeconds < 10) return { label: 'Under 10 seconds', tier: 'quick' }
+  if (estimatedSeconds < 30) return { label: '~30 seconds', tier: 'moderate' }
+  if (estimatedSeconds < 90) return { label: '~1\u20132 minutes', tier: 'moderate' }
+  if (estimatedSeconds < 240) return { label: '~2\u20134 minutes', tier: 'long' }
+  if (estimatedSeconds < 600) return { label: '~5\u201310 minutes', tier: 'long' }
+  return { label: '10+ minutes', tier: 'very-long' }
+}
+
+export function estimateRuntimeSeconds(validators: number, slots: number, slotTime = 12): number {
+  const stepsPerSlot = (slotTime * 1000) / 100
+  return validators * slots * stepsPerSlot * 0.000028
 }
 
 export function hasNonDefaultProtocol(config: SimulationConfig): boolean {

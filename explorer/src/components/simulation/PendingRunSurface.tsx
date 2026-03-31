@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { GlobeNetwork } from '../decorative/GlobeNetwork'
@@ -5,19 +6,57 @@ import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import type { SimulationConfig, SimulationJob } from '../../lib/simulation-api'
 import type { RunnerStatus } from './simulation-lab-types'
 import { formatEthValue } from './pending-run-helpers'
+import { estimateRuntimeSeconds } from './simulation-constants'
 
-function estimateRunProgress(status: RunnerStatus, queuePosition: number | null): number {
+function useElapsedSeconds(startIso: string | undefined, active: boolean): number {
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    if (!active || !startIso) {
+      setElapsed(0)
+      return
+    }
+
+    const startMs = new Date(startIso).getTime()
+    if (Number.isNaN(startMs)) return
+
+    const tick = () => setElapsed(Math.max(0, (Date.now() - startMs) / 1000))
+    tick()
+    const interval = setInterval(tick, 1000)
+    return () => clearInterval(interval)
+  }, [startIso, active])
+
+  return elapsed
+}
+
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${Math.floor(seconds)}s`
+  const minutes = Math.floor(seconds / 60)
+  const remaining = Math.floor(seconds % 60)
+  return remaining > 0 ? `${minutes}m ${remaining}s` : `${minutes}m`
+}
+
+function estimateRunProgress(
+  status: RunnerStatus,
+  queuePosition: number | null,
+  elapsedSeconds: number,
+  estimatedSeconds: number,
+): number {
   if (status === 'idle') return 0
   if (status === 'submitting') return 12
   if (status === 'queued') {
     if (queuePosition == null) return 26
     return Math.max(24, Math.min(46, 44 - Math.min(queuePosition, 6) * 3))
   }
-  if (status === 'running') return 74
+  if (status === 'running') {
+    if (estimatedSeconds <= 0) return 60
+    const ratio = elapsedSeconds / estimatedSeconds
+    return Math.max(50, Math.min(95, Math.round(50 + ratio * 45)))
+  }
   return 100
 }
 
-function describeRunStage(status: RunnerStatus, queuePosition: number | null): {
+function describeRunStage(status: RunnerStatus, queuePosition: number | null, elapsedLabel: string): {
   readonly eyebrow: string
   readonly headline: string
 } {
@@ -31,7 +70,7 @@ function describeRunStage(status: RunnerStatus, queuePosition: number | null): {
     return { eyebrow: `Queued${posLabel}`, headline: 'Waiting for an execution slot.' }
   }
   if (status === 'running') {
-    return { eyebrow: 'Running', headline: 'Computing manifest and artifacts.' }
+    return { eyebrow: `Running · ${elapsedLabel}`, headline: 'Computing manifest and artifacts.' }
   }
   if (status === 'completed') {
     return { eyebrow: 'Finalizing', headline: 'Loading results.' }
@@ -66,8 +105,12 @@ export function PendingRunSurface({
   readonly jobData: SimulationJob | null
   readonly config: SimulationConfig
 }) {
-  const stage = describeRunStage(status, jobData?.queuePosition ?? null)
-  const progress = estimateRunProgress(status, jobData?.queuePosition ?? null)
+  const isRunning = status === 'running'
+  const estimatedSeconds = estimateRuntimeSeconds(config.validators, config.slots, config.slotTime)
+  const elapsed = useElapsedSeconds(jobData?.createdAt, isRunning)
+  const elapsedLabel = formatElapsed(elapsed)
+  const stage = describeRunStage(status, jobData?.queuePosition ?? null, elapsedLabel)
+  const progress = estimateRunProgress(status, jobData?.queuePosition ?? null, elapsed, estimatedSeconds)
   const stepIndex = status === 'submitting'
     ? 0
     : status === 'queued'
