@@ -30,14 +30,14 @@ export function ReplyThread({ explorationId, realReplies, mockReplies }: ReplyTh
       ...realReplies,
       ...mockReplies
         .filter(m => !realIds.has(m.id))
-        .map(m => ({ id: m.id, author: m.author, body: m.body, createdAt: m.createdAt, votes: m.votes })),
+        .map(m => ({ id: m.id, explorationId, author: m.author, body: m.body, createdAt: m.createdAt, votes: m.votes })),
     ]
     return [...combined].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
   }, [realReplies, mockReplies])
 
   const addMutation = useMutation({
     mutationFn: (input: { author?: string; body: string }) =>
-      addReply(explorationId, input),
+      addReply(explorationId, input.body),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['explorations'] })
       setBody('')

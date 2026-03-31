@@ -584,7 +584,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             <div>
               <div className="lab-section-title">Continents</div>
               <div className="space-y-1">
-                {macroBreakdown.map(({ region, count, share }) => (
+                {macroBreakdown.map(({ region, share }) => (
                   <div key={region} className="flex items-center gap-2">
                     <span className="text-2xs text-text-faint w-[72px] truncate">{region}</span>
                     <div className="flex-1 h-[4px] rounded-full bg-surface-active overflow-hidden">

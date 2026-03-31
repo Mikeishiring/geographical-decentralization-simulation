@@ -29,25 +29,19 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
   const remaining = published.length - 2
 
   return (
-    <div
-      className="mt-4"
-      style={{
-        borderRadius: 12,
-        border: '1px solid rgba(0,0,0,0.06)',
-        background: 'rgba(0,0,0,0.015)',
-        padding: '12px 14px',
-      }}
-    >
+    <div className="mt-4 rounded-xl border border-rule bg-surface-active/40 px-3.5 py-3">
       <button
         type="button"
         onClick={() => setExpanded(prev => !prev)}
         className="flex w-full items-center gap-2 text-left"
+        aria-expanded={expanded}
+        aria-label={`${published.length} community notes`}
       >
         <Users className="h-3 w-3 text-accent" />
-        <span className="text-[11px] font-semibold tracking-wide uppercase text-black/50">
+        <span className="text-11 font-semibold tracking-wide uppercase text-muted">
           {published.length} note{published.length !== 1 ? 's' : ''}
         </span>
-        <span className="ml-auto text-black/35">
+        <span className="ml-auto text-text-faint">
           {expanded
             ? <ChevronUp className="h-3 w-3" />
             : <ChevronDown className="h-3 w-3" />
@@ -82,7 +76,7 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="mt-2 text-[11px] font-medium text-black/40 transition-colors hover:text-accent"
+          className="mt-2 text-11 font-medium text-text-faint transition-colors hover:text-accent"
         >
           Show {remaining} more &darr;
         </button>
@@ -124,68 +118,49 @@ function NoteCard({
       initial={{ opacity: 0, y: 3 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...SPRING_POPUP, delay }}
-      className="group/card transition-shadow duration-150"
-      style={{
-        borderRadius: 10,
-        border: isExpanded ? '1px solid rgba(37,99,235,0.15)' : '1px solid rgba(0,0,0,0.06)',
-        background: '#fff',
-        boxShadow: isExpanded
-          ? '0 4px 20px rgba(59,130,246,0.06)'
-          : '0 1px 3px rgba(0,0,0,0.03)',
-      }}
-      onMouseEnter={e => {
-        if (!isExpanded) (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'
-      }}
-      onMouseLeave={e => {
-        if (!isExpanded) (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'
-      }}
+      className={`group/card rounded-[10px] border bg-white transition-shadow duration-150 ${
+        isExpanded
+          ? 'border-accent/15 shadow-[0_4px_20px_rgba(59,130,246,0.06)]'
+          : 'border-rule shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]'
+      }`}
     >
       <button
         type="button"
         onClick={() => setIsExpanded(prev => !prev)}
-        className="w-full text-left"
-        style={{ padding: '10px 12px' }}
+        className="w-full p-2.5 text-left"
+        aria-expanded={isExpanded}
+        aria-label={`Note: ${note.publication.title}`}
       >
         {hasExcerpt && (
-          <div
-            className="mb-1.5 line-clamp-1"
-            style={{
-              fontSize: 11,
-              fontStyle: 'italic',
-              color: 'rgba(0,0,0,0.45)',
-              borderLeft: '2px solid rgba(37,99,235,0.25)',
-              paddingLeft: 8,
-              fontFamily: 'var(--font-serif)',
-            }}
-          >
+          <div className="mb-1.5 line-clamp-1 border-l-2 border-accent/25 pl-2 font-serif text-11 italic text-muted">
             &ldquo;{excerpt.length > 60 ? `${excerpt.slice(0, 60)}\u2026` : excerpt}&rdquo;
           </div>
         )}
 
-        <div className="text-[13px] font-medium leading-snug text-[#111]">
+        <div className="text-13 font-medium leading-snug text-text-primary">
           {note.publication.title}
         </div>
-        <div className={`mt-0.5 text-xs leading-relaxed text-black/50 ${isExpanded ? '' : 'line-clamp-2'}`}>
+        <div className={`mt-0.5 text-xs leading-relaxed text-muted ${isExpanded ? '' : 'line-clamp-2'}`}>
           {note.publication.takeaway}
         </div>
 
         <div className="mt-2 flex items-center gap-3">
-          <span className="text-[10px] font-medium text-black/35">
+          <span className="text-2xs font-medium text-text-faint">
             {note.publication.author || 'Anonymous'}
           </span>
           {note.publication.featured && (
-            <span className="rounded-full border border-amber-200/60 bg-amber-50/80 px-1.5 py-0.5 text-[10px] text-amber-600/70">
+            <span className="rounded-full border border-amber-200/60 bg-amber-50/80 px-1.5 py-0.5 text-2xs text-amber-600/70">
               Featured
             </span>
           )}
           {note.verified && (
-            <span className="rounded-full border border-emerald-300/30 bg-emerald-50/60 px-1.5 py-0.5 text-[10px] text-emerald-600">
+            <span className="rounded-full border border-emerald-300/30 bg-emerald-50/60 px-1.5 py-0.5 text-2xs text-emerald-600">
               Verified
             </span>
           )}
           <div className="ml-auto flex items-center gap-1.5">
             {note.votes !== 0 && (
-              <span className="flex items-center gap-0.5 text-[10px] tabular-nums text-black/35">
+              <span className="flex items-center gap-0.5 text-2xs tabular-nums text-text-faint">
                 {note.votes > 0
                   ? <ThumbsUp className="h-2.5 w-2.5" />
                   : <ThumbsDown className="h-2.5 w-2.5" />
@@ -194,12 +169,12 @@ function NoteCard({
               </span>
             )}
             {replyCount > 0 && (
-              <span className="flex items-center gap-0.5 text-[10px] text-black/35">
+              <span className="flex items-center gap-0.5 text-2xs text-text-faint">
                 <MessageSquare className="h-2.5 w-2.5" />
                 {replyCount}
               </span>
             )}
-            <span className="text-black/30">
+            <span className="text-text-faint">
               {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </span>
           </div>
@@ -215,26 +190,18 @@ function NoteCard({
             transition={SPRING_SNAPPY}
             className="overflow-hidden"
           >
-            <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', padding: '0 12px 12px' }}>
+            <div className="border-t border-rule px-3 pb-3">
               {quotedPassage && (
-                <div
-                  className="mt-3"
-                  style={{
-                    borderRadius: 8,
-                    border: '1px solid rgba(37,99,235,0.08)',
-                    background: 'rgba(37,99,235,0.02)',
-                    padding: '10px 12px',
-                  }}
-                >
+                <div className="mt-3 rounded-lg border border-accent/[0.08] bg-accent/[0.02] px-3 py-2.5">
                   {sectionTitle && (
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="text-[10px] font-mono font-medium text-accent">{sectionNumber}</span>
-                      <span className="text-[10px] font-medium text-[#111]">{sectionTitle}</span>
-                      <span className="text-[10px] text-black/35">&mdash; Original passage</span>
+                      <span className="font-mono text-2xs font-medium text-accent">{sectionNumber}</span>
+                      <span className="text-2xs font-medium text-text-primary">{sectionTitle}</span>
+                      <span className="text-2xs text-text-faint">&mdash; Original passage</span>
                     </div>
                   )}
-                  <div style={{ borderLeft: '2px solid rgba(37,99,235,0.25)', paddingLeft: 10 }}>
-                    <p className="text-xs leading-relaxed text-black/60" style={{ fontFamily: 'var(--font-serif)' }}>
+                  <div className="border-l-2 border-accent/25 pl-2.5">
+                    <p className="font-serif text-xs leading-relaxed text-muted">
                       {quotedPassage}
                     </p>
                   </div>
@@ -242,7 +209,7 @@ function NoteCard({
               )}
 
               {!quotedPassage && note.publication.takeaway.length > 120 && (
-                <div className="mt-3 text-xs leading-relaxed text-black/60">
+                <div className="mt-3 text-xs leading-relaxed text-muted">
                   {note.publication.takeaway}
                 </div>
               )}
@@ -253,12 +220,12 @@ function NoteCard({
                 mockReplies={mockReplies}
               />
 
-              <div className="mt-3 flex items-center gap-2" style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 10 }}>
+              <div className="mt-3 flex items-center gap-2 border-t border-rule pt-2.5">
                 <motion.button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); handleClick() }}
                   whileTap={{ scale: 0.92 }}
-                  className="flex items-center gap-1 text-[10px] font-medium text-black/35 transition-colors hover:text-accent"
+                  className="flex items-center gap-1 text-2xs font-medium text-text-faint transition-colors hover:text-accent"
                 >
                   <ExternalLink className="h-2.5 w-2.5" />
                   Open in Community

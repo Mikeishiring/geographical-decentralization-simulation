@@ -472,19 +472,8 @@ function ExplorationCard({
         'overflow-hidden rounded-xl border bg-white transition-shadow duration-150',
         isDeepLinked
           ? 'border-accent/20 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent)_6%,transparent)]'
-          : 'border-black/[0.06]',
+          : 'border-rule shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]',
       )}
-      style={{
-        boxShadow: isDeepLinked
-          ? undefined
-          : '0 1px 3px rgba(0,0,0,0.04)',
-      }}
-      onMouseEnter={e => {
-        if (!isDeepLinked) (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'
-      }}
-      onMouseLeave={e => {
-        if (!isDeepLinked) (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'
-      }}
     >
       <div className="flex gap-3 p-4">
         {onVote ? (
