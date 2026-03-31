@@ -6,7 +6,7 @@ export interface ExplorerRouteState {
   readonly explorationId: string | null
 }
 
-const VALID_TABS: readonly TabId[] = ['paper', 'original', 'results', 'agent', 'community']
+const VALID_TABS: readonly TabId[] = ['paper', 'results', 'agent', 'community']
 const DEFAULT_TAB: TabId = 'paper'
 const AGENT_TAB: TabId = 'agent'
 const RESULTS_TAB: TabId = 'results'
@@ -22,7 +22,7 @@ const TAB_MIGRATION: Record<string, TabId> = {
   history: 'community',
   community: 'community',
   agent: 'agent',
-  original: 'original',
+  original: 'paper',
 }
 
 export const AGENT_ROUTE_PARAM_KEYS = [

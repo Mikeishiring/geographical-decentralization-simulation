@@ -186,10 +186,7 @@ export function PaperReaderPage({
       {readerMode === 'argument-map' ? (
         <ArgumentMapView />
       ) : readerMode === 'paper' ? (
-        <FullTextView
-          activeSectionId={activeSectionId}
-          onSectionClick={setActiveSectionId}
-        />
+        <FullTextView />
       ) : (
         <EditorialView
           isActive={isActive}
