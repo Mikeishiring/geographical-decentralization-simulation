@@ -167,12 +167,8 @@ export const CHART = {
   hoverGlowOpacity: '30',
 } as const
 
-/** Tab-aware max-width class — keeps header, nav, main, and footer aligned */
-export function contentMaxWidth(tab: string): string {
-  if (tab === 'paper') return 'max-w-[88rem]'
-  if (tab === 'agent' || tab === 'results') return 'max-w-[96rem]'
-  return 'max-w-6xl'
-}
+/** Fluid layout max-width — scales from ~1024px to ~1408px across viewports */
+export const CONTENT_MAX_WIDTH = 'max-w-[clamp(64rem,55rem+10vw,88rem)]'
 
 /** Compact number formatter — 1.4K, 23.5M, 890B */
 export function formatCompact(value: number, unit?: string): string {

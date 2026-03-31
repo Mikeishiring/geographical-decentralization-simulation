@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
+import { Eye, FileText, BookOpen, ChevronDown, ChevronUp, MessageSquare, Sparkles } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
@@ -36,6 +36,12 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
 
 const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'focus', 'paper'] as const
 
+const SPECTRUM_POSITIONS: Record<ReaderMode, number> = {
+  editorial: 0,
+  focus: 50,
+  paper: 100,
+}
+
 interface PaperViewModeBarProps {
   readonly readerMode: ReaderMode
   readonly onModeChange: (mode: ReaderMode) => void
@@ -70,8 +76,8 @@ export function PaperViewModeBar({
 
   return (
     <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-2.5 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6">
-      <div className="flex items-center justify-between gap-3">
-        {/* Mode switcher + active section */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        {/* Mode switcher + fidelity spectrum + active section */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-0.5 shrink-0" role="tablist" aria-label="Reading mode">
             {MODES_ORDERED.map(mode => {
@@ -108,6 +114,34 @@ export function PaperViewModeBar({
                 </motion.button>
               )
             })}
+          </div>
+
+          {/* Fidelity spectrum — animated dot tracks interpretation level */}
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
+            <span className="text-2xs select-none whitespace-nowrap flex items-center gap-1">
+              <Sparkles className="h-2.5 w-2.5 text-amber-500/50" />
+              <span className="text-amber-600/50">Interpreted</span>
+            </span>
+            <div className="relative w-16 h-4 flex items-center">
+              <div className="absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 rounded-full bg-gradient-to-r from-amber-300/30 via-rule to-accent/20" />
+              {MODES_ORDERED.map((mode, i) => (
+                <div
+                  key={mode}
+                  className={cn(
+                    'absolute top-1/2 -translate-y-1/2 rounded-full',
+                    readerMode === mode ? 'h-1.5 w-1.5 bg-accent' : 'h-1 w-1 bg-rule',
+                  )}
+                  style={{ left: `${(i / (MODES_ORDERED.length - 1)) * 100}%`, marginLeft: readerMode === mode ? -3 : -2 }}
+                />
+              ))}
+              <motion.div
+                className="absolute top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-accent"
+                animate={{ left: `${SPECTRUM_POSITIONS[readerMode]}%` }}
+                style={{ marginLeft: -5 }}
+                transition={SPRING_SNAPPY}
+              />
+            </div>
+            <span className="text-2xs text-accent/50 select-none whitespace-nowrap">Source</span>
           </div>
 
           {/* Active section label + progress */}
