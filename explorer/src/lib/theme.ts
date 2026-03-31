@@ -46,9 +46,9 @@ export const PAGE_TRANSITION = { type: 'spring' as const, stiffness: 260, dampin
 
 /** Inline error banner styling tokens */
 export const ERROR_BANNER = {
-  border: 'border-red-200/60',
-  bg: 'bg-red-50/60',
-  text: 'text-red-700',
+  border: 'border-danger/20',
+  bg: 'bg-danger/5',
+  text: 'text-danger',
 } as const
 
 /** Reusable shadow tokens */

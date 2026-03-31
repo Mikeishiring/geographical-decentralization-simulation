@@ -1,7 +1,7 @@
 import { useId, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
-import { SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
+import { BLOCK_COLORS, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { WORLD_PATHS } from '../../data/world-paths'
 import type { MapBlock as MapBlockType } from '../../types/blocks'
@@ -26,17 +26,17 @@ function getDotRadius(value: number, maxValue: number): number {
 }
 
 function getDotColor(value: number, maxValue: number, colorScale?: string): string {
-  if (colorScale === 'binary') return value > 0 ? '#16A34A' : '#3B3B3B'
+  if (colorScale === 'binary') return value > 0 ? BLOCK_COLORS[2] : '#3B3B3B'
   if (colorScale === 'change') {
-    if (value > 0) return '#16A34A'
-    if (value < 0) return '#DC2626'
-    return '#555'
+    if (value > 0) return BLOCK_COLORS[2]
+    if (value < 0) return BLOCK_COLORS[4]
+    return '#888'
   }
   const t = Math.min(value / Math.max(maxValue, 1), 1)
   if (t < 0.1) return '#64748B'
-  if (t < 0.3) return '#3B82F6'
-  if (t < 0.6) return '#C2553A'
-  return '#F59E0B'
+  if (t < 0.3) return BLOCK_COLORS[0]
+  if (t < 0.6) return BLOCK_COLORS[1]
+  return BLOCK_COLORS[3]
 }
 
 function getEdgeOpacity(va: number, vb: number, maxValue: number): number {
