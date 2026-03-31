@@ -78,14 +78,15 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   // Gini — inequality index
   const giniEnd = metrics.gini?.[finalSlot]
   const giniDelta = computeDelta(metrics.gini?.[0], giniEnd)
+  const giniSentiment = giniEnd != null ? sentimentLower(giniEnd, THRESHOLDS.gini) : undefined
   if (giniEnd != null) {
     cards.push({
       label: 'Inequality',
       value: formatNumber(giniEnd, 3),
       delta: giniDelta?.formatted ?? null,
       direction: giniDelta?.direction ?? 'flat',
-      note: sentimentLower(giniEnd, THRESHOLDS.gini) === 'positive' ? 'Relatively equal' : sentimentLower(giniEnd, THRESHOLDS.gini) === 'neutral' ? 'Moderate inequality' : 'Highly unequal',
-      sentiment: sentimentLower(giniEnd, THRESHOLDS.gini),
+      note: giniSentiment === 'positive' ? 'Relatively equal' : giniSentiment === 'neutral' ? 'Moderate inequality' : 'Highly unequal',
+      sentiment: giniSentiment!,
       sparkData: sampleForSpark(metrics.gini),
       sparkColor: CHART_COLORS.gini,
     })
@@ -94,14 +95,15 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   // HHI — market concentration
   const hhiEnd = metrics.hhi?.[finalSlot]
   const hhiDelta = computeDelta(metrics.hhi?.[0], hhiEnd)
+  const hhiSentiment = hhiEnd != null ? sentimentLower(hhiEnd, THRESHOLDS.hhi) : undefined
   if (hhiEnd != null) {
     cards.push({
       label: 'Concentration',
       value: formatNumber(hhiEnd, 4),
       delta: hhiDelta?.formatted ?? null,
       direction: hhiDelta?.direction ?? 'flat',
-      note: sentimentLower(hhiEnd, THRESHOLDS.hhi) === 'positive' ? 'Unconcentrated market' : sentimentLower(hhiEnd, THRESHOLDS.hhi) === 'neutral' ? 'Moderate concentration' : 'Highly concentrated',
-      sentiment: sentimentLower(hhiEnd, THRESHOLDS.hhi),
+      note: hhiSentiment === 'positive' ? 'Unconcentrated market' : hhiSentiment === 'neutral' ? 'Moderate concentration' : 'Highly concentrated',
+      sentiment: hhiSentiment!,
       sparkData: sampleForSpark(metrics.hhi),
       sparkColor: CHART_COLORS.hhi,
     })
@@ -158,14 +160,15 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
 
   // Active regions — geographic spread
   const activeEnd = activeRegionCountAtSlot(payload, finalSlot)
+  const regionSentiment = sentimentHigher(activeEnd, THRESHOLDS.activeRegions)
   if (activeEnd > 0) {
     cards.push({
       label: 'Active regions',
       value: String(activeEnd),
       delta: null,
       direction: 'flat',
-      note: sentimentHigher(activeEnd, THRESHOLDS.activeRegions) === 'positive' ? 'Well-distributed' : sentimentHigher(activeEnd, THRESHOLDS.activeRegions) === 'neutral' ? 'Moderate spread' : 'Geographically narrow',
-      sentiment: sentimentHigher(activeEnd, THRESHOLDS.activeRegions),
+      note: regionSentiment === 'positive' ? 'Well-distributed' : regionSentiment === 'neutral' ? 'Moderate spread' : 'Geographically narrow',
+      sentiment: regionSentiment,
       sparkData: [],
       sparkColor: CHART_COLORS.activeRegions,
     })
@@ -352,17 +355,20 @@ function buildTakeaway(payload: PublishedAnalyticsPayload): string {
 
   const gini = m.gini?.[f]
   if (gini != null) {
-    parts.push(gini < 0.4 ? 'Stake is relatively well-distributed' : gini < 0.6 ? 'Moderate stake inequality exists' : 'Stake is heavily concentrated')
+    const s = sentimentLower(gini, THRESHOLDS.gini)
+    parts.push(s === 'positive' ? 'Stake is relatively well-distributed' : s === 'neutral' ? 'Moderate stake inequality exists' : 'Stake is heavily concentrated')
   }
 
   const hhi = m.hhi?.[f]
   if (hhi != null) {
-    parts.push(hhi < 0.15 ? 'with an unconcentrated market structure' : hhi < 0.25 ? 'with moderate market concentration' : 'with high market concentration')
+    const s = sentimentLower(hhi, THRESHOLDS.hhi)
+    parts.push(s === 'positive' ? 'with an unconcentrated market structure' : s === 'neutral' ? 'with moderate market concentration' : 'with high market concentration')
   }
 
   const liveness = m.liveness?.[f]
   if (liveness != null) {
-    parts.push(liveness > 95 ? 'and strong geographic coverage' : liveness > 80 ? 'and adequate coverage' : 'but weak geographic coverage')
+    const s = sentimentHigher(liveness, THRESHOLDS.liveness)
+    parts.push(s === 'positive' ? 'and strong geographic coverage' : s === 'neutral' ? 'and adequate coverage' : 'but weak geographic coverage')
   }
 
   const activeRegions = activeRegionCountAtSlot(payload, f)
