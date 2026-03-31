@@ -52,6 +52,50 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
   const rafRef = useRef<number | null>(null)
   const lastFrameRef = useRef(0)
 
+  // ── Zoom & Pan ──
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [isPanning, setIsPanning] = useState(false)
+  const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+
+  const viewBox = useMemo(() => {
+    const vbW = SVG_W / zoom
+    const vbH = MAP_VISIBLE_H / zoom
+    const vbX = (SVG_W - vbW) / 2 - pan.x
+    const vbY = (MAP_VISIBLE_H - vbH) / 2 - pan.y
+    return `${vbX} ${vbY} ${vbW} ${vbH}`
+  }, [zoom, pan])
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? -0.15 : 0.15
+    setZoom(prev => Math.max(1, Math.min(6, prev + delta * prev)))
+  }, [])
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (zoom <= 1) return
+    setIsPanning(true)
+    panStartRef.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y }
+    ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+  }, [zoom, pan])
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isPanning) return
+    const container = mapContainerRef.current
+    if (!container) return
+    const rect = container.getBoundingClientRect()
+    const scaleX = SVG_W / rect.width
+    const scaleY = MAP_VISIBLE_H / rect.height
+    const dx = (e.clientX - panStartRef.current.x) * scaleX / zoom
+    const dy = (e.clientY - panStartRef.current.y) * scaleY / zoom
+    setPan({ x: panStartRef.current.panX + dx, y: panStartRef.current.panY + dy })
+  }, [isPanning, zoom])
+
+  const handlePointerUp = useCallback(() => setIsPanning(false), [])
+
+  const resetView = useCallback(() => { setZoom(1); setPan({ x: 0, y: 0 }) }, [])
+
   // ── Playback — requestAnimationFrame for smooth 30fps updates ──
   const stepSize = Math.max(1, Math.ceil(totalSlots / 200))
   const frameInterval = 33 // ~30fps — balances smoothness vs render cost
@@ -92,23 +136,28 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
   // ── Data (fully memoized chain) ──
   const validatorNodes = useMemo(() => getSlotRegionNodes(payload, slot), [payload, slot])
   const sourceNodes = useMemo(() => getSourceNodes(payload), [payload])
-  const displayNodes = useMemo(
+  const rawDisplayNodes = useMemo(
     () => overlay === 'sources' ? sourceNodes : validatorNodes,
     [overlay, sourceNodes, validatorNodes],
   )
   const { maxCount, totalValidators } = useMemo(() => {
     let max = 1
     let total = 0
-    for (const n of displayNodes) {
+    for (const n of rawDisplayNodes) {
       if (n.count > max) max = n.count
       total += n.count
     }
     return { maxCount: max, totalValidators: total }
-  }, [displayNodes])
+  }, [rawDisplayNodes])
+
+  const displayNodes = useMemo(
+    () => spreadOverlappingNodes(rawDisplayNodes, maxCount),
+    [rawDisplayNodes, maxCount],
+  )
 
   const latencyArcs = useMemo(
-    () => overlay === 'latency' ? buildLatencyArcs(validatorNodes) : [],
-    [overlay, validatorNodes],
+    () => overlay === 'latency' ? buildLatencyArcs(displayNodes) : [],
+    [overlay, displayNodes],
   )
 
   const sorted = useMemo(
@@ -276,13 +325,36 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
       {/* ── Map + Sidebar ── */}
       <div className="grid gap-0 lg:grid-cols-[1fr_260px]">
         {/* SVG Map */}
-        <div className="relative overflow-hidden" style={{ aspectRatio: `${SVG_W} / ${MAP_VISIBLE_H}`, backgroundColor: DARK_SURFACE.bg }}>
+        <div
+          ref={mapContainerRef}
+          className="relative overflow-hidden"
+          style={{ aspectRatio: `${SVG_W} / ${MAP_VISIBLE_H}`, backgroundColor: DARK_SURFACE.bg, cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
+          onWheel={handleWheel}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+        >
+          {/* Zoom controls overlay */}
+          {zoom > 1 && (
+            <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+              <span className="rounded-md bg-black/60 px-2 py-0.5 text-[0.625rem] font-mono text-white/70 tabular-nums backdrop-blur-sm">
+                {zoom.toFixed(1)}x
+              </span>
+              <button
+                onClick={resetView}
+                className="rounded-md bg-black/60 px-2 py-0.5 text-[0.625rem] font-medium text-white/70 backdrop-blur-sm hover:text-white transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+          )}
           <svg
-            viewBox={`0 0 ${SVG_W} ${MAP_VISIBLE_H}`}
+            viewBox={viewBox}
             className="block h-full w-full"
             preserveAspectRatio="xMidYMid meet"
             role="img"
-            aria-label="Validator geography map"
+            aria-label="Validator geography map — scroll to zoom, drag to pan"
           >
             <defs>
               {/* Ocean-depth background — subtle blue tint radiating from center */}
