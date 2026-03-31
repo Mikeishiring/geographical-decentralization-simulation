@@ -208,8 +208,15 @@ export function PaperReaderPage({
     />
 
     {noteError && (
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-xl border border-danger/20 bg-danger/5 px-4 py-2.5 text-sm text-danger shadow-lg backdrop-blur-sm">
-        {noteError}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-danger/20 bg-danger/5 px-4 py-2.5 text-sm text-danger shadow-lg backdrop-blur-sm">
+        <span>{noteError}</span>
+        <button
+          onClick={() => setNoteError(null)}
+          className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium text-danger/70 hover:text-danger hover:bg-danger/10 transition-colors"
+          aria-label="Dismiss error"
+        >
+          Dismiss
+        </button>
       </div>
     )}
 
