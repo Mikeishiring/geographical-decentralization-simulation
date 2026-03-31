@@ -19,7 +19,7 @@ npx tsx server/index.ts  # API server on :3201 (needs ANTHROPIC_API_KEY in .env)
 
 | Tab | Page | Status |
 |-----|------|--------|
-| Paper | `src/pages/PaperReaderPage.tsx` | Complete — 4-view spectrum (Editorial, Focus, Argument Map, Original PDF), community note text anchoring |
+| Paper | `src/pages/PaperReaderPage.tsx` | Complete — 3 reader modes (Editorial, Focus, Original PDF), collapsible argument map in editorial, community note text anchoring |
 | Results | `src/pages/SimulationLabPage.tsx` | Complete — config builder, preset system, artifact viewer |
 | Agent | `src/pages/AgentLabPage.tsx` | Complete — AI query bar, follow-up chips, tool_use |
 | Community | `src/pages/ExploreHistoryPage.tsx` | Complete — gallery, voting, search, sort, tags, anchored notes |
@@ -58,8 +58,7 @@ npx tsx server/index.ts  # API server on :3201 (needs ANTHROPIC_API_KEY in .env)
 ┌─────────────────────────────────────────────┐
 │ Frontend (Vite :3200)                       │
 │                                             │
-│  PaperReader (static, 4 views)       │      │
-│  PaperReader (4 views inc. PDF)      │      │
+│  PaperReader (3 modes + PDF)         │      │
 │  SimulationLab ──→ /api/simulations ─┐      │
 │  AgentLab ──→ /api/explore ──────────┤      │
 │  ExploreHistory ──→ /api/explorations│      │
