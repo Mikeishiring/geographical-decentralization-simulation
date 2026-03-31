@@ -2,10 +2,11 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, ArrowUpDown, ThumbsUp, ThumbsDown, Tag, ChevronDown, ChevronUp, Users, Sparkles, Link2 } from 'lucide-react'
+import { NodeArc } from '../components/decorative/NodeArc'
 import { getExploration, listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { cn } from '../lib/cn'
-import { SPRING, SPRING_SOFT } from '../lib/theme'
+import { SPRING_CRISP, SPRING_SOFT, STAGGER_CONTAINER } from '../lib/theme'
 import type { TabId } from '../components/layout/TabNav'
 
 type SortMode = 'recent' | 'top'
@@ -404,7 +405,7 @@ function ContributionSection({
         <motion.div
           initial="hidden"
           animate="visible"
-          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
+          variants={STAGGER_CONTAINER}
           className="grid gap-4"
         >
           <AnimatePresence mode="popLayout">
@@ -502,7 +503,7 @@ function ExplorationCard({
       layout
       variants={{
         hidden: { opacity: 0, y: 12 },
-        visible: { opacity: 1, y: 0, transition: SPRING },
+        visible: { opacity: 1, y: 0, transition: SPRING_CRISP },
       }}
       className={cn(
         'overflow-hidden rounded-lg border border-rule bg-white',
@@ -767,8 +768,16 @@ function EmptyState({
         ))}
       </div>
 
-      <div className="flex flex-col items-center justify-center rounded-xl border border-rule bg-white py-20 text-center">
-        <Tag className="mb-4 h-8 w-8 text-text-faint" />
+      <div className="relative overflow-hidden flex flex-col items-center justify-center rounded-xl border border-rule bg-white py-20 text-center">
+        {/* Node-arc motif — echoes the header globe's visual language */}
+        <div className="absolute right-6 top-6 w-[160px] h-[80px] opacity-[0.4] pointer-events-none select-none" aria-hidden="true">
+          <NodeArc className="w-full h-full text-muted" />
+        </div>
+        <div className="absolute left-6 bottom-8 w-[120px] h-[60px] opacity-[0.25] pointer-events-none select-none rotate-180" aria-hidden="true">
+          <NodeArc className="w-full h-full text-muted" />
+        </div>
+
+        <Tag className="relative mb-4 h-8 w-8 text-text-faint" />
         <h2 className="mb-2 text-lg font-medium text-text-primary">No community notes yet</h2>
         <p className="mb-5 max-w-lg text-sm text-muted">
           Start from Findings for a paper-backed reading, or from Simulation for an exact run. Then publish a note intentionally with your own title and takeaway.

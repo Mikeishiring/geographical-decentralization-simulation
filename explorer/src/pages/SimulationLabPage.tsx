@@ -248,7 +248,7 @@ export function SimulationLabPage({
             />
           ) : null}
 
-          <details open={!manifest} className="mb-5 overflow-hidden rounded-[24px] border border-rule bg-[linear-gradient(180deg,rgba(248,250,252,0.82),rgba(255,255,255,0.96))]">
+          <details open={!manifest} className="mb-5 overflow-hidden rounded-[24px] border border-rule bg-gradient-to-b from-surface-active/80 to-white/95">
             <summary className="flex cursor-pointer list-none flex-col gap-3 border-b border-rule/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="lab-section-title">Lab controls</div>
               <div className="flex flex-wrap gap-2 text-xs text-muted">

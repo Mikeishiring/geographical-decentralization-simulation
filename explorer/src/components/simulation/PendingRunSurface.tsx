@@ -1,4 +1,5 @@
 import { cn } from '../../lib/cn'
+import { GlobeNetwork } from '../decorative/GlobeNetwork'
 import type { SimulationConfig, SimulationJob } from '../../lib/simulation-api'
 import type { RunnerStatus } from './simulation-lab-types'
 import { formatEthValue } from './pending-run-helpers'
@@ -76,8 +77,15 @@ export function PendingRunSurface({
   const createdLabel = formatJobTimestamp(jobData?.createdAt)
 
   return (
-    <div className="lab-stage-soft p-5 mb-5">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+    <div className="lab-stage-soft p-5 mb-5 relative overflow-hidden">
+      <div
+        className="absolute -right-6 -top-6 w-[200px] h-[200px] sm:w-[240px] sm:h-[240px] opacity-[0.15] pointer-events-none select-none"
+        aria-hidden="true"
+      >
+        <GlobeNetwork className="w-full h-full text-muted" />
+      </div>
+
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between relative">
         <div>
           <div className="text-[0.6875rem] uppercase tracking-[0.1em] text-text-faint">
             {stage.eyebrow}
