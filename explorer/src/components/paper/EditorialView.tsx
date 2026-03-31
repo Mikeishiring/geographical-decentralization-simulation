@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SPRING, PAGE_TRANSITION } from '../../lib/theme'
+import { SPRING, SPRING_CRISP, PAGE_TRANSITION, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
 import { PAPER_NARRATIVE } from '../../data/paper-narrative'
 import { type TopicCard } from '../../data/default-blocks'
@@ -142,18 +142,24 @@ export function EditorialView({
             {activeTopic.prompts.length > 0 && onTabChange && (
               <div className="mt-6 pt-4 border-t border-rule">
                 <span className="text-xs text-muted mb-2 block">Ask the Agent about this topic</span>
-                <div className="flex flex-wrap gap-2 stagger-reveal">
+                <motion.div
+                  className="flex flex-wrap gap-2"
+                  variants={STAGGER_CONTAINER}
+                  initial="hidden"
+                  animate="show"
+                >
                   {activeTopic.prompts.slice(0, 4).map((prompt, i) => (
-                    <button
+                    <motion.button
                       key={`${prompt}-${i}`}
+                      variants={STAGGER_ITEM}
                       onClick={() => onTabChange('agent')}
                       className="follow-up-chip"
                       title={`Ask Agent: ${prompt}`}
                     >
                       {prompt}
-                    </button>
+                    </motion.button>
                   ))}
-                </div>
+                </motion.div>
               </div>
             )}
           </motion.div>
@@ -166,7 +172,7 @@ export function EditorialView({
           /* Focus mode: centered, distraction-free */
           <div className="space-y-12">
             {/* Focus mode section indicator */}
-            <div className="sticky top-40 z-10 rounded-lg border border-rule bg-white/95 backdrop-blur-sm px-4 py-2.5">
+            <div className="sticky top-40 z-10 rounded-xl border border-rule bg-white/95 backdrop-blur-sm px-4 py-2.5 geo-accent-bar">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-xs font-mono text-accent">{activeSection.number}</span>
@@ -197,7 +203,7 @@ export function EditorialView({
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.15 }}
                   transition={SPRING}
-                  className="group scroll-mt-40 mx-auto max-w-5xl rounded-lg border border-rule bg-white p-5 transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] sm:p-6"
+                  className="group scroll-mt-40 mx-auto max-w-5xl rounded-xl border border-rule bg-white p-5 card-hover geo-accent-bar sm:p-6"
                 >
                   <div className="mb-6 border-b border-rule pb-5">
                     <h2 className="mt-2 max-w-3xl text-2xl font-medium text-text-primary font-serif sm:text-3xl">
@@ -217,7 +223,7 @@ export function EditorialView({
                         <p key={paragraph}>{paragraph}</p>
                       ))}
                     </div>
-                    <div className="border-l-[3px] border-l-accent pl-5 py-2">
+                    <div className="border-l-2 border-l-accent/40 pl-5 py-2">
                       <div className="flex items-center gap-1.5 text-xs text-muted mb-2">
                         <Quote className="h-3 w-3" />
                         Pull quote
@@ -280,14 +286,23 @@ export function EditorialView({
 
       {/* Navigation to other tabs — after the reading content */}
       {!showTopic && onTabChange && (
-        <div className="mt-10 stagger-reveal grid gap-3 sm:grid-cols-3">
+        <motion.div
+          className="mt-10 grid gap-3 sm:grid-cols-3"
+          variants={STAGGER_CONTAINER}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.3 }}
+        >
           {([
             { tab: 'results' as TabId, eyebrow: 'Simulation lab', title: 'Results', detail: 'Run scenarios, compare paradigms, export artifacts.' },
             { tab: 'agent' as TabId, eyebrow: 'Questions & experiments', title: 'Agent workspace', detail: 'Ask the paper, run simulations, export results.' },
             { tab: 'community' as TabId, eyebrow: 'Public responses', title: 'Community notes', detail: 'Human notes on readings and simulation runs.' },
           ] as const).map(item => (
-            <button
+            <motion.button
               key={item.tab}
+              variants={STAGGER_ITEM}
+              whileTap={{ scale: 0.98 }}
+              transition={SPRING_CRISP}
               onClick={() => onTabChange(item.tab)}
               className="group relative overflow-hidden rounded-xl border border-rule bg-white p-4 text-left card-hover globe-grid"
             >
@@ -302,9 +317,9 @@ export function EditorialView({
                 </div>
                 <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
               </div>
-            </button>
+            </motion.button>
           ))}
-        </div>
+        </motion.div>
       )}
 
       {/* Community preview — after nav cards */}
@@ -317,7 +332,13 @@ export function EditorialView({
       </div>
 
       {/* References footer */}
-      <section className="mt-8 rounded-xl border border-rule bg-white p-5 sm:p-6 geo-accent-bar">
+      <motion.section
+        className="mt-8 rounded-xl border border-rule bg-white p-5 sm:p-6 geo-accent-bar"
+        initial={{ opacity: 0, y: 10 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={SPRING}
+      >
         <div className="lab-section-title">References and intent</div>
         <p className="mt-3 max-w-2xl text-13 leading-[1.65] text-text-body font-serif">
           This reader view makes the paper easier to absorb without replacing the canonical study. The best first stops are the gamma paradox, the starting-geography section, and the limitations — they define the paper's surprise, realism, and confidence boundary.
@@ -335,7 +356,7 @@ export function EditorialView({
             </a>
           ))}
         </div>
-      </section>
+      </motion.section>
     </motion.div>
   )
 }

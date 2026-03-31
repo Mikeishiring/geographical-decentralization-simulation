@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
-import { SPRING } from '../../lib/theme'
+import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { TOPIC_CARDS, type TopicCard } from '../../data/default-blocks'
 
 const INITIAL_VISIBLE = 4
@@ -24,7 +24,13 @@ export function TopicCardGrid({
   const hasMore = TOPIC_CARDS.length > INITIAL_VISIBLE
 
   return (
-    <div className="rounded-xl border border-rule bg-white px-4 py-4 geo-accent-bar">
+    <motion.div
+      className="rounded-xl border border-rule bg-white px-4 py-4 geo-accent-bar"
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={SPRING}
+    >
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="lab-section-title">
           {activeTopic || showingAi ? 'Paper topics' : 'Explore by topic'}
@@ -49,7 +55,15 @@ export function TopicCardGrid({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" role="group" aria-label="Topic cards">
+      <motion.div
+        className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+        role="group"
+        aria-label="Topic cards"
+        variants={STAGGER_CONTAINER}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, amount: 0.2 }}
+      >
         {visibleCards.map(card => {
           const isActive = activeTopic?.id === card.id && !showingAi
           const isDimmed = (activeTopic !== null || showingAi) && !isActive
@@ -57,9 +71,10 @@ export function TopicCardGrid({
           return (
             <motion.button
               key={card.id}
+              variants={STAGGER_ITEM}
               onClick={() => onTopicClick(card)}
               whileTap={{ scale: 0.985 }}
-              transition={SPRING}
+              transition={SPRING_CRISP}
               aria-label={card.title}
               aria-pressed={isActive}
               className={cn(
@@ -83,7 +98,7 @@ export function TopicCardGrid({
             </motion.button>
           )
         })}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
