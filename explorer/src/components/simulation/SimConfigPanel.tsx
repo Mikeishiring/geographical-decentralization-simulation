@@ -115,6 +115,7 @@ export function SimConfigPanel({
               {(['SSP', 'MSP'] as const).map(paradigm => (
                 <button
                   key={paradigm}
+                  title={paradigm === 'SSP' ? 'Single Slot Proposer — current Ethereum design where one builder proposes per slot' : 'Multiple Slot Proposer — proposed design where several builders contribute to each slot'}
                   onClick={() => onConfigChange('paradigm', paradigm)}
                   className={cn(
                     segmentButtonClassName,
@@ -137,6 +138,7 @@ export function SimConfigPanel({
             <select
               value={config.distribution}
               onChange={event => onConfigChange('distribution', event.target.value as SimulationConfig['distribution'])}
+              title="How validators are spread across GCP regions. Heterogeneous uses real Ethereum stake distribution."
               className={inputClassName}
             >
               <option value="homogeneous">Homogeneous (upstream baseline default)</option>
@@ -151,6 +153,7 @@ export function SimConfigPanel({
             <select
               value={config.sourcePlacement}
               onChange={event => onConfigChange('sourcePlacement', event.target.value as SimulationConfig['sourcePlacement'])}
+              title="Where block-building information sources are located relative to validators"
               className={inputClassName}
             >
               <option value="homogeneous">Homogeneous</option>
@@ -168,6 +171,7 @@ export function SimConfigPanel({
             Scale — how much to compute
           </div>
           <div
+            title={`Estimated runtime: ${runtime.label}. Based on validator × slot count.`}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-11 font-medium',
               runtime.tier === 'quick' && 'border-success/30 bg-success/8 text-success',
@@ -203,7 +207,7 @@ export function SimConfigPanel({
           <div>
             <div className="flex items-center justify-between gap-3 mb-1.5">
               <label className="text-xs text-muted block">Validators</label>
-              <div className="text-11 text-text-faint">{config.validators.toLocaleString()}</div>
+              <div title="Total validator agents in simulation. Paper baseline: 1,000" className="text-11 text-text-faint">{config.validators.toLocaleString()}</div>
             </div>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
               {VALIDATOR_ANCHORS.map(option => (
@@ -243,7 +247,7 @@ export function SimConfigPanel({
           <div>
             <div className="flex items-center justify-between gap-3 mb-1.5">
               <label className="text-xs text-muted block">Slots</label>
-              <div className="text-11 text-text-faint">{config.slots.toLocaleString()}</div>
+              <div title="Total consensus rounds to simulate. Paper baseline: 10,000" className="text-11 text-text-faint">{config.slots.toLocaleString()}</div>
             </div>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
               {SLOT_ANCHORS.map(option => (
@@ -298,6 +302,7 @@ export function SimConfigPanel({
                 {THRESHOLD_OPTIONS.map(option => (
                   <button
                     key={option.label}
+                    title={`γ = ${option.value} — fraction of validators required to attest before a block is accepted`}
                     onClick={() => onConfigChange('attestationThreshold', option.value)}
                     className={cn(
                       segmentButtonClassName,
@@ -321,6 +326,7 @@ export function SimConfigPanel({
                 {SLOT_OPTIONS.map(option => (
                   <button
                     key={option.label}
+                    title={`${option.value}s per slot — shorter slots mean faster finality but less time for attestations to arrive`}
                     onClick={() => onConfigChange('slotTime', option.value)}
                     className={cn(
                       segmentButtonClassName,
@@ -337,7 +343,7 @@ export function SimConfigPanel({
             </div>
 
             <div>
-              <label className="text-xs text-muted mb-1.5 block">
+              <label title="ETH cost validators pay when relocating between regions. Higher costs discourage geographic churn." className="text-xs text-muted mb-1.5 block">
                 Migration Cost: {config.migrationCost.toFixed(4)} ETH
               </label>
               <div className="lab-input-shell rounded-[1rem] px-4 py-4">

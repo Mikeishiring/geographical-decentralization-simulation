@@ -80,6 +80,25 @@ export function PendingRunSurface({
 
   const isActive = status === 'submitting' || status === 'queued' || status === 'running'
 
+  const CARD_TITLES: Record<string, string> = {
+    Queue: 'Position in execution queue. "Live" means no jobs ahead.',
+    Cache: '"Reused" = instant cache hit. "Fresh" = new computation required.',
+    Updated: 'Last status update timestamp. ID prefix shown below.',
+  }
+
+  const STEP_TITLES: Record<string, string> = {
+    Ticket: 'Job accepted and queued for execution',
+    Engine: 'Mesa simulation engine running validators',
+    Render: 'Processing results into visualization artifacts',
+  }
+
+  const SNAPSHOT_TITLES: Record<string, string> = {
+    Source: 'Where block-building information originates relative to validators',
+    Distribution: 'How validators are distributed across geographic regions',
+    Timing: 'Slot duration and attestation threshold (γ) for this run',
+    'Migration cost': 'ETH cost validators pay when relocating between regions',
+  }
+
   return (
     <motion.div
       className="stripe-top-accent lab-stage-soft p-5 mb-5 relative overflow-hidden"
@@ -153,6 +172,7 @@ export function PendingRunSurface({
             <motion.div
               key={card.label}
               className="lab-metric-card card-hover"
+              title={CARD_TITLES[card.label]}
               initial={{ opacity: 0, y: 6, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ ...SPRING_CRISP, delay: 0.12 + i * 0.04 }}
@@ -176,6 +196,7 @@ export function PendingRunSurface({
             {['Ticket', 'Engine', 'Render'].map((step, index) => (
               <span
                 key={step}
+                title={STEP_TITLES[step]}
                 className={cn(
                   'text-11',
                   stepIndex > index && 'text-emerald-600',
@@ -210,6 +231,7 @@ export function PendingRunSurface({
           <motion.div
             key={card.label}
             className="lab-option-card px-3 py-2.5"
+            title={SNAPSHOT_TITLES[card.label]}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...SPRING_CRISP, delay: 0.2 + i * 0.04 }}

@@ -54,6 +54,7 @@ interface KpiCard {
   readonly delta: string | null
   readonly direction: 'up' | 'down' | 'flat'
   readonly note: string
+  readonly detail: string
   readonly sentiment: 'positive' | 'neutral' | 'negative'
   readonly sparkData: readonly number[]
   readonly sparkColor: string
@@ -88,6 +89,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       delta: giniDelta?.formatted ?? null,
       direction: giniDelta?.direction ?? 'flat',
       note: giniSentiment === 'positive' ? 'Relatively equal' : giniSentiment === 'neutral' ? 'Moderate inequality' : 'Highly unequal',
+      detail: 'Gini coefficient (0 = perfectly equal, 1 = maximally concentrated). Measures geographic validator distribution.',
       sentiment: giniSentiment,
       sparkData: sampleForSpark(metrics.gini),
       sparkColor: CHART_COLORS.gini,
@@ -106,6 +108,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       delta: hhiDelta?.formatted ?? null,
       direction: hhiDelta?.direction ?? 'flat',
       note: hhiSentiment === 'positive' ? 'Unconcentrated market' : hhiSentiment === 'neutral' ? 'Moderate concentration' : 'Highly concentrated',
+      detail: 'Herfindahl-Hirschman Index — sum of squared shares. Higher values indicate more concentrated markets.',
       sentiment: hhiSentiment,
       sparkData: sampleForSpark(metrics.hhi),
       sparkColor: CHART_COLORS.hhi,
@@ -124,6 +127,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       delta: livenessDelta ? `${livenessDelta.formatted}%` : null,
       direction: livenessDelta?.direction ?? 'flat',
       note: topRegion ? `Led by ${topRegion.label}` : 'Network liveness rate',
+      detail: 'Percentage of GCP regions with active validators. Higher means broader geographic spread.',
       sentiment: sentimentHigher(livenessEnd, THRESHOLDS.liveness),
       sparkData: sampleForSpark(metrics.liveness),
       sparkColor: CHART_COLORS.liveness,
@@ -141,6 +145,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       delta: attestDelta?.formatted ?? null,
       direction: attestDelta?.direction ?? 'flat',
       note: 'Coordination health',
+      detail: 'Average attestation count per slot. Measures validator coordination and network health.',
       sentiment: 'neutral',
       sparkData: sampleForSpark(metrics.attestations),
       sparkColor: CHART_COLORS.attestation,
@@ -158,6 +163,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       delta: proposalDelta ? `${proposalDelta.formatted} ms` : null,
       direction: proposalDelta?.direction ?? 'flat',
       note: 'Pipeline responsiveness',
+      detail: 'Average time in milliseconds for block proposals to propagate. Lower = faster consensus.',
       sentiment: sentimentLower(proposalEnd, THRESHOLDS.proposalTime),
       sparkData: sampleForSpark(metrics.proposal_times),
       sparkColor: CHART_COLORS.proposalTime,
@@ -175,6 +181,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       delta: null,
       direction: 'flat',
       note: regionSentiment === 'positive' ? 'Well-distributed' : regionSentiment === 'neutral' ? 'Moderate spread' : 'Geographically narrow',
+      detail: 'Number of distinct GCP regions with at least one active validator in the final slot.',
       sentiment: regionSentiment,
       sparkData: [],
       sparkColor: CHART_COLORS.activeRegions,
@@ -222,6 +229,7 @@ export function EvidenceKpiStrip({ payload, activeCategory, onCategoryChange }: 
             key={card.label}
             variants={STAGGER_ITEM}
             onClick={() => onCategoryChange(isActive ? 'all' : card.linkedCategory)}
+            title={card.detail}
             className={cn(
               'lab-option-card px-3 py-2.5 text-left transition-all',
               isActive && 'border-accent/40 ring-1 ring-accent/10',
@@ -263,13 +271,14 @@ interface ConfigSnapshotProps {
 const PARAM_DEFS: ReadonlyArray<{
   key: keyof ResearchMetadata
   label: string
+  title: string
   format: (v: number) => string
 }> = [
-  { key: 'v', label: '|V|', format: v => v.toLocaleString() },
-  { key: 'cost', label: 'cost', format: v => `${v} ETH` },
-  { key: 'delta', label: '\u0394', format: v => `${v} ms` },
-  { key: 'cutoff', label: 'cutoff', format: v => `${v} ms` },
-  { key: 'gamma', label: '\u03B3', format: v => formatNumber(v, 2) },
+  { key: 'v', label: '|V|', title: 'Number of validator agents', format: v => v.toLocaleString() },
+  { key: 'cost', label: 'cost', title: 'Migration cost in ETH', format: v => `${v} ETH` },
+  { key: 'delta', label: '\u0394', title: 'Slot duration in milliseconds', format: v => `${v} ms` },
+  { key: 'cutoff', label: 'cutoff', title: 'Attestation propagation cutoff', format: v => `${v} ms` },
+  { key: 'gamma', label: '\u03B3', title: 'Attestation threshold — fraction of validators required to accept a block', format: v => formatNumber(v, 2) },
 ]
 
 export function EvidenceConfigSnapshot({ metadata, description, paradigm, totalSlots }: ConfigSnapshotProps) {
@@ -280,11 +289,11 @@ export function EvidenceConfigSnapshot({ metadata, description, paradigm, totalS
       <div className="flex flex-wrap gap-1.5 mb-3">
         <span className="lab-chip bg-white/90 text-2xs">{paradigm}</span>
         <span className="lab-chip bg-white/90 text-2xs">{totalSlots.toLocaleString()} slots</span>
-        {metadata && PARAM_DEFS.map(({ key, label, format }) => {
+        {metadata && PARAM_DEFS.map(({ key, label, title, format }) => {
           const val = metadata[key]
           if (val == null || typeof val !== 'number') return null
           return (
-            <span key={key} className="lab-chip bg-white/90 text-2xs">
+            <span key={key} title={title} className="lab-chip bg-white/90 text-2xs">
               {label}: {format(val)}
             </span>
           )

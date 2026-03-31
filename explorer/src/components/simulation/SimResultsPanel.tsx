@@ -87,6 +87,7 @@ interface ExactMetricCard {
   readonly value: string
   readonly suffix?: string
   readonly note?: string
+  readonly detail?: string
 }
 
 type ExactChartSeries = NonNullable<SimResultsPanelProps['exactChartSeries']>[number]
@@ -546,18 +547,21 @@ export function SimResultsPanel({
       value: formatNumber(manifest.summary.finalAverageMev, 4),
       suffix: 'ETH',
       note: 'Ending reward surface',
+      detail: 'Average maximal extractable value per validator at final slot. Higher = better incentive alignment.',
     },
     {
       key: 'finalSupermajoritySuccess',
       label: 'Supermajority success',
       value: `${formatNumber(manifest.summary.finalSupermajoritySuccess, 2)}%`,
       note: 'Consensus completion',
+      detail: 'Percentage of slots where ≥2/3 of validators attested successfully. >99% indicates healthy consensus.',
     },
     {
       key: 'finalFailedBlockProposals',
       label: 'Failed proposals',
       value: formatNumber(manifest.summary.finalFailedBlockProposals, 0),
       note: 'Final emitted count',
+      detail: 'Block proposals that failed to reach the attestation threshold. Lower is better.',
     },
     {
       key: 'finalUtilityIncrease',
@@ -565,18 +569,21 @@ export function SimResultsPanel({
       value: formatNumber(manifest.summary.finalUtilityIncrease, 4),
       suffix: 'ETH',
       note: 'Net improvement',
+      detail: 'Net MEV gain compared to baseline. Positive = geographic configuration improved validator rewards.',
     },
     {
       key: 'slotsRecorded',
       label: 'Slots recorded',
       value: manifest.summary.slotsRecorded.toLocaleString(),
       note: 'Manifest coverage',
+      detail: 'Total consensus rounds captured in the result manifest. Should match requested slot count.',
     },
     {
       key: 'runtimeSeconds',
       label: 'Runtime',
       value: `${formatNumber(manifest.runtimeSeconds, 2)}s`,
       note: manifest.cacheHit ? 'Served from exact cache' : 'Fresh exact execution',
+      detail: manifest.cacheHit ? 'Result served instantly from cache — identical config was run before.' : 'Fresh simulation execution time. Depends on validator × slot count.',
     },
   ] as const
 
@@ -626,7 +633,7 @@ export function SimResultsPanel({
             <motion.div
               key={card.key}
               className="lab-metric-card card-hover"
-              title={card.note ?? undefined}
+              title={card.detail ?? card.note ?? undefined}
               initial={{ opacity: 0, y: 8, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ ...SPRING_CRISP, delay: 0.1 + i * CHART.stagger }}
