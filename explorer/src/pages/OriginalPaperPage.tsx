@@ -79,7 +79,6 @@ export function OriginalPaperPage({ onTabChange }: { onTabChange?: (tab: TabId) 
     setAnnotations(prev => prev.filter(a => a.id !== id))
   }, [])
 
-  // Use local PDF if available, fall back to arXiv
   const pdfSrc = LOCAL_PDF_URL
 
   return (
@@ -319,7 +318,7 @@ export function OriginalPaperPage({ onTabChange }: { onTabChange?: (tab: TabId) 
                     <button
                       onClick={() => handleDeleteAnnotation(annotation.id)}
                       className="opacity-0 group-hover:opacity-100 text-muted hover:text-danger transition-all"
-                      title="Delete annotation"
+                      aria-label="Delete annotation"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>

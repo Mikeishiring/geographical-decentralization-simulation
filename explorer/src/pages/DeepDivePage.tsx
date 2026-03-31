@@ -150,6 +150,7 @@ export function DeepDivePage() {
               <button
                 onClick={() => toggle(section.id)}
                 className="w-full px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
+                aria-expanded={isExpanded}
               >
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 w-8 shrink-0 text-11 font-mono text-accent">
