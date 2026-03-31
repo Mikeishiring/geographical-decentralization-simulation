@@ -33,12 +33,6 @@ export const MODE_META: Record<ReaderMode, { icon: typeof Eye; label: string; de
 
 const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'focus', 'paper'] as const
 
-const SPECTRUM_POSITIONS: Record<ReaderMode, number> = {
-  editorial: 0,
-  focus: 50,
-  paper: 100,
-}
-
 interface PaperViewModeBarProps {
   readonly readerMode: ReaderMode
   readonly onModeChange: (mode: ReaderMode) => void

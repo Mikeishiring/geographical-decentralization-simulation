@@ -13,12 +13,12 @@ export const INSTANT = { duration: 0 } as const
 /** Stagger children preset for scroll-triggered reveals */
 export const STAGGER_CONTAINER = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.04, delayChildren: 0.01 } },
+  show: { transition: { staggerChildren: 0.04, delayChildren: 0.01 } },
 } as const
 
 export const STAGGER_ITEM = {
   hidden: { opacity: 0, y: 12, scale: 0.98 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: SPRING_CRISP },
+  show: { opacity: 1, y: 0, scale: 1, transition: SPRING_CRISP },
 } as const
 
 /** Block visualization palette — SSP ocean, MSP earth, plus supporting colors */
