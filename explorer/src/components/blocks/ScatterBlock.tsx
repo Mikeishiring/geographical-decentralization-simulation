@@ -85,8 +85,8 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
           <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" preserveAspectRatio="xMidYMid meet">
             <defs>
               <radialGradient id={gradientId}>
-                <stop offset="0%" stopColor="#2563EB" stopOpacity="0.25" />
-                <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
+                <stop offset="0%" stopColor={BLOCK_COLORS[0]} stopOpacity="0.25" />
+                <stop offset="100%" stopColor={BLOCK_COLORS[0]} stopOpacity="0" />
               </radialGradient>
             </defs>
 

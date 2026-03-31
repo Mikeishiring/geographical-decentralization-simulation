@@ -16,12 +16,12 @@ export const INSTANT = { duration: 0 } as const
 /** Stagger children preset for scroll-triggered reveals */
 export const STAGGER_CONTAINER = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.04, delayChildren: 0.01 } },
+  visible: { transition: { staggerChildren: 0.04, delayChildren: 0.01 } },
 } as const
 
 export const STAGGER_ITEM = {
   hidden: { opacity: 0, y: 12, scale: 0.98 },
-  show: { opacity: 1, y: 0, scale: 1, transition: SPRING_CRISP },
+  visible: { opacity: 1, y: 0, scale: 1, transition: SPRING_CRISP },
 } as const
 
 /** Section category badge colors — maps SectionCategory to [bg, text, border] Tailwind classes */
@@ -50,6 +50,42 @@ export const BLOCK_COLORS = [
   '#D97706', // amber
   '#DC2626', // signal red
 ] as const
+
+/** Pastel palette for decorative globe nodes and map region fills */
+export const PASTEL_PALETTE = [
+  '#c3b1e1', // lavender
+  '#a8d8ea', // sky
+  '#ffd3b6', // peach
+  '#a8e6cf', // mint
+  '#f6b8d1', // rose
+] as const
+
+/** Intent-aware colors for time-series and metric lines */
+export const INTENT_COLORS: Record<string, string> = {
+  warn: '#C2410C',
+  info: '#1D4ED8',
+  safe: '#0F766E',
+  highlight: '#7C3AED',
+} as const
+
+/** Dark-mode map/globe surface palette */
+export const DARK_SURFACE = {
+  bg: '#0B0F14',
+  gradientTop: '#0E1520',
+  gradientMid: '#080C12',
+  gradientBot: '#060A0F',
+  graticule: '#1C2A3E',
+  labelText: '#2A3D5A',
+  worldFill: '#111B28',
+  worldStroke: '#1E3048',
+  tooltipBg: '#0C1220',
+  subtleText: '#B0C4D8',
+  grayscaleFill: '#667788',
+  grayscaleStroke: '#556677',
+} as const
+
+/** Shimmer loading placeholder color */
+export const SHIMMER_COLOR = '#CBD5E1'
 
 /** GCP macro-region coordinate labels — decorative micro-detail */
 export const REGION_COORDS = [

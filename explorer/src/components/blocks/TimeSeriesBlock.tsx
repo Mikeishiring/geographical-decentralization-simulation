@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
+import { BLOCK_COLORS, CHART, INTENT_COLORS, SPRING_CRISP } from '../../lib/theme'
 import { crosshairFadeNearLive } from '../../lib/chart-animations'
 import type { TimeSeriesBlock as TimeSeriesBlockType } from '../../types/blocks'
 
@@ -25,10 +25,10 @@ function formatSeriesNumber(value: number): string {
 }
 
 function notePinColor(intent: 'observation' | 'question' | 'theory' | 'methods'): string {
-  if (intent === 'question') return '#C2410C'
-  if (intent === 'theory') return '#1D4ED8'
-  if (intent === 'methods') return '#0F766E'
-  return '#7C3AED'
+  if (intent === 'question') return INTENT_COLORS.warn
+  if (intent === 'theory') return INTENT_COLORS.info
+  if (intent === 'methods') return INTENT_COLORS.safe
+  return INTENT_COLORS.highlight
 }
 
 export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) {
