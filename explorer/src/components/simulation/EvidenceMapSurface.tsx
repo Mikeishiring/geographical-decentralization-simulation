@@ -348,6 +348,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             <button
               onClick={zoomIn}
               className="flex items-center justify-center h-7 w-7 rounded-md bg-white/[0.06] backdrop-blur-md border border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.12] transition-colors"
+              aria-label={`Zoom in (current: ${zoom.toFixed(1)}x)`}
               title="Zoom in"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -355,6 +356,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             <button
               onClick={zoomOut}
               className="flex items-center justify-center h-7 w-7 rounded-md bg-white/[0.06] backdrop-blur-md border border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.12] transition-colors"
+              aria-label={`Zoom out (current: ${zoom.toFixed(1)}x)`}
               title="Zoom out"
             >
               <Minus className="h-3.5 w-3.5" />
@@ -363,6 +365,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               <button
                 onClick={resetView}
                 className="flex items-center justify-center h-7 w-7 rounded-md bg-white/[0.06] backdrop-blur-md border border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.12] transition-colors"
+                aria-label="Reset map zoom and pan to default view"
                 title="Reset zoom"
               >
                 <Maximize2 className="h-3 w-3" />
@@ -433,21 +436,30 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             <rect width={SVG_W} height={MAP_VISIBLE_H} fill={`url(#${idPrefix}-bg)`} />
             <rect width={SVG_W} height={MAP_VISIBLE_H} fill={`url(#${idPrefix}-ocean)`} />
 
-            {/* Graticule */}
+            {/* Graticule — curved lines for Natural Earth projection */}
             {[-30, 0, 30, 60].map(lat => {
-              const { y } = latLonToMercator(lat, 0, SVG_W, SVG_H)
+              const pts = Array.from({ length: 37 }, (_, i) => {
+                const lon = -180 + i * 10
+                return latLonToMercator(lat, lon, SVG_W, SVG_H)
+              })
+              const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('')
+              const label = latLonToMercator(lat, -170, SVG_W, SVG_H)
               return (
                 <g key={`lat-${lat}`}>
-                  <line x1={0} y1={y} x2={SVG_W} y2={y} stroke={DARK_SURFACE.graticule} strokeWidth={0.5} strokeDasharray={lat === 0 ? 'none' : '3 6'} />
-                  <text x={10} y={y - 3} fill={DARK_SURFACE.labelText} fontSize="7" fontFamily="var(--font-mono)" opacity={0.6}>
+                  <path d={d} fill="none" stroke={DARK_SURFACE.graticule} strokeWidth={0.5} strokeDasharray={lat === 0 ? 'none' : '3 6'} />
+                  <text x={label.x} y={label.y - 3} fill={DARK_SURFACE.labelText} fontSize="7" fontFamily="var(--font-mono)" opacity={0.6}>
                     {Math.abs(lat)}°{lat >= 0 ? 'N' : 'S'}
                   </text>
                 </g>
               )
             })}
             {[-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map(lon => {
-              const { x } = latLonToMercator(0, lon, SVG_W, SVG_H)
-              return <line key={`lon-${lon}`} x1={x} y1={0} x2={x} y2={MAP_VISIBLE_H} stroke={DARK_SURFACE.graticule} strokeWidth={0.5} strokeDasharray="3 6" />
+              const pts = Array.from({ length: 19 }, (_, i) => {
+                const lat = -90 + i * 10
+                return latLonToMercator(lat, lon, SVG_W, SVG_H)
+              })
+              const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('')
+              return <path key={`lon-${lon}`} d={d} fill="none" stroke={DARK_SURFACE.graticule} strokeWidth={0.5} strokeDasharray="3 6" />
             })}
 
             {/* Country outlines */}
