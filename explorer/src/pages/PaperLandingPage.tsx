@@ -8,6 +8,7 @@ import { DEFAULT_BLOCKS, OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../d
 import { PAPER_METADATA, PAPER_SECTIONS } from '../data/paper-sections'
 import { createExploration, publishExploration } from '../lib/api'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
+import { NodeArc } from '../components/decorative/NodeArc'
 import { PaperHero } from '../components/paper/PaperHero'
 import { TopicCardGrid } from '../components/paper/TopicCardGrid'
 import { CommunityPreview } from '../components/paper/CommunityPreview'
@@ -105,11 +106,11 @@ export function PaperLandingPage({
       <PaperHero />
 
       {/* Best first stops */}
-      <section className="reveal-up rounded-xl border border-rule bg-white px-5 py-5">
+      <section className="reveal-up rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Best first stops</span>
-            <div className="mt-1 text-[0.8125rem] font-medium text-text-primary">Four strong entry points into the paper</div>
+            <div className="lab-section-title">Best first stops</div>
+            <div className="mt-1.5 text-[0.8125rem] font-medium text-text-primary">Four strong entry points into the paper</div>
           </div>
           <div className="max-w-2xl text-[0.8125rem] leading-[1.6] text-muted">
             Start with the paradox, then check the realism question, the implications, and the limitations.
@@ -123,7 +124,7 @@ export function PaperLandingPage({
               className="group flex items-baseline justify-between gap-4 py-3 transition-colors"
             >
               <div className="min-w-0">
-                <span className="text-[0.625rem] font-mono text-accent uppercase">{section.number}</span>
+                <span className="mono-xs text-accent uppercase">{section.number}</span>
                 <div className="mt-0.5 text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">{section.title}</div>
                 <div className="mt-0.5 text-xs leading-5 text-muted">{sectionEntryLine(section.id)}</div>
               </div>
@@ -189,23 +190,30 @@ export function PaperLandingPage({
 
       {/* Navigation to other tabs */}
       {!showTopic && onTabChange && (
-        <div className="stagger-reveal rounded-xl border border-rule bg-white divide-y divide-rule">
+        <div className="stagger-reveal grid gap-3 sm:grid-cols-3">
           {([
-            { tab: 'original' as TabId, eyebrow: 'Read the canonical source', title: 'Open original PDF', detail: 'View the exact published paper with dark mode and annotation tools.' },
-            { tab: 'agent' as TabId, eyebrow: 'Ask questions or run experiments', title: 'Open Agent workspace', detail: 'Ask the paper questions, run simulations, and build custom result dashboards.' },
-            { tab: 'community' as TabId, eyebrow: 'Read public responses', title: 'Browse community notes', detail: 'Human-authored notes layered on top of paper readings and exact simulation runs.' },
+            { tab: 'original' as TabId, eyebrow: 'Canonical source', title: 'Original PDF', detail: 'Dark mode, annotations, exact published paper.', accent: 'accent' },
+            { tab: 'agent' as TabId, eyebrow: 'Questions & experiments', title: 'Agent workspace', detail: 'Ask the paper, run simulations, export results.', accent: 'accent-warm' },
+            { tab: 'community' as TabId, eyebrow: 'Public responses', title: 'Community notes', detail: 'Human notes on readings and simulation runs.', accent: 'success' },
           ] as const).map(item => (
             <button
               key={item.tab}
               onClick={() => onTabChange(item.tab)}
-              className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-surface-active/50"
+              className="group relative overflow-hidden rounded-xl border border-rule bg-white p-4 text-left transition-all hover:border-border-hover hover:shadow-sm globe-grid"
             >
-              <div className="min-w-0">
-                <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{item.eyebrow}</span>
-                <div className="mt-1 text-[0.8125rem] font-medium leading-6 text-text-primary">{item.title}</div>
-                <div className="mt-0.5 text-xs leading-5 text-muted">{item.detail}</div>
+              {/* Node-arc motif — globe DNA */}
+              <div className="absolute right-1 top-1 w-[80px] h-[40px] opacity-[0.35] pointer-events-none select-none" aria-hidden="true">
+                <NodeArc className="w-full h-full text-muted" />
               </div>
-              <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
+
+              <div className="relative">
+                <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{item.eyebrow}</span>
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <span className="text-[0.8125rem] font-medium text-text-primary group-hover:text-accent transition-colors">{item.title}</span>
+                  <span className="text-xs text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
+                </div>
+                <div className="mt-1 text-xs leading-5 text-muted">{item.detail}</div>
+              </div>
             </button>
           ))}
         </div>
@@ -264,9 +272,12 @@ export function PaperLandingPage({
         publishError={(publishMutation.error as Error | null)?.message ?? null}
       />
 
+      {/* Section divider */}
+      <div className="section-divider" />
+
       {/* References footer */}
-      <section className="rounded-lg border border-rule bg-white p-5 sm:p-6">
-        <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">References and intent</span>
+      <section className="rounded-xl border border-rule bg-white p-5 sm:p-6 geo-accent-bar">
+        <div className="lab-section-title">References and intent</div>
         <p className="mt-3 max-w-2xl text-[0.8125rem] leading-[1.65] text-text-body font-serif">
           This reader view makes the paper easier to absorb without replacing the canonical study. The best first stops are the gamma paradox, the starting-geography section, and the limitations — they define the paper's surprise, realism, and confidence boundary.
         </p>

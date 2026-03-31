@@ -768,7 +768,7 @@ function EmptyState({
         ))}
       </div>
 
-      <div className="flex flex-col items-center justify-center rounded-xl border border-rule bg-white py-20 text-center relative overflow-hidden">
+      <div className="relative overflow-hidden flex flex-col items-center justify-center rounded-xl border border-rule bg-white py-20 text-center">
         {/* Node-arc motif — echoes the header globe's visual language */}
         <div className="absolute right-6 top-6 w-[160px] h-[80px] opacity-[0.4] pointer-events-none select-none" aria-hidden="true">
           <NodeArc className="w-full h-full text-muted" />
@@ -777,7 +777,7 @@ function EmptyState({
           <NodeArc className="w-full h-full text-muted" />
         </div>
 
-        <Tag className="mb-4 h-8 w-8 text-text-faint relative" />
+        <Tag className="relative mb-4 h-8 w-8 text-text-faint" />
         <h2 className="mb-2 text-lg font-medium text-text-primary">No community notes yet</h2>
         <p className="mb-5 max-w-lg text-sm text-muted">
           Start from Findings for a paper-backed reading, or from Simulation for an exact run. Then publish a note intentionally with your own title and takeaway.
