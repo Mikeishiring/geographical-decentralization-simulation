@@ -83,7 +83,7 @@ export function TopicCardGrid({
                 isActive
                   ? `${themeStyle.activeBorder} ${themeStyle.activeBg}`
                   : isDimmed
-                    ? 'border-rule bg-surface-active opacity-40'
+                    ? 'border-rule bg-surface-active opacity-55'
                     : 'border-rule bg-surface-active hover:border-border-hover',
               )}
             >
