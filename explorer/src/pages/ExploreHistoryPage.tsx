@@ -1,39 +1,30 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ArrowUpDown, Tag, ChevronDown, ChevronUp, Users, FlaskConical, Award, Link2, MessageSquare } from 'lucide-react'
+import { Search, ArrowUpDown, Tag, ChevronDown, ChevronUp, Users, FlaskConical, Award, Link2, MessageSquare, LayoutList, LayoutGrid, Check } from 'lucide-react'
 import { NodeArc } from '../components/decorative/NodeArc'
 import { getExploration, listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { MOCK_COMMUNITY_NOTES, MOCK_NOTE_EXTRAS } from '../data/mock-community-notes'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { VoteControls, FollowUpList } from '../components/community/VoteControls'
 import { ReplyThread } from '../components/community/ReplyThread'
+import { CompactExplorationRow } from '../components/community/CompactExplorationRow'
 import { cn } from '../lib/cn'
 import { SPRING_CRISP, SPRING_SOFT, STAGGER_CONTAINER } from '../lib/theme'
+import { replyCount, controversyScore, surfaceLabel, cardTitle, cardSummary, cardTimestamp, formatTimeAgo } from '../lib/community-helpers'
 import type { TabId } from '../components/layout/TabNav'
 
-type SortMode = 'recent' | 'top'
+type SortMode = 'recent' | 'top' | 'discussed' | 'controversial'
+type ViewMode = 'cards' | 'compact'
+
+const SORT_OPTIONS: readonly { readonly value: SortMode; readonly label: string; readonly description: string }[] = [
+  { value: 'recent', label: 'Newest first', description: 'Most recently published' },
+  { value: 'top', label: 'Most liked', description: 'Highest vote count' },
+  { value: 'discussed', label: 'Most discussed', description: 'Most replies' },
+  { value: 'controversial', label: 'Controversial', description: 'High engagement, divided opinion' },
+]
 
 
-function surfaceLabel(exploration: Exploration): string {
-  return exploration.surface === 'simulation' ? 'Exact-run surface' : 'Paper-reading surface'
-}
-
-function cardTitle(exploration: Exploration): string {
-  return exploration.publication.published
-    ? exploration.publication.title
-    : exploration.query
-}
-
-function cardSummary(exploration: Exploration): string {
-  return exploration.publication.published
-    ? exploration.publication.takeaway
-    : `Saved interpretation: ${exploration.summary}`
-}
-
-function cardTimestamp(exploration: Exploration): string {
-  return exploration.publication.publishedAt ?? exploration.createdAt
-}
 
 export function ExploreHistoryPage({
   initialExplorationId = null,
@@ -51,6 +42,9 @@ export function ExploreHistoryPage({
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [sharedId, setSharedId] = useState<string | null>(null)
   const [guidanceOpen, setGuidanceOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<ViewMode>('cards')
+  const [sortMenuOpen, setSortMenuOpen] = useState(false)
+  const sortMenuRef = useRef<HTMLDivElement>(null)
 
   const queryClient = useQueryClient()
 
@@ -95,8 +89,19 @@ export function ExploreHistoryPage({
     },
   })
 
-  const toggleSort = () => setSort(previous => (previous === 'recent' ? 'top' : 'recent'))
   const toggleExpand = (id: string) => setExpandedId(previous => (previous === id ? null : id))
+
+  // Close sort menu on outside click
+  useEffect(() => {
+    if (!sortMenuOpen) return
+    const handleClick = (event: MouseEvent) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
+        setSortMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [sortMenuOpen])
   const deepLinkedExploration = deepLinkedExplorationQuery.data ?? null
   const deepLinkedPublishedExploration = deepLinkedExploration?.publication.published
     ? deepLinkedExploration
@@ -116,9 +121,22 @@ export function ExploreHistoryPage({
       merged.unshift(deepLinkedPublishedExploration)
     }
     // Sort merged list (API may already sort real notes, but mock data needs it)
-    return sort === 'top'
-      ? [...merged].sort((a, b) => b.votes - a.votes)
-      : [...merged].sort((a, b) => new Date(cardTimestamp(b)).getTime() - new Date(cardTimestamp(a)).getTime())
+    const sorted = [...merged]
+    switch (sort) {
+      case 'top':
+        sorted.sort((a, b) => b.votes - a.votes)
+        break
+      case 'discussed':
+        sorted.sort((a, b) => replyCount(b) - replyCount(a))
+        break
+      case 'controversial':
+        sorted.sort((a, b) => controversyScore(b) - controversyScore(a))
+        break
+      case 'recent':
+      default:
+        sorted.sort((a, b) => new Date(cardTimestamp(b)).getTime() - new Date(cardTimestamp(a)).getTime())
+    }
+    return sorted
   }, [deepLinkedPublishedExploration, explorations, sort])
 
   useEffect(() => {
@@ -176,13 +194,74 @@ export function ExploreHistoryPage({
           <KpiPill icon={<FlaskConical className="h-3.5 w-3.5 text-warning" />} value={publishedSimulationNotes.length} label="exact-run" />
           <KpiPill icon={<Award className="h-3.5 w-3.5 text-accent-warm" />} value={featuredContributions.length} label="featured" />
         </div>
-        <button
-          onClick={toggleSort}
-          className="flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-text-primary"
-        >
-          <ArrowUpDown className="h-3.5 w-3.5" />
-          {sort === 'recent' ? 'Newest first' : 'Most supported'}
-        </button>
+
+        <div className="flex items-center gap-2">
+          {/* View mode toggle */}
+          <div className="flex rounded-lg border border-rule bg-white p-0.5">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={cn(
+                'rounded-md p-1.5 transition-colors',
+                viewMode === 'cards' ? 'bg-surface-active text-text-primary' : 'text-muted hover:text-text-primary',
+              )}
+              aria-label="Card view"
+              title="Card view"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('compact')}
+              className={cn(
+                'rounded-md p-1.5 transition-colors',
+                viewMode === 'compact' ? 'bg-surface-active text-text-primary' : 'text-muted hover:text-text-primary',
+              )}
+              aria-label="Compact view"
+              title="Compact view"
+            >
+              <LayoutList className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Sort dropdown */}
+          <div ref={sortMenuRef} className="relative">
+            <button
+              onClick={() => setSortMenuOpen(prev => !prev)}
+              className="flex items-center gap-1.5 rounded-lg border border-rule bg-white px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:text-text-primary hover:border-border-hover"
+            >
+              <ArrowUpDown className="h-3.5 w-3.5" />
+              {SORT_OPTIONS.find(o => o.value === sort)?.label}
+              <ChevronDown className={cn('h-3 w-3 transition-transform', sortMenuOpen && 'rotate-180')} />
+            </button>
+            <AnimatePresence>
+              {sortMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                  transition={SPRING_CRISP}
+                  className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-xl border border-rule bg-white shadow-lg"
+                >
+                  {SORT_OPTIONS.map(option => (
+                    <button
+                      key={option.value}
+                      onClick={() => { setSort(option.value); setSortMenuOpen(false) }}
+                      className={cn(
+                        'flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-surface-active',
+                        sort === option.value && 'bg-accent/5',
+                      )}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-medium text-text-primary">{option.label}</div>
+                        <div className="text-2xs text-muted">{option.description}</div>
+                      </div>
+                      {sort === option.value && <Check className="h-3.5 w-3.5 shrink-0 text-accent" />}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
 
       <div className="relative">
@@ -247,6 +326,7 @@ export function ExploreHistoryPage({
             sharedId={sharedId}
             deepLinkedExplorationId={initialExplorationId}
             emptyMessage="No featured contributions match the current filters yet."
+            viewMode={viewMode}
           />
 
           <ContributionSection
@@ -263,6 +343,7 @@ export function ExploreHistoryPage({
             sharedId={sharedId}
             deepLinkedExplorationId={initialExplorationId}
             emptyMessage="No published contributions match the current filters yet."
+            viewMode={viewMode}
           />
         </div>
       )}
@@ -375,6 +456,7 @@ function ContributionSection({
   sharedId,
   deepLinkedExplorationId,
   emptyMessage,
+  viewMode = 'cards',
 }: {
   readonly eyebrow: string
   readonly title: string
@@ -389,6 +471,7 @@ function ContributionSection({
   readonly sharedId: string | null
   readonly deepLinkedExplorationId: string | null
   readonly emptyMessage: string
+  readonly viewMode?: ViewMode
 }) {
   return (
     <section className="space-y-3">
@@ -402,6 +485,30 @@ function ContributionSection({
         <div className="rounded-xl border border-dashed border-rule bg-white/85 px-4 py-5 text-sm text-muted">
           {emptyMessage}
         </div>
+      ) : viewMode === 'compact' ? (
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={STAGGER_CONTAINER}
+          className="overflow-hidden rounded-xl border border-rule bg-white divide-y divide-rule"
+        >
+          <AnimatePresence mode="popLayout">
+            {explorations.map(exploration => (
+              <CompactExplorationRow
+                key={exploration.id}
+                exploration={exploration}
+                isExpanded={expandedId === exploration.id}
+                onToggleExpand={() => onToggleExpand(exploration.id)}
+                onVote={onVote ? delta => onVote({ id: exploration.id, delta }) : undefined}
+                onOpenQuery={onOpenQuery}
+                onOpenSimulation={onOpenSimulation}
+                onShare={onShare}
+                shareCopied={sharedId === exploration.id}
+                isDeepLinked={deepLinkedExplorationId === exploration.id}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.div>
       ) : (
         <motion.div
           initial="hidden"
@@ -759,25 +866,3 @@ function NoResults({ search }: { readonly search: string }) {
   )
 }
 
-function formatTimeAgo(isoTimestamp: string): string {
-  const deltaMs = Date.now() - new Date(isoTimestamp).getTime()
-  const deltaMinutes = Math.floor(deltaMs / 60_000)
-
-  if (deltaMinutes < 1) return 'just now'
-  if (deltaMinutes < 60) return `${deltaMinutes}m ago`
-
-  const deltaHours = Math.floor(deltaMinutes / 60)
-  if (deltaHours < 24) return `${deltaHours}h ago`
-
-  const deltaDays = Math.floor(deltaHours / 24)
-  if (deltaDays < 7) return `${deltaDays}d ago`
-
-  const deltaWeeks = Math.floor(deltaDays / 7)
-  if (deltaWeeks < 5) return `${deltaWeeks}w ago`
-
-  const deltaMonths = Math.floor(deltaDays / 30)
-  if (deltaMonths < 12) return `${deltaMonths}mo ago`
-
-  const deltaYears = Math.floor(deltaDays / 365)
-  return `${deltaYears}y ago`
-}
