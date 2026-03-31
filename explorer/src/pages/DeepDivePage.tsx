@@ -78,7 +78,7 @@ export function DeepDivePage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Paper deep dive</span>
-            <h1 className="mt-1 text-lg font-semibold text-text-primary">
+            <h1 className="mt-1 text-lg font-semibold text-text-primary text-balance">
               Argument, paradoxes, and caveats
             </h1>
             <p className="mt-1 text-13 text-muted">
@@ -158,7 +158,7 @@ export function DeepDivePage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="truncate text-13 font-medium text-text-primary">
+                        <h3 className="text-13 font-medium text-text-primary line-clamp-2">
                           {section.title}
                         </h3>
                         <p className="mt-1 text-xs text-muted">
@@ -200,7 +200,7 @@ export function DeepDivePage() {
                     className="overflow-hidden"
                   >
                     <div className="border-t border-rule px-5 pb-4 pt-3">
-                      <div className="mb-4 rounded-md border border-rule bg-surface-active px-3 py-3 text-xs text-muted">
+                      <div role="note" aria-label="Entry point guidance" className="mb-4 rounded-md border border-rule bg-surface-active px-3 py-3 text-xs text-muted text-balance">
                         <span className="font-medium text-text-primary">Start here if:</span> {sectionEntryLine(section)}
                       </div>
                       <BlockCanvas blocks={section.blocks} />

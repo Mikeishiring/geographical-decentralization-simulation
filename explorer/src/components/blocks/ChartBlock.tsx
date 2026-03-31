@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
 import type { ChartBlock as ChartBlockType } from '../../types/blocks'
 
@@ -67,6 +67,7 @@ function EmptyBlock({ title }: { readonly title: string }) {
 
 function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string }) {
   const gradientId = useId()
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const padding = { top: 10, right: 40, bottom: 30, left: 10 }
   const width = 500
   const height = 160
@@ -97,10 +98,29 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
     ? new Set(data.map((_, index) => index))
     : new Set([0, Math.floor((data.length - 1) / 2), data.length - 1])
 
+  const hoveredPoint = hoverIdx !== null ? points[hoverIdx] : null
+
   return (
     <div>
       <div className="rounded-lg border border-rule bg-surface-active p-3">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="w-full chart-edge-fade"
+          preserveAspectRatio="xMidYMid meet"
+          onMouseMove={event => {
+            const rect = event.currentTarget.getBoundingClientRect()
+            const relX = ((event.clientX - rect.left) / rect.width) * width
+            /* Find the nearest point */
+            let nearest = 0
+            let bestDist = Infinity
+            for (let i = 0; i < points.length; i++) {
+              const dist = Math.abs(points[i].x - relX)
+              if (dist < bestDist) { bestDist = dist; nearest = i }
+            }
+            setHoverIdx(nearest)
+          }}
+          onMouseLeave={() => setHoverIdx(null)}
+        >
           <defs>
             <linearGradient id={gradientId} x1="0%" x2="0%" y1="0%" y2="100%">
               <stop offset="0%" stopColor={BLOCK_COLORS[0]} stopOpacity={CHART.areaTopOpacity} />
@@ -108,11 +128,18 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
             </linearGradient>
           </defs>
 
-          {[0, 0.25, 0.5, 0.75, 1].map(frac => {
+          {/* Grid lines — staggered entrance */}
+          {[0, 0.25, 0.5, 0.75, 1].map((frac, i) => {
             const y = padding.top + chartH * (1 - frac)
             return (
-              <line key={frac} x1={padding.left} y1={y} x2={width - padding.right} y2={y}
-                stroke="currentColor" strokeWidth={CHART.gridWidth} opacity={CHART.gridOpacity} />
+              <motion.line
+                key={frac}
+                x1={padding.left} y1={y} x2={width - padding.right} y2={y}
+                stroke="currentColor" strokeWidth={CHART.gridWidth} opacity={CHART.gridOpacity}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: CHART.gridOpacity }}
+                transition={{ duration: 0.3, delay: i * 0.04 }}
+              />
             )
           })}
 
@@ -130,30 +157,79 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
             transition={SPRING_CRISP} />
 
-          {points.map((p, i) => (
-            <g key={`${p.label}-${i}`}>
-              <circle cx={p.x} cy={p.y} r={i === points.length - 1 ? 3.5 : 2}
-                fill="white" stroke={BLOCK_COLORS[0]} strokeWidth={1.5} />
-              {labelIndices.has(i) && (
-                <text x={p.x} y={height - 5} textAnchor="middle"
-                  className="fill-muted" style={{ fontSize: CHART.labelSize }}
-                  fontFamily="var(--font-mono)">
-                  {p.label}
-                </text>
-              )}
-            </g>
-          ))}
+          {/* Crosshair */}
+          {hoveredPoint && (
+            <line
+              x1={hoveredPoint.x} y1={padding.top}
+              x2={hoveredPoint.x} y2={padding.top + chartH}
+              stroke="currentColor" strokeWidth={1} opacity={CHART.crosshairOpacity}
+            />
+          )}
+
+          {points.map((p, i) => {
+            const isLast = i === points.length - 1
+            const isHovered = hoverIdx === i
+            return (
+              <g key={`${p.label}-${i}`}>
+                <motion.circle
+                  cx={p.x} cy={p.y}
+                  r={isHovered ? 5 : (isLast ? 3.5 : 2)}
+                  fill="white" stroke="#2563EB" strokeWidth={isHovered ? 2 : 1.5}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ ...SPRING_CRISP, delay: 0.2 + i * 0.02 }}
+                />
+                {labelIndices.has(i) && (
+                  <text x={p.x} y={height - 5} textAnchor="middle"
+                    className="fill-muted" style={{ fontSize: CHART.labelSize }}
+                    fontFamily="var(--font-mono)">
+                    {p.label}
+                  </text>
+                )}
+              </g>
+            )
+          })}
+
+          {/* Pulsing live dot at latest point */}
+          {latestPoint && (
+            <circle
+              cx={latestPoint.x} cy={latestPoint.y}
+              r={CHART.liveDotRadius}
+              fill="none" stroke="#2563EB" strokeWidth={1.5} opacity={0.4}
+              className="live-dot-pulse"
+            />
+          )}
         </svg>
       </div>
 
-      <div className="mt-2 flex gap-4 text-xs text-muted">
-        {highestPoint && (
-          <span>Peak: <span className="text-text-primary font-medium tabular-nums">{highestPoint.label} {highestPoint.value}{unit ?? ''}</span></span>
+      {/* Hover tooltip — spring entrance */}
+      <AnimatePresence>
+        {hoveredPoint && (
+          <motion.div
+            className="mt-2 flex gap-4 text-xs text-muted"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 2 }}
+            transition={CHART.tooltipSpring}
+          >
+            <span>
+              <span className="text-text-primary font-medium tabular-nums">{hoveredPoint.label}</span>
+              {' '}{hoveredPoint.value}{unit ?? ''}
+            </span>
+          </motion.div>
         )}
-        {latestPoint && (
-          <span>Latest: <span className="text-text-primary font-medium tabular-nums">{latestPoint.label} {latestPoint.value}{unit ?? ''}</span></span>
-        )}
-      </div>
+      </AnimatePresence>
+
+      {!hoveredPoint && (
+        <div className="mt-2 flex gap-4 text-xs text-muted">
+          {highestPoint && (
+            <span>Peak: <span className="text-text-primary font-medium tabular-nums">{highestPoint.label} {highestPoint.value}{unit ?? ''}</span></span>
+          )}
+          {latestPoint && (
+            <span>Latest: <span className="text-text-primary font-medium tabular-nums">{latestPoint.label} {latestPoint.value}{unit ?? ''}</span></span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -181,12 +257,13 @@ function BarChart({
         const isDimmed = hoveredIndex !== null && !isHovered
 
         return (
-          <div
+          <motion.div
             key={`${d.label}-${i}`}
             onMouseEnter={() => setHoveredIndex(i)}
             onMouseLeave={() => setHoveredIndex(null)}
-            className="transition-opacity"
-            style={{ opacity: isDimmed ? 0.4 : 1 }}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: isDimmed ? 0.4 : 1, x: 0 }}
+            transition={{ ...SPRING_CRISP, delay: i * 0.03 }}
           >
             <div className="flex items-baseline justify-between gap-3 mb-1">
               <div className="flex items-center gap-2 min-w-0">
@@ -202,14 +279,15 @@ function BarChart({
                 initial={{ width: 0 }}
                 animate={{ width: `${(Math.abs(d.value) / maxValue) * 100}%` }}
                 transition={{ ...SPRING_CRISP, delay: i * CHART.stagger }}
-                className="absolute inset-y-0 left-0 rounded-full transition-shadow"
+                className="absolute inset-y-0 left-0 rounded-full"
                 style={{
                   backgroundColor: barColor,
-                  boxShadow: isHovered ? `0 0 8px ${barColor}40` : 'none',
+                  boxShadow: isHovered ? `${CHART.hoverGlow} ${barColor}${CHART.hoverGlowOpacity}` : 'none',
+                  transition: 'box-shadow 0.15s ease',
                 }}
               />
             </div>
-          </div>
+          </motion.div>
         )
       })}
     </div>

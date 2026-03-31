@@ -13,12 +13,12 @@ export const INSTANT = { duration: 0 } as const
 /** Stagger children preset for scroll-triggered reveals */
 export const STAGGER_CONTAINER = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.03, delayChildren: 0.01 } },
+  visible: { transition: { staggerChildren: 0.04, delayChildren: 0.01 } },
 } as const
 
 export const STAGGER_ITEM = {
-  hidden: { opacity: 0, y: 10, scale: 0.995 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: SPRING_SOFT },
+  hidden: { opacity: 0, y: 12, scale: 0.98 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: SPRING_CRISP },
 } as const
 
 /** Block visualization palette — SSP ocean, MSP earth, plus supporting colors */
@@ -65,7 +65,7 @@ export const CTA_BUTTON = {
 } as const
 
 
-/** Chart design tokens — Stripe-aligned defaults */
+/** Chart design tokens — Stripe-aligned defaults + liveline-inspired additions */
 export const CHART = {
   gridOpacity: 0.05,
   gridWidth: 0.5,
@@ -76,6 +76,38 @@ export const CHART = {
   areaBottomOpacity: 0.02,
   tooltipShadow: '0 4px 12px rgba(0,0,0,0.08)',
   tooltipRadius: 8,
+
+  /* ── Liveline-inspired tokens ── */
+  /** Pulsing live dot — expanding ring at the latest data point */
+  liveDotRadius: 3.5,
+  liveDotPulseRadius: 9,
+  liveDotPulseInterval: 1500,
+
+  /** Crosshair fade distance (px) near the live data point */
+  crosshairFadeDistance: 40,
+
+  /** Edge fade width — CSS mask gradient for left chart edge */
+  edgeFadeWidth: 40,
+
+  /** Tooltip entrance spring — slight overshoot for premium feel */
+  tooltipSpring: { type: 'spring' as const, stiffness: 420, damping: 28, mass: 0.7 },
+
+  /** Staggered reveal thresholds — choreographed chart entrance */
+  reveal: {
+    grid: { start: 0, end: 0.3 },
+    area: { start: 0.1, end: 0.5 },
+    line: { start: 0.15, end: 0.6 },
+    dot: { start: 0.3, end: 0.8 },
+    label: { start: 0.5, end: 1.0 },
+  },
+
+  /** Momentum-driven colors — semantic, not derived from accent */
+  momentumUp: '#22c55e',
+  momentumDown: '#ef4444',
+
+  /** Glow intensity on hovered chart elements */
+  hoverGlow: '0 0 12px',
+  hoverGlowOpacity: '30',
 } as const
 
 /** Compact number formatter — 1.4K, 23.5M, 890B */
