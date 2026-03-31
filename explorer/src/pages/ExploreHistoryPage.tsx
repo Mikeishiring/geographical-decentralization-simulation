@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, ArrowUpDown, ThumbsUp, ThumbsDown, Tag, ChevronDown, ChevronUp, Users, Sparkles, Link2 } from 'lucide-react'
+import { NodeArc } from '../components/decorative/NodeArc'
 import { getExploration, listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { cn } from '../lib/cn'
@@ -181,7 +182,7 @@ export function ExploreHistoryPage({
             )}
             {onTabChange && (
               <button
-                onClick={() => onTabChange('results')}
+                onClick={() => onTabChange('agent')}
                 className="group flex w-full items-baseline justify-between gap-4 py-3 text-left"
               >
                 <div>
@@ -283,7 +284,7 @@ export function ExploreHistoryPage({
             )}
             {hiddenDraftExploration.surface === 'simulation' && onTabChange && (
               <button
-                onClick={() => onTabChange('results')}
+                onClick={() => onTabChange('agent')}
                 className="rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
               >
                 Open Simulation
@@ -306,7 +307,7 @@ export function ExploreHistoryPage({
             onToggleExpand={toggleExpand}
             onVote={delta => voteMutation.mutate(delta)}
             onOpenQuery={onOpenQuery}
-            onOpenSimulation={onTabChange ? () => onTabChange('results') : undefined}
+            onOpenSimulation={onTabChange ? () => onTabChange('agent') : undefined}
             onShare={handleShare}
             sharedId={sharedId}
             deepLinkedExplorationId={initialExplorationId}
@@ -322,7 +323,7 @@ export function ExploreHistoryPage({
             onToggleExpand={toggleExpand}
             onVote={delta => voteMutation.mutate(delta)}
             onOpenQuery={onOpenQuery}
-            onOpenSimulation={onTabChange ? () => onTabChange('results') : undefined}
+            onOpenSimulation={onTabChange ? () => onTabChange('agent') : undefined}
             onShare={handleShare}
             sharedId={sharedId}
             deepLinkedExplorationId={initialExplorationId}
@@ -767,8 +768,16 @@ function EmptyState({
         ))}
       </div>
 
-      <div className="flex flex-col items-center justify-center rounded-xl border border-rule bg-white py-20 text-center">
-        <Tag className="mb-4 h-8 w-8 text-text-faint" />
+      <div className="flex flex-col items-center justify-center rounded-xl border border-rule bg-white py-20 text-center relative overflow-hidden">
+        {/* Node-arc motif — echoes the header globe's visual language */}
+        <div className="absolute right-6 top-6 w-[160px] h-[80px] opacity-[0.4] pointer-events-none select-none" aria-hidden="true">
+          <NodeArc className="w-full h-full text-muted" />
+        </div>
+        <div className="absolute left-6 bottom-8 w-[120px] h-[60px] opacity-[0.25] pointer-events-none select-none rotate-180" aria-hidden="true">
+          <NodeArc className="w-full h-full text-muted" />
+        </div>
+
+        <Tag className="mb-4 h-8 w-8 text-text-faint relative" />
         <h2 className="mb-2 text-lg font-medium text-text-primary">No community notes yet</h2>
         <p className="mb-5 max-w-lg text-sm text-muted">
           Start from Findings for a paper-backed reading, or from Simulation for an exact run. Then publish a note intentionally with your own title and takeaway.
@@ -791,7 +800,7 @@ function EmptyState({
                 Read the paper
               </button>
               <button
-                onClick={() => onTabChange('results')}
+                onClick={() => onTabChange('agent')}
                 className="rounded-lg border border-rule bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
                 Open Simulation
