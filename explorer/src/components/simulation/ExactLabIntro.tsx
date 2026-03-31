@@ -14,47 +14,22 @@ export function ExactLabIntro({
 }: ExactLabIntroProps) {
   return (
     <div className="mb-4 rounded-2xl border border-rule bg-white/88 p-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <div className="lab-section-title">When the published replay is not enough</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">
-            Load a reference setup, change one assumption, then run the exact engine with a clear question in mind.
-          </div>
-          <div className="mt-1 text-xs leading-5 text-muted">
-            The lab is for fresh evidence. Keep the variation bounded so the resulting manifest and figures still tell a legible story.
-          </div>
-        </div>
-
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2 text-xs text-muted">
           <span className="lab-chip bg-white/85">{config.paradigm}</span>
           <span className="lab-chip bg-white/85">{config.validators.toLocaleString()} validators</span>
           <span className="lab-chip bg-white/85">{config.slots.toLocaleString()} slots</span>
           <span className="lab-chip bg-white/85">{comparabilityTitle}</span>
+          {paperScenarioLabels(config).map(label => (
+            <span key={label} className="lab-chip bg-surface-active">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              {label}
+            </span>
+          ))}
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        {paperScenarioLabels(config).map(label => (
-          <span key={label} className="lab-chip bg-surface-active">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            {label}
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-4 grid gap-2 md:grid-cols-3">
-        {[
-          'Load a paper-adjacent preset.',
-          'Change one thing you actually want to test.',
-          'Read the exact outputs before asking the guide or publishing.',
-        ].map(step => (
-          <div key={step} className="rounded-xl border border-rule bg-surface-active/70 px-3 py-3 text-xs leading-5 text-muted">
-            {step}
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
         {PRESETS.map(preset => (
           <button
             key={preset.label}

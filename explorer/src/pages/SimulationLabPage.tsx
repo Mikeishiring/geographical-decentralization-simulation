@@ -202,27 +202,24 @@ export function SimulationLabPage({
 
               {workflow.simulationPublishContextKey && (
                 <div className="lab-stage-soft p-4">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                    <div>
-                      <div className="lab-section-title">Publish only if it changes the argument</div>
-                      <div className="mt-1 text-sm font-medium text-text-primary">
-                        Community notes should summarize what this exact run adds beyond the frozen paper view.
-                      </div>
-                    </div>
-                    <div className="max-w-2xl text-xs leading-5 text-muted">
-                      Treat this as the final step. Read the manifest, inspect the overview bundles, compare against the closest paper foil, then publish a short human takeaway only if the run genuinely sharpens the claim.
+                  <div className="flex items-center justify-between">
+                    <div
+                      className="lab-section-title"
+                      title="Publish a short human takeaway only if this run adds something beyond the published replay."
+                    >
+                      Publish findings
                     </div>
                   </div>
 
-                  <div className="mt-4">
+                  <div className="mt-3">
                     <ContributionComposer
                       key={workflow.simulationPublishContextKey}
                       sourceLabel="Share your findings from this run"
                       defaultTitle={workflow.simulationPublishTitle}
                       defaultTakeaway={workflow.simulationPublishTakeaway}
-                      helperText="Only intentionally published exact-run notes appear on the community surface. Add your own title and takeaway so the public note reflects what you saw in the artifacts, not just the default guide phrasing."
-                      publishLabel="Publish human-authored note"
-                      successLabel="Published human-authored note"
+                      helperText="Add your own title and takeaway based on what you saw in the artifacts."
+                      publishLabel="Publish note"
+                      successLabel="Published"
                       viewPublishedLabel="Open Community"
                       published={workflow.publishedSimulationKey === workflow.simulationPublishContextKey}
                       isPublishing={workflow.publishMutation.isPending}
@@ -253,14 +250,7 @@ export function SimulationLabPage({
 
           <details open={!manifest} className="mb-5 overflow-hidden rounded-[24px] border border-rule bg-[linear-gradient(180deg,rgba(248,250,252,0.82),rgba(255,255,255,0.96))]">
             <summary className="flex cursor-pointer list-none flex-col gap-3 border-b border-rule/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="lab-section-title">Lab controls</div>
-                <div className="mt-1 text-sm font-medium text-text-primary">
-                  {manifest
-                    ? 'Adjust the scenario and rerun only when the current exact result is no longer the right comparison.'
-                    : 'Open the exact lab after reading the starter result and deciding what to vary.'}
-                </div>
-              </div>
+              <div className="lab-section-title">Lab controls</div>
               <div className="flex flex-wrap gap-2 text-xs text-muted">
                 <span className="lab-chip bg-white/85">{config.paradigm}</span>
                 <span className="lab-chip bg-white/85">{config.validators.toLocaleString()} validators</span>
