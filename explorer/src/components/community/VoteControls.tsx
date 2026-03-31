@@ -17,17 +17,17 @@ export function VoteControls({
           onVote(1)
         }}
         whileTap={{ scale: 0.88 }}
-        className="flex items-center justify-center h-7 w-7 text-black/40 transition-colors hover:text-accent rounded-full hover:bg-accent/[0.06]"
+        className="flex items-center justify-center h-7 w-7 text-muted transition-colors hover:text-accent rounded-full hover:bg-accent/[0.06]"
         aria-label="Upvote"
       >
         <ThumbsUp className="h-3 w-3" />
       </motion.button>
       <span
         className={cn(
-          'text-[11px] font-semibold tabular-nums',
+          'text-11 font-semibold tabular-nums',
           votes > 0 && 'text-accent',
           votes < 0 && 'text-danger',
-          votes === 0 && 'text-black/30',
+          votes === 0 && 'text-text-faint',
         )}
       >
         {votes}
@@ -38,7 +38,7 @@ export function VoteControls({
           onVote(-1)
         }}
         whileTap={{ scale: 0.88 }}
-        className="flex items-center justify-center h-7 w-7 text-black/40 transition-colors hover:text-danger rounded-full hover:bg-danger/[0.06]"
+        className="flex items-center justify-center h-7 w-7 text-muted transition-colors hover:text-danger rounded-full hover:bg-danger/[0.06]"
         aria-label="Downvote"
       >
         <ThumbsDown className="h-3 w-3" />
@@ -55,20 +55,21 @@ export function FollowUpList({
   readonly onSelect?: (query: string) => void
 }) {
   return (
-    <div className="mt-4 border-t border-black/[0.06] pt-3">
-      <span className="mb-2 block text-[10px] font-medium uppercase tracking-wide text-black/40">
+    <div className="mt-4 border-t border-rule pt-3">
+      <span className="mb-2 block text-2xs font-medium uppercase tracking-wide text-muted">
         Follow-up questions
       </span>
       <div className="flex flex-wrap gap-1.5">
         {followUps.map(question => (
-          <button
+          <motion.button
             key={question}
             onClick={() => onSelect?.(question)}
             disabled={!onSelect}
+            whileTap={onSelect ? { scale: 0.97 } : undefined}
             className="follow-up-chip disabled:opacity-40 disabled:cursor-default"
           >
             {question}
-          </button>
+          </motion.button>
         ))}
       </div>
     </div>

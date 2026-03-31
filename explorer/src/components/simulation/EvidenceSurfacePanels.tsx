@@ -10,6 +10,12 @@ import {
   type PublishedAnalyticsPayload,
 } from './simulation-analytics'
 import type { ResearchMetadata } from './simulation-lab-types'
+import {
+  CHART_COLORS,
+  THRESHOLDS,
+  sentimentLower,
+  sentimentHigher,
+} from './simulation-evidence-constants'
 
 // ── Inline sparkline ────────────────────────────────────────────────────────
 
@@ -78,10 +84,10 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       value: formatNumber(giniEnd, 3),
       delta: giniDelta?.formatted ?? null,
       direction: giniDelta?.direction ?? 'flat',
-      note: giniEnd < 0.4 ? 'Relatively equal' : giniEnd < 0.6 ? 'Moderate inequality' : 'Highly unequal',
-      sentiment: giniEnd < 0.4 ? 'positive' : giniEnd < 0.6 ? 'neutral' : 'negative',
+      note: sentimentLower(giniEnd, THRESHOLDS.gini) === 'positive' ? 'Relatively equal' : sentimentLower(giniEnd, THRESHOLDS.gini) === 'neutral' ? 'Moderate inequality' : 'Highly unequal',
+      sentiment: sentimentLower(giniEnd, THRESHOLDS.gini),
       sparkData: sampleForSpark(metrics.gini),
-      sparkColor: '#C2553A',
+      sparkColor: CHART_COLORS.gini,
     })
   }
 
@@ -94,10 +100,10 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       value: formatNumber(hhiEnd, 4),
       delta: hhiDelta?.formatted ?? null,
       direction: hhiDelta?.direction ?? 'flat',
-      note: hhiEnd < 0.15 ? 'Unconcentrated market' : hhiEnd < 0.25 ? 'Moderate concentration' : 'Highly concentrated',
-      sentiment: hhiEnd < 0.15 ? 'positive' : hhiEnd < 0.25 ? 'neutral' : 'negative',
+      note: sentimentLower(hhiEnd, THRESHOLDS.hhi) === 'positive' ? 'Unconcentrated market' : sentimentLower(hhiEnd, THRESHOLDS.hhi) === 'neutral' ? 'Moderate concentration' : 'Highly concentrated',
+      sentiment: sentimentLower(hhiEnd, THRESHOLDS.hhi),
       sparkData: sampleForSpark(metrics.hhi),
-      sparkColor: '#2563EB',
+      sparkColor: CHART_COLORS.hhi,
     })
   }
 
@@ -112,9 +118,9 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       delta: livenessDelta ? `${livenessDelta.formatted}%` : null,
       direction: livenessDelta?.direction ?? 'flat',
       note: topRegion ? `Led by ${topRegion.label}` : 'Network liveness rate',
-      sentiment: livenessEnd > 95 ? 'positive' : livenessEnd > 80 ? 'neutral' : 'negative',
+      sentiment: sentimentHigher(livenessEnd, THRESHOLDS.liveness),
       sparkData: sampleForSpark(metrics.liveness),
-      sparkColor: '#16A34A',
+      sparkColor: CHART_COLORS.liveness,
     })
   }
 
@@ -130,7 +136,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       note: 'Coordination health',
       sentiment: 'neutral',
       sparkData: sampleForSpark(metrics.attestations),
-      sparkColor: '#0F766E',
+      sparkColor: CHART_COLORS.attestation,
     })
   }
 
@@ -144,9 +150,9 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       delta: proposalDelta ? `${proposalDelta.formatted} ms` : null,
       direction: proposalDelta?.direction ?? 'flat',
       note: 'Pipeline responsiveness',
-      sentiment: proposalEnd < 200 ? 'positive' : proposalEnd < 500 ? 'neutral' : 'negative',
+      sentiment: sentimentLower(proposalEnd, THRESHOLDS.proposalTime),
       sparkData: sampleForSpark(metrics.proposal_times),
-      sparkColor: '#D97706',
+      sparkColor: CHART_COLORS.proposalTime,
     })
   }
 
@@ -158,10 +164,10 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       value: String(activeEnd),
       delta: null,
       direction: 'flat',
-      note: activeEnd > 20 ? 'Well-distributed' : activeEnd > 10 ? 'Moderate spread' : 'Geographically narrow',
-      sentiment: activeEnd > 20 ? 'positive' : activeEnd > 10 ? 'neutral' : 'negative',
+      note: sentimentHigher(activeEnd, THRESHOLDS.activeRegions) === 'positive' ? 'Well-distributed' : sentimentHigher(activeEnd, THRESHOLDS.activeRegions) === 'neutral' ? 'Moderate spread' : 'Geographically narrow',
+      sentiment: sentimentHigher(activeEnd, THRESHOLDS.activeRegions),
       sparkData: [],
-      sparkColor: '#7C3AED',
+      sparkColor: CHART_COLORS.activeRegions,
     })
   }
 
@@ -277,7 +283,7 @@ export function EvidenceConfigSnapshot({ metadata, description, paradigm, totalS
 
 // ── Plot category filter ────────────────────────────────────────────────────
 
-export type PlotCategory = 'all' | 'decentralization' | 'coverage' | 'economics' | 'performance' | 'geography'
+export type PlotCategory = 'all' | 'decentralization' | 'coverage' | 'equity' | 'topology' | 'economics' | 'performance' | 'latency' | 'sources'
 
 export interface TaggedChartBlock {
   readonly category: PlotCategory
@@ -289,9 +295,12 @@ const PLOT_CATEGORIES: ReadonlyArray<{ id: PlotCategory; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'decentralization', label: 'Decentralization' },
   { id: 'coverage', label: 'Coverage' },
+  { id: 'equity', label: 'Equity' },
+  { id: 'topology', label: 'Topology' },
   { id: 'economics', label: 'Economics' },
   { id: 'performance', label: 'Performance' },
-  { id: 'geography', label: 'Geography' },
+  { id: 'latency', label: 'Latency' },
+  { id: 'sources', label: 'Sources' },
 ]
 
 interface PlotFilterToolbarProps {
@@ -440,14 +449,20 @@ export function categorizeChart(title: string): PlotCategory {
   const t = title.toLowerCase()
   if (t.includes('gini') || t.includes('hhi') || t.includes('concentration')) return 'decentralization'
   if (t.includes('liveness') || t.includes('coverage') || t.includes('active region')) return 'coverage'
-  if (t.includes('mev') || t.includes('block value') || t.includes('attestation') || t.includes('cluster')) return 'economics'
-  if (t.includes('proposal') || t.includes('latency') || t.includes('failed') || t.includes('distance')) return 'performance'
-  if (t.includes('map') || t.includes('region') || t.includes('footprint') || t.includes('geography')) return 'geography'
+  if (t.includes('coefficient of variation') || t.includes('profit') || t.includes('disparity')) return 'equity'
+  if (t.includes('cluster') || t.includes('nearest-neighbor') || t.includes('nearest neighbor') || t.includes('nni') || t.includes('total validator distance') || t.includes('network spread')) return 'topology'
+  if (t.includes('mev') || t.includes('block value') || t.includes('attestation')) return 'economics'
+  if (t.includes('failed') || t.includes('operational')) return 'performance'
+  if (t.includes('proposal') || t.includes('latency') || t.includes('pipeline')) return 'latency'
+  if (t.includes('relay') || t.includes('source') || t.includes('footprint') || t.includes('information')) return 'sources'
   return 'all'
 }
 
 export function countByCategory(tagged: readonly TaggedChartBlock[]): Record<PlotCategory, number> {
-  const counts: Record<PlotCategory, number> = { all: tagged.length, decentralization: 0, coverage: 0, economics: 0, performance: 0, geography: 0 }
+  const counts: Record<PlotCategory, number> = {
+    all: tagged.length, decentralization: 0, coverage: 0, equity: 0,
+    topology: 0, economics: 0, performance: 0, latency: 0, sources: 0,
+  }
   for (const t of tagged) {
     if (t.category !== 'all') counts[t.category]++
   }

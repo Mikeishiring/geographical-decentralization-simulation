@@ -10,6 +10,7 @@ import {
   type PublishedAnalyticsPayload,
 } from './simulation-analytics'
 import { formatNumber } from './simulation-constants'
+import { THRESHOLDS, SENTIMENT_TEXT, sentimentLower, sentimentHigher } from './simulation-evidence-constants'
 import {
   SVG_W,
   SVG_H,
@@ -542,7 +543,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               {gini != null && (
                 <div className="lab-option-card p-2">
                   <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Gini</div>
-                  <div className={cn('text-sm font-semibold tabular-nums', gini < 0.4 ? 'text-emerald-600' : gini < 0.6 ? 'text-amber-500' : 'text-rose-500')}>
+                  <div className={cn('text-sm font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(gini, THRESHOLDS.gini)])}>
                     {formatNumber(gini, 3)}
                   </div>
                 </div>
@@ -550,7 +551,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               {hhi != null && (
                 <div className="lab-option-card p-2">
                   <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">HHI</div>
-                  <div className={cn('text-sm font-semibold tabular-nums', hhi < 0.15 ? 'text-emerald-600' : hhi < 0.25 ? 'text-amber-500' : 'text-rose-500')}>
+                  <div className={cn('text-sm font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(hhi, THRESHOLDS.hhi)])}>
                     {formatNumber(hhi, 4)}
                   </div>
                 </div>
@@ -558,7 +559,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               {liveness != null && (
                 <div className="lab-option-card p-2">
                   <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Liveness</div>
-                  <div className={cn('text-sm font-semibold tabular-nums', liveness > 95 ? 'text-emerald-600' : liveness > 80 ? 'text-amber-500' : 'text-rose-500')}>
+                  <div className={cn('text-sm font-semibold tabular-nums', SENTIMENT_TEXT[sentimentHigher(liveness, THRESHOLDS.liveness)])}>
                     {formatNumber(liveness, 1)}%
                   </div>
                 </div>
