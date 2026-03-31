@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react'
-import { SPRING_SNAPPY, SPRING_CRISP } from '../../lib/theme'
+import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, MessageSquare, Users } from 'lucide-react'
+import { SPRING_SNAPPY, SPRING_POPUP } from '../../lib/theme'
 import type { Exploration } from '../../lib/api'
 
 interface InlineSectionNotesProps {
@@ -20,28 +20,42 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
   const remaining = published.length - 2
 
   return (
-    <div className="mt-4 lab-panel px-4 py-3">
+    <div
+      className="mt-4"
+      style={{
+        borderRadius: 12,
+        border: '1px solid rgba(0,0,0,0.06)',
+        background: 'rgba(0,0,0,0.015)',
+        padding: '12px 14px',
+      }}
+    >
       {/* Thread header */}
       <button
         type="button"
         onClick={() => setExpanded(prev => !prev)}
         className="flex w-full items-center gap-2 text-left"
       >
-        <span className="lab-section-title">
-          {published.length} community note{published.length !== 1 ? 's' : ''}
+        <Users className="h-3 w-3 text-accent" />
+        <span className="text-[11px] font-semibold tracking-wide uppercase text-black/50">
+          {published.length} note{published.length !== 1 ? 's' : ''}
         </span>
-        <span className="ml-auto text-text-faint">
+        <span className="ml-auto text-black/35">
           {expanded
-            ? <ChevronUp className="h-3.5 w-3.5" />
-            : <ChevronDown className="h-3.5 w-3.5" />
+            ? <ChevronUp className="h-3 w-3" />
+            : <ChevronDown className="h-3 w-3" />
           }
         </span>
       </button>
 
       {/* Preview cards */}
-      <div className="mt-3 space-y-2 stagger-reveal">
-        {preview.map(note => (
-          <NoteCard key={note.id} note={note} onOpen={onOpenNote} />
+      <div className="mt-2.5 space-y-1.5">
+        {preview.map((note, i) => (
+          <NoteCard
+            key={note.id}
+            note={note}
+            onOpen={onOpenNote}
+            delay={i * 0.04}
+          />
         ))}
       </div>
 
@@ -52,12 +66,17 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={SPRING_CRISP}
+            transition={SPRING_SNAPPY}
             className="overflow-hidden"
           >
-            <div className="mt-2 space-y-2">
-              {published.slice(2).map(note => (
-                <NoteCard key={note.id} note={note} onOpen={onOpenNote} />
+            <div className="mt-1.5 space-y-1.5">
+              {published.slice(2).map((note, i) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  onOpen={onOpenNote}
+                  delay={i * 0.04}
+                />
               ))}
             </div>
           </motion.div>
@@ -68,9 +87,9 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="arrow-link mt-2.5 !text-xs"
+          className="mt-2 text-[11px] font-medium text-black/40 transition-colors hover:text-accent"
         >
-          Show {remaining} more
+          Show {remaining} more &darr;
         </button>
       )}
     </div>
@@ -82,9 +101,11 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
 function NoteCard({
   note,
   onOpen,
+  delay = 0,
 }: {
   readonly note: Exploration
   readonly onOpen?: (id: string) => void
+  readonly delay?: number
 }) {
   const [replyOpen, setReplyOpen] = useState(false)
 
@@ -97,34 +118,58 @@ function NoteCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 4 }}
+      initial={{ opacity: 0, y: 3 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={SPRING_SNAPPY}
-      className="rounded-lg border border-rule bg-white px-3 py-2.5 card-hover"
+      transition={{ ...SPRING_POPUP, delay }}
+      className="group/card transition-shadow duration-150"
+      style={{
+        borderRadius: 10,
+        border: '1px solid rgba(0,0,0,0.06)',
+        background: '#fff',
+        padding: '10px 12px',
+        // Agentation-style card shadow — subtle at rest, lifts on hover
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'
+      }}
     >
       {/* Anchored excerpt */}
       {hasExcerpt && (
-        <div className="mb-1.5 border-l-2 border-l-accent/25 pl-2 text-11 font-serif italic text-muted line-clamp-1">
-          &ldquo;{excerpt}&rdquo;
+        <div
+          className="mb-1.5 line-clamp-1"
+          style={{
+            fontSize: 11,
+            fontStyle: 'italic',
+            color: 'rgba(0,0,0,0.45)',
+            borderLeft: '2px solid rgba(37,99,235,0.25)',
+            paddingLeft: 8,
+            fontFamily: 'var(--font-serif)',
+          }}
+        >
+          &ldquo;{excerpt.length > 60 ? `${excerpt.slice(0, 60)}\u2026` : excerpt}&rdquo;
         </div>
       )}
 
       {/* Title + takeaway */}
-      <div className="text-13 font-medium leading-snug text-text-primary">
+      <div className="text-[13px] font-medium leading-snug text-[#111]">
         {note.publication.title}
       </div>
-      <div className="mt-0.5 text-xs leading-relaxed text-muted line-clamp-2">
+      <div className="mt-0.5 text-xs leading-relaxed text-black/50 line-clamp-2">
         {note.publication.takeaway}
       </div>
 
       {/* Meta + actions */}
       <div className="mt-2 flex items-center gap-3">
-        <span className="text-2xs text-text-faint">
+        <span className="text-[10px] font-medium text-black/35">
           {note.publication.author || 'Anonymous'}
         </span>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5">
           {note.votes !== 0 && (
-            <span className="mono-xs flex items-center gap-0.5 text-text-faint">
+            <span className="flex items-center gap-0.5 text-[10px] tabular-nums text-black/35">
               {note.votes > 0
                 ? <ThumbsUp className="h-2.5 w-2.5" />
                 : <ThumbsDown className="h-2.5 w-2.5" />
@@ -132,21 +177,23 @@ function NoteCard({
               {Math.abs(note.votes)}
             </span>
           )}
-          <button
+          <motion.button
             type="button"
             onClick={() => setReplyOpen(prev => !prev)}
-            className="flex items-center gap-1 text-2xs text-text-faint transition-colors hover:text-accent"
+            whileTap={{ scale: 0.92 }}
+            className="flex items-center gap-1 text-[10px] font-medium text-black/35 transition-colors hover:text-accent"
           >
             <MessageSquare className="h-2.5 w-2.5" />
             Reply
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
             onClick={handleClick}
-            className="text-2xs text-text-faint transition-colors hover:text-accent"
+            whileTap={{ scale: 0.92 }}
+            className="text-[10px] font-medium text-black/35 transition-colors hover:text-accent"
           >
-            Open →
-          </button>
+            Open &rarr;
+          </motion.button>
         </div>
       </div>
 
@@ -160,28 +207,36 @@ function NoteCard({
             transition={SPRING_SNAPPY}
             className="overflow-hidden"
           >
-            <div className="mt-2.5 border-t border-rule pt-2.5">
-              <div className="lab-input-shell overflow-hidden">
-                <textarea
-                  placeholder="Reply to this note..."
-                  rows={2}
-                  className="w-full resize-none bg-transparent px-2.5 py-1.5 text-xs text-text-primary outline-none placeholder:text-text-faint"
-                />
-              </div>
-              <div className="mt-1.5 flex justify-end gap-1.5">
-                <button
+            <div className="mt-2 border-t border-black/[0.06] pt-2">
+              <textarea
+                placeholder="Reply to this note..."
+                rows={2}
+                className="annotation-textarea w-full resize-none rounded-lg bg-black/[0.03] px-2.5 py-1.5 text-xs text-[#1a1a1a] outline-none placeholder:text-black/35"
+                style={{
+                  border: '1px solid rgba(0,0,0,0.10)',
+                  borderRadius: 8,
+                  transition: 'border-color 0.15s ease',
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-accent, #3c82f7)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.10)' }}
+              />
+              <div className="mt-1.5 flex justify-end gap-1">
+                <motion.button
                   type="button"
                   onClick={() => setReplyOpen(false)}
-                  className="rounded-full px-2.5 py-1 text-2xs font-medium text-muted transition-colors hover:text-text-primary"
+                  whileTap={{ scale: 0.96 }}
+                  className="rounded-2xl px-2.5 py-1 text-[10px] font-medium text-black/45 transition-colors hover:bg-black/[0.04] hover:text-black/70"
                 >
                   Cancel
-                </button>
-                <button
+                </motion.button>
+                <motion.button
                   type="button"
-                  className="rounded-full bg-text-primary px-2.5 py-1 text-2xs font-medium text-white transition-colors hover:bg-text-primary/90"
+                  whileTap={{ scale: 0.96 }}
+                  className="rounded-2xl px-2.5 py-1 text-[10px] font-medium text-white transition-[filter,opacity] hover:brightness-90 disabled:opacity-40"
+                  style={{ backgroundColor: 'var(--color-accent, #3c82f7)' }}
                 >
                   Reply
-                </button>
+                </motion.button>
               </div>
             </div>
           </motion.div>

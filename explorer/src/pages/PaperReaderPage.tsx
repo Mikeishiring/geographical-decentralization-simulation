@@ -173,16 +173,18 @@ export function PaperReaderPage({
   )
 
   return (
-    <div ref={containerRef} className="space-y-12 overflow-x-hidden">
-      {/* Text selection popover for community notes */}
-      <SelectionPopover
-        anchor={selection}
-        rect={selectionRect}
-        onAddNote={handleAddNote}
-        onDismiss={clearSelection}
-        sectionNoteCount={selectionSectionNoteCount}
-      />
+    <>
+    {/* Popover lives OUTSIDE the container so mousedown on it
+        never triggers the container's selection-clear handler */}
+    <SelectionPopover
+      anchor={selection}
+      rect={selectionRect}
+      onAddNote={handleAddNote}
+      onDismiss={clearSelection}
+      sectionNoteCount={selectionSectionNoteCount}
+    />
 
+    <div ref={containerRef} className="space-y-12 overflow-x-hidden">
       {/* Paper title hero */}
       <motion.section
         initial={{ opacity: 0, y: 8 }}
@@ -236,5 +238,6 @@ export function PaperReaderPage({
         />
       )}
     </div>
+    </>
   )
 }
