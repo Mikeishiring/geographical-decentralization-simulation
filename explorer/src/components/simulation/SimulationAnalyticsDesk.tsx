@@ -70,126 +70,129 @@ export function SimulationAnalyticsDesk({
       animate={{ opacity: 1, y: 0 }}
       transition={SPRING}
     >
-      <motion.div
-        className="flex flex-col gap-4 border-b border-rule px-5 py-5 lg:flex-row lg:items-start lg:justify-between"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ ...SPRING_CRISP, delay: 0.04 }}
-      >
-        <div>
-          <div className="text-xs text-muted mb-1">{title}</div>
-          <div className="text-sm text-text-primary">{description}</div>
+      <details className="border-b border-rule">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
+          <div>
+            <div className="text-xs text-muted mb-0.5">{title}</div>
+            <div className="text-sm text-text-primary">{description}</div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="lab-chip bg-surface-active text-2xs">{activeView?.label ?? 'Analytics'}</span>
+            <span className="lab-chip bg-surface-active text-2xs">{activeMetric?.label ?? 'Metric'}</span>
+            <span className="lab-chip bg-surface-active text-2xs">{activeCompareMode?.label ?? 'Absolute'}</span>
+          </div>
+        </summary>
+
+        <div className="border-t border-rule/60 px-5 py-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div />
+            {onCopyShareUrl || onCopyQueryJson || onDownloadQueryJson || onDownloadQueryCsv ? (
+              <div className="flex flex-wrap gap-2 lg:justify-end">
+                {onCopyShareUrl ? (
+                  <button
+                    onClick={onCopyShareUrl}
+                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    {copyLabel}
+                  </button>
+                ) : null}
+                {onCopyQueryJson ? (
+                  <button
+                    onClick={onCopyQueryJson}
+                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Copy query JSON
+                  </button>
+                ) : null}
+                {onDownloadQueryJson ? (
+                  <button
+                    onClick={onDownloadQueryJson}
+                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Download JSON
+                  </button>
+                ) : null}
+                {onDownloadQueryCsv ? (
+                  <button
+                    onClick={onDownloadQueryCsv}
+                    className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                  >
+                    Download CSV
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_minmax(0,0.85fr)]">
+            <div className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-slate-50/94 px-4 py-4">
+              <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Dashboard view</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {analyticsViewOptions.map(view => (
+                  <button
+                    key={view.id}
+                    onClick={() => onAnalyticsViewChange(view.id)}
+                    className={cn(
+                      'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                      analyticsView === view.id
+                        ? 'border-accent bg-white text-accent'
+                        : 'border-rule bg-surface-active text-text-primary hover:border-border-hover',
+                    )}
+                  >
+                    {view.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {analyticsMetricOptions.length > 0 ? (
+              <div className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-slate-50/94 px-4 py-4">
+                <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Metric query</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {analyticsMetricOptions.map(option => (
+                    <button
+                      key={option.id}
+                      onClick={() => onAnalyticsMetricChange(option.id)}
+                      className={cn(
+                        'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                        analyticsMetric === option.id
+                          ? 'border-accent bg-white text-accent'
+                          : 'border-rule bg-surface-active text-text-primary hover:border-border-hover',
+                      )}
+                      title={option.description}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : <div />}
+
+            {compareModeOptions.length > 0 ? (
+              <div className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-slate-50/94 px-4 py-4">
+                <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Compare mode</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {compareModeOptions.map(option => (
+                    <button
+                      key={option.id}
+                      onClick={() => onCompareModeChange(option.id)}
+                      className={cn(
+                        'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                        compareMode === option.id
+                          ? 'border-accent bg-white text-accent'
+                          : 'border-rule bg-surface-active text-text-primary hover:border-border-hover',
+                      )}
+                      title={option.description}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
-        {onCopyShareUrl || onCopyQueryJson || onDownloadQueryJson || onDownloadQueryCsv ? (
-          <div className="flex flex-wrap gap-2 lg:justify-end">
-            {onCopyShareUrl ? (
-              <button
-                onClick={onCopyShareUrl}
-                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-              >
-                {copyLabel}
-              </button>
-            ) : null}
-            {onCopyQueryJson ? (
-              <button
-                onClick={onCopyQueryJson}
-                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-              >
-                Copy query JSON
-              </button>
-            ) : null}
-            {onDownloadQueryJson ? (
-              <button
-                onClick={onDownloadQueryJson}
-                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-              >
-                Download JSON
-              </button>
-            ) : null}
-            {onDownloadQueryCsv ? (
-              <button
-                onClick={onDownloadQueryCsv}
-                className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
-              >
-                Download CSV
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-      </motion.div>
-
-      <motion.div
-        className="grid gap-3 border-b border-rule px-5 py-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_minmax(0,0.85fr)]"
-        variants={STAGGER_CONTAINER}
-        initial="hidden"
-        animate="show"
-      >
-        <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-slate-50/94 px-4 py-4">
-          <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Dashboard view</div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {analyticsViewOptions.map(view => (
-              <button
-                key={view.id}
-                onClick={() => onAnalyticsViewChange(view.id)}
-                className={cn(
-                  'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                  analyticsView === view.id
-                    ? 'border-accent bg-white text-accent'
-                    : 'border-rule bg-surface-active text-text-primary hover:border-border-hover',
-                )}
-              >
-                {view.label}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {analyticsMetricOptions.length > 0 ? (
-          <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-slate-50/94 px-4 py-4">
-            <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Metric query</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {analyticsMetricOptions.map(option => (
-                <button
-                  key={option.id}
-                  onClick={() => onAnalyticsMetricChange(option.id)}
-                  className={cn(
-                    'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                    analyticsMetric === option.id
-                      ? 'border-accent bg-white text-accent'
-                      : 'border-rule bg-surface-active text-text-primary hover:border-border-hover',
-                  )}
-                  title={option.description}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        ) : <div />}
-
-        {compareModeOptions.length > 0 ? (
-          <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-slate-50/94 px-4 py-4">
-            <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Compare mode</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {compareModeOptions.map(option => (
-                <button
-                  key={option.id}
-                  onClick={() => onCompareModeChange(option.id)}
-                  className={cn(
-                    'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                    compareMode === option.id
-                      ? 'border-accent bg-white text-accent'
-                      : 'border-rule bg-surface-active text-text-primary hover:border-border-hover',
-                  )}
-                  title={option.description}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        ) : null}
-      </motion.div>
+      </details>
 
       <motion.div
         className="px-5 py-4"

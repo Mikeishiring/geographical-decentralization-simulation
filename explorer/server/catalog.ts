@@ -447,6 +447,35 @@ export function buildTools(): Anthropic.Messages.Tool[] {
       input_schema: simulationViewToolSchema,
     },
     {
+      name: 'query_cached_results',
+      description:
+        'Query pre-computed simulation results from the cache. Returns summary metrics (Gini, HHI, liveness, MEV, supermajority success, top regions) ' +
+        'for completed runs. Use this to answer questions about simulation outcomes without requiring the user to run a new simulation. ' +
+        'The server pre-warms 10 canonical configs (SSP/MSP × homogeneous/aligned/misaligned). ' +
+        'Filter by paradigm, distribution, and/or source placement to narrow results.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          paradigm: {
+            type: 'string',
+            enum: ['SSP', 'MSP'],
+            description: 'Filter to results for a specific block-building paradigm.',
+          },
+          distribution: {
+            type: 'string',
+            enum: ['homogeneous', 'homogeneous-gcp', 'heterogeneous', 'random'],
+            description: 'Filter to results with a specific initial validator distribution.',
+          },
+          sourcePlacement: {
+            type: 'string',
+            enum: ['homogeneous', 'latency-aligned', 'latency-misaligned'],
+            description: 'Filter to results with a specific information-source placement.',
+          },
+        },
+        required: [],
+      },
+    },
+    {
       name: 'render_blocks',
       description:
         'Compose visual blocks to answer the user\'s question about the geo-decentralization study. ' +

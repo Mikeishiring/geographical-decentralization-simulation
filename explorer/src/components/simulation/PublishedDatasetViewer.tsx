@@ -868,7 +868,7 @@ export function PublishedDatasetViewer({
     const load = async () => {
       try {
         const response = await fetch(`${normalizedBase}/${dataset.path}`, {
-          cache: 'force-cache',
+          cache: 'default',
           signal: controller.signal,
         })
         if (!response.ok) throw new Error(`Failed to load ${dataset.path}`)
@@ -1587,7 +1587,7 @@ export function PublishedDatasetViewer({
       {annotationNotes.length > 0 ? (
         <div className="px-5 pb-5">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-            <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
+            <div className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-slate-50/94 px-4 py-4 shadow-sm">
               <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Figure discussion</div>
               <div className="mt-3 grid gap-3 sm:grid-cols-4">
                 {[
@@ -1609,7 +1609,7 @@ export function PublishedDatasetViewer({
               ) : null}
             </div>
 
-            <div className="rounded-xl border border-rule bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,250,248,0.96))] px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
+            <div className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-stone-50/96 px-4 py-4 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Figure marginalia</div>

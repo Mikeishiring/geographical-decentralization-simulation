@@ -2723,6 +2723,23 @@ function executeToolCall(
     return buildSimulationConfig(input)
   }
 
+  if (name === 'query_cached_results') {
+    const paradigm = typeof input.paradigm === 'string' ? input.paradigm as 'SSP' | 'MSP' : undefined
+    const distribution = typeof input.distribution === 'string' ? input.distribution : undefined
+    const sourcePlacement = typeof input.sourcePlacement === 'string' ? input.sourcePlacement : undefined
+
+    const results = simulationRuntime.listCompletedResults({ paradigm, distribution, sourcePlacement })
+
+    if (results.length === 0) {
+      return {
+        message: 'No cached simulation results match those filters. The user can run a simulation from the Results tab, or try different filter parameters.',
+        availableFilters: { paradigm: ['SSP', 'MSP'], distribution: ['homogeneous', 'homogeneous-gcp', 'heterogeneous', 'random'], sourcePlacement: ['homogeneous', 'latency-aligned', 'latency-misaligned'] },
+      }
+    }
+
+    return { results }
+  }
+
   if (name === 'verify_exploration') {
     const id = typeof input.id === 'string' ? input.id : ''
     const verified = typeof input.verified === 'boolean' ? input.verified : true
@@ -3660,6 +3677,15 @@ app.get('/api/simulations/:jobId/events', (req, res) => {
     clearInterval(heartbeat)
     unsubscribe()
   })
+})
+
+app.get('/api/simulations/cached', async (req, res) => {
+  const paradigm = typeof req.query.paradigm === 'string' ? req.query.paradigm as 'SSP' | 'MSP' : undefined
+  const distribution = typeof req.query.distribution === 'string' ? req.query.distribution : undefined
+  const sourcePlacement = typeof req.query.sourcePlacement === 'string' ? req.query.sourcePlacement : undefined
+
+  const results = await simulationRuntime.listCachedResults({ paradigm, distribution, sourcePlacement })
+  res.json({ results })
 })
 
 app.get('/api/simulations/:jobId/manifest', (req, res) => {

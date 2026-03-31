@@ -152,7 +152,7 @@ export function PendingRunSurface({
           ].map((card, i) => (
             <motion.div
               key={card.label}
-              className="lab-metric-card"
+              className="lab-metric-card card-hover"
               initial={{ opacity: 0, y: 6, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ ...SPRING_CRISP, delay: 0.12 + i * 0.04 }}
