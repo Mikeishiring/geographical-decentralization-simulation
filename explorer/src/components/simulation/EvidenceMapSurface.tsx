@@ -186,23 +186,55 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
 
   return (
     <div className={cn('lab-stage overflow-hidden', className)}>
-      {/* ── Header ── */}
-      <div className="border-b border-rule px-5 py-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* ── Hero header ── */}
+      <div className="border-b border-rule px-5 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-accent dot-pulse" />
-              <h3 className="lab-section-title !mb-0">
-                Validator geography
+            <div className="flex items-center gap-2.5">
+              <span aria-hidden="true" className="w-2 h-2 rounded-full bg-accent dot-pulse" />
+              <h3 className="text-base font-semibold tracking-tight text-text-primary">
+                Validator Geography
               </h3>
             </div>
-            <p className="mt-0.5 text-2xs text-muted pl-[18px]">
+            <p className="mt-1 text-2xs text-muted pl-[22px]">
               {overlay === 'latency'
                 ? `Inter-region latency arcs (${LATENCY_MIN.toFixed(0)}–${LATENCY_MAX.toFixed(0)} ms). Color = round-trip time.`
                 : overlay === 'sources'
                   ? 'Information source placement across GCP regions.'
-                  : `${displayNodes.length} active regions · ${totalValidators.toLocaleString()} validators at slot ${(slot + 1).toLocaleString()}`}
+                  : 'Live geographic distribution of validator stake across GCP regions.'}
             </p>
+            {/* Stat badges — animated on slot change */}
+            {overlay === 'validators' && (
+              <div className="mt-2 flex items-center gap-2 pl-[22px]">
+                <motion.span
+                  key={`regions-${displayNodes.length}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-accent/8 border border-accent/15 px-2 py-0.5 text-[0.625rem] font-medium text-accent tabular-nums"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={SPRING_SNAPPY}
+                >
+                  {displayNodes.length} regions
+                </motion.span>
+                <motion.span
+                  key={`validators-${totalValidators}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-surface-active border border-rule px-2 py-0.5 text-[0.625rem] font-medium text-text-secondary tabular-nums"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ ...SPRING_SNAPPY, delay: 0.05 }}
+                >
+                  {totalValidators.toLocaleString()} validators
+                </motion.span>
+                <motion.span
+                  key={`slot-${slot}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-surface-active border border-rule px-2 py-0.5 text-[0.625rem] font-mono text-muted tabular-nums"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ ...SPRING_SNAPPY, delay: 0.1 }}
+                >
+                  slot {(slot + 1).toLocaleString()}
+                </motion.span>
+              </div>
+            )}
           </div>
 
           {/* Overlay mode toggle */}
@@ -412,84 +444,101 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               const r = nodeRadius(node.count, maxCount)
               const color = overlay === 'sources' ? PASTEL.mint! : nodeColor(node.count, maxCount)
               const isTop = sorted.indexOf(node) < 6
+              const isTop3 = sorted.indexOf(node) < 3
               const rank = sorted.findIndex(n => n.id === node.id)
               const isHovered = hoveredRegion === node.id
 
+              const hoverProps = {
+                style: { cursor: 'pointer' as const },
+                onMouseEnter: () => handleHover({
+                  x: node.x, y: node.y,
+                  city: node.city, id: node.id,
+                  count: node.count, rank,
+                  total: displayNodes.length,
+                  macroRegion: node.macroRegion,
+                }),
+                onMouseLeave: () => handleHover(null),
+              }
+
               return (
                 <g key={node.id}>
-                  {/* Breathing halo — only when not playing (SVG animate is cheap but adds clutter) */}
+                  {/* Breathing halo — outer pulse ring for top nodes */}
                   {isTop && !playing && (
-                    <circle cx={node.x} cy={node.y} r={r * 2.8} fill="none" stroke={color} strokeWidth={0.4} opacity={0.1}>
-                      <animate attributeName="r" values={`${(r * 2.5).toFixed(1)};${(r * 3.5).toFixed(1)};${(r * 2.5).toFixed(1)}`} dur="4s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0.05;0.15;0.05" dur="4s" repeatCount="indefinite" />
+                    <circle cx={node.x} cy={node.y} r={r * 2.8} fill="none" stroke={color} strokeWidth={0.5} opacity={0.08}>
+                      <animate attributeName="r" values={`${(r * 2.5).toFixed(1)};${(r * 3.8).toFixed(1)};${(r * 2.5).toFixed(1)}`} dur={isTop3 ? '3.5s' : '5s'} repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.04;0.18;0.04" dur={isTop3 ? '3.5s' : '5s'} repeatCount="indefinite" />
                     </circle>
                   )}
 
-                  {/* Outer glow — plain circle during playback */}
+                  {/* Inner ring — secondary halo for top 3 */}
+                  {isTop3 && !playing && (
+                    <circle cx={node.x} cy={node.y} r={r * 1.8} fill="none" stroke={color} strokeWidth={0.3} opacity={0.1}>
+                      <animate attributeName="r" values={`${(r * 1.6).toFixed(1)};${(r * 2.2).toFixed(1)};${(r * 1.6).toFixed(1)}`} dur="3s" repeatCount="indefinite" begin="0.5s" />
+                      <animate attributeName="opacity" values="0.06;0.14;0.06" dur="3s" repeatCount="indefinite" begin="0.5s" />
+                    </circle>
+                  )}
+
+                  {/* Diffuse glow — soft color pool beneath node */}
                   <circle
                     cx={node.x} cy={node.y}
-                    r={r * 2.2}
+                    r={r * 2.4}
                     fill={color}
-                    fillOpacity={isHovered ? 0.2 : 0.08}
+                    fillOpacity={isHovered ? 0.22 : isTop3 ? 0.1 : 0.06}
+                    filter={isTop3 ? `url(#${idPrefix}-node-glow)` : undefined}
                   />
 
-                  {/* Core node — plain circle during playback, motion on initial load */}
+                  {/* Core node */}
                   {playing ? (
                     <circle
                       cx={node.x} cy={node.y}
                       r={r}
                       fill={color}
-                      opacity={0.9}
-                      stroke={isTop ? 'rgba(255,255,255,0.45)' : 'rgba(180,200,220,0.15)'}
-                      strokeWidth={isTop ? 0.8 : 0.4}
-                      style={{ cursor: 'pointer' }}
-                      onMouseEnter={() => handleHover({
-                        x: node.x, y: node.y,
-                        city: node.city, id: node.id,
-                        count: node.count, rank,
-                        total: displayNodes.length,
-                        macroRegion: node.macroRegion,
-                      })}
-                      onMouseLeave={() => handleHover(null)}
+                      opacity={0.92}
+                      stroke={isTop ? 'rgba(255,255,255,0.5)' : 'rgba(180,200,220,0.18)'}
+                      strokeWidth={isTop3 ? 1 : isTop ? 0.7 : 0.4}
+                      {...hoverProps}
                     />
                   ) : (
                     <motion.circle
                       cx={node.x} cy={node.y}
                       r={r}
                       fill={color}
-                      stroke={isTop ? 'rgba(255,255,255,0.45)' : 'rgba(180,200,220,0.15)'}
-                      strokeWidth={isTop ? 0.8 : 0.4}
+                      stroke={isTop ? 'rgba(255,255,255,0.5)' : 'rgba(180,200,220,0.18)'}
+                      strokeWidth={isTop3 ? 1 : isTop ? 0.7 : 0.4}
                       initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: isHovered ? 1.25 : 1, opacity: 0.9 }}
+                      animate={{ scale: isHovered ? 1.25 : 1, opacity: 0.92 }}
                       transition={{ ...SPRING_SNAPPY, delay: 0.1 + index * 0.008 }}
-                      style={{ cursor: 'pointer' }}
-                      onMouseEnter={() => handleHover({
-                        x: node.x, y: node.y,
-                        city: node.city, id: node.id,
-                        count: node.count, rank,
-                        total: displayNodes.length,
-                        macroRegion: node.macroRegion,
-                      })}
-                      onMouseLeave={() => handleHover(null)}
+                      {...hoverProps}
                     />
                   )}
 
-                  {/* Labels — skip during playback to reduce DOM churn */}
+                  {/* Labels — pill-style with background for top 5 */}
                   {rank < 5 && !playing && (
-                    <motion.text
-                      x={node.x} y={node.y - r - 8}
-                      textAnchor="middle"
-                      fill={DARK_SURFACE.subtleText}
-                      fontSize="7.5"
-                      fontFamily="var(--font-mono)"
-                      fontWeight={500}
-                      letterSpacing="0.01em"
+                    <motion.g
                       initial={{ opacity: 0 }}
-                      animate={{ opacity: 0.85 }}
+                      animate={{ opacity: 1 }}
                       transition={{ ...SPRING_SOFT, delay: 0.5 + index * 0.03 }}
                     >
-                      {node.city.split(',')[0]}
-                    </motion.text>
+                      <rect
+                        x={node.x - 28} y={node.y - r - 18}
+                        width={56} height={13}
+                        rx={3}
+                        fill="rgba(8,14,22,0.75)"
+                        stroke="rgba(255,255,255,0.08)"
+                        strokeWidth={0.5}
+                      />
+                      <text
+                        x={node.x} y={node.y - r - 9}
+                        textAnchor="middle"
+                        fill={DARK_SURFACE.subtleText}
+                        fontSize="7.5"
+                        fontFamily="var(--font-mono)"
+                        fontWeight={500}
+                        letterSpacing="0.02em"
+                      >
+                        {node.city.split(',')[0]}
+                      </text>
+                    </motion.g>
                   )}
                 </g>
               )
@@ -552,11 +601,12 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
         </div>
 
         {/* ── Sidebar ── */}
-        <div className="border-t border-rule p-3.5 lg:border-l lg:border-t-0 space-y-4 overflow-y-auto" style={{ maxHeight: 500 }}>
+        <div className="border-t border-rule p-3.5 lg:border-l lg:border-t-0 space-y-3.5 overflow-y-auto" style={{ maxHeight: 420 }}>
           {/* Live metrics — sentiment-colored */}
           <div>
-            <div className="lab-section-title">
-              Slot {(slot + 1).toLocaleString()} metrics
+            <div className="lab-section-title flex items-baseline gap-1.5">
+              <span>Metrics</span>
+              <span className="text-[0.5625rem] font-mono text-text-faint tabular-nums">slot {(slot + 1).toLocaleString()}</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {gini != null && (
@@ -618,9 +668,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
 
           {/* Top regions list */}
           <div>
-            <div className="lab-section-title">
-              Top regions
-            </div>
+            <div className="lab-section-title">Top regions</div>
             <div className="space-y-0.5">
               {sorted.slice(0, 6).map((node, i) => {
                 const color = overlay === 'sources' ? PASTEL.mint! : nodeColor(node.count, maxCount)
@@ -672,14 +720,9 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
           {overlay === 'latency' && (
             <div className="lab-option-card p-2.5 text-xs text-muted">
               <div className="lab-section-title !mb-1.5">Latency scale</div>
-              <div className="flex items-center gap-1.5">
-                <div className="flex-1 h-2 rounded-full" style={{
-                  background: 'linear-gradient(to right, #10B981, #FBBF24, #F97316, #EF4444)',
-                }} />
-              </div>
+              <div className="h-2 rounded-full" style={{ background: 'linear-gradient(to right, #10B981, #FBBF24, #F97316, #EF4444)' }} />
               <div className="flex justify-between mt-1 text-[0.5625rem] font-mono text-text-faint">
-                <span>{LATENCY_MIN.toFixed(0)} ms</span>
-                <span>{LATENCY_MAX.toFixed(0)} ms</span>
+                <span>{LATENCY_MIN.toFixed(0)} ms</span><span>{LATENCY_MAX.toFixed(0)} ms</span>
               </div>
             </div>
           )}
@@ -687,26 +730,19 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
           {/* Density legend */}
           {overlay !== 'latency' && (
             <div className="lab-option-card p-2.5 text-xs text-muted">
-              <div className="lab-section-title !mb-1.5">
-                {overlay === 'sources' ? 'Source density' : 'Stake concentration'}
-              </div>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#64748B]" />
-                  <span className="text-2xs">Low</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: overlay === 'sources' ? PASTEL.mint : PASTEL.sky }} />
-                  <span className="text-2xs">Moderate</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: overlay === 'sources' ? PASTEL.mint : PASTEL.lavender }} />
-                  <span className="text-2xs">High</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: overlay === 'sources' ? PASTEL.mint : PASTEL.peach }} />
-                  <span className="text-2xs">Dominant</span>
-                </span>
+              <div className="lab-section-title !mb-1.5">{overlay === 'sources' ? 'Source density' : 'Stake concentration'}</div>
+              <div className="flex items-center gap-3">
+                {([
+                  { size: 'h-1.5 w-1.5', label: 'Low', color: '#64748B' },
+                  { size: 'h-2 w-2', label: 'Med', color: overlay === 'sources' ? PASTEL.mint : PASTEL.sky },
+                  { size: 'h-2 w-2', label: 'High', color: overlay === 'sources' ? PASTEL.mint : PASTEL.lavender },
+                  { size: 'h-2.5 w-2.5', label: 'Top', color: overlay === 'sources' ? PASTEL.mint : PASTEL.peach },
+                ] as const).map(({ size, label, color }) => (
+                  <span key={label} className="flex items-center gap-1">
+                    <span className={cn('rounded-full', size)} style={{ backgroundColor: color }} />
+                    <span className="text-2xs">{label}</span>
+                  </span>
+                ))}
               </div>
             </div>
           )}
@@ -714,19 +750,19 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
       </div>
 
       {/* ── Playback controls ── */}
-      <div className="border-t border-rule px-5 py-3">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-1.5">
+      <div className="border-t border-rule px-5 py-3 bg-surface-primary/50">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1">
             {playing ? (
-              <button onClick={onPause} className="lab-option-card flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-text-primary hover:border-border-hover">
-                <Pause className="h-3.5 w-3.5" /> Pause
+              <button onClick={onPause} className="flex items-center justify-center rounded-lg border border-rule bg-surface-active px-3 py-1.5 text-xs font-medium text-text-primary hover:border-border-hover transition-colors gap-1.5">
+                <Pause className="h-3 w-3" /> Pause
               </button>
             ) : (
-              <button onClick={onPlay} className="flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/5 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 transition-colors">
-                <Play className="h-3.5 w-3.5" /> {slot >= lastSlot ? 'Replay' : 'Play'}
+              <button onClick={onPlay} className="flex items-center justify-center rounded-lg border border-accent/30 bg-accent/5 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 transition-colors gap-1.5">
+                <Play className="h-3 w-3" /> {slot >= lastSlot ? 'Replay' : 'Play'}
               </button>
             )}
-            <button onClick={onReset} className="lab-option-card flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted hover:text-text-primary hover:border-border-hover transition-colors" title="Jump to final slot">
+            <button onClick={onReset} className="flex items-center justify-center rounded-lg border border-rule bg-surface-active px-2 py-1.5 text-xs text-muted hover:text-text-primary hover:border-border-hover transition-colors" title="Jump to final slot">
               <RotateCcw className="h-3 w-3" />
             </button>
           </div>
@@ -734,7 +770,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
           {/* Scrubber with progress fill */}
           <div className="flex-1 min-w-[120px] relative">
             <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none" style={{ width: `${progress}%` }}>
-              <div className="h-[6px] w-full rounded-l-full bg-accent/25" />
+              <div className="h-[5px] w-full rounded-l-full bg-accent/20" />
             </div>
             <input
               type="range"
@@ -747,13 +783,11 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             />
           </div>
 
-          <div className="text-xs tabular-nums text-muted shrink-0 flex items-center gap-2">
-            <span>
-              <span className="font-semibold text-text-primary">{(slot + 1).toLocaleString()}</span>
-              <span className="text-text-faint"> / {totalSlots.toLocaleString()}</span>
-            </span>
+          <div className="text-xs tabular-nums text-muted shrink-0 flex items-center gap-1.5">
+            <span className="font-semibold text-text-primary">{(slot + 1).toLocaleString()}</span>
+            <span className="text-text-faint text-2xs">/ {totalSlots.toLocaleString()}</span>
             {playing && (
-              <span className="text-2xs text-accent/70 font-medium">{'\u00D7'}{stepSize}</span>
+              <span className="text-2xs text-accent/70 font-medium ml-0.5">{'\u00D7'}{stepSize}</span>
             )}
           </div>
         </div>
