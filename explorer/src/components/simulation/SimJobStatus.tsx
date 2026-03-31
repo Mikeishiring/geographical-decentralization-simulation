@@ -1,7 +1,7 @@
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { AlertTriangle, Ban, CheckCircle2, Clock3, LoaderCircle } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { SPRING } from '../../lib/theme'
+import { CHART, SPRING, SPRING_CRISP } from '../../lib/theme'
 import type { SimulationJob } from '../../lib/simulation-api'
 
 type JobStatus = 'idle' | 'submitting' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
@@ -95,6 +95,7 @@ export function SimJobStatus({
                   tone: 'danger' as const,
                 }
 
+  const isActive = meta.tone === 'active'
   const statusIcon = meta.tone === 'success'
     ? <CheckCircle2 className="h-4 w-4" />
     : meta.tone === 'danger'
@@ -120,7 +121,7 @@ export function SimJobStatus({
           <div className="mt-3 flex items-center gap-3">
             <span
               className={cn(
-                'inline-flex h-9 w-9 items-center justify-center rounded-full border',
+                'relative inline-flex h-9 w-9 items-center justify-center rounded-full border',
                 meta.tone === 'success' && 'border-emerald-300/30 bg-emerald-50 text-emerald-700',
                 meta.tone === 'danger' && 'border-danger/30 bg-danger/5 text-danger',
                 meta.tone === 'muted' && 'border-rule bg-surface-active text-text-primary',
@@ -128,6 +129,10 @@ export function SimJobStatus({
                 meta.tone === 'active' && 'border-sky-300/28 bg-sky-50 text-sky-700',
               )}
             >
+              {/* Liveline-style breathing pulse ring for active states */}
+              {isActive && (
+                <span className="absolute inset-0 rounded-full border-2 border-sky-400/30 dot-pulse" />
+              )}
               {statusIcon}
             </span>
             <div>
@@ -141,40 +146,42 @@ export function SimJobStatus({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[320px]">
-          <div className="rounded-xl border border-rule bg-white/88 px-4 py-3">
-            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Queue</span>
-            <div className="mt-2 text-base font-semibold text-text-primary">
-              {jobData?.queuePosition ?? 'Live'}
-            </div>
-            <div className="mt-1 text-xs text-muted">
-              {jobData?.queuePosition != null && jobData.queuePosition > 0
+          {[
+            {
+              label: 'Queue',
+              value: jobData?.queuePosition ?? 'Live',
+              detail: jobData?.queuePosition != null && jobData.queuePosition > 0
                 ? 'Jobs ahead before execution starts'
-                : 'No backlog signal from the runtime'}
-            </div>
-          </div>
-          <div className="rounded-xl border border-rule bg-white/88 px-4 py-3">
-            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Cache path</span>
-            <div className="mt-2 text-base font-semibold text-text-primary">
-              {jobData?.cacheHit == null ? 'Pending' : jobData.cacheHit ? 'Hit' : 'Fresh'}
-            </div>
-            <div className="mt-1 text-xs text-muted">
-              {jobData?.cacheHit == null ? 'Resolved during execution' : jobData.cacheHit ? 'Exact cache reuse' : 'New exact run'}
-            </div>
-          </div>
-          <div className="rounded-xl border border-rule bg-white/88 px-4 py-3">
-            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Created</span>
-            <div className="mt-2 text-base font-semibold text-text-primary">{createdLabel ?? 'Waiting'}</div>
-            <div className="mt-1 text-xs text-muted">
-              {jobData?.id ? `Job ${jobData.id.slice(0, 8)}` : 'Ticket pending'}
-            </div>
-          </div>
-          <div className="rounded-xl border border-rule bg-white/88 px-4 py-3">
-            <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Updated</span>
-            <div className="mt-2 text-base font-semibold text-text-primary">{updatedLabel ?? 'Waiting'}</div>
-            <div className="mt-1 text-xs text-muted">
-              {status === 'completed' ? 'Ready to inspect' : 'Stream stays live'}
-            </div>
-          </div>
+                : 'No backlog signal from the runtime',
+            },
+            {
+              label: 'Cache path',
+              value: jobData?.cacheHit == null ? 'Pending' : jobData.cacheHit ? 'Hit' : 'Fresh',
+              detail: jobData?.cacheHit == null ? 'Resolved during execution' : jobData.cacheHit ? 'Exact cache reuse' : 'New exact run',
+            },
+            {
+              label: 'Created',
+              value: createdLabel ?? 'Waiting',
+              detail: jobData?.id ? `Job ${jobData.id.slice(0, 8)}` : 'Ticket pending',
+            },
+            {
+              label: 'Updated',
+              value: updatedLabel ?? 'Waiting',
+              detail: status === 'completed' ? 'Ready to inspect' : 'Stream stays live',
+            },
+          ].map((card, i) => (
+            <motion.div
+              key={card.label}
+              className="rounded-xl border border-rule bg-white/88 px-4 py-3"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...SPRING_CRISP, delay: 0.1 + i * 0.04 }}
+            >
+              <span className="block text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</span>
+              <div className="mt-2 text-base font-semibold text-text-primary">{card.value}</div>
+              <div className="mt-1 text-xs text-muted">{card.detail}</div>
+            </motion.div>
+          ))}
         </div>
       </div>
 
@@ -184,10 +191,12 @@ export function SimJobStatus({
           <span>{progress}%</span>
         </div>
         <div className="lab-progress-track bg-surface-active">
-          <div
+          <motion.div
             className="lab-progress-fill"
-            data-state={status === 'submitting' || status === 'queued' || status === 'running' ? 'active' : undefined}
-            style={{ width: `${progress}%` }}
+            data-state={isActive ? 'active' : undefined}
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={SPRING_CRISP}
           />
         </div>
       </div>

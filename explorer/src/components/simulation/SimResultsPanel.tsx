@@ -148,16 +148,25 @@ function formatExactChartValue(value: number): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 4 })
 }
 
-function buildSparkline(values: readonly number[], width = 220, height = 72): string {
-  if (values.length === 0) return ''
+function buildSparkline(values: readonly number[], width = 220, height = 72): {
+  path: string
+  areaPath: string
+  endX: number
+  endY: number
+} {
+  if (values.length === 0) return { path: '', areaPath: '', endX: 0, endY: 0 }
   const min = Math.min(...values)
   const max = Math.max(...values)
   const range = max - min || 1
-  return values.map((value, index) => {
+  const path = values.map((value, index) => {
     const x = (index / Math.max(values.length - 1, 1)) * width
     const y = height - (((value - min) / range) * (height - 8) + 4)
     return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`
   }).join(' ')
+  const lastX = width
+  const lastY = height - (((values[values.length - 1] - min) / range) * (height - 8) + 4)
+  const areaPath = `${path} L ${lastX.toFixed(2)} ${height} L 0 ${height} Z`
+  return { path, areaPath, endX: lastX, endY: lastY }
 }
 
 function buildArtifactFigureNote(artifact: SimulationArtifact): {
@@ -375,7 +384,7 @@ function ExactChartDeck({
                 const start = entry.values[0] ?? 0
               const peak = Math.max(...entry.values)
               const delta = latest - start
-              const sparkline = buildSparkline(entry.values)
+              const spark = buildSparkline(entry.values)
               const isFocused = entry.artifactName === focusedSeries.artifactName
               const isPinned = entry.artifactName === pinnedArtifactName
 
@@ -410,8 +419,21 @@ function ExactChartDeck({
                     </div>
 
                     <div className="mt-4 overflow-hidden rounded-xl border border-rule bg-surface-active px-3 py-3">
-                      <svg viewBox="0 0 220 72" className="w-full" preserveAspectRatio="none">
-                        <path d={sparkline} fill="none" stroke={visual?.color ?? '#2563EB'} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
+                      <svg viewBox="0 0 220 72" className="w-full chart-edge-fade" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id={`spark-fill-${entry.artifactName.replace(/\./g, '-')}`} x1="0%" x2="0%" y1="0%" y2="100%">
+                            <stop offset="0%" stopColor={visual?.color ?? '#2563EB'} stopOpacity={0.14} />
+                            <stop offset="100%" stopColor={visual?.color ?? '#2563EB'} stopOpacity={0.02} />
+                          </linearGradient>
+                        </defs>
+                        {/* Area fill — liveline-style gradient */}
+                        <path d={spark.areaPath} fill={`url(#spark-fill-${entry.artifactName.replace(/\./g, '-')})`} />
+                        {/* Line path */}
+                        <path d={spark.path} fill="none" stroke={visual?.color ?? '#2563EB'} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
+                        {/* Pulsing live dot at endpoint */}
+                        <circle cx={spark.endX} cy={spark.endY} r="3.5" fill="none" stroke={visual?.color ?? '#2563EB'} strokeWidth="1.5" opacity="0.4" className="live-dot-pulse" />
+                        <circle cx={spark.endX} cy={spark.endY} r="3" fill="white" stroke={visual?.color ?? '#2563EB'} strokeWidth="1.5" />
+                        <circle cx={spark.endX} cy={spark.endY} r="1.5" fill={visual?.color ?? '#2563EB'} />
                       </svg>
                     </div>
 
