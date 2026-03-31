@@ -327,8 +327,8 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
         {/* SVG Map */}
         <div
           ref={mapContainerRef}
-          className="relative overflow-hidden"
-          style={{ aspectRatio: `${SVG_W} / ${MAP_VISIBLE_H}`, backgroundColor: DARK_SURFACE.bg, cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
+          className="relative overflow-hidden min-h-[420px]"
+          style={{ backgroundColor: DARK_SURFACE.bg, cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -352,7 +352,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
           <svg
             viewBox={viewBox}
             className="block h-full w-full"
-            preserveAspectRatio="xMidYMid meet"
+            preserveAspectRatio="xMidYMid slice"
             role="img"
             aria-label="Validator geography map — scroll to zoom, drag to pan"
           >
