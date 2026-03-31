@@ -194,7 +194,7 @@ function App() {
     applyRouteState({ tab: 'community', query: null, explorationId }, false)
   }, [applyRouteState])
 
-  const handleCommunityGoToFindings = useCallback(() => {
+  const handleCommunityGoToPaper = useCallback(() => {
     applyRouteState({ tab: 'paper', query: null, explorationId: null }, false)
   }, [applyRouteState])
 
@@ -270,7 +270,7 @@ function App() {
               <Suspense fallback={<PageFallback label="Loading community notes" />}>
                 <ExploreHistoryPage
                   initialExplorationId={sharedExplorationId}
-                  onGoToFindings={handleCommunityGoToFindings}
+                  onGoToPaper={handleCommunityGoToPaper}
                   onOpenQuery={handleCommunityOpenQuery}
                   onTabChange={handleTabChange}
                 />

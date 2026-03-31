@@ -40,12 +40,12 @@ function cardTimestamp(exploration: Exploration): string {
 
 export function ExploreHistoryPage({
   initialExplorationId = null,
-  onGoToFindings,
+  onGoToPaper,
   onOpenQuery,
   onTabChange,
 }: {
   readonly initialExplorationId?: string | null
-  readonly onGoToFindings?: () => void
+  readonly onGoToPaper?: () => void
   readonly onOpenQuery?: (query: string) => void
   readonly onTabChange?: (tab: TabId) => void
 } = {}) {
@@ -156,20 +156,20 @@ export function ExploreHistoryPage({
   }
 
   if (displayedExplorations.length === 0 && !search && !deepLinkedExplorationQuery.isLoading && !hiddenDraftExploration) {
-    return <EmptyState onGoToFindings={onGoToFindings} onTabChange={onTabChange} />
+    return <EmptyState onGoToPaper={onGoToPaper} onTabChange={onTabChange} />
   }
 
   return (
     <div className="space-y-6">
-      {(onGoToFindings || onTabChange) && (
+      {(onGoToPaper || onTabChange) && (
         <div className="rounded-xl border border-rule bg-white px-5 py-5">
           <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-text-faint">Read evidence, then publish</span>
           <div className="mt-1 text-[0.8125rem] font-medium text-text-primary">Community works best when notes start from a canonical reading or an exact run, not from raw guide output.</div>
 
           <div className="mt-4 divide-y divide-rule">
-            {onGoToFindings && (
+            {onGoToPaper && (
               <button
-                onClick={onGoToFindings}
+                onClick={onGoToPaper}
                 className="group flex w-full items-baseline justify-between gap-4 py-3 text-left"
               >
                 <div>
@@ -752,10 +752,10 @@ function FollowUpList({
 }
 
 function EmptyState({
-  onGoToFindings,
+  onGoToPaper,
   onTabChange,
 }: {
-  readonly onGoToFindings?: () => void
+  readonly onGoToPaper?: () => void
   readonly onTabChange?: (tab: TabId) => void
 }) {
   return (
@@ -797,9 +797,9 @@ function EmptyState({
           Start from the Paper for a section-backed reading, or from Results for an exact run. Then publish a note intentionally with your own title and takeaway.
         </p>
         <div className="flex flex-wrap justify-center gap-2">
-          {onGoToFindings && (
+          {onGoToPaper && (
             <button
-              onClick={onGoToFindings}
+              onClick={onGoToPaper}
               className="rounded-lg bg-accent px-4 py-2 text-sm text-white transition-colors hover:bg-accent/80"
             >
               Open Paper
