@@ -50,7 +50,7 @@ export function ExactLabIntro({
             key={preset.label}
             variants={STAGGER_ITEM}
             onClick={() => onApplyPreset(preset.config)}
-            className="lab-option-card px-3 py-3 text-left transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)]"
+            className="lab-option-card px-3 py-3 text-left card-hover"
           >
             <div className="flex items-start justify-between gap-3">
               <div>

@@ -924,7 +924,7 @@ export function PublishedReplayNotesPanel({
                 className={cn(
                   'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                   annotationScope === option.id
-                    ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                    ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
                     : 'border-rule bg-white text-text-primary hover:border-border-hover',
                 )}
                 title={option.description}
@@ -979,7 +979,7 @@ export function PublishedReplayNotesPanel({
               className={cn(
                 'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                 selectedAnchorKey === option.key
-                  ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                  ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
                   : 'border-rule bg-white text-text-primary hover:border-border-hover',
               )}
             >
@@ -1042,7 +1042,7 @@ export function PublishedReplayNotesPanel({
               className={cn(
                 'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                 activeThreadFilter === filter.id
-                  ? 'border-[#DBE4F0] bg-[linear-gradient(180deg,#FFFFFF,#F8FAFC)] text-[#0F172A] shadow-[0_10px_22px_rgba(15,23,42,0.06)]'
+                  ? 'border-rule bg-gradient-to-b from-white to-slate-50 text-text-primary shadow-sm'
                   : 'border-rule bg-white text-text-primary hover:border-border-hover',
               )}
             >
@@ -1090,7 +1090,7 @@ export function PublishedReplayNotesPanel({
                   className={cn(
                     'ml-auto rounded-full border px-2.5 py-0.5 text-2xs font-medium transition-colors',
                     followedNoteSet.has(note.id)
-                      ? 'border-[#DBE4F0] bg-[linear-gradient(180deg,#FFFFFF,#F8FAFC)] text-[#0F172A]'
+                      ? 'border-rule bg-gradient-to-b from-white to-slate-50 text-text-primary'
                       : 'border-rule bg-white text-text-primary hover:border-border-hover',
                   )}
                 >

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { Ban, Play, RotateCcw, Sparkles } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { SPRING } from '../../lib/theme'
+import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import type { SimulationConfig } from '../../lib/simulation-api'
 import {
   describeParadigm,
@@ -91,7 +91,7 @@ export function SimConfigPanel({
   const validatorsOnAnchor = isAnchorValue(config.validators, VALIDATOR_ANCHORS)
   const slotsOnAnchor = isAnchorValue(config.slots, SLOT_ANCHORS)
   const migrationCostOnAnchor = isAnchorValue(config.migrationCost, MIGRATION_COST_ANCHORS)
-  const inputClassName = 'lab-input-shell w-full rounded-xl px-3 py-2 text-sm text-text-primary outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/10'
+  const inputClassName = 'lab-input-shell w-full rounded-xl px-3 py-2 text-sm text-text-primary outline-none transition hover:border-border-hover focus:border-accent/50 focus:ring-2 focus:ring-accent/10'
   const anchorButtonClassName = 'lab-option-card min-w-0 rounded-xl px-2.5 py-1.5 text-center transition-all hover:border-border-hover'
   const segmentButtonClassName = 'lab-option-card min-w-0 rounded-xl px-3 py-2 text-left transition-all hover:border-border-hover'
 
@@ -131,8 +131,8 @@ export function SimConfigPanel({
                   segmentButtonClassName,
                   config.paradigm === paradigm
                     ? paradigm === 'SSP'
-                      ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent shadow-[0_16px_32px_rgba(37,99,235,0.1)]'
-                      : 'border-accent-warm bg-[linear-gradient(180deg,rgba(194,85,58,0.1),rgba(255,255,255,0.98))] text-accent-warm shadow-[0_16px_32px_rgba(194,85,58,0.12)]'
+                      ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent shadow-[0_16px_32px_rgba(37,99,235,0.1)]'
+                      : 'border-accent-warm bg-gradient-to-b from-accent-warm/10 to-white/98 text-accent-warm shadow-[0_16px_32px_rgba(194,85,58,0.12)]'
                     : 'text-muted',
                 )}
               >
@@ -205,7 +205,7 @@ export function SimConfigPanel({
                 className={cn(
                   anchorButtonClassName,
                   approximatelyEqual(config.validators, option.value)
-                    ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                    ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
                     : 'text-muted',
                 )}
               >
@@ -250,7 +250,7 @@ export function SimConfigPanel({
                 className={cn(
                   anchorButtonClassName,
                   approximatelyEqual(config.slots, option.value)
-                    ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                    ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
                     : 'text-muted',
                 )}
               >
@@ -305,7 +305,7 @@ export function SimConfigPanel({
                 className={cn(
                   anchorButtonClassName,
                   approximatelyEqual(config.migrationCost, option.value)
-                    ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                    ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
                     : 'text-muted',
                 )}
               >
@@ -335,7 +335,7 @@ export function SimConfigPanel({
                 className={cn(
                   segmentButtonClassName,
                   Math.abs(config.attestationThreshold - option.value) < 0.01
-                    ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                    ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
                     : 'text-muted',
                 )}
               >
@@ -358,7 +358,7 @@ export function SimConfigPanel({
                 className={cn(
                   segmentButtonClassName,
                   config.slotTime === option.value
-                    ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))] text-accent'
+                    ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
                     : 'text-muted',
                 )}
               >
@@ -457,16 +457,20 @@ export function SimConfigPanel({
             </motion.button>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <button
+              <motion.button
                 onClick={onReset}
+                whileTap={{ scale: 0.97 }}
+                transition={SPRING_CRISP}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-rule bg-white px-4 py-3 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
                 <RotateCcw className="h-4 w-4" />
                 Reset
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button
                 onClick={onCancel}
+                whileTap={{ scale: 0.97 }}
+                transition={SPRING_CRISP}
                 disabled={!canCancel}
                 className={cn(
                   'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm transition-colors',
@@ -477,7 +481,7 @@ export function SimConfigPanel({
               >
                 <Ban className="h-4 w-4" />
                 Cancel
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>
