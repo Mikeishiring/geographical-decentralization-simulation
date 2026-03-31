@@ -3,12 +3,12 @@
  * Extracted from EvidenceMapSurface.tsx to keep it under the 800-line limit.
  */
 import { motion } from 'framer-motion'
-import { MAP_NODE_COLORS, SPRING_SOFT } from '../../lib/theme'
+import { SPRING_SOFT } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { LATENCY_MIN, LATENCY_MAX } from '../../data/gcp-latency'
 import { formatNumber } from './simulation-constants'
 import { THRESHOLDS, SENTIMENT_TEXT, sentimentLower, sentimentHigher } from './simulation-evidence-constants'
-import { nodeColor, type RegionNode, type OverlayMode, type TooltipData } from './evidence-map-helpers'
+import { nodeColor, NODE_BLUE, type RegionNode, type OverlayMode, type TooltipData } from './evidence-map-helpers'
 
 interface MacroBreakdownEntry {
   readonly region: string
@@ -114,7 +114,7 @@ export function EvidenceMapSidebar({
         <div className="lab-section-title">Top regions</div>
         <div className="space-y-0.5">
           {sorted.slice(0, 6).map((node, i) => {
-            const color = overlay === 'sources' ? MAP_NODE_COLORS.sources : nodeColor(node.count, maxCount)
+            const color = overlay === 'sources' ? NODE_BLUE.source : nodeColor(node.count, maxCount)
             const pct = ((node.count / maxCount) * 100).toFixed(0)
             const sharePct = totalValidators > 0 ? ((node.count / totalValidators) * 100).toFixed(1) : '0'
             const isHovered = hoveredRegion === node.id
@@ -176,10 +176,10 @@ export function EvidenceMapSidebar({
           <div className="lab-section-title !mb-1.5">{overlay === 'sources' ? 'Source density' : 'Stake concentration'}</div>
           <div className="flex items-center gap-3">
             {([
-              { size: 'h-1.5 w-1.5', label: 'Low', color: overlay === 'sources' ? MAP_NODE_COLORS.sources : MAP_NODE_COLORS.inactive },
-              { size: 'h-2 w-2', label: 'Med', color: overlay === 'sources' ? MAP_NODE_COLORS.sources : MAP_NODE_COLORS.low },
-              { size: 'h-2 w-2', label: 'High', color: overlay === 'sources' ? MAP_NODE_COLORS.sources : MAP_NODE_COLORS.mid },
-              { size: 'h-2.5 w-2.5', label: 'Top', color: overlay === 'sources' ? MAP_NODE_COLORS.sources : MAP_NODE_COLORS.high },
+              { size: 'h-1.5 w-1.5', label: 'Low', color: overlay === 'sources' ? NODE_BLUE.source : '#94A3B8' },
+              { size: 'h-2 w-2', label: 'Med', color: overlay === 'sources' ? NODE_BLUE.source : NODE_BLUE.low },
+              { size: 'h-2 w-2', label: 'High', color: overlay === 'sources' ? NODE_BLUE.source : NODE_BLUE.high },
+              { size: 'h-2.5 w-2.5', label: 'Top', color: overlay === 'sources' ? NODE_BLUE.source : NODE_BLUE.top },
             ] as const).map(({ size, label, color }) => (
               <span key={label} className="flex items-center gap-1">
                 <span className={cn('rounded-full', size)} style={{ backgroundColor: color }} />

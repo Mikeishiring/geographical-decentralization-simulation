@@ -4,7 +4,7 @@
  */
 import { memo } from 'react'
 import { motion } from 'framer-motion'
-import { LIGHT_SURFACE, MAP_NODE_COLORS, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
+import { LIGHT_SURFACE, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { WORLD_PATHS } from '../../data/world-paths'
 import {
   SVG_W,
@@ -13,7 +13,7 @@ import {
   latLonToMercator,
   nodeRadius,
   nodeColor,
-  nodeColorTop,
+  NODE_BLUE,
   type RegionNode,
   type OverlayMode,
   type LabelPlacement,
@@ -88,7 +88,7 @@ export const MapNodeLayer = memo(function MapNodeLayer({
     <>
       {/* Ambient glow behind top 5 regions */}
       {sorted.slice(0, 5).map((node, i) => {
-        const color = i === 0 ? MAP_NODE_COLORS.top : MAP_NODE_COLORS.high
+        const color = i === 0 ? NODE_BLUE.top : NODE_BLUE.high
         const intensity = i < 3 ? 0.08 : 0.05
         return (
           <circle
@@ -108,7 +108,7 @@ export const MapNodeLayer = memo(function MapNodeLayer({
       {displayNodes.map((node, index) => {
         const rank = sorted.findIndex(n => n.id === node.id)
         const r = nodeRadius(node.count, maxCount)
-        const color = overlay === 'sources' ? MAP_NODE_COLORS.sources : (rank === 0 ? nodeColorTop() : nodeColor(node.count, maxCount))
+        const color = overlay === 'sources' ? NODE_BLUE.source : nodeColor(node.count, maxCount)
         const isTop = rank < 6
         const isTop3 = rank < 3
         const isHovered = hoveredRegion === node.id

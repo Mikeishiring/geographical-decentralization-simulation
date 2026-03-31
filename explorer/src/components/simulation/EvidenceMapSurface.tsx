@@ -2,8 +2,6 @@ import { useCallback, useId, useMemo, useRef, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Pause, RotateCcw, Layers, Radio, Zap, Plus, Minus, Maximize2 } from 'lucide-react'
 import { EvidenceMapSidebar } from './EvidenceMapSidebar'
-import { MapBaseLayers, MapNodeLayer, MapLabelLayer } from './EvidenceMapLayers'
-
 import { LIGHT_SURFACE, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { LATENCY_MIN, LATENCY_MAX } from '../../data/gcp-latency'
@@ -17,8 +15,11 @@ import {
   SVG_H,
   MAP_VISIBLE_H,
   GCP_REGION_MAP,
+  NODE_BLUE,
   latLonToMercator,
   latencyColor,
+  nodeRadius,
+  nodeColor,
   getSlotRegionNodes,
   getSourceNodes,
   buildLatencyArcs,
@@ -27,6 +28,7 @@ import {
   type OverlayMode,
   type TooltipData,
 } from './evidence-map-helpers'
+import { WORLD_PATHS } from '../../data/world-paths'
 
 // ── Main component ──────────────────────────────────────────────────────────
 
@@ -344,8 +346,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
           <div className="absolute top-2.5 right-2.5 z-10 flex flex-col gap-1">
             <button
               onClick={zoomIn}
-              className="flex items-center justify-center h-7 w-7 rounded-md bg-white/80 backdrop-blur-md border border-rule text-muted hover:text-text-primary hover:bg-white transition-colors shadow-sm"
-
+              className="flex items-center justify-center h-7 w-7 rounded-md bg-white/80 backdrop-blur-md border border-stone-200 text-stone-400 hover:text-stone-700 hover:bg-white transition-colors shadow-sm"
               aria-label={`Zoom in (current: ${zoom.toFixed(1)}x)`}
               title="Zoom in"
             >
@@ -353,8 +354,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             </button>
             <button
               onClick={zoomOut}
-              className="flex items-center justify-center h-7 w-7 rounded-md bg-white/80 backdrop-blur-md border border-rule text-muted hover:text-text-primary hover:bg-white transition-colors shadow-sm"
-
+              className="flex items-center justify-center h-7 w-7 rounded-md bg-white/80 backdrop-blur-md border border-stone-200 text-stone-400 hover:text-stone-700 hover:bg-white transition-colors shadow-sm"
               aria-label={`Zoom out (current: ${zoom.toFixed(1)}x)`}
               title="Zoom out"
             >
@@ -363,8 +363,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             {zoom > 1.05 && (
               <button
                 onClick={resetView}
-                className="flex items-center justify-center h-7 w-7 rounded-md bg-white/80 backdrop-blur-md border border-rule text-muted hover:text-text-primary hover:bg-white transition-colors shadow-sm"
-
+                className="flex items-center justify-center h-7 w-7 rounded-md bg-white/80 backdrop-blur-md border border-stone-200 text-stone-400 hover:text-stone-700 hover:bg-white transition-colors shadow-sm"
                 aria-label="Reset map zoom and pan to default view"
                 title="Reset zoom"
               >
@@ -372,8 +371,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               </button>
             )}
             {zoom > 1.05 && (
-              <span className="text-center text-[0.5625rem] font-mono text-muted tabular-nums mt-0.5">
-
+              <span className="text-center text-[0.5625rem] font-mono text-stone-400 tabular-nums mt-0.5">
                 {zoom.toFixed(1)}x
               </span>
             )}
@@ -386,63 +384,55 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             aria-label="Validator geography map — scroll to zoom, drag to pan"
           >
             <defs>
-              {/* Warm paper background — subtle vignette toward edges */}
-              <radialGradient id={`${idPrefix}-bg`} cx="50%" cy="42%" r="65%">
-                <stop offset="0%" stopColor={LIGHT_SURFACE.bg} />
-                <stop offset="70%" stopColor={LIGHT_SURFACE.gradientCenter} />
-                <stop offset="100%" stopColor={LIGHT_SURFACE.gradientEdge} />
-              </radialGradient>
-              {/* Soft edge vignette — just barely visible on light canvas */}
-              <radialGradient id={`${idPrefix}-atmos`} cx="50%" cy="42%" r="58%">
-                <stop offset="0%" stopColor="transparent" />
-                <stop offset="75%" stopColor="transparent" />
-                <stop offset="95%" stopColor={LIGHT_SURFACE.gradientEdge} stopOpacity={0.4} />
-                <stop offset="100%" stopColor={LIGHT_SURFACE.gradientEdge} stopOpacity={0.7} />
-              </radialGradient>
-              {/* Ambient glow filter — softened for light canvas */}
-              <filter id={`${idPrefix}-glow`}>
-                <feGaussianBlur in="SourceGraphic" stdDeviation="18" />
-              </filter>
-              <filter id={`${idPrefix}-arc-glow`}>
-                <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" />
-              </filter>
-              <filter id={`${idPrefix}-node-glow`}>
-                <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
-              </filter>
-              {/* Node orb gradient — glossy highlight on light bg, stronger contrast */}
-              <radialGradient id={`${idPrefix}-orb`} cx="36%" cy="30%" r="60%">
-                <stop offset="0%" stopColor={LIGHT_SURFACE.orbHighlight} />
-                <stop offset="35%" stopColor={LIGHT_SURFACE.orbMid} />
-                <stop offset="100%" stopColor="white" stopOpacity={0} />
-              </radialGradient>
-              {/* Drop shadow — more visible on light background */}
-              <filter id={`${idPrefix}-node-shadow`} x="-50%" y="-30%" width="200%" height="200%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="2.5" />
-                <feOffset dy="1.5" />
-                <feComponentTransfer>
-                  <feFuncA type="linear" slope="0.15" />
-                </feComponentTransfer>
-                <feMerge>
-                  <feMergeNode />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
+              {/* Minimal label text shadow for readability on light canvas */}
+              <filter id={`${idPrefix}-label-shadow`} x="-10%" y="-10%" width="120%" height="120%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="1" />
+                <feOffset dy="0.5" />
+                <feComponentTransfer><feFuncA type="linear" slope="0.1" /></feComponentTransfer>
+                <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
               </filter>
             </defs>
 
-            {/* Static base layers — graticule, countries (memoized) */}
-            <MapBaseLayers idPrefix={idPrefix} />
+            {/* Background — warm off-white canvas */}
+            <rect width={SVG_W} height={MAP_VISIBLE_H} fill={LIGHT_SURFACE.bg} />
 
-            {/* Data-driven node layer — glow, vignette, nodes (memoized) */}
-            <MapNodeLayer
-              displayNodes={displayNodes}
-              sorted={sorted}
-              maxCount={maxCount}
-              overlay={overlay}
-              hoveredRegion={hoveredRegion}
-              playing={playing}
-              idPrefix={idPrefix}
-              onHover={handleHover}
-            />
+            {/* Graticule — curved lines for Natural Earth projection */}
+            {[-30, 0, 30, 60].map(lat => {
+              const pts = Array.from({ length: 37 }, (_, i) => {
+                const lon = -180 + i * 10
+                return latLonToMercator(lat, lon, SVG_W, SVG_H)
+              })
+              const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('')
+              const label = latLonToMercator(lat, -170, SVG_W, SVG_H)
+              return (
+                <g key={`lat-${lat}`}>
+                  <path d={d} fill="none" stroke={LIGHT_SURFACE.graticule} strokeWidth={0.3} strokeDasharray={lat === 0 ? 'none' : '2 5'} />
+                  <text x={label.x} y={label.y - 3} fill={LIGHT_SURFACE.labelText} fontSize="7" fontFamily="var(--font-mono)" opacity={0.5}>
+                    {Math.abs(lat)}°{lat >= 0 ? 'N' : 'S'}
+                  </text>
+                </g>
+              )
+            })}
+            {[-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map(lon => {
+              const pts = Array.from({ length: 19 }, (_, i) => {
+                const lat = -90 + i * 10
+                return latLonToMercator(lat, lon, SVG_W, SVG_H)
+              })
+              const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('')
+              return <path key={`lon-${lon}`} d={d} fill="none" stroke={LIGHT_SURFACE.graticule} strokeWidth={0.3} strokeDasharray="2 5" />
+            })}
+
+            {/* Country outlines */}
+            {WORLD_PATHS.map((d, i) => (
+              <path
+                key={i}
+                d={d}
+                fill={LIGHT_SURFACE.countryFill}
+                stroke={LIGHT_SURFACE.countryStroke}
+                strokeWidth={0.3}
+                strokeLinejoin="round"
+              />
+            ))}
 
 
             {/* ── Latency arcs layer ── */}
@@ -491,16 +481,15 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
 
             {/* ── Nearest-neighbor edges (validators/sources mode) ── */}
             {overlay !== 'latency' && edges.map((e, i) => {
-              const opacity = 0.10 + ((e.va + e.vb) / (2 * maxCount)) * 0.20
+              const opacity = 0.15 + ((e.va + e.vb) / (2 * maxCount)) * 0.15
 
               return playing ? (
                 <path
                   key={`edge-${i}`}
                   d={e.path}
                   fill="none"
-                  stroke={LIGHT_SURFACE.graticule}
-                  strokeWidth={0.5}
-
+                  stroke={e.color}
+                  strokeWidth={0.4}
                   strokeLinecap="round"
                   opacity={opacity}
                 />
@@ -509,9 +498,8 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                   key={`edge-${i}`}
                   d={e.path}
                   fill="none"
-                  stroke={LIGHT_SURFACE.graticule}
-                  strokeWidth={0.5}
-
+                  stroke={e.color}
+                  strokeWidth={0.4}
                   strokeLinecap="round"
                   initial={{ pathLength: 0, opacity: 0 }}
                   animate={{ pathLength: 1, opacity }}
@@ -520,8 +508,119 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               )
             })}
 
-            {/* ── Labels — collision-aware placement (memoized) ── */}
-            <MapLabelLayer labelPositions={labelPositions} playing={playing} />
+            {/* ── Region nodes — flat circles, no gradients/glows ── */}
+            {displayNodes.map((node, index) => {
+              const r = nodeRadius(node.count, maxCount)
+              const color = overlay === 'sources' ? NODE_BLUE.source : nodeColor(node.count, maxCount)
+              const rank = sorted.findIndex(n => n.id === node.id)
+              const isHovered = hoveredRegion === node.id
+
+              const hoverProps = {
+                style: { cursor: 'pointer' as const },
+                onMouseEnter: () => handleHover({
+                  x: node.x, y: node.y,
+                  city: node.city, id: node.id,
+                  count: node.count, rank,
+                  total: displayNodes.length,
+                  macroRegion: node.macroRegion,
+                }),
+                onMouseLeave: () => handleHover(null),
+              }
+
+              return playing ? (
+                <circle
+                  key={node.id}
+                  cx={node.x} cy={node.y}
+                  r={isHovered ? r * 1.15 : r}
+                  fill={color}
+                  stroke="white"
+                  strokeWidth={0.8}
+                  {...hoverProps}
+                />
+              ) : (
+                <motion.circle
+                  key={node.id}
+                  cx={node.x} cy={node.y}
+                  r={r}
+                  fill={color}
+                  stroke="white"
+                  strokeWidth={0.8}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: isHovered ? 1.15 : 1, opacity: 1 }}
+                  transition={{ ...SPRING_SNAPPY, delay: 0.1 + index * 0.008 }}
+                  {...hoverProps}
+                />
+              )
+            })}
+
+            {/* ── Labels — collision-aware placement, light theme pills ── */}
+            {!playing && labelPositions.map(lp => (
+              <motion.g
+                key={`label-${lp.nodeId}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ ...SPRING_SOFT, delay: 0.5 + lp.rank * 0.04 }}
+                filter={`url(#${idPrefix}-label-shadow)`}
+              >
+                {/* Leader line from node to displaced label */}
+                {lp.needsLeader && (
+                  <line
+                    x1={lp.anchorX} y1={lp.anchorY}
+                    x2={lp.lx} y2={lp.ly}
+                    stroke={LIGHT_SURFACE.countryStroke}
+                    strokeWidth={0.5}
+                    strokeDasharray="2,2"
+                  />
+                )}
+                {/* White pill background with subtle border */}
+                <rect
+                  x={lp.lx - lp.width / 2} y={lp.ly - lp.height / 2}
+                  width={lp.width} height={lp.height}
+                  rx={4}
+                  fill="white"
+                  stroke={LIGHT_SURFACE.tooltipBorder}
+                  strokeWidth={0.5}
+                />
+                {/* Rank badge for top 3 */}
+                {lp.rank < 3 && (
+                  <>
+                    <rect
+                      x={lp.lx - lp.width / 2} y={lp.ly - lp.height / 2}
+                      width={16} height={lp.height}
+                      rx={4}
+                      fill={lp.rank === 0 ? '#EFF6FF' : lp.rank === 1 ? '#F1F5F9' : '#F5F5F4'}
+                    />
+                    <rect
+                      x={lp.lx - lp.width / 2 + 8} y={lp.ly - lp.height / 2}
+                      width={8} height={lp.height}
+                      fill={lp.rank === 0 ? '#EFF6FF' : lp.rank === 1 ? '#F1F5F9' : '#F5F5F4'}
+                    />
+                    <text
+                      x={lp.lx - lp.width / 2 + 8} y={lp.ly + 3}
+                      textAnchor="middle"
+                      fill={lp.rank === 0 ? LIGHT_SURFACE.blue700 : lp.rank === 1 ? LIGHT_SURFACE.blue600 : '#78716C'}
+                      fontSize="7" fontWeight={700}
+                      fontFamily="var(--font-mono)"
+                    >
+                      {lp.rank + 1}
+                    </text>
+                  </>
+                )}
+                {/* City name — dark text on white pill */}
+                <text
+                  x={lp.rank < 3 ? lp.lx + 4 : lp.lx}
+                  y={lp.ly + 3}
+                  textAnchor="middle"
+                  fill={lp.rank < 3 ? LIGHT_SURFACE.tooltipText : LIGHT_SURFACE.subtleText}
+                  fontSize={lp.rank < 3 ? '7.5' : '7'}
+                  fontFamily="var(--font-mono)"
+                  fontWeight={lp.rank < 3 ? 600 : 500}
+                  letterSpacing="0.02em"
+                >
+                  {lp.city}
+                </text>
+              </motion.g>
+            ))}
 
           </svg>
 
