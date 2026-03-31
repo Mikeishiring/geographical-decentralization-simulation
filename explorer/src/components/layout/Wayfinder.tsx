@@ -32,7 +32,7 @@ export function Wayfinder({ links }: WayfinderProps) {
               <span className="text-13 font-medium text-text-primary group-hover:text-accent transition-colors">
                 {link.label}
               </span>
-              <span className="mt-0.5 block text-[0.75rem] leading-5 text-muted">
+              <span className="mt-0.5 block text-xs leading-5 text-muted">
                 {link.hint}
               </span>
             </div>
