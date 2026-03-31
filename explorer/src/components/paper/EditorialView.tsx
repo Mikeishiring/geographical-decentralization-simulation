@@ -58,6 +58,7 @@ export function EditorialView({
         model: '',
         cached: false,
         surface: 'reading',
+        anchor: { sectionId: input.sectionId, excerpt: '' },
       })
 
       return await publishExploration(created.id, {
