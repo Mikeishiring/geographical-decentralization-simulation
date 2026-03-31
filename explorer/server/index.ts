@@ -3902,6 +3902,30 @@ setInterval(() => {
 
 const DIST_DIR = path.join(__dirname, '..', 'dist')
 if (existsSync(DASHBOARD_DIR)) {
+  // Guard: detect unresolved Git LFS pointer stubs before express.static serves them.
+  // LFS pointers are ~130-byte text files starting with "version https://git-lfs".
+  app.use('/research-demo/simulations', async (req, res, next) => {
+    if (!req.path.endsWith('.json')) return next()
+    const filePath = path.resolve(DASHBOARD_DIR, 'simulations', req.path.replace(/^\//, ''))
+    if (!filePath.startsWith(path.resolve(DASHBOARD_DIR))) return next()
+    try {
+      const handle = await fs.open(filePath, 'r')
+      const buf = Buffer.alloc(40)
+      await handle.read(buf, 0, 40, 0)
+      await handle.close()
+      if (buf.toString('utf8').startsWith('version https://git-lfs')) {
+        res.status(502).json({
+          error: 'Data file is an unresolved Git LFS pointer. Run `git lfs pull` during the Docker build.',
+          path: req.path,
+        })
+        return
+      }
+    } catch {
+      // File doesn't exist or can't be read — let express.static handle the 404
+    }
+    next()
+  })
+
   app.use('/research-demo', express.static(DASHBOARD_DIR))
   app.get('/research-demo', (_req, res) => {
     res.sendFile(path.join(DASHBOARD_DIR, 'index.html'))
