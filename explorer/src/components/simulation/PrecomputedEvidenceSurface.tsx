@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_CRISP } from '../../lib/theme'
-import { GCP_REGIONS } from '../../data/gcp-regions'
+import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
 import type { Block } from '../../types/blocks'
 import { formatNumber } from './simulation-constants'
 import {
@@ -190,38 +190,104 @@ function sampleSeries(raw: readonly number[] | undefined, maxPoints = 200): Arra
   return points
 }
 
+const CHART_COLORS = {
+  gini: '#C2553A',
+  hhi: '#2563EB',
+  liveness: '#16A34A',
+  totalDistance: '#C2553A',
+  proposalTime: '#D97706',
+  mev: '#2563EB',
+} as const
+
 function buildTimeseriesBlocks(payload: PublishedAnalyticsPayload): Block[] {
   const metrics = payload.metrics ?? {}
   const blocks: Block[] = []
 
-  const seriesDefs: Array<{
-    key: keyof typeof metrics
-    label: string
-    yLabel: string
-    color: string
-  }> = [
-    { key: 'gini', label: 'Gini coefficient over time', yLabel: 'Index', color: '#6366F1' },
-    { key: 'hhi', label: 'HHI over time', yLabel: 'Index', color: '#8B5CF6' },
-    { key: 'liveness', label: 'Liveness over time', yLabel: 'Percent', color: '#10B981' },
-    { key: 'mev', label: 'MEV extraction over time', yLabel: 'ETH', color: '#F59E0B' },
-  ]
-
-  for (const def of seriesDefs) {
-    const raw = metrics[def.key]
-    if (!raw || raw.length === 0) continue
-    const data = sampleSeries(raw)
-    if (data.length === 0) continue
-
+  // 1. Concentration & liveness — multi-series
+  const giniData = sampleSeries(metrics.gini)
+  const hhiData = sampleSeries(metrics.hhi)
+  const livenessData = sampleSeries(metrics.liveness)
+  if (giniData.length > 0 || hhiData.length > 0 || livenessData.length > 0) {
+    const series = [
+      ...(giniData.length > 0 ? [{ label: 'Gini', data: giniData, color: CHART_COLORS.gini }] : []),
+      ...(hhiData.length > 0 ? [{ label: 'HHI', data: hhiData, color: CHART_COLORS.hhi }] : []),
+      ...(livenessData.length > 0 ? [{ label: 'Liveness', data: livenessData, color: CHART_COLORS.liveness }] : []),
+    ]
     blocks.push({
       type: 'timeseries' as const,
-      title: def.label,
-      series: [{ label: def.label, data, color: def.color }],
+      title: 'Concentration and liveness',
+      series,
       xLabel: 'Slot',
-      yLabel: def.yLabel,
+      yLabel: 'Index',
+    })
+  }
+
+  // 2. Total validator distance
+  const distanceData = sampleSeries(metrics.total_distance)
+  if (distanceData.length > 0) {
+    blocks.push({
+      type: 'timeseries' as const,
+      title: 'Total validator distance',
+      series: [{ label: 'Total distance', data: distanceData, color: CHART_COLORS.totalDistance }],
+      xLabel: 'Slot',
+      yLabel: 'Distance',
+    })
+  }
+
+  // 3. Proposal time
+  const proposalData = sampleSeries(metrics.proposal_times)
+  if (proposalData.length > 0) {
+    blocks.push({
+      type: 'timeseries' as const,
+      title: 'Proposal time',
+      series: [{ label: 'Proposal time', data: proposalData, color: CHART_COLORS.proposalTime }],
+      xLabel: 'Slot',
+      yLabel: 'Milliseconds',
+    })
+  }
+
+  // 4. Average MEV
+  const mevData = sampleSeries(metrics.mev)
+  if (mevData.length > 0) {
+    blocks.push({
+      type: 'timeseries' as const,
+      title: 'Average MEV',
+      series: [{ label: 'MEV', data: mevData, color: CHART_COLORS.mev }],
+      xLabel: 'Slot',
+      yLabel: 'ETH',
     })
   }
 
   return blocks
+}
+
+const MACRO_REGION_ORDER: readonly (MacroRegion | 'Unknown')[] = [
+  'Europe', 'North America', 'Asia Pacific', 'Middle East', 'South America', 'Unknown',
+]
+
+function buildSourceFootprintBlock(payload: PublishedAnalyticsPayload): Block | null {
+  const sources = (payload as { sources?: readonly (readonly [string, string])[] }).sources
+  if (!sources || sources.length === 0) return null
+
+  const totals = new Map<MacroRegion | 'Unknown', number>()
+  for (const source of sources) {
+    const regionId = source[1]
+    const macroRegion = GCP_REGION_MAP.get(regionId)?.macroRegion ?? 'Unknown'
+    totals.set(macroRegion, (totals.get(macroRegion) ?? 0) + 1)
+  }
+
+  const data = MACRO_REGION_ORDER
+    .map(region => ({ label: region, value: totals.get(region) ?? 0 }))
+    .filter(entry => entry.value > 0)
+
+  if (data.length === 0) return null
+
+  return {
+    type: 'chart' as const,
+    title: 'Source footprint',
+    data,
+    chartType: 'bar' as const,
+  }
 }
 
 function buildTopRegionsTable(payload: PublishedAnalyticsPayload): Block | null {
@@ -246,12 +312,14 @@ function buildTopRegionsTable(payload: PublishedAnalyticsPayload): Block | null 
 function buildEvidenceBlocks(payload: PublishedAnalyticsPayload): readonly Block[] {
   const blocks: Block[] = [
     ...buildStatBlocks(payload),
+    ...buildTimeseriesBlocks(payload),
   ]
+
+  const sourceBlock = buildSourceFootprintBlock(payload)
+  if (sourceBlock) blocks.push(sourceBlock)
 
   const mapBlock = buildMapBlock(payload)
   if (mapBlock) blocks.push(mapBlock)
-
-  blocks.push(...buildTimeseriesBlocks(payload))
 
   const tableBlock = buildTopRegionsTable(payload)
   if (tableBlock) blocks.push(tableBlock)
