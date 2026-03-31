@@ -93,7 +93,7 @@ export function SimConfigPanel({
   const validatorsOnAnchor = isAnchorValue(config.validators, VALIDATOR_ANCHORS)
   const slotsOnAnchor = isAnchorValue(config.slots, SLOT_ANCHORS)
   const migrationCostOnAnchor = isAnchorValue(config.migrationCost, MIGRATION_COST_ANCHORS)
-  const runtime = estimateRuntime(config.validators, config.slots)
+  const runtime = estimateRuntime(config.validators, config.slots, config.slotTime)
   const protocolOpen = hasNonDefaultProtocol(config)
 
   const inputClassName = 'lab-input-shell w-full rounded-xl px-3 py-2 text-sm text-text-primary outline-none transition hover:border-border-hover focus:border-accent/50 focus:ring-2 focus:ring-accent/10'

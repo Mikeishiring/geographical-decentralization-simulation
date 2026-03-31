@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { AlertTriangle, Ban, CheckCircle2, Clock3, LoaderCircle } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_CRISP } from '../../lib/theme'
-import type { SimulationJob } from '../../lib/simulation-api'
+import type { SimulationConfig, SimulationJob } from '../../lib/simulation-api'
+import { estimateRuntimeSeconds } from './simulation-constants'
 
 type JobStatus = 'idle' | 'submitting' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
 
@@ -11,6 +13,7 @@ interface SimJobStatusProps {
   readonly jobData: SimulationJob | null
   readonly submitError: Error | null
   readonly cancelError: Error | null
+  readonly config: SimulationConfig
 }
 
 function formatTimestamp(value: string | undefined): string | null {
@@ -25,14 +28,51 @@ function formatTimestamp(value: string | undefined): string | null {
   }).format(timestamp)
 }
 
-function statusProgress(status: JobStatus, queuePosition: number | null): number {
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${Math.floor(seconds)}s`
+  const minutes = Math.floor(seconds / 60)
+  const remaining = Math.floor(seconds % 60)
+  return remaining > 0 ? `${minutes}m ${remaining}s` : `${minutes}m`
+}
+
+function useElapsedSeconds(startIso: string | undefined, active: boolean): number {
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    if (!active || !startIso) {
+      setElapsed(0)
+      return
+    }
+
+    const startMs = new Date(startIso).getTime()
+    if (Number.isNaN(startMs)) return
+
+    const tick = () => setElapsed(Math.max(0, (Date.now() - startMs) / 1000))
+    tick()
+    const interval = setInterval(tick, 1000)
+    return () => clearInterval(interval)
+  }, [startIso, active])
+
+  return elapsed
+}
+
+function statusProgress(
+  status: JobStatus,
+  queuePosition: number | null,
+  elapsedSeconds: number,
+  estimatedSeconds: number,
+): number {
   if (status === 'idle') return 0
   if (status === 'submitting') return 12
   if (status === 'queued') {
     if (queuePosition == null) return 30
     return Math.max(26, Math.min(48, 46 - Math.min(queuePosition, 6) * 3))
   }
-  if (status === 'running') return 76
+  if (status === 'running') {
+    if (estimatedSeconds <= 0) return 60
+    const ratio = elapsedSeconds / estimatedSeconds
+    return Math.max(50, Math.min(95, Math.round(50 + ratio * 45)))
+  }
   return 100
 }
 
@@ -41,8 +81,12 @@ export function SimJobStatus({
   jobData,
   submitError,
   cancelError,
+  config,
 }: SimJobStatusProps) {
-  const progress = statusProgress(status, jobData?.queuePosition ?? null)
+  const isRunning = status === 'running'
+  const estimatedSeconds = estimateRuntimeSeconds(config.validators, config.slots, config.slotTime)
+  const elapsed = useElapsedSeconds(jobData?.createdAt, isRunning)
+  const progress = statusProgress(status, jobData?.queuePosition ?? null, elapsed, estimatedSeconds)
   const errorMessage = submitError?.message ?? cancelError?.message ?? jobData?.error ?? null
   const createdLabel = formatTimestamp(jobData?.createdAt)
   const updatedLabel = formatTimestamp(jobData?.updatedAt)
@@ -69,9 +113,9 @@ export function SimJobStatus({
           }
         : status === 'running'
           ? {
-              label: 'Running',
+              label: `Running · ${formatElapsed(elapsed)}`,
               title: 'Computing manifest and artifact sidecars',
-              detail: 'This surface will switch into the results panels as soon as the manifest lands.',
+              detail: `Elapsed ${formatElapsed(elapsed)}. This surface will switch into the results panels as soon as the manifest lands.`,
               tone: 'active' as const,
             }
           : status === 'completed'
