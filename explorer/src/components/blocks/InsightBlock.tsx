@@ -33,7 +33,7 @@ export function InsightBlock({ block }: InsightBlockProps) {
           {block.title}
         </h3>
       )}
-      <p className="text-[0.875rem] leading-[1.65] text-text-body font-serif">
+      <p className="text-sm leading-[1.65] text-text-body font-serif">
         <InlineMarkdown text={block.text} />
       </p>
     </div>

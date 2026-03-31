@@ -250,7 +250,7 @@ export function ExploreHistoryPage({
           ].map(item => (
             <div key={item.title} className="py-3">
               <div className="text-13 font-medium text-text-primary">{item.title}</div>
-              <div className="mt-0.5 text-[0.75rem] leading-[1.6] text-muted">{item.detail}</div>
+              <div className="mt-0.5 text-xs leading-[1.6] text-muted">{item.detail}</div>
             </div>
           ))}
         </div>
@@ -355,7 +355,7 @@ function SummaryCard({
         {label}
       </div>
       <div className="mt-1 text-xl font-semibold tabular-nums text-text-primary">{value}</div>
-      <div className="mt-1 text-[0.75rem] text-muted">{detail}</div>
+      <div className="mt-1 text-xs text-muted">{detail}</div>
     </div>
   )
 }
