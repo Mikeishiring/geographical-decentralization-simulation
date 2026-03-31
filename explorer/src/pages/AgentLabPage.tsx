@@ -12,6 +12,7 @@ import { useCallback, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, MessageSquare, FlaskConical, Link2, FileText, Download } from 'lucide-react'
+import { NodeArc } from '../components/decorative/NodeArc'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SNAPPY } from '../lib/theme'
 import { explore, getApiHealth, createExploration, publishExploration, type ExploreResponse, type ExploreError, type ExploreProvenance } from '../lib/api'
@@ -469,8 +470,12 @@ export default function AgentLabPage() {
 
       {/* Suggested questions — shown when no active results in either mode */}
       {!hasAskResult && mode === 'ask' && !aiLoading && (
-        <div className="rounded-xl border border-dashed border-rule bg-white px-5 py-8">
-          <div className="text-center text-sm text-muted mb-4">
+        <div className="rounded-xl border border-dashed border-rule bg-white px-5 py-8 relative overflow-hidden">
+          {/* Node-arc motif — visual DNA echoing the header globe */}
+          <div className="absolute right-4 top-2 w-[140px] h-[70px] opacity-[0.5] pointer-events-none select-none" aria-hidden="true">
+            <NodeArc className="w-full h-full text-muted" />
+          </div>
+          <div className="text-center text-sm text-muted mb-4 relative">
             Choose a question below or write your own above
           </div>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4 stagger-reveal">
