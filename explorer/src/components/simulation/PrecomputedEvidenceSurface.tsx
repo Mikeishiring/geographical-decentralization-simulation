@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { SlidersHorizontal, ChevronDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { cn } from '../../lib/cn'
@@ -200,7 +201,18 @@ const chipInactive = 'text-muted hover:text-text-secondary'
 const filterLabel = 'text-2xs font-medium uppercase tracking-wider text-text-faint shrink-0'
 const filterDivider = 'hidden sm:block w-px h-5 bg-rule/60 shrink-0'
 
+/** Compact summary pill showing active secondary filter value */
+function FilterPill({ label, value }: { readonly label: string; readonly value: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-2xs text-muted">
+      <span className="text-text-faint">{label}:</span>
+      <span className="font-medium text-text-secondary">{value}</span>
+    </span>
+  )
+}
+
 function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selectedResult, onSelect }: ScenarioSelectorProps) {
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const evaluations = useMemo(() => uniqueOrdered(catalog.datasets.map(d => d.evaluation)), [catalog])
   const paradigms = useMemo(
     () => uniqueOrdered(catalog.datasets.filter(d => d.evaluation === selectedEvaluation).map(d => d.paradigm)),
@@ -232,95 +244,145 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
   const hasCostDimension = costResults.length > 1
   const hasSecondaryFilters = paradigms.length > 1 || hasCostDimension || otherResults.length > 1
 
-  const findAndSelect = (evaluation: string, paradigm: string, result?: string) => {
+  // Build summary of current secondary selections
+  const selectedCostEntry = costResults.find(c => c.result === selectedResult)
+  const filterSummary = useMemo(() => {
+    const parts: Array<{ label: string; value: string }> = []
+    if (paradigms.length > 1) parts.push({ label: 'Source', value: selectedParadigm })
+    if (hasCostDimension && selectedCostEntry) {
+      const hint = selectedCostEntry.cost === 0.002 ? ' (paper)' : selectedCostEntry.cost === 0 ? ' (none)' : ''
+      parts.push({ label: 'Cost', value: `${formatCostLabel(selectedCostEntry.cost)}${hint}` })
+    }
+    if (otherResults.length > 1) parts.push({ label: 'Variant', value: selectedResult })
+    return parts
+  }, [paradigms, selectedParadigm, hasCostDimension, selectedCostEntry, otherResults, selectedResult])
+
+  const findAndSelect = useCallback((evaluation: string, paradigm: string, result?: string) => {
     const match = result
       ? catalog.datasets.find(d => d.evaluation === evaluation && d.paradigm === paradigm && d.result === result)
       : catalog.datasets.find(d => d.evaluation === evaluation && d.paradigm === paradigm)
         ?? catalog.datasets.find(d => d.evaluation === evaluation)
     if (match) onSelect(match)
-  }
+  }, [catalog, onSelect])
 
   return (
-    <div className="space-y-2">
-      {/* Row 1: Scenario chips */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className={filterLabel} title="Simulation evaluation scenario from the published paper results">Scenario</span>
-        <div className="flex flex-wrap gap-1">
-          {evaluations.map(evaluation => (
-            <button
-              key={evaluation}
-              onClick={() => findAndSelect(evaluation, selectedParadigm)}
-              className={cn(chipBase, selectedEvaluation === evaluation ? chipActive : chipInactive)}
-            >
-              {evaluation}
-            </button>
-          ))}
+    <div className="space-y-0">
+      {/* Primary row: scenario dropdown + filter summary + customize toggle */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Scenario selector — styled native select for clean UX */}
+        <div className="relative">
+          <select
+            value={selectedEvaluation}
+            onChange={e => findAndSelect(e.target.value, selectedParadigm)}
+            className="appearance-none rounded-lg border border-rule bg-white pl-2.5 pr-7 py-1 text-xs font-medium text-text-primary cursor-pointer hover:border-accent/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-colors"
+          >
+            {evaluations.map(evaluation => (
+              <option key={evaluation} value={evaluation}>{evaluation}</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted" />
         </div>
+
+        {/* Active filter summary pills — collapsed view */}
+        {hasSecondaryFilters && !filtersOpen && filterSummary.length > 0 && (
+          <div className="flex items-center gap-2.5">
+            <div className="w-px h-4 bg-rule/60" />
+            {filterSummary.map(({ label, value }) => (
+              <FilterPill key={label} label={label} value={value} />
+            ))}
+          </div>
+        )}
+
+        {/* Customize toggle */}
+        {hasSecondaryFilters && (
+          <button
+            onClick={() => setFiltersOpen(prev => !prev)}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md px-2 py-1 text-2xs font-medium transition-colors',
+              filtersOpen
+                ? 'bg-accent/8 text-accent border border-accent/15'
+                : 'text-muted hover:text-text-secondary hover:bg-surface-active',
+            )}
+          >
+            <SlidersHorizontal className="h-3 w-3" />
+            <span className="hidden sm:inline">{filtersOpen ? 'Less' : 'Customize'}</span>
+          </button>
+        )}
       </div>
 
-      {/* Row 2: Secondary filters — inline with dividers */}
-      {hasSecondaryFilters && (
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Source paradigm */}
-          {paradigms.length > 1 && (
-            <>
-              <span className={filterLabel} title="Block-building paradigm: SSP or MSP">Source</span>
-              <div className="flex gap-1">
-                {paradigms.map(paradigm => (
-                  <button
-                    key={paradigm}
-                    onClick={() => findAndSelect(selectedEvaluation, paradigm)}
-                    className={cn(chipBase, selectedParadigm === paradigm ? chipActive : chipInactive)}
-                  >
-                    {paradigm}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+      {/* Secondary filters — collapsible tray */}
+      <AnimatePresence>
+        {filtersOpen && hasSecondaryFilters && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center gap-2.5 flex-wrap pt-2.5">
+              {/* Source paradigm */}
+              {paradigms.length > 1 && (
+                <>
+                  <span className={filterLabel} title="Block-building paradigm: SSP or MSP">Source</span>
+                  <div className="flex gap-1">
+                    {paradigms.map(paradigm => (
+                      <button
+                        key={paradigm}
+                        onClick={() => findAndSelect(selectedEvaluation, paradigm)}
+                        className={cn(chipBase, selectedParadigm === paradigm ? chipActive : chipInactive)}
+                      >
+                        {paradigm}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
 
-          {/* Migration cost */}
-          {hasCostDimension && (
-            <>
-              {paradigms.length > 1 && <div className={filterDivider} />}
-              <span className={filterLabel} title="ETH migration cost between regions">Cost</span>
-              <div className="flex gap-1">
-                {costResults.map(({ result, cost }) => {
-                  const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
-                  return (
-                    <button
-                      key={result}
-                      onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
-                      className={cn(chipBase, 'tabular-nums', selectedResult === result ? chipActive : chipInactive)}
-                    >
-                      {formatCostLabel(cost)}{hint ? ` (${hint})` : ''}
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          )}
+              {/* Migration cost */}
+              {hasCostDimension && (
+                <>
+                  {paradigms.length > 1 && <div className={filterDivider} />}
+                  <span className={filterLabel} title="ETH migration cost between regions">Cost</span>
+                  <div className="flex gap-1">
+                    {costResults.map(({ result, cost }) => {
+                      const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
+                      return (
+                        <button
+                          key={result}
+                          onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
+                          className={cn(chipBase, 'tabular-nums', selectedResult === result ? chipActive : chipInactive)}
+                        >
+                          {formatCostLabel(cost)}{hint ? ` (${hint})` : ''}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
 
-          {/* Non-cost result variants */}
-          {otherResults.length > 1 && (
-            <>
-              {(paradigms.length > 1 || hasCostDimension) && <div className={filterDivider} />}
-              <span className={filterLabel}>Variant</span>
-              <div className="flex gap-1">
-                {otherResults.map(result => (
-                  <button
-                    key={result}
-                    onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
-                    className={cn(chipBase, selectedResult === result ? chipActive : chipInactive)}
-                  >
-                    {result}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+              {/* Non-cost result variants */}
+              {otherResults.length > 1 && (
+                <>
+                  {(paradigms.length > 1 || hasCostDimension) && <div className={filterDivider} />}
+                  <span className={filterLabel}>Variant</span>
+                  <div className="flex gap-1">
+                    {otherResults.map(result => (
+                      <button
+                        key={result}
+                        onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
+                        className={cn(chipBase, selectedResult === result ? chipActive : chipInactive)}
+                      >
+                        {result}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
