@@ -9,11 +9,12 @@ import type { PublishedAnalyticsPayload } from './simulation-analytics'
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
-export const SVG_W = 960
-export const SVG_H = 500
+/** Must match the projection used by generate-map-data.mjs for world paths */
+export const SVG_W = 800
+export const SVG_H = 420
 
 /** Visible portion of the SVG — crops Antarctica by clipping below ~55°S */
-export const MAP_VISIBLE_H = 380
+export const MAP_VISIBLE_H = 288
 
 export const GCP_REGION_MAP = new Map(GCP_REGIONS.map(r => [r.id, r]))
 
