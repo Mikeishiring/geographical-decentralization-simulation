@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ChevronDown, ChevronUp, Loader2, Sparkles } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { SourceBlock } from '../blocks/SourceBlock'
 import { cn } from '../../lib/cn'
+import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { getApiHealth } from '../../lib/api'
 import {
   askPublishedReplayCopilot,
@@ -444,7 +446,12 @@ export function PublishedReplayCompanionPanel({
   )
 
   return (
-    <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
+    <motion.div
+      className="mt-4 rounded-xl border border-rule bg-white px-4 py-4"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING}
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Replay companion</div>
@@ -474,10 +481,15 @@ export function PublishedReplayCompanionPanel({
 
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
         <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Live context</div>
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
-          <span className="lab-chip">{datasetLabel(dataset)}</span>
-          <span className="lab-chip">{sourceRoleLabel(dataset?.sourceRole)}</span>
-          <span className="lab-chip">{paperLens} lens</span>
+        <motion.div
+          className="mt-3 flex flex-wrap gap-2 text-xs text-muted"
+          variants={STAGGER_CONTAINER}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.span variants={STAGGER_ITEM} className="lab-chip">{datasetLabel(dataset)}</motion.span>
+          <motion.span variants={STAGGER_ITEM} className="lab-chip">{sourceRoleLabel(dataset?.sourceRole)}</motion.span>
+          <motion.span variants={STAGGER_ITEM} className="lab-chip">{paperLens} lens</motion.span>
           {paperSection ? <span className="lab-chip">{paperSection.number} {paperSection.title}</span> : null}
           <span className="lab-chip">{audienceMode} mode</span>
           {viewerSnapshot ? <span className="lab-chip">slot {viewerSnapshot.slotNumber}</span> : null}
@@ -489,8 +501,8 @@ export function PublishedReplayCompanionPanel({
           {viewerSnapshot?.currentGini != null ? <span className="lab-chip">gini {formatMetric(viewerSnapshot.currentGini, 3)}</span> : null}
           {viewerSnapshot?.currentLiveness != null ? <span className="lab-chip">liveness {formatMetric(viewerSnapshot.currentLiveness, 1)}%</span> : null}
           {comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
-          {comparisonViewerSnapshot ? <span className="lab-chip">compare slot {comparisonViewerSnapshot.slotNumber}</span> : null}
-        </div>
+          {comparisonViewerSnapshot ? <motion.span variants={STAGGER_ITEM} className="lab-chip">compare slot {comparisonViewerSnapshot.slotNumber}</motion.span> : null}
+        </motion.div>
         <div className="mt-3 text-xs leading-5 text-muted">{currentViewSummary}</div>
         {paperSection ? (
           <div className="mt-2 text-11 leading-5 text-text-faint">
@@ -551,8 +563,16 @@ export function PublishedReplayCompanionPanel({
         </div>
       ) : null}
 
+      <AnimatePresence mode="wait">
       {response ? (
-        <div className="mt-4 space-y-4">
+        <motion.div
+          key="companion-response"
+          className="mt-4 space-y-4"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={SPRING_CRISP}
+        >
           {activeQuestion ? (
             <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
               <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Latest replay question</div>
@@ -636,10 +656,16 @@ export function PublishedReplayCompanionPanel({
           {response.followUps.length > 0 ? (
             <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
               <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Follow-up prompts</div>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <motion.div
+                className="mt-3 flex flex-wrap gap-2"
+                variants={STAGGER_CONTAINER}
+                initial="hidden"
+                animate="show"
+              >
                 {response.followUps.map(prompt => (
-                  <button
+                  <motion.button
                     key={prompt}
+                    variants={STAGGER_ITEM}
                     onClick={() => {
                       onQuestionChange(prompt)
                       submitQuestion(prompt)
@@ -647,9 +673,9 @@ export function PublishedReplayCompanionPanel({
                     className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
                   >
                     {prompt}
-                  </button>
+                  </motion.button>
                 ))}
-              </div>
+              </motion.div>
             </div>
           ) : null}
 
@@ -675,8 +701,9 @@ export function PublishedReplayCompanionPanel({
               </div>
             </div>
           ) : null}
-        </div>
+        </motion.div>
       ) : null}
-    </div>
+      </AnimatePresence>
+    </motion.div>
   )
 }

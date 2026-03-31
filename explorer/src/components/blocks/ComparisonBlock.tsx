@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
+import { SPRING_CRISP } from '../../lib/theme'
 import type { ComparisonBlock as ComparisonBlockType } from '../../types/blocks'
 
 interface ComparisonBlockProps {
@@ -19,7 +21,12 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
   }
 
   return (
-    <div className="bg-white border border-rule rounded-xl p-5 topo-bg">
+    <motion.div
+      className="bg-white border border-rule rounded-xl p-5 topo-bg"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING_CRISP}
+    >
       <h3 className="text-base font-semibold text-text-primary mb-4 font-serif">
         {block.title}
       </h3>
@@ -85,6 +92,6 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
           {block.verdict}
         </p>
       )}
-    </div>
+    </motion.div>
   )
 }

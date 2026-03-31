@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { MessageSquarePlus } from 'lucide-react'
+import { SPRING_CRISP } from '../../lib/theme'
 
 
 interface ContributionComposerProps {
@@ -92,7 +94,12 @@ export function ContributionComposer({
   }
 
   return (
-    <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
+    <motion.div
+      className="mt-4 rounded-xl border border-rule bg-white px-4 py-4"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING_CRISP}
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm font-medium text-text-primary">{sourceLabel}</div>
         <button
@@ -164,6 +171,6 @@ export function ContributionComposer({
           {error}
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }

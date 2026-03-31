@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
+import { motion } from 'framer-motion'
 import { listExplorations, type Exploration } from '../../lib/api'
+import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import type { TabId } from '../layout/TabNav'
 
 interface CommunityPreviewProps {
@@ -51,7 +53,12 @@ export function CommunityPreview({
   if (notes.length === 0) return null
 
   return (
-    <div className="mb-6 rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
+    <motion.div
+      className="mb-6 rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING_CRISP}
+    >
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <div className="lab-section-title">Public responses</div>
@@ -67,10 +74,16 @@ export function CommunityPreview({
         )}
       </div>
 
-      <div className="stagger-reveal grid gap-3 md:grid-cols-3">
+      <motion.div
+        className="grid gap-3 md:grid-cols-3"
+        variants={STAGGER_CONTAINER}
+        initial="hidden"
+        animate="show"
+      >
         {notes.map(exploration => (
-          <button
+          <motion.button
             key={exploration.id}
+            variants={STAGGER_ITEM}
             onClick={() => onOpenNote(exploration.id)}
             className="rounded-lg border border-rule bg-surface-active px-4 py-4 text-left card-hover"
           >
@@ -87,9 +100,9 @@ export function CommunityPreview({
               <span>{exploration.surface === 'simulation' ? 'Exact-run backed' : 'Paper-reading backed'}</span>
               <span>{exploration.publication.author || 'Anonymous'}</span>
             </div>
-          </button>
+          </motion.button>
         ))}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

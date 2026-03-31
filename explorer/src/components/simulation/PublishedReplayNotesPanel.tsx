@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import { SPRING, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import {
   addPublishedReplayNoteReply,
   createPublishedReplayNote,
@@ -727,7 +729,12 @@ export function PublishedReplayNotesPanel({
   const canSave = queryEnabled && draft.trim().length > 0 && !mutation.isPending && (!rangeRequired || normalizedRange != null)
 
   return (
-    <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4">
+    <motion.div
+      className="mt-4 rounded-xl border border-rule bg-white px-4 py-4"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING}
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Figure annotations</div>
@@ -754,7 +761,12 @@ export function PublishedReplayNotesPanel({
         </button>
       </div>
 
-      <div className="mt-4 grid gap-3 xl:grid-cols-5">
+      <motion.div
+        className="mt-4 grid gap-3 xl:grid-cols-5"
+        variants={STAGGER_CONTAINER}
+        initial="hidden"
+        animate="show"
+      >
         {[
           { label: 'Notes here', value: discovery.total.toLocaleString(), detail: 'Structured contributions in this replay posture.' },
           { label: 'Open questions', value: discovery.openQuestions.toLocaleString(), detail: 'Questions still pulling thought forward.' },
@@ -762,13 +774,13 @@ export function PublishedReplayNotesPanel({
           { label: 'Author addressed', value: discovery.authorAddressed.toLocaleString(), detail: 'Author clarifications and direct responses.' },
           { label: 'Following', value: discovery.followed.toLocaleString(), detail: 'Notes you marked to come back to.' },
         ].map(card => (
-          <div key={card.label} className="rounded-xl border border-rule bg-surface-active px-4 py-3">
+          <motion.div key={card.label} variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-surface-active px-4 py-3">
             <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
             <div className="mt-2 text-2xl font-semibold text-text-primary">{card.value}</div>
             <div className="mt-1 text-xs leading-5 text-muted">{card.detail}</div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
         <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">What people are debating here</div>
@@ -1139,6 +1151,6 @@ export function PublishedReplayNotesPanel({
           ) : null}
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

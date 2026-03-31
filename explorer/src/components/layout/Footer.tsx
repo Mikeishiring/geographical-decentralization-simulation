@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+import { SPRING } from '../../lib/theme'
 import { GlobeNetwork } from '../decorative/GlobeNetwork'
 
 const FOOTER_LINKS = [
@@ -8,7 +10,13 @@ const FOOTER_LINKS = [
 
 export function Footer() {
   return (
-    <footer className="mt-16 relative overflow-hidden">
+    <motion.footer
+      className="mt-16 relative overflow-hidden"
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={SPRING}
+    >
       <div className="section-divider" />
 
       {/* Bookend globe — bottom hemisphere, mirroring the header's top hemisphere */}
@@ -47,6 +55,6 @@ export function Footer() {
           </div>
         </div>
       </div>
-    </footer>
+    </motion.footer>
   )
 }
