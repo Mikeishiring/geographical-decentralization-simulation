@@ -39,7 +39,7 @@ export function EvidenceMapSidebar({
   hoveredRegion, onHover,
 }: EvidenceMapSidebarProps) {
   return (
-    <div className="border-t border-rule p-3.5 lg:border-l lg:border-t-0 space-y-3.5 overflow-y-auto" style={{ maxHeight: 420 }}>
+    <div className="border-t border-rule p-3.5 lg:border-l lg:border-t-0 space-y-3.5 max-h-[360px] overflow-y-auto lg:max-h-none lg:overflow-y-visible">
       {/* Live metrics — sentiment-colored */}
       <div>
         <div className="lab-section-title flex items-baseline gap-1.5">
