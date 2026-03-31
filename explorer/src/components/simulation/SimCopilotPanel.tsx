@@ -188,17 +188,22 @@ export function SimCopilotPanel({
           )}
 
           {isMutating && !copilotResponse && (
-            <div className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-              <div className="rounded-xl border border-rule bg-white/80 p-4">
+            <motion.div
+              className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]"
+              variants={STAGGER_CONTAINER}
+              initial="hidden"
+              animate="show"
+            >
+              <motion.div variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-white/80 p-4">
                 <div className="lab-skeleton lab-skeleton-line w-1/3" />
                 <div className="mt-3 space-y-3">
                   <div className="lab-skeleton lab-skeleton-line w-full" />
                   <div className="lab-skeleton lab-skeleton-line w-5/6" />
                   <div className="lab-skeleton lab-skeleton-line w-4/6" />
                 </div>
-              </div>
-              <div className="lab-skeleton lab-skeleton-block h-[240px]" />
-            </div>
+              </motion.div>
+              <motion.div variants={STAGGER_ITEM} className="lab-skeleton lab-skeleton-block h-[240px] chart-skeleton-breathe" />
+            </motion.div>
           )}
 
           <AnimatePresence mode="wait">
@@ -211,7 +216,7 @@ export function SimCopilotPanel({
               exit={{ opacity: 0, y: -6 }}
               transition={SPRING_CRISP}
             >
-              <div className="rounded-xl border border-warning/25 bg-warning/7 px-4 py-4">
+              <div className="rounded-xl border border-warning/25 bg-warning/[0.07] px-4 py-4">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-text-primary">
                   <span className="h-1.5 w-1.5 rounded-full bg-warning" />
                   {copilotResponse.truthBoundary.label}

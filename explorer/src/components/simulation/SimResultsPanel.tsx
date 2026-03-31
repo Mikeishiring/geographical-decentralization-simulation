@@ -4,7 +4,7 @@ import { Check, Copy, Download } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { TimeSeriesBlock } from '../blocks/TimeSeriesBlock'
 import { cn } from '../../lib/cn'
-import { CHART, SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
+import { BLOCK_COLORS, CHART, SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import {
   attestationCutoffMs,
   describeDistribution,
@@ -91,6 +91,7 @@ interface ExactMetricCard {
 
 type ExactChartSeries = NonNullable<SimResultsPanelProps['exactChartSeries']>[number]
 
+/** Chart visual metadata — colors sourced from BLOCK_COLORS design tokens */
 const CHART_VISUALS: Record<string, {
   readonly title: string
   readonly unit: string
@@ -102,22 +103,22 @@ const CHART_VISUALS: Record<string, {
     title: 'Average MEV earned',
     unit: 'ETH',
     yLabel: 'ETH',
-    color: '#2563EB',
-    glow: 'rgba(37, 99, 235, 0.16)',
+    color: BLOCK_COLORS[0],
+    glow: `${BLOCK_COLORS[0]}28`,
   },
   'supermajority_success.json': {
     title: 'Supermajority success',
     unit: '%',
     yLabel: 'Success (%)',
-    color: '#0F766E',
-    glow: 'rgba(15, 118, 110, 0.16)',
+    color: BLOCK_COLORS[2],
+    glow: `${BLOCK_COLORS[2]}28`,
   },
   'failed_block_proposals.json': {
     title: 'Failed block proposals',
     unit: 'count',
     yLabel: 'Count',
-    color: '#C2553A',
-    glow: 'rgba(194, 85, 58, 0.18)',
+    color: BLOCK_COLORS[1],
+    glow: `${BLOCK_COLORS[1]}2E`,
   },
   'utility_increase.json': {
     title: 'Utility increase',
@@ -130,15 +131,15 @@ const CHART_VISUALS: Record<string, {
     title: 'Average proposal time',
     unit: 'ms',
     yLabel: 'Milliseconds',
-    color: '#D97706',
-    glow: 'rgba(217, 119, 6, 0.16)',
+    color: BLOCK_COLORS[3],
+    glow: `${BLOCK_COLORS[3]}28`,
   },
   'attestation_sum.json': {
     title: 'Aggregate attestations',
     unit: 'sum',
     yLabel: 'Aggregate attestations',
-    color: '#16A34A',
-    glow: 'rgba(22, 163, 74, 0.16)',
+    color: BLOCK_COLORS[2],
+    glow: `${BLOCK_COLORS[2]}28`,
   },
 }
 
@@ -420,10 +421,10 @@ function ExactChartDeck({
                     className={cn(
                       'group relative overflow-hidden rounded-xl border px-4 py-3 text-left transition-all duration-200 hover:border-border-hover',
                       isFocused
-                        ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.08),rgba(255,255,255,0.98))] shadow-[0_16px_36px_rgba(37,99,235,0.12)]'
+                        ? 'border-accent bg-gradient-to-b from-accent/[0.08] to-white/98 shadow-[0_16px_36px_rgba(37,99,235,0.12)]'
                         : 'border-rule bg-white/92',
                     )}
-                    style={{ boxShadow: isFocused ? `0 18px 40px ${visual?.glow ?? 'rgba(37,99,235,0.12)'}` : undefined }}
+                    style={{ boxShadow: isFocused ? `0 18px 40px ${visual?.glow ?? `${BLOCK_COLORS[0]}1F`}` : undefined }}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -445,18 +446,18 @@ function ExactChartDeck({
                       <svg viewBox="0 0 220 72" className="w-full chart-edge-fade" preserveAspectRatio="none">
                         <defs>
                           <linearGradient id={`spark-fill-${entry.artifactName.replace(/\./g, '-')}`} x1="0%" x2="0%" y1="0%" y2="100%">
-                            <stop offset="0%" stopColor={visual?.color ?? '#2563EB'} stopOpacity={0.14} />
-                            <stop offset="100%" stopColor={visual?.color ?? '#2563EB'} stopOpacity={0.02} />
+                            <stop offset="0%" stopColor={visual?.color ?? BLOCK_COLORS[0]} stopOpacity={0.14} />
+                            <stop offset="100%" stopColor={visual?.color ?? BLOCK_COLORS[0]} stopOpacity={0.02} />
                           </linearGradient>
                         </defs>
                         {/* Area fill — liveline-style gradient */}
                         <path d={spark.areaPath} fill={`url(#spark-fill-${entry.artifactName.replace(/\./g, '-')})`} />
                         {/* Line path */}
-                        <path d={spark.path} fill="none" stroke={visual?.color ?? '#2563EB'} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d={spark.path} fill="none" stroke={visual?.color ?? BLOCK_COLORS[0]} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
                         {/* Pulsing live dot at endpoint */}
-                        <circle cx={spark.endX} cy={spark.endY} r="3.5" fill="none" stroke={visual?.color ?? '#2563EB'} strokeWidth="1.5" opacity="0.4" className="live-dot-pulse" />
-                        <circle cx={spark.endX} cy={spark.endY} r="3" fill="white" stroke={visual?.color ?? '#2563EB'} strokeWidth="1.5" />
-                        <circle cx={spark.endX} cy={spark.endY} r="1.5" fill={visual?.color ?? '#2563EB'} />
+                        <circle cx={spark.endX} cy={spark.endY} r="3.5" fill="none" stroke={visual?.color ?? BLOCK_COLORS[0]} strokeWidth="1.5" opacity="0.4" className="live-dot-pulse" />
+                        <circle cx={spark.endX} cy={spark.endY} r="3" fill="white" stroke={visual?.color ?? BLOCK_COLORS[0]} strokeWidth="1.5" />
+                        <circle cx={spark.endX} cy={spark.endY} r="1.5" fill={visual?.color ?? BLOCK_COLORS[0]} />
                       </svg>
                     </div>
 
@@ -723,29 +724,29 @@ export function SimResultsPanel({
           <summary className="cursor-pointer list-none text-11 text-muted hover:text-text-primary transition-colors">
             Provenance details
           </summary>
-          <div className="stagger-reveal grid gap-2 mt-3 text-xs text-muted sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-lg border border-rule bg-white px-3 py-2.5">
+          <motion.div className="grid gap-2 mt-3 text-xs text-muted sm:grid-cols-2 xl:grid-cols-4" variants={STAGGER_CONTAINER} initial="hidden" animate="visible">
+            <motion.div variants={STAGGER_ITEM} className="rounded-lg border border-rule bg-white px-3 py-2.5 card-hover">
               <div className="mono-xs uppercase text-text-faint">Config</div>
               <div className="mt-1.5 text-sm font-medium text-text-primary">{describeParadigmWithAlias(manifest.config.paradigm)}</div>
               <div className="mt-1">{describeDistribution(manifest.config.distribution)} · {describeSourcePlacement(manifest.config.sourcePlacement)}</div>
-            </div>
-            <div className="rounded-lg border border-rule bg-white px-3 py-2.5">
+            </motion.div>
+            <motion.div variants={STAGGER_ITEM} className="rounded-lg border border-rule bg-white px-3 py-2.5 card-hover">
               <div className="mono-xs uppercase text-text-faint">Timing</div>
               <div className="mt-1.5 text-sm font-medium text-text-primary mono-sm">γ {formatNumber(manifest.config.attestationThreshold, 4)}</div>
               <div className="mt-1">cutoff {attestationCutoffMs(manifest.config.slotTime).toLocaleString()}ms · {manifest.config.slotTime}s slots</div>
-            </div>
-            <div className="rounded-lg border border-rule bg-white px-3 py-2.5">
+            </motion.div>
+            <motion.div variants={STAGGER_ITEM} className="rounded-lg border border-rule bg-white px-3 py-2.5 card-hover">
               <div className="mono-xs uppercase text-text-faint">Identity</div>
               <div className="mt-1.5 text-sm font-medium text-text-primary">seed {manifest.config.seed}</div>
               <div className="mt-1">{manifest.config.validators.toLocaleString()} val · {manifest.config.slots.toLocaleString()} slots</div>
               <div className="mt-1 break-all mono-xs">{manifest.cacheKey}</div>
-            </div>
-            <div className="rounded-lg border border-rule bg-white px-3 py-2.5">
+            </motion.div>
+            <motion.div variants={STAGGER_ITEM} className="rounded-lg border border-rule bg-white px-3 py-2.5 card-hover">
               <div className="mono-xs uppercase text-text-faint">Paper surface</div>
               <div className="mt-1.5 text-sm font-medium text-text-primary mono-sm">Gini / HHI / CV / LC</div>
               <div className="mt-1">{paperComparability.detail}</div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </details>
       </motion.div>
 
@@ -764,16 +765,16 @@ export function SimResultsPanel({
           </div>
         </div>
 
-        <div className="stagger-reveal flex flex-wrap gap-2 mb-4">
+        <motion.div className="flex flex-wrap gap-2 mb-4" variants={STAGGER_CONTAINER} initial="hidden" animate="visible">
           {overviewBundleOptions.map(option => (
-            <button
+            <motion.button variants={STAGGER_ITEM}
               key={option.bundle}
               onClick={() => startTransition(() => onSelectBundle(option.bundle))}
               title={option.description}
               className={cn(
                 'lab-option-card rounded-xl px-3.5 py-2.5 text-left transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)]',
                 selectedBundle === option.bundle
-                  ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.08),rgba(255,255,255,0.98))] shadow-[0_4px_16px_rgba(37,99,235,0.1)]'
+                  ? 'border-accent bg-gradient-to-b from-accent/[0.08] to-white/98 shadow-[0_4px_16px_rgba(37,99,235,0.1)]'
                   : '',
               )}
             >
@@ -781,9 +782,9 @@ export function SimResultsPanel({
               {isManifestOverviewBundle(option) && (
                 <div className="mt-0.5 mono-xs">{formatBytes(option.bytes)}</div>
               )}
-            </button>
+            </motion.button>
           ))}
-        </div>
+        </motion.div>
 
         {isOverviewLoading && overviewBlocks.length === 0 && (
           <div className="lab-skeleton lab-skeleton-block h-[320px]" />
@@ -825,7 +826,7 @@ export function SimResultsPanel({
               className={cn(
                 'lab-option-card text-left rounded-[1rem] px-4 py-3 transition-all hover:border-border-hover',
                 selectedArtifactName === artifact.name
-                  ? 'border-accent bg-[linear-gradient(180deg,rgba(37,99,235,0.1),rgba(255,255,255,0.98))]'
+                  ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98'
                   : '',
               )}
             >

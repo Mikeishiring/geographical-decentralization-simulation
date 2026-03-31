@@ -111,7 +111,7 @@ export function SimJobStatus({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={SPRING}
-      className="lab-stage-soft p-4 mb-5"
+      className="stripe-top-accent lab-stage-soft p-5 mb-5"
     >
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-2xl">
@@ -172,7 +172,7 @@ export function SimJobStatus({
           ].map((card, i) => (
             <motion.div
               key={card.label}
-              className="rounded-xl border border-rule bg-white/88 px-4 py-3"
+              className="rounded-xl border border-rule bg-white/88 px-4 py-3 card-hover"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...SPRING_CRISP, delay: 0.1 + i * 0.04 }}
