@@ -217,7 +217,7 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
                 {hoveredPoint.label && (
                   <div className="text-11 font-medium text-text-primary">{hoveredPoint.label}</div>
                 )}
-                <div className="mt-0.5 text-[0.75rem] font-semibold tabular-nums text-text-primary">
+                <div className="mt-0.5 text-xs font-semibold tabular-nums text-text-primary">
                   ({hoveredPoint.x.toFixed(2)}, {hoveredPoint.y.toFixed(2)})
                 </div>
                 {hoveredPoint.category && (

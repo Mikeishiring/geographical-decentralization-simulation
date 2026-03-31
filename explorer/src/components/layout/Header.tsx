@@ -15,12 +15,12 @@ function AuthorChip({ author }: { readonly author: Author }) {
       href={author.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-[0.75rem] text-text-faint underline decoration-rule underline-offset-2 transition-colors hover:text-accent hover:decoration-accent/40"
+      className="text-xs text-text-faint underline decoration-rule underline-offset-2 transition-colors hover:text-accent hover:decoration-accent/40"
     >
       {author.name}
     </a>
   ) : (
-    <span className="text-[0.75rem] text-text-faint">
+    <span className="text-xs text-text-faint">
       {author.name}
     </span>
   )
