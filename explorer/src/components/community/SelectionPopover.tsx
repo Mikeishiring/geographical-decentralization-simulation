@@ -21,9 +21,8 @@ export function SelectionPopover({ anchor, rect, onAddNote, onDismiss }: Selecti
       return
     }
 
-    // Position above the selection, centered horizontally
-    const scrollY = window.scrollY
-    const top = rect.top + scrollY - 8
+    // Position above the selection in viewport coordinates (fixed positioning)
+    const top = rect.top - 8
     const left = rect.left + rect.width / 2
 
     setPosition({ top, left })
