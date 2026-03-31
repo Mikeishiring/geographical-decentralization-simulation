@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
+import { centerOutReveal } from '../../lib/chart-animations'
 import type { ScatterBlock as ScatterBlockType } from '../../types/blocks'
 
 interface ScatterBlockProps {
@@ -89,27 +90,38 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
               </radialGradient>
             </defs>
 
-            {yTicks.map(tick => {
+            {/* Grid — staggered entrance */}
+            {yTicks.map((tick, idx) => {
               const { sy } = toSvg(0, tick)
               return (
-                <g key={tick}>
+                <motion.g
+                  key={tick}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, delay: idx * 0.04 }}
+                >
                   <line x1={padding.left} y1={sy} x2={svgW - padding.right} y2={sy}
                     stroke="currentColor" strokeWidth={CHART.gridWidth} opacity={CHART.gridOpacity} />
                   <text x={padding.left - 6} y={sy + 3} textAnchor="end"
                     className="fill-muted" style={{ fontSize: CHART.labelSize }}>
                     {Number.isInteger(tick) ? tick : tick.toFixed(2)}
                   </text>
-                </g>
+                </motion.g>
               )
             })}
 
             {xTicks.map((tick, i) => {
               const { sx } = toSvg(tick, 0)
               return (
-                <text key={`x-${i}`} x={sx} y={svgH - 8} textAnchor="middle"
-                  className="fill-muted" style={{ fontSize: CHART.labelSize }}>
+                <motion.text
+                  key={`x-${i}`} x={sx} y={svgH - 8} textAnchor="middle"
+                  className="fill-muted" style={{ fontSize: CHART.labelSize }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.2 + i * 0.04 }}
+                >
                   {Number.isInteger(tick) ? tick : tick.toFixed(2)}
-                </text>
+                </motion.text>
               )
             })}
 
@@ -129,54 +141,92 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
                 ? (categoryColors.get(point.category) ?? BLOCK_COLORS[0])
                 : BLOCK_COLORS[0]
               const isHovered = hoveredIndex === i
+              /* Center-out entrance — points near center of scatter appear first */
+              const revealFactor = centerOutReveal(i, block.points.length, 1)
+              const delay = (1 - revealFactor) * 0.25
 
               return (
                 <g key={i}
                   onMouseEnter={() => setHoveredIndex(i)}
                   onMouseLeave={() => setHoveredIndex(null)}
                 >
+                  {/* Radial halo on hover — liveline-inspired glow */}
+                  {isHovered && (
+                    <motion.circle
+                      cx={sx} cy={sy} r={16}
+                      fill={color} opacity={0.12}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={CHART.tooltipSpring}
+                    />
+                  )}
                   <motion.circle
                     cx={sx} cy={sy}
                     r={isHovered ? 6 : 4}
                     fill={color}
                     opacity={isHovered ? 1 : 0.7}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ ...SPRING_CRISP, delay: i * 0.01 }}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: isHovered ? 1 : 0.7 }}
+                    transition={{ ...SPRING_CRISP, delay }}
                     style={{ cursor: 'pointer' }}
                   />
+                  {/* White ring on hover */}
+                  {isHovered && (
+                    <motion.circle
+                      cx={sx} cy={sy} r={8}
+                      fill="none" stroke={color} strokeWidth={1.5} opacity={0.3}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={CHART.tooltipSpring}
+                    />
+                  )}
                 </g>
               )
             })}
           </svg>
         </div>
 
-        {/* Floating tooltip card */}
-        {hoveredPoint && hoveredSvg && (
-          <div
-            className="pointer-events-none absolute z-20"
-            style={{
-              left: `${(hoveredSvg.sx / svgW) * 100}%`,
-              top: `${((hoveredSvg.sy / svgH) * 100) - 2}%`,
-              transform: hoveredSvg.sx > svgW * 0.65 ? 'translate(-100%, -100%)' : 'translate(12px, -100%)',
-            }}
-          >
-            <div
-              className="rounded-lg border border-rule bg-white px-3 py-2"
-              style={{ boxShadow: CHART.tooltipShadow }}
+        {/* Floating tooltip — spring entrance with overshoot */}
+        <AnimatePresence>
+          {hoveredPoint && hoveredSvg && (
+            <motion.div
+              className="pointer-events-none absolute z-20"
+              style={{
+                left: `${(hoveredSvg.sx / svgW) * 100}%`,
+                top: `${((hoveredSvg.sy / svgH) * 100) - 2}%`,
+              }}
+              initial={{
+                opacity: 0,
+                scale: 0.92,
+                x: hoveredSvg.sx > svgW * 0.65 ? '-100%' : 12,
+                y: '-100%',
+              }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                x: hoveredSvg.sx > svgW * 0.65 ? '-100%' : 12,
+                y: '-100%',
+              }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={CHART.tooltipSpring}
             >
-              {hoveredPoint.label && (
-                <div className="text-[0.6875rem] font-medium text-text-primary">{hoveredPoint.label}</div>
-              )}
-              <div className="mt-0.5 text-[0.75rem] font-semibold tabular-nums text-text-primary">
-                ({hoveredPoint.x.toFixed(2)}, {hoveredPoint.y.toFixed(2)})
+              <div
+                className="rounded-lg border border-rule bg-white px-3 py-2"
+                style={{ boxShadow: `${CHART.tooltipShadow}, 0 0 0 1px rgba(37,99,235,0.06)` }}
+              >
+                {hoveredPoint.label && (
+                  <div className="text-[0.6875rem] font-medium text-text-primary">{hoveredPoint.label}</div>
+                )}
+                <div className="mt-0.5 text-[0.75rem] font-semibold tabular-nums text-text-primary">
+                  ({hoveredPoint.x.toFixed(2)}, {hoveredPoint.y.toFixed(2)})
+                </div>
+                {hoveredPoint.category && (
+                  <div className="mt-0.5 text-[0.625rem] text-muted">{hoveredPoint.category}</div>
+                )}
               </div>
-              {hoveredPoint.category && (
-                <div className="mt-0.5 text-[0.625rem] text-muted">{hoveredPoint.category}</div>
-              )}
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

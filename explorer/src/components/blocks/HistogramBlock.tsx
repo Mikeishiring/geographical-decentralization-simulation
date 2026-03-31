@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
+import { motion, AnimatePresence } from 'framer-motion'
+import { BLOCK_COLORS, CHART, SPRING_CRISP, SPRING_SNAPPY } from '../../lib/theme'
+import { centerOutReveal } from '../../lib/chart-animations'
 import type { HistogramBlock as HistogramBlockType } from '../../types/blocks'
 
 interface HistogramBlockProps {
@@ -62,6 +63,9 @@ export function HistogramBlock({ block }: HistogramBlockProps) {
               : BLOCK_COLORS[0]
             const heightPct = (bin.count / maxCount) * 100
             const isHovered = hoveredIndex === i
+            /* Center-out entrance — center bars appear first */
+            const revealFactor = centerOutReveal(i, block.bins.length, 1)
+            const delay = (1 - revealFactor) * 0.3
 
             return (
               <div
@@ -72,14 +76,16 @@ export function HistogramBlock({ block }: HistogramBlockProps) {
                 onMouseLeave={() => setHoveredIndex(null)}
               >
                 <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: `${heightPct}%` }}
-                  transition={{ ...SPRING_CRISP, delay: i * CHART.stagger }}
-                  className="rounded-t transition-shadow"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: `${heightPct}%`, opacity: isHovered ? 1 : 0.8 }}
+                  transition={{ ...SPRING_SNAPPY, delay }}
+                  className="rounded-t"
                   style={{
                     backgroundColor: barColor,
-                    opacity: isHovered ? 1 : 0.8,
-                    boxShadow: isHovered ? `0 0 10px ${barColor}40` : 'none',
+                    boxShadow: isHovered
+                      ? `${CHART.hoverGlow} ${barColor}${CHART.hoverGlowOpacity}`
+                      : 'none',
+                    transition: 'box-shadow 0.15s ease',
                   }}
                 />
               </div>
@@ -106,27 +112,32 @@ export function HistogramBlock({ block }: HistogramBlockProps) {
           </span></span>
         </div>
 
-        {/* Floating tooltip card */}
-        {hoveredBin && hoveredIndex !== null && (
-          <div
-            className="pointer-events-none absolute z-20"
-            style={{
-              left: `${((hoveredIndex + 0.5) / block.bins.length) * 100}%`,
-              top: 0,
-              transform: 'translate(-50%, -4px)',
-            }}
-          >
-            <div
-              className="rounded-lg border border-rule bg-white px-3 py-2"
-              style={{ boxShadow: CHART.tooltipShadow }}
+        {/* Floating tooltip — spring entrance with overshoot */}
+        <AnimatePresence>
+          {hoveredBin && hoveredIndex !== null && (
+            <motion.div
+              className="pointer-events-none absolute z-20"
+              style={{
+                left: `${((hoveredIndex + 0.5) / block.bins.length) * 100}%`,
+                top: 0,
+              }}
+              initial={{ opacity: 0, scale: 0.92, y: 4 }}
+              animate={{ opacity: 1, scale: 1, y: -4 }}
+              exit={{ opacity: 0, scale: 0.95, y: 0 }}
+              transition={CHART.tooltipSpring}
             >
-              <div className="text-[0.6875rem] font-medium text-text-primary">{hoveredBin.range}</div>
-              <div className="mt-0.5 text-[0.8125rem] font-semibold tabular-nums text-text-primary">
-                {hoveredBin.count}{block.unit ? ` ${block.unit}` : ''}
+              <div
+                className="rounded-lg border border-rule bg-white px-3 py-2 -translate-x-1/2"
+                style={{ boxShadow: `${CHART.tooltipShadow}, 0 0 0 1px rgba(37,99,235,0.06)` }}
+              >
+                <div className="text-[0.6875rem] font-medium text-text-primary">{hoveredBin.range}</div>
+                <div className="mt-0.5 text-[0.8125rem] font-semibold tabular-nums text-text-primary">
+                  {hoveredBin.count}{block.unit ? ` ${block.unit}` : ''}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

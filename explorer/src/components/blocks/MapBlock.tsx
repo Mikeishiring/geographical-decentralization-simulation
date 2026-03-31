@@ -1,7 +1,7 @@
 import { useId, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
-import { BLOCK_COLORS, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
+import { BLOCK_COLORS, CHART, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { WORLD_PATHS } from '../../data/world-paths'
 import type { MapBlock as MapBlockType } from '../../types/blocks'
@@ -349,7 +349,7 @@ export function MapBlock({ block }: MapBlockProps) {
                 initial={{ opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ ...SPRING_SNAPPY }}
+                transition={CHART.tooltipSpring}
                 className="pointer-events-none absolute z-20"
                 style={tooltipStyle}
               >
