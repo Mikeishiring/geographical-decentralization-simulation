@@ -11,8 +11,9 @@ import { PaperHero } from './PaperHero'
 import { TopicCardGrid } from './TopicCardGrid'
 import { CommunityPreview } from './CommunityPreview'
 import { PaperSectionView } from './PaperSectionView'
+import { ArgumentMapView } from './ArgumentMapView'
 import { NodeArc } from '../decorative/NodeArc'
-import { Link2, Check, Quote, Sparkles, Lightbulb } from 'lucide-react'
+import { ChevronDown, Link2, Check, Quote, Sparkles, Lightbulb } from 'lucide-react'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import type { Exploration } from '../../lib/api'
 import type { TabId } from '../layout/TabNav'
@@ -182,6 +183,22 @@ export function EditorialView({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Argument map — collapsible structured claims */}
+      {!showTopic && (
+        <details className="mt-8 rounded-xl border border-rule bg-white overflow-hidden group/argmap">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-surface-active/50 [&::-webkit-details-marker]:hidden">
+            <div>
+              <div className="text-sm font-medium text-text-primary">Argument map</div>
+              <div className="mt-0.5 text-xs text-muted">Claims, paradoxes, and caveats — organized by section</div>
+            </div>
+            <ChevronDown className="h-4 w-4 text-text-faint transition-transform group-open/argmap:rotate-180" />
+          </summary>
+          <div className="border-t border-rule">
+            <ArgumentMapView />
+          </div>
+        </details>
+      )}
 
       {/* Section-by-section reading — the main content */}
       <div className="mt-8">
