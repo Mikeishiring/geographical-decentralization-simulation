@@ -153,7 +153,7 @@ export function PaperLandingPage({
             transition={SPRING}
           >
             <div className="mb-4">
-              <h2 className="text-base font-semibold text-text-primary font-serif">{activeTopic.title}</h2>
+              <h2 className="text-base font-semibold text-text-primary font-serif text-balance">{activeTopic.title}</h2>
               <p className="mt-1 text-sm text-muted">{activeTopic.description}</p>
             </div>
             <BlockCanvas blocks={activeTopic.blocks} />
@@ -167,6 +167,7 @@ export function PaperLandingPage({
                       onClick={() => onTabChange('agent')}
                       className="follow-up-chip"
                       title={`Ask Agent: ${prompt}`}
+                      aria-label={`Ask Agent: ${prompt}`}
                     >
                       {prompt}
                       <span aria-hidden="true" className="follow-up-chip-arrow">→</span>
