@@ -194,9 +194,11 @@ interface ScenarioSelectorProps {
   readonly onSelect: (entry: ResearchDatasetEntry) => void
 }
 
-const chipBase = 'lab-option-card rounded-full px-3 py-1 text-xs font-medium'
+const chipBase = 'lab-option-card rounded-full px-2.5 py-0.5 text-2xs font-medium cursor-pointer transition-colors'
 const chipActive = 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
-const chipInactive = 'text-muted'
+const chipInactive = 'text-muted hover:text-text-secondary'
+const filterLabel = 'text-2xs font-medium uppercase tracking-wider text-text-faint shrink-0'
+const filterDivider = 'hidden sm:block w-px h-5 bg-rule/60 shrink-0'
 
 function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selectedResult, onSelect }: ScenarioSelectorProps) {
   const evaluations = useMemo(() => uniqueOrdered(catalog.datasets.map(d => d.evaluation)), [catalog])
@@ -227,8 +229,8 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
     return { costResults: costs, otherResults: others }
   }, [allResults])
 
-  const selectedCost = parseCostFromResult(selectedResult)
   const hasCostDimension = costResults.length > 1
+  const hasSecondaryFilters = paradigms.length > 1 || hasCostDimension || otherResults.length > 1
 
   const findAndSelect = (evaluation: string, paradigm: string, result?: string) => {
     const match = result
@@ -239,11 +241,11 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
   }
 
   return (
-    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-      {/* Scenario (always full-width) */}
-      <div className="sm:col-span-2">
-        <label className="text-xs text-muted mb-1.5 block" title="Simulation evaluation scenario from the published paper results">Scenario</label>
-        <div className="flex flex-wrap gap-1.5">
+    <div className="space-y-2">
+      {/* Row 1: Scenario chips */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className={filterLabel} title="Simulation evaluation scenario from the published paper results">Scenario</span>
+        <div className="flex flex-wrap gap-1">
           {evaluations.map(evaluation => (
             <button
               key={evaluation}
@@ -256,65 +258,67 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
         </div>
       </div>
 
-      {/* Source paradigm */}
-      {paradigms.length > 1 && (
-        <div>
-          <label className="text-xs text-muted mb-1.5 block" title="Block-building paradigm: SSP (Single Slot Proposer) or MSP (Multiple Slot Proposer)">Source paradigm</label>
-          <div className="flex flex-wrap gap-1.5">
-            {paradigms.map(paradigm => (
-              <button
-                key={paradigm}
-                onClick={() => findAndSelect(selectedEvaluation, paradigm)}
-                className={cn(chipBase, selectedParadigm === paradigm ? chipActive : chipInactive)}
-              >
-                {paradigm}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Row 2: Secondary filters — inline with dividers */}
+      {hasSecondaryFilters && (
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Source paradigm */}
+          {paradigms.length > 1 && (
+            <>
+              <span className={filterLabel} title="Block-building paradigm: SSP or MSP">Source</span>
+              <div className="flex gap-1">
+                {paradigms.map(paradigm => (
+                  <button
+                    key={paradigm}
+                    onClick={() => findAndSelect(selectedEvaluation, paradigm)}
+                    className={cn(chipBase, selectedParadigm === paradigm ? chipActive : chipInactive)}
+                  >
+                    {paradigm}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
-      {/* Migration cost — compact chip row when cost variants exist */}
-      {hasCostDimension && (
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs text-muted" title="ETH cost validators pay when relocating between regions. Higher costs discourage geographic churn.">Migration cost</label>
-            {selectedCost != null && (
-              <span className="text-11 text-text-faint tabular-nums">{selectedCost.toFixed(4)} ETH</span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {costResults.map(({ result, cost }) => {
-              const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
-              return (
-                <button
-                  key={result}
-                  onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
-                  className={cn(chipBase, 'tabular-nums', selectedResult === result ? chipActive : chipInactive)}
-                >
-                  {formatCostLabel(cost)}{hint ? ` (${hint})` : ''}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
+          {/* Migration cost */}
+          {hasCostDimension && (
+            <>
+              {paradigms.length > 1 && <div className={filterDivider} />}
+              <span className={filterLabel} title="ETH migration cost between regions">Cost</span>
+              <div className="flex gap-1">
+                {costResults.map(({ result, cost }) => {
+                  const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
+                  return (
+                    <button
+                      key={result}
+                      onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
+                      className={cn(chipBase, 'tabular-nums', selectedResult === result ? chipActive : chipInactive)}
+                    >
+                      {formatCostLabel(cost)}{hint ? ` (${hint})` : ''}
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
 
-      {/* Non-cost result variants */}
-      {otherResults.length > 1 && (
-        <div className={hasCostDimension ? '' : 'sm:col-span-2'}>
-          <label className="text-xs text-muted mb-1.5 block">Result variant</label>
-          <div className="flex flex-wrap gap-1.5">
-            {otherResults.map(result => (
-              <button
-                key={result}
-                onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
-                className={cn(chipBase, selectedResult === result ? chipActive : chipInactive)}
-              >
-                {result}
-              </button>
-            ))}
-          </div>
+          {/* Non-cost result variants */}
+          {otherResults.length > 1 && (
+            <>
+              {(paradigms.length > 1 || hasCostDimension) && <div className={filterDivider} />}
+              <span className={filterLabel}>Variant</span>
+              <div className="flex gap-1">
+                {otherResults.map(result => (
+                  <button
+                    key={result}
+                    onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
+                    className={cn(chipBase, selectedResult === result ? chipActive : chipInactive)}
+                  >
+                    {result}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -404,14 +408,11 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
     return (
       <div className="space-y-3">
         <div className="lab-stage overflow-hidden animate-pulse">
-          <div className="px-5 py-4">
-            <div className="h-4 w-48 rounded bg-meridian/40 mb-2" />
-            <div className="h-2.5 w-72 rounded bg-meridian/20" />
-          </div>
-          <div className="border-t border-rule/70 px-5 py-4">
-            <div className="flex gap-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-7 w-20 rounded-full bg-meridian/15" />
+          <div className="px-4 py-3 space-y-2">
+            <div className="h-3 w-48 rounded bg-meridian/40" />
+            <div className="flex gap-1.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-5 w-16 rounded-full bg-meridian/15" />
               ))}
             </div>
           </div>
@@ -422,25 +423,20 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
 
   return (
     <div>
-      {/* ── Header + controls ── */}
+      {/* ── Compact filter toolbar ── */}
       <motion.section
         className="lab-stage overflow-hidden"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={SPRING}
       >
-        <div className="px-5 py-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-sm font-semibold tracking-tight text-text-primary">
-                Geographical Decentralization Atlas
-              </h2>
-              <p className="mt-1 text-xs leading-relaxed text-muted max-w-xl">
-                Explore published simulation outputs as a living research surface.
-                Adjust scenario, paradigm, and migration cost to compare outcomes.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
+        <div className="px-4 py-3 space-y-2.5">
+          {/* Title row with badges */}
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xs font-semibold tracking-tight text-text-primary">
+              Geographical Decentralization Atlas
+            </h2>
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="lab-chip bg-white/90 text-2xs">
                 {catalog.datasets.length} scenario{catalog.datasets.length !== 1 ? 's' : ''}
               </span>
@@ -451,9 +447,8 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
               )}
             </div>
           </div>
-        </div>
 
-        <div className="border-t border-rule/70 px-5 py-4">
+          {/* Inline filters */}
           {selectedEntry && (
             <ScenarioSelector
               catalog={catalog}
