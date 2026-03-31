@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, type ReactNode } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SPRING, SPRING_CRISP, PAGE_TRANSITION, STAGGER_CONTAINER, STAGGER_ITEM, SECTION_CATEGORY_STYLE } from '../../lib/theme'
+import { cn } from '../../lib/cn'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
 import { PAPER_NARRATIVE } from '../../data/paper-narrative'
 import { type TopicCard } from '../../data/default-blocks'
@@ -19,7 +20,7 @@ import type { Exploration } from '../../lib/api'
 import type { TabId } from '../layout/TabNav'
 
 /** Renders paragraph text with an optional keyClaim substring highlighted */
-function renderWithKeyClaim(text: string, keyClaim?: string): JSX.Element | string {
+function renderWithKeyClaim(text: string, keyClaim?: string): ReactNode {
   if (!keyClaim) return text
   const idx = text.indexOf(keyClaim)
   if (idx === -1) return text
