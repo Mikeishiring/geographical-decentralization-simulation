@@ -71,7 +71,7 @@ export function ArgumentMapView() {
                         <h3 className="text-13 font-medium text-text-primary">
                           {section.title}
                         </h3>
-                        <p className="mt-0.5 text-[0.75rem] leading-[1.5] text-muted">
+                        <p className="mt-0.5 text-xs leading-[1.5] text-muted">
                           {section.description}
                         </p>
                       </div>
