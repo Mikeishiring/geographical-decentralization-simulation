@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { SPRING_SOFT } from '../../lib/theme'
+import { STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
 import { BEST_FIRST_STOP_IDS } from './paper-helpers'
 
@@ -14,28 +14,31 @@ interface PaperHeroProps {
 export function PaperHero({ onSectionClick }: PaperHeroProps) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={SPRING_SOFT}
-      className="max-w-4xl reveal-up"
+      className="max-w-4xl"
+      variants={STAGGER_CONTAINER}
+      initial="hidden"
+      animate="show"
     >
-      <h1 className="text-2xl font-medium leading-snug text-text-primary font-serif sm:text-3xl text-balance">
+      <motion.h1
+        variants={STAGGER_ITEM}
+        className="text-2xl font-medium leading-snug text-text-primary font-serif sm:text-3xl text-balance"
+      >
         {PAPER_METADATA.title}
-      </h1>
-      <p className="mt-1.5 text-sm text-muted">{PAPER_METADATA.citation}</p>
+      </motion.h1>
+      <motion.p variants={STAGGER_ITEM} className="mt-1.5 text-sm text-muted">{PAPER_METADATA.citation}</motion.p>
 
       {/* Key claims as inline chips */}
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      <motion.div variants={STAGGER_ITEM} className="mt-3 flex flex-wrap gap-1.5">
         {PAPER_METADATA.keyClaims.map(claim => (
           <span key={claim} className="lab-chip">
             {claim}
           </span>
         ))}
-      </div>
+      </motion.div>
 
       {/* Best first stops — inline links */}
       {onSectionClick && (
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+        <motion.div variants={STAGGER_ITEM} className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5">
           <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Start here</span>
           {bestStops.map((section, i) => (
             <a
@@ -48,7 +51,7 @@ export function PaperHero({ onSectionClick }: PaperHeroProps) {
               {section.title}
             </a>
           ))}
-        </div>
+        </motion.div>
       )}
     </motion.section>
   )
