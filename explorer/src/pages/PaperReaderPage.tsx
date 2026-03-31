@@ -56,8 +56,9 @@ export function PaperReaderPage({
   })
 
   // Use real notes when available, fall back to mock data for demo
+  // Only use real notes if they have section anchors (usable for inline display)
   const resolvedNotes = useMemo(() => {
-    const real = notesQuery.data ?? []
+    const real = (notesQuery.data ?? []).filter(n => n.anchor?.sectionId)
     return real.length > 0 ? real : [...MOCK_COMMUNITY_NOTES]
   }, [notesQuery.data])
 
