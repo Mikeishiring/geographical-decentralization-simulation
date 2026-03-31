@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+import { SPRING_CRISP } from '../../lib/theme'
 import type { CaveatBlock as CaveatBlockType } from '../../types/blocks'
 
 interface CaveatBlockProps {
@@ -6,7 +8,12 @@ interface CaveatBlockProps {
 
 export function CaveatBlock({ block }: CaveatBlockProps) {
   return (
-    <div className="border border-rule border-l-2 border-l-warning rounded-xl bg-white px-5 py-4 card-hover">
+    <motion.div
+      className="border border-rule border-l-2 border-l-warning rounded-xl bg-white px-5 py-4 card-hover"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING_CRISP}
+    >
       <div className="flex gap-2.5">
         <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0 mt-1.5" />
         <div>
@@ -16,6 +23,6 @@ export function CaveatBlock({ block }: CaveatBlockProps) {
           </p>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
