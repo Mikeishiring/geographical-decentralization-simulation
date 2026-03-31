@@ -218,21 +218,22 @@ export default function AgentLabPage() {
           Ask questions & run experiments
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-          Ask the paper any question for an instant LLM-guided answer with evidence blocks, or start an autonomous simulation loop to test hypotheses with real data.
+          Get AI-powered answers grounded in the paper's findings, or run a simulation experiment to test your own &ldquo;what if&rdquo; questions with real data. Answers you find interesting can be shared as community notes.
         </p>
       </div>
 
       {/* Mode selector */}
       <div className="reveal-up flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1 w-fit">
         {([
-          { id: 'ask' as AgentMode, icon: MessageSquare, label: 'Ask the paper' },
-          { id: 'experiment' as AgentMode, icon: FlaskConical, label: 'Run experiment' },
+          { id: 'ask' as AgentMode, icon: MessageSquare, label: 'Ask the paper', tooltip: 'Type a question and get an AI answer grounded in the paper\u2019s data and findings' },
+          { id: 'experiment' as AgentMode, icon: FlaskConical, label: 'Run experiment', tooltip: 'Start an autonomous loop that configures, runs, and interprets a simulation for you' },
         ]).map(m => (
           <motion.button
             key={m.id}
             onClick={() => setMode(m.id)}
             whileTap={{ scale: 0.96 }}
             transition={SPRING_SNAPPY}
+            title={m.tooltip}
             className={cn(
               'relative flex items-center gap-1.5 rounded-md px-4 py-2 text-sm transition-colors',
               mode === m.id ? 'text-text-primary font-medium' : 'text-muted hover:text-text-primary',
@@ -341,10 +342,10 @@ export default function AgentLabPage() {
 
                 {/* Publish as community note */}
                 <ContributionComposer
-                  sourceLabel="Turn this into a community note"
+                  sourceLabel="Share as a community note"
                   defaultTitle={query || aiResponse.summary}
                   defaultTakeaway={aiResponse.summary}
-                  helperText="Add your own title and takeaway before publishing."
+                  helperText="Write your own title and takeaway, then publish. Others can see, vote, and reply to your note on the Community page."
                   publishLabel="Publish note"
                   successLabel="Published"
                   viewPublishedLabel="View in Community"
@@ -494,7 +495,7 @@ export default function AgentLabPage() {
           </div>
 
           <div className="relative text-center text-sm text-muted mb-5">
-            Choose a question below or write your own above
+            Pick a question to get started, or type your own in the search bar above
           </div>
           <div className="relative grid gap-2 sm:grid-cols-2 xl:grid-cols-4 stagger-reveal">
             {SUGGESTED_QUESTIONS.map((s, i) => (
@@ -526,7 +527,7 @@ export default function AgentLabPage() {
           </div>
 
           <div className="relative text-center text-sm text-muted mb-4">
-            Enter a research question to start the autonomous loop, or choose one below
+            Describe a hypothesis and the AI will configure a simulation, run it, and interpret the results for you
           </div>
           <div className="relative flex flex-wrap justify-center gap-2 stagger-reveal">
             {SUGGESTED_QUESTIONS.filter(s => s.label === 'Experiment' || s.label === 'Mechanism').map(s => (

@@ -1,11 +1,13 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ArrowUpDown, ThumbsUp, ThumbsDown, Tag, ChevronDown, ChevronUp, Users, FlaskConical, Award, Link2, MessageSquare } from 'lucide-react'
+import { Search, ArrowUpDown, Tag, ChevronDown, ChevronUp, Users, FlaskConical, Award, Link2, MessageSquare } from 'lucide-react'
 import { NodeArc } from '../components/decorative/NodeArc'
 import { getExploration, listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { MOCK_COMMUNITY_NOTES, MOCK_NOTE_EXTRAS } from '../data/mock-community-notes'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
+import { VoteControls, FollowUpList } from '../components/community/VoteControls'
+import { ReplyThread } from '../components/community/ReplyThread'
 import { cn } from '../lib/cn'
 import { SPRING_CRISP, SPRING_SOFT, STAGGER_CONTAINER } from '../lib/theme'
 import type { TabId } from '../components/layout/TabNav'
@@ -211,7 +213,7 @@ export function ExploreHistoryPage({
                 onClick={() => onOpenQuery(hiddenDraftExploration.query)}
                 className="rounded-md border border-rule bg-white px-3 py-1.5 text-xs text-text-primary transition-colors hover:border-border-hover"
               >
-                Open in Agent
+                Explore with AI
               </button>
             )}
             {hiddenDraftExploration.surface === 'simulation' && onTabChange && (
@@ -284,7 +286,6 @@ export function ExploreHistoryPage({
               className="overflow-hidden"
             >
               <div className="border-t border-rule px-4 pb-4 pt-3 space-y-4">
-                {/* Community standards */}
                 <div>
                   <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Standards</span>
                   <div className="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-3">
@@ -301,7 +302,6 @@ export function ExploreHistoryPage({
                   </div>
                 </div>
 
-                {/* How to contribute */}
                 {(onGoToPaper || onTabChange) && (
                   <div>
                     <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Start from</span>
@@ -455,7 +455,9 @@ function ExplorationCard({
 }) {
   const timeAgo = formatTimeAgo(cardTimestamp(exploration))
   const allTags = [...exploration.paradigmTags, ...exploration.experimentTags]
-  const replyCount = MOCK_NOTE_EXTRAS[exploration.id]?.replies?.length ?? 0
+  const mockReplies = MOCK_NOTE_EXTRAS[exploration.id]?.replies ?? []
+  const realReplyIds = new Set(exploration.replies.map(r => r.id))
+  const replyCount = exploration.replies.length + mockReplies.filter(m => !realReplyIds.has(m.id)).length
 
   return (
     <motion.div
@@ -617,8 +619,9 @@ function ExplorationCard({
                   <button
                     onClick={() => onOpenQuery(exploration.query)}
                     className="rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+                    title="Ask the AI copilot about this topic — it will use the paper's findings to answer"
                   >
-                    Reopen in Agent
+                    Explore with AI
                   </button>
                 )}
 
@@ -642,6 +645,12 @@ function ExplorationCard({
                 )}
               </div>
 
+              <ReplyThread
+                explorationId={exploration.id}
+                realReplies={exploration.replies}
+                mockReplies={mockReplies}
+              />
+
               {exploration.followUps.length > 0 && (
                 <FollowUpList followUps={exploration.followUps} onSelect={exploration.surface === 'reading' ? onOpenQuery : undefined} />
               )}
@@ -650,79 +659,6 @@ function ExplorationCard({
         )}
       </AnimatePresence>
     </motion.div>
-  )
-}
-
-function VoteControls({
-  votes,
-  onVote,
-}: {
-  readonly votes: number
-  readonly onVote: (delta: 1 | -1) => void
-}) {
-  return (
-    <div className="flex shrink-0 flex-col items-center gap-0.5">
-      <motion.button
-        onClick={event => {
-          event.stopPropagation()
-          onVote(1)
-        }}
-        whileTap={{ scale: 0.88 }}
-        className="flex items-center justify-center h-7 w-7 text-black/40 transition-colors hover:text-accent rounded-full hover:bg-accent/[0.06]"
-        aria-label="Upvote"
-      >
-        <ThumbsUp className="h-3 w-3" />
-      </motion.button>
-      <span
-        className={cn(
-          'text-[11px] font-semibold tabular-nums',
-          votes > 0 && 'text-accent',
-          votes < 0 && 'text-danger',
-          votes === 0 && 'text-black/30',
-        )}
-      >
-        {votes}
-      </span>
-      <motion.button
-        onClick={event => {
-          event.stopPropagation()
-          onVote(-1)
-        }}
-        whileTap={{ scale: 0.88 }}
-        className="flex items-center justify-center h-7 w-7 text-black/40 transition-colors hover:text-danger rounded-full hover:bg-danger/[0.06]"
-        aria-label="Downvote"
-      >
-        <ThumbsDown className="h-3 w-3" />
-      </motion.button>
-    </div>
-  )
-}
-
-function FollowUpList({
-  followUps,
-  onSelect,
-}: {
-  readonly followUps: readonly string[]
-  readonly onSelect?: (query: string) => void
-}) {
-  return (
-    <div className="mt-4 border-t border-black/[0.06] pt-3">
-      <span className="mb-2 block text-[10px] font-medium uppercase tracking-wide text-black/40">
-        Follow-up questions
-      </span>
-      <div className="flex flex-wrap gap-1.5">
-        {followUps.map(question => (
-          <button
-            key={question}
-            onClick={() => onSelect?.(question)}
-            disabled={!onSelect}
-            className="follow-up-chip disabled:opacity-40 disabled:cursor-default"
-          >
-            {question}
-          </button>
-        ))}
-      </div>
-    </div>
   )
 }
 
@@ -758,7 +694,6 @@ function EmptyState({
       </div>
 
       <div className="relative overflow-hidden flex flex-col items-center justify-center rounded-xl border border-rule bg-white py-20 text-center">
-        {/* Node-arc motif — echoes the header globe's visual language */}
         <div className="absolute right-6 top-6 w-[160px] h-[80px] opacity-[0.4] pointer-events-none select-none" aria-hidden="true">
           <NodeArc className="w-full h-full text-muted" />
         </div>
@@ -805,7 +740,6 @@ function EmptyState({
 function LoadingSkeleton() {
   return (
     <div className="space-y-5">
-      {/* KPI strip + sort */}
       <div className="flex items-center justify-between">
         <div className="flex gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -814,11 +748,7 @@ function LoadingSkeleton() {
         </div>
         <div className="h-5 w-24 animate-pulse rounded bg-surface-active" />
       </div>
-
-      {/* Search bar */}
       <div className="h-[42px] animate-pulse rounded-xl border border-rule bg-white" />
-
-      {/* Note cards */}
       <div className="grid gap-4">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="h-[120px] animate-pulse rounded-xl border border-rule bg-white" />
@@ -831,7 +761,7 @@ function LoadingSkeleton() {
 function NoResults({ search }: { readonly search: string }) {
   return (
     <div className="rounded-xl border border-rule bg-white px-4 py-8 text-center">
-      <div className="text-sm font-medium text-text-primary">No matches for “{search}”</div>
+      <div className="text-sm font-medium text-text-primary">No matches for &ldquo;{search}&rdquo;</div>
       <p className="mt-2 text-sm text-muted">
         Try a paradigm, scenario family, metric, paper term, or contributor name instead.
       </p>
