@@ -452,7 +452,7 @@ function HistoryHeader({
             onChange={event => onSearchChange(event.target.value)}
             placeholder="Search titles, takeaways, authors, paradigms, scenarios, or metrics..."
             className={cn(
-              'w-full rounded-lg border border-rule bg-white py-2.5 pl-10 pr-4 text-[0.8125rem]',
+              'w-full rounded-xl border border-rule bg-white py-2.5 pl-10 pr-4 text-[0.8125rem]',
               'text-text-primary placeholder:text-muted/70 focus:outline-none focus:border-accent/30 focus:ring-2 focus:ring-accent/10',
             )}
           />
@@ -506,7 +506,7 @@ function ExplorationCard({
         visible: { opacity: 1, y: 0, transition: SPRING_CRISP },
       }}
       className={cn(
-        'overflow-hidden rounded-lg border border-rule bg-white',
+        'overflow-hidden rounded-xl border border-rule bg-white',
         'transition-colors hover:border-border-hover',
         isDeepLinked && 'border-accent/20 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent)_6%,transparent)]',
       )}
@@ -680,7 +680,7 @@ function VoteControls({
           event.stopPropagation()
           onVote(1)
         }}
-        className="p-1 text-muted transition-colors hover:text-accent"
+        className="flex items-center justify-center min-w-[32px] min-h-[32px] p-1.5 text-muted transition-colors hover:text-accent rounded-md hover:bg-surface-active"
         aria-label="Upvote"
       >
         <ThumbsUp className="h-3.5 w-3.5" />
@@ -700,7 +700,7 @@ function VoteControls({
           event.stopPropagation()
           onVote(-1)
         }}
-        className="p-1 text-muted transition-colors hover:text-rose-400"
+        className="flex items-center justify-center min-w-[32px] min-h-[32px] p-1.5 text-muted transition-colors hover:text-rose-400 rounded-md hover:bg-surface-active"
         aria-label="Downvote"
       >
         <ThumbsDown className="h-3.5 w-3.5" />
@@ -795,7 +795,7 @@ function EmptyState({
             <>
               <button
                 onClick={() => onTabChange('paper')}
-                className="rounded-md border border-rule bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
+                className="rounded-lg border border-rule bg-white px-4 py-2 text-sm text-text-primary transition-colors hover:border-border-hover"
               >
                 Read the paper
               </button>
@@ -815,11 +815,30 @@ function EmptyState({
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-4">
-      <div className="h-20 animate-pulse rounded-xl border border-rule bg-white" />
+    <div className="space-y-6">
+      {/* Guidance card placeholder */}
+      <div className="h-[180px] animate-pulse rounded-xl border border-rule bg-white" />
+
+      {/* 3-up summary stat cards */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="h-[88px] animate-pulse rounded-xl border border-rule bg-white" />
+        ))}
+      </div>
+
+      {/* Community standards card */}
+      <div className="h-[160px] animate-pulse rounded-xl border border-rule bg-white" />
+
+      {/* Search + sort header */}
+      <div className="flex gap-3">
+        <div className="h-[42px] flex-1 animate-pulse rounded-xl border border-rule bg-white" />
+        <div className="h-[42px] w-[140px] animate-pulse rounded-xl border border-rule bg-white" />
+      </div>
+
+      {/* Contribution cards */}
       <div className="grid gap-4">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-28 animate-pulse rounded-xl border border-rule bg-white" />
+          <div key={index} className="h-[100px] animate-pulse rounded-xl border border-rule bg-white" />
         ))}
       </div>
     </div>
