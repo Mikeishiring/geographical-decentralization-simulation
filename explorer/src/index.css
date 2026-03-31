@@ -539,6 +539,53 @@ body {
   transform: scale(1.04);
 }
 
+/* ── Decorative SVG breathing glow ── */
+@keyframes node-breathe {
+  0%, 100% { opacity: 0.7; r: var(--node-r); }
+  50% { opacity: 1; r: calc(var(--node-r) * 1.15); }
+}
+@keyframes halo-breathe {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.2; }
+}
+.node-breathe { animation: node-breathe 3.2s ease-in-out infinite; }
+.halo-breathe { animation: halo-breathe 3.2s ease-in-out infinite; }
+
+/* ── Key claim highlighter — subtle background tint on important sentences ── */
+.key-claim-highlight {
+  background: linear-gradient(104deg, rgba(37, 99, 235, 0) 0.9%, rgba(37, 99, 235, 0.07) 2.4%, rgba(37, 99, 235, 0.06) 5.8%, rgba(37, 99, 235, 0.08) 93%, rgba(37, 99, 235, 0.06) 96%, rgba(37, 99, 235, 0) 98%);
+  border-radius: 3px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* ── Section journey divider — dotted line + node between section cards ── */
+.section-journey-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0.25rem 0;
+}
+.section-journey-divider::before,
+.section-journey-divider::after {
+  content: '';
+  flex: 1;
+  height: 0;
+  border-top: 1.5px dashed var(--color-rule);
+  max-width: 120px;
+}
+.section-journey-node {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-warm));
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
 /* ── Reduced motion — respect OS preference ── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -551,7 +598,9 @@ body {
   .lab-skeleton,
   .lab-loading-orb,
   .shimmer::after,
-  .typing-caret::after { animation: none !important; }
+  .typing-caret::after,
+  .node-breathe,
+  .halo-breathe { animation: none !important; }
   .stagger-reveal > * { opacity: 1; animation: none; }
   .card-hover { transform: none !important; }
 }
@@ -561,6 +610,13 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.06); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.12); }
+
+/* Annotation textarea — agentation-style 6px scrollbar, higher contrast thumb */
+.annotation-textarea::-webkit-scrollbar { width: 6px; }
+.annotation-textarea::-webkit-scrollbar-track { background: transparent; }
+.annotation-textarea::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 3px; }
+.annotation-textarea::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.25); }
+.annotation-textarea { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.15) transparent; }
 
 /* Hide scrollbar utility for horizontal carousels */
 .hide-scrollbar::-webkit-scrollbar { display: none; }

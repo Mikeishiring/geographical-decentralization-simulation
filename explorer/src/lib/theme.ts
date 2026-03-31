@@ -7,6 +7,9 @@ export const SPRING_SNAPPY = { type: 'spring' as const, stiffness: 360, damping:
 /** Critically-damped spring — Stripe-style: fast settle, no overshoot */
 export const SPRING_CRISP = { type: 'spring' as const, stiffness: 300, damping: 30, mass: 0.8 }
 
+/** Agentation-style popup spring — slight overshoot for premium entry feel */
+export const SPRING_POPUP = { type: 'spring' as const, stiffness: 380, damping: 22, mass: 0.7 }
+
 /** Instant transition — used when prefers-reduced-motion is active */
 export const INSTANT = { duration: 0 } as const
 
@@ -19,6 +22,24 @@ export const STAGGER_CONTAINER = {
 export const STAGGER_ITEM = {
   hidden: { opacity: 0, y: 12, scale: 0.98 },
   show: { opacity: 1, y: 0, scale: 1, transition: SPRING_CRISP },
+} as const
+
+/** Section category badge colors — maps SectionCategory to [bg, text, border] Tailwind classes */
+export const SECTION_CATEGORY_STYLE: Record<string, { bg: string; text: string; border: string; label: string }> = {
+  methodology: { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', label: 'Methodology' },
+  finding: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: 'Finding' },
+  caveat: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', label: 'Caveat' },
+  discussion: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Discussion' },
+} as const
+
+/** Topic card theme colors — maps TopicTheme to accent color + subtle bg */
+export const TOPIC_THEME_STYLE: Record<string, { dot: string; activeBorder: string; activeBg: string }> = {
+  ssp: { dot: '#2563EB', activeBorder: 'border-blue-400', activeBg: 'bg-blue-50/50' },
+  msp: { dot: '#C2553A', activeBorder: 'border-orange-400', activeBg: 'bg-orange-50/50' },
+  finding: { dot: '#2563EB', activeBorder: 'border-blue-400', activeBg: 'bg-blue-50/50' },
+  mitigation: { dot: '#16A34A', activeBorder: 'border-emerald-400', activeBg: 'bg-emerald-50/50' },
+  caveat: { dot: '#D97706', activeBorder: 'border-amber-400', activeBg: 'bg-amber-50/50' },
+  methodology: { dot: '#6B7280', activeBorder: 'border-gray-400', activeBg: 'bg-gray-50/50' },
 } as const
 
 /** Block visualization palette — SSP ocean, MSP earth, plus supporting colors */

@@ -36,3 +36,18 @@ export function sectionEntryLine(section: PaperSection): string {
 export const BEST_FIRST_STOP_IDS = ['se4a-attestation', 'se2-distribution', 'discussion', 'limitations'] as const
 
 export const ARXIV_PDF_URL = 'https://arxiv.org/pdf/2509.21475'
+
+/** Maps paper section labels to arXiv PDF page numbers. */
+export const SECTION_PAGE_MAP: Record<string, number> = {
+  '§3': 4, '§3.1': 5, '§3.2': 5, '§3.1–3.2': 5,
+  '§4': 6, '§4.1': 6, '§4.2': 7, '§4.4': 8, '§4.5': 9,
+  '§4.5 + App. E': 9,
+  '§5': 11,
+  'App. E': 13, 'App. E.3': 14, 'App. E.4': 15,
+}
+
+/** Resolve a paperSection string to a PDF page, or undefined. */
+export function sectionToPage(paperSection: string | undefined): number | undefined {
+  if (!paperSection) return undefined
+  return SECTION_PAGE_MAP[paperSection]
+}

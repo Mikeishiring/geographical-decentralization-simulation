@@ -1,11 +1,59 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, FileText } from 'lucide-react'
 import { SPRING } from '../../lib/theme'
-import { PAPER_SECTIONS } from '../../data/paper-sections'
+import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
 import { PAPER_NARRATIVE } from '../../data/paper-narrative'
-import { summarizeSection, sectionEntryLine } from './paper-helpers'
+import { summarizeSection, sectionEntryLine, ARXIV_PDF_URL, sectionToPage } from './paper-helpers'
 import { BlockCanvas } from '../explore/BlockCanvas'
+import type { Cite } from '../../types/blocks'
+
+/** Compact row of unique paper-section pills for an entire section's blocks. */
+function SectionSourcesRow({ section }: { readonly section: PaperSection }) {
+  const cites = section.blocks
+    .map(b => ('cite' in b ? (b as { cite?: Cite }).cite : undefined))
+    .filter((c): c is NonNullable<Cite> => !!c && !!c.paperSection)
+
+  // Deduplicate by paperSection
+  const seen = new Set<string>()
+  const unique = cites.filter(c => {
+    if (seen.has(c.paperSection!)) return false
+    seen.add(c.paperSection!)
+    return true
+  })
+
+  if (unique.length === 0) return null
+
+  return (
+    <div className="mt-3 pt-3 border-t border-rule/40 flex items-center gap-2 flex-wrap">
+      <span className="text-2xs text-text-faint font-medium uppercase tracking-[0.06em]">Sources</span>
+      {unique.map(cite => {
+        const page = sectionToPage(cite.paperSection)
+        return page != null ? (
+          <a
+            key={cite.paperSection}
+            href={`${ARXIV_PDF_URL}#page=${page}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-full border border-accent/15 bg-accent/5 px-2 py-0.5 text-2xs text-accent/60 transition-all duration-200 hover:bg-accent/12 hover:text-accent hover:border-accent/30 select-none"
+          >
+            <FileText className="h-2.5 w-2.5" />
+            {cite.paperSection}
+            <span className="text-accent/40">p.{page}</span>
+          </a>
+        ) : (
+          <span
+            key={cite.paperSection}
+            className="inline-flex items-center gap-1 rounded-full border border-accent/15 bg-accent/5 px-2 py-0.5 text-2xs text-accent/60 select-none"
+          >
+            <FileText className="h-2.5 w-2.5" />
+            {cite.paperSection}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
 
 export function ArgumentMapView() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
@@ -110,6 +158,7 @@ export function ArgumentMapView() {
                         </div>
                       )}
                       <BlockCanvas blocks={section.blocks} />
+                      <SectionSourcesRow section={section} />
                     </div>
                   </motion.div>
                 )}
