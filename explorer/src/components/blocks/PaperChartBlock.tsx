@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ExternalLink } from 'lucide-react'
+import { ChevronDown, ExternalLink, SlidersHorizontal } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { buildPublishedEvidenceUrl } from '../../lib/published-evidence-url'
 import { SPRING_CRISP, CHART } from '../../lib/theme'
@@ -178,6 +178,17 @@ const MiniChart = memo(function MiniChart({
   const crosshairOpacity = hoverSvgX != null
     ? CHART.crosshairOpacity * crosshairFadeNearLive(hoverSvgX, latestSvgX, CHART.crosshairFadeDistance)
     : 0
+  const hoverReadout = hoverSlot == null
+    ? []
+    : series.flatMap(({ dataset, points }) => {
+      const isFocusedSeries = activeGroup == null || getSeriesGroupLabel(dataset.label) === activeGroup
+      if (!isFocusedSeries) return []
+      const point = pointAtSlot(points, hoverSlot)
+      if (!point) return []
+      return [{ label: dataset.label, value: point.y, color: dataset.color, dashed: dataset.dashed }]
+    })
+  const visibleHoverReadout = activeGroup == null ? hoverReadout.slice(0, 4) : hoverReadout
+  const hiddenHoverReadoutCount = hoverReadout.length - visibleHoverReadout.length
 
   function updateHoverSlot(clientX: number, currentTarget: SVGSVGElement) {
     const rect = currentTarget.getBoundingClientRect()
@@ -189,15 +200,60 @@ const MiniChart = memo(function MiniChart({
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-2 flex items-center justify-between gap-2 px-1">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">
-          {metricLabel}
+    <div className="relative flex h-full flex-col">
+      <div className="mb-2 flex items-start justify-between gap-3 px-1">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">
+            {metricLabel}
+          </div>
+          <div className="mt-0.5 text-[11px] text-muted">
+            {yLabel}
+          </div>
         </div>
-        <div className="text-[11px] text-muted">
-          {yLabel}
+        <div className="shrink-0 text-right">
+          <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-text-faint">
+            {hoverSlot != null ? `Slot ${hoverSlot.toLocaleString()}` : 'Latest'}
+          </div>
+          <div className="mt-0.5 text-[11px] text-text-primary">
+            {hoverSlot != null ? 'Hover readout' : formatSlotTick(chartGeometry.maxX)}
+          </div>
         </div>
       </div>
+
+      {hoverSlot != null && visibleHoverReadout.length > 0 && (
+        <div className="pointer-events-none absolute right-1 top-10 z-10 max-w-[11.5rem] rounded-[14px] border border-accent/12 bg-white/96 px-3 py-2 shadow-[0_12px_34px_rgba(37,99,235,0.12)] backdrop-blur-sm">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-accent/70">
+            Value readout
+          </div>
+          <div className="mt-1.5 space-y-1.5">
+            {visibleHoverReadout.map(entry => (
+              <div key={entry.label} className="flex items-center justify-between gap-3 text-[11px]">
+                <span className="inline-flex min-w-0 items-center gap-1.5 text-text-body">
+                  <svg width="16" height="6" viewBox="0 0 16 6" className="shrink-0">
+                    <line
+                      x1="0"
+                      y1="3"
+                      x2="16"
+                      y2="3"
+                      stroke={entry.color}
+                      strokeWidth={1.8}
+                      strokeDasharray={entry.dashed ? '4 2' : undefined}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="truncate">{entry.label}</span>
+                </span>
+                <span className="font-semibold tabular-nums text-text-primary">{formatNum(entry.value)}</span>
+              </div>
+            ))}
+            {hiddenHoverReadoutCount > 0 && (
+              <div className="text-[10px] text-text-faint">
+                +{hiddenHoverReadoutCount} more series in the full view
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <svg
         viewBox={`0 0 ${svgW} ${svgH}`}
@@ -398,6 +454,7 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
   const [hoverSlot, setHoverSlot] = useState<number | null>(null)
   const [focusedGroup, setFocusedGroup] = useState<string | null>(null)
   const [showAllGroups, setShowAllGroups] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const gradientPrefix = useId().replace(/:/g, '')
   const hoverRafRef = useRef<number | null>(null)
   const pendingHoverSlotRef = useRef<number | null>(null)
@@ -451,6 +508,12 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
     ? datasets
     : datasets.filter(dataset => getSeriesGroupLabel(dataset.label) === resolvedFocusedGroup)
   const showLegendDelta = !isDenseFigure
+  const publishedScenarioLinks = chart.publishedScenarioLinks ?? []
+  const settingsSummary = isDenseFigure
+    ? resolvedFocusedGroup != null
+      ? `${resolvedFocusedGroup} pair selected`
+      : `${visibleLegendStats.length} series visible`
+    : `${visibleLegendStats.length} series visible`
 
   return (
     <motion.div
@@ -479,243 +542,272 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
                 {chart.takeaway}
               </p>
             )}
-            {chart.metadata.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {chart.metadata.map(item => (
-                  <span
-                    key={item}
-                    className="inline-flex items-center rounded-full border border-rule/60 bg-white/78 px-2.5 py-1 text-[11px] text-text-faint"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            )}
-            {(chart.publishedScenarioLinks ?? []).length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {(chart.publishedScenarioLinks ?? []).map(link => (
-                  <a
-                    key={`${link.evaluation}-${link.paradigm}-${link.result}`}
-                    href={buildPublishedEvidenceUrl(link)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.05] px-3 py-1.5 text-[11px] font-medium text-accent transition-colors hover:bg-accent/[0.1]"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            )}
           </div>
-          <div className="inline-flex items-center rounded-full border border-rule/70 bg-white/85 px-3 py-1 text-[11px] font-medium text-text-faint">
-            {hoverSlot != null ? `Inspecting slot ${hoverSlot.toLocaleString()}` : `Latest slot ${maxSlot.toLocaleString()}`}
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <div className="inline-flex items-center rounded-full border border-rule/70 bg-white/85 px-3 py-1 text-[11px] font-medium text-text-faint">
+              {hoverSlot != null ? `Inspecting slot ${hoverSlot.toLocaleString()}` : `Latest slot ${maxSlot.toLocaleString()}`}
+            </div>
+            <div className="text-[11px] text-text-faint">
+              Hover a line for exact values.
+            </div>
           </div>
         </div>
 
-        {isDenseFigure ? (
-          <div className="mt-3 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
-                Focus threshold
+        <details
+          open={settingsOpen}
+          onToggle={event => setSettingsOpen(event.currentTarget.open)}
+          className="group/details mt-4 overflow-hidden rounded-[1.1rem] border border-rule/70 bg-white/82"
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 marker:content-none">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/[0.08] text-accent">
+                <SlidersHorizontal className="h-4 w-4" />
               </span>
-              {seriesGroups.map(group => (
-                <button
-                  key={group}
-                  type="button"
-                  onClick={() => {
-                    setShowAllGroups(false)
-                    setFocusedGroup(group)
-                  }}
-                  className={cn(
-                    'rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors',
-                    resolvedFocusedGroup === group
-                      ? 'border-accent/40 bg-accent/[0.08] text-text-primary'
-                      : 'border-rule/60 bg-white/80 text-text-faint hover:text-text-primary',
-                  )}
-                >
-                  {group}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAllGroups(true)
-                  setFocusedGroup(null)
-                }}
-                className={cn(
-                  'rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors',
-                  showAllGroups
-                    ? 'border-accent/40 bg-accent/[0.08] text-text-primary'
-                    : 'border-rule/60 bg-white/80 text-text-faint hover:text-text-primary',
-                )}
-              >
-                Show all
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5">
-              {visibleLegendStats.map(series => (
-                <div
-                  key={series.label}
-                  className="inline-flex items-center gap-2 rounded-full border border-rule/60 bg-white/78 px-3 py-1.5"
-                >
-                  <svg width="18" height="8" viewBox="0 0 18 8" className="shrink-0">
-                    <line
-                      x1="0"
-                      y1="4"
-                      x2="18"
-                      y2="4"
-                      stroke={series.color}
-                      strokeWidth={2}
-                      strokeDasharray={series.dashed ? '4 2' : undefined}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span className="text-[12px] font-medium text-text-primary">{series.label}</span>
+              <div className="min-w-0">
+                <div className="text-[12px] font-medium text-text-primary">Figure settings</div>
+                <div className="text-[11px] text-text-faint">
+                  {settingsSummary}. Open for filters, replay links, and slot readout.
                 </div>
-              ))}
-              <span className="text-[11px] text-text-faint">
-                Solid = External, dashed = Local.
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-3 flex flex-wrap gap-2.5">
-            {visibleLegendStats.map(series => (
-              <div
-                key={series.label}
-                className="inline-flex items-center gap-2 rounded-full border border-rule/60 bg-white/78 px-3 py-1.5"
-              >
-                <svg width="18" height="8" viewBox="0 0 18 8" className="shrink-0">
-                  <line
-                    x1="0"
-                    y1="4"
-                    x2="18"
-                    y2="4"
-                    stroke={series.color}
-                    strokeWidth={2}
-                    strokeDasharray={series.dashed ? '4 2' : undefined}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="text-[12px] font-medium text-text-primary">{series.label}</span>
-                {showLegendDelta && (
-                  <span className={cn('text-[11px] tabular-nums', series.delta > 0 ? 'text-danger' : 'text-success')}>
-                    {formatNum(series.first)} {'->'} {formatNum(series.last)}
-                  </span>
-                )}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="px-4 py-4 sm:px-5">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="overflow-hidden rounded-[1.12rem] border border-rule/60 bg-surface-active/45">
-            <div className="grid gap-px bg-rule/55 lg:grid-cols-2">
-              {METRICS.map(({ key, label, yLabel }) => (
-                <div
-                  key={key}
-                  className="bg-white/90 px-3 py-3.5 sm:px-4"
-                >
-                  <MiniChart
-                    datasets={datasets}
-                    metricKey={key}
-                    metricLabel={label}
-                    yLabel={yLabel}
-                    hoverSlot={hoverSlot}
-                    onHoverSlot={commitHoverSlot}
-                    gradientPrefix={gradientPrefix}
-                    activeGroup={resolvedFocusedGroup}
-                  />
-                </div>
-              ))}
             </div>
-          </div>
+            <ChevronDown className="h-4 w-4 shrink-0 text-text-faint transition-transform duration-150 group-open/details:rotate-180" />
+          </summary>
 
-          <aside className="rounded-[1.12rem] border border-rule/60 bg-white/86 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
-                  Slot inspector
-                </p>
-                <p className="mt-1 text-sm font-medium tabular-nums text-text-primary">
-                  {hoverSlot != null ? `Nearest available values at slot ${hoverSlot.toLocaleString()}` : `Latest available values at slot ${maxSlot.toLocaleString()}`}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => commitHoverSlot(null)}
-                disabled={hoverSlot === null}
-                className="rounded-full border border-rule/70 bg-white px-3 py-1.5 text-[11px] font-medium text-text-faint transition-colors hover:text-text-primary disabled:cursor-default disabled:opacity-50"
-              >
-                Reset
-              </button>
-            </div>
-
-            <div className="mt-4 flex items-center gap-3">
-              <span className="text-[11px] font-medium tabular-nums text-text-faint">{minSlot}</span>
-              <input
-                type="range"
-                min={minSlot}
-                max={maxSlot}
-                step={1}
-                value={inspectedSlot}
-                onChange={event => commitHoverSlot(Number(event.currentTarget.value))}
-                className="h-2 w-full cursor-pointer accent-[var(--color-accent)]"
-                aria-label="Inspect chart values by slot"
-              />
-              <span className="text-[11px] font-medium tabular-nums text-text-faint">{maxSlot.toLocaleString()}</span>
-            </div>
-
+          <div className="border-t border-rule/60 px-4 py-4">
             {isDenseFigure && (
-              <p className="mt-3 text-[11px] leading-5 text-text-faint">
-                {resolvedFocusedGroup == null
-                  ? 'Showing all gamma pairs. Use the focus pills above for a cleaner comparison.'
-                  : `Showing the ${resolvedFocusedGroup} external/local pair. Switch to Show all to compare every threshold at once.`}
-              </p>
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                  Focus threshold
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {seriesGroups.map(group => (
+                    <button
+                      key={group}
+                      type="button"
+                      onClick={() => {
+                        setShowAllGroups(false)
+                        setFocusedGroup(group)
+                      }}
+                      className={cn(
+                        'rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors',
+                        resolvedFocusedGroup === group
+                          ? 'border-accent/40 bg-accent/[0.08] text-text-primary'
+                          : 'border-rule/60 bg-white/80 text-text-faint hover:text-text-primary',
+                      )}
+                    >
+                      {group}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAllGroups(true)
+                      setFocusedGroup(null)
+                    }}
+                    className={cn(
+                      'rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors',
+                      showAllGroups
+                        ? 'border-accent/40 bg-accent/[0.08] text-text-primary'
+                        : 'border-rule/60 bg-white/80 text-text-faint hover:text-text-primary',
+                    )}
+                  >
+                    Show all
+                  </button>
+                </div>
+              </div>
             )}
 
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-              {inspectorDatasets.map(dataset => {
-                const values = METRICS.map(metric => ({
-                  label: metric.label,
-                  value: pointAtSlot(dataset[metric.key], inspectedSlot)?.y ?? 0,
-                }))
-
-                return (
-                  <div
-                    key={dataset.label}
-                    className="rounded-xl border border-rule/60 bg-surface-active/25 px-3.5 py-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      <svg width="14" height="7" viewBox="0 0 14 7" className="shrink-0">
+            <div className={cn('grid gap-4', isDenseFigure ? 'mt-4 lg:grid-cols-[minmax(0,1fr)_320px]' : 'mt-0')}>
+              <div className={cn(isDenseFigure && 'min-w-0')}>
+                <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                  Visible series
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2.5">
+                  {visibleLegendStats.map(series => (
+                    <div
+                      key={series.label}
+                      className="inline-flex items-center gap-2 rounded-full border border-rule/60 bg-white/78 px-3 py-1.5"
+                    >
+                      <svg width="18" height="8" viewBox="0 0 18 8" className="shrink-0">
                         <line
                           x1="0"
-                          y1="3.5"
-                          x2="14"
-                          y2="3.5"
-                          stroke={dataset.color}
+                          y1="4"
+                          x2="18"
+                          y2="4"
+                          stroke={series.color}
                           strokeWidth={2}
-                          strokeDasharray={dataset.dashed ? '3 2' : undefined}
+                          strokeDasharray={series.dashed ? '4 2' : undefined}
                           strokeLinecap="round"
                         />
                       </svg>
-                      <span className="text-sm font-medium text-text-primary">{dataset.label}</span>
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] tabular-nums">
-                      {values.map(value => (
-                        <span key={value.label} className="flex items-baseline justify-between gap-2 text-text-body">
-                          <span className="text-text-faint">{value.label}</span>
-                          <span className="font-semibold text-text-primary">{formatNum(value.value)}</span>
+                      <span className="text-[12px] font-medium text-text-primary">{series.label}</span>
+                      {showLegendDelta && (
+                        <span className={cn('text-[11px] tabular-nums', series.delta > 0 ? 'text-danger' : 'text-success')}>
+                          {formatNum(series.first)} {'->'} {formatNum(series.last)}
                         </span>
-                      ))}
+                      )}
                     </div>
+                  ))}
+                </div>
+                <div className="mt-2 text-[11px] text-text-faint">
+                  Solid = External, dashed = Local.
+                </div>
+
+                {(chart.metadata.length > 0 || publishedScenarioLinks.length > 0) && (
+                  <div className="mt-4 space-y-3">
+                    {publishedScenarioLinks.length > 0 && (
+                      <div>
+                        <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                          Open replay
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {publishedScenarioLinks.map(link => (
+                            <a
+                              key={`${link.evaluation}-${link.paradigm}-${link.result}`}
+                              href={buildPublishedEvidenceUrl(link)}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.05] px-3 py-1.5 text-[11px] font-medium text-accent transition-colors hover:bg-accent/[0.1]"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              {link.label}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {chart.metadata.length > 0 && (
+                      <div>
+                        <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                          Published setup
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {chart.metadata.map(item => (
+                            <span
+                              key={item}
+                              className="inline-flex items-center rounded-full border border-rule/60 bg-white/78 px-2.5 py-1 text-[11px] text-text-faint"
+                            >
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )
-              })}
+                )}
+              </div>
+
+              <div className="rounded-[1rem] border border-rule/60 bg-surface-active/35 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                      Slot readout
+                    </p>
+                    <p className="mt-1 text-sm font-medium tabular-nums text-text-primary">
+                      {hoverSlot != null ? `Nearest available values at slot ${hoverSlot.toLocaleString()}` : `Latest available values at slot ${maxSlot.toLocaleString()}`}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => commitHoverSlot(null)}
+                    disabled={hoverSlot === null}
+                    className="rounded-full border border-rule/70 bg-white px-3 py-1.5 text-[11px] font-medium text-text-faint transition-colors hover:text-text-primary disabled:cursor-default disabled:opacity-50"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                <div className="mt-4 flex items-center gap-3">
+                  <span className="text-[11px] font-medium tabular-nums text-text-faint">{minSlot}</span>
+                  <input
+                    type="range"
+                    min={minSlot}
+                    max={maxSlot}
+                    step={1}
+                    value={inspectedSlot}
+                    onChange={event => commitHoverSlot(Number(event.currentTarget.value))}
+                    className="h-2 w-full cursor-pointer accent-[var(--color-accent)]"
+                    aria-label="Inspect chart values by slot"
+                  />
+                  <span className="text-[11px] font-medium tabular-nums text-text-faint">{maxSlot.toLocaleString()}</span>
+                </div>
+
+                {isDenseFigure && (
+                  <p className="mt-3 text-[11px] leading-5 text-text-faint">
+                    {resolvedFocusedGroup == null
+                      ? 'Showing all gamma pairs. Pick one threshold above for a cleaner comparison.'
+                      : `Showing the ${resolvedFocusedGroup} external/local pair. Switch to Show all to compare every threshold at once.`}
+                  </p>
+                )}
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {inspectorDatasets.map(dataset => {
+                    const values = METRICS.map(metric => ({
+                      label: metric.label,
+                      value: pointAtSlot(dataset[metric.key], inspectedSlot)?.y ?? 0,
+                    }))
+
+                    return (
+                      <div
+                        key={dataset.label}
+                        className="rounded-xl border border-rule/60 bg-white/88 px-3.5 py-3"
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg width="14" height="7" viewBox="0 0 14 7" className="shrink-0">
+                            <line
+                              x1="0"
+                              y1="3.5"
+                              x2="14"
+                              y2="3.5"
+                              stroke={dataset.color}
+                              strokeWidth={2}
+                              strokeDasharray={dataset.dashed ? '3 2' : undefined}
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          <span className="text-sm font-medium text-text-primary">{dataset.label}</span>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] tabular-nums">
+                          {values.map(value => (
+                            <span key={value.label} className="flex items-baseline justify-between gap-2 text-text-body">
+                              <span className="text-text-faint">{value.label}</span>
+                              <span className="font-semibold text-text-primary">{formatNum(value.value)}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
-          </aside>
+          </div>
+        </details>
+      </div>
+
+      <div className="px-4 py-4 sm:px-5">
+        <div className="overflow-hidden rounded-[1.12rem] border border-rule/60 bg-surface-active/45">
+          <div className="grid gap-px bg-rule/55 lg:grid-cols-2">
+            {METRICS.map(({ key, label, yLabel }) => (
+              <div
+                key={key}
+                className="bg-white/92 px-3 py-3.5 sm:px-4"
+              >
+                <MiniChart
+                  datasets={datasets}
+                  metricKey={key}
+                  metricLabel={label}
+                  yLabel={yLabel}
+                  hoverSlot={hoverSlot}
+                  onHoverSlot={commitHoverSlot}
+                  gradientPrefix={gradientPrefix}
+                  activeGroup={resolvedFocusedGroup}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-rule/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.86),rgba(248,250,252,0.94))] px-4 py-3 text-[11px] text-text-faint sm:px-5">
+            Hover across the lines for slot-by-slot values. Open figure settings only when you need filters, replay links, or the full slot inspector.
+          </div>
         </div>
       </div>
 

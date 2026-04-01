@@ -26,40 +26,55 @@ interface InlineSectionNotesProps {
 export function InlineSectionNotes({ notes, onOpenNote, showAnnotationHint = false }: InlineSectionNotesProps) {
   const [expanded, setExpanded] = useState(false)
   const published = notes.filter(n => n.publication.published)
-
-  if (published.length === 0) return null
+  const hasPublishedNotes = published.length > 0
 
   return (
-    <div className="rounded-2xl border border-rule/70 bg-gradient-to-b from-surface-active/30 to-surface-active/50 px-4 py-3.5">
+    <div
+      className={cn(
+        'rounded-2xl border px-4 py-3.5 transition-colors',
+        hasPublishedNotes
+          ? 'border-rule/70 bg-gradient-to-b from-surface-active/30 to-surface-active/50'
+          : 'border-accent/20 bg-[linear-gradient(180deg,rgba(59,130,246,0.08),rgba(255,255,255,0.98))]',
+      )}
+    >
       <button
         type="button"
-        onClick={() => setExpanded(prev => !prev)}
+        onClick={() => {
+          if (hasPublishedNotes) setExpanded(prev => !prev)
+        }}
         className="flex w-full items-center gap-2.5 text-left group/notes-toggle"
         aria-expanded={expanded}
-        aria-label={`${published.length} community notes`}
+        aria-label={hasPublishedNotes ? `${published.length} community notes` : 'Start the community notes thread'}
         data-notes-toggle
       >
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/[0.08]">
-          <Users className="h-2.5 w-2.5 text-accent" />
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-white shadow-[0_4px_14px_rgba(59,130,246,0.22)]">
+          <Users className="h-2.5 w-2.5" />
         </span>
-        <span className="text-11 font-semibold tracking-wide uppercase text-muted">
-          Community notes · {published.length}
+        <span className="text-11 font-semibold tracking-wide uppercase text-accent">
+          Community notes · {hasPublishedNotes ? published.length : 'Start the thread'}
         </span>
-        <span className="ml-auto flex items-center gap-1.5 text-text-faint transition-colors group-hover/notes-toggle:text-accent">
-          <span className="text-[10px]">{expanded ? 'Collapse' : 'Expand'}</span>
-          {expanded
-            ? <ChevronUp className="h-3 w-3" />
-            : <ChevronDown className="h-3 w-3" />
+        <span className="ml-auto flex items-center gap-1.5 text-accent/75 transition-colors group-hover/notes-toggle:text-accent">
+          <span className="text-[10px] font-medium">{hasPublishedNotes ? (expanded ? 'Collapse' : 'Expand') : 'Be first'}</span>
+          {hasPublishedNotes
+            ? expanded
+              ? <ChevronUp className="h-3 w-3" />
+              : <ChevronDown className="h-3 w-3" />
+            : <MessageSquare className="h-3 w-3" />
           }
         </span>
       </button>
 
-      <div className="mt-2 text-[11px] leading-relaxed text-text-faint">
-        Reader interpretations layered on top of the paper. Useful context, not paper claims.
+      <div className={cn(
+        'mt-2 text-[11px] leading-relaxed',
+        hasPublishedNotes ? 'text-text-faint' : 'text-muted',
+      )}>
+        {hasPublishedNotes
+          ? 'Reader interpretations layered on top of the paper. Useful context, not paper claims.'
+          : 'No public notes yet. Highlight text in this section or open Community to leave the first annotation.'}
       </div>
 
       <AnimatePresence>
-        {expanded && (
+        {expanded && hasPublishedNotes && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -83,11 +98,15 @@ export function InlineSectionNotes({ notes, onOpenNote, showAnnotationHint = fal
 
       {showAnnotationHint && (
         <div className={cn(
-          'flex items-center gap-1.5 text-2xs text-text-faint',
-          expanded ? 'mt-3 pt-3 border-t border-rule/40' : 'mt-2.5 pt-2.5 border-t border-rule/30',
+          'flex items-center gap-1.5 text-2xs',
+          expanded
+            ? 'mt-3 border-t border-rule/40 pt-3 text-text-faint'
+            : hasPublishedNotes
+              ? 'mt-2.5 border-t border-rule/30 pt-2.5 text-text-faint'
+              : 'mt-3 border-t border-accent/15 pt-3 text-accent/80',
         )}>
           <MousePointerClick className="h-2.5 w-2.5 shrink-0" />
-          <span>Select text to add your annotation</span>
+          <span>{hasPublishedNotes ? 'Select text to add your annotation' : 'Select text to add the first annotation'}</span>
         </div>
       )}
     </div>

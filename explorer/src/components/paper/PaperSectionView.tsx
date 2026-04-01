@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Link2, Quote, Check, Lightbulb, MousePointerClick, MessageSquare, Users } from 'lucide-react'
+import { Link2, Quote, Check, Lightbulb, MessageSquare, Users } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { PaperChartBlock } from '../blocks/PaperChartBlock'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_SNAPPY, SPRING_POPUP, SECTION_CATEGORY_STYLE } from '../../lib/theme'
+import { SPRING, SPRING_POPUP, SECTION_CATEGORY_STYLE } from '../../lib/theme'
 import { getActiveStudy } from '../../studies'
 import type { PaperNarrative, PaperSection } from '../../studies/types'
 import type { Exploration } from '../../lib/api'
@@ -193,7 +193,7 @@ function SectionNav({ activeSectionId, onSectionClick, compact = false }: Sectio
   return (
     <>
       <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/60">Sections</div>
-      <nav className={cn('space-y-0.5', compact && 'max-h-[calc(100vh-14rem)] overflow-auto pr-1')}>
+      <nav className={cn('space-y-0.5', compact && 'max-h-[calc(100vh-11rem)] overflow-auto pr-1')}>
         {sections.map(section => (
           <a
             key={section.id}
@@ -217,47 +217,6 @@ function SectionNav({ activeSectionId, onSectionClick, compact = false }: Sectio
         ))}
       </nav>
     </>
-  )
-}
-
-function FloatingTOC({
-  activeSectionId,
-  onSectionClick,
-}: {
-  readonly activeSectionId: string
-  readonly onSectionClick?: (id: string) => void
-}) {
-  const [visible, setVisible] = useState(false)
-  const [hovered, setHovered] = useState(false)
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setVisible(window.scrollY > 400)
-    }
-    handleScroll()
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  const show = visible || hovered
-
-  return (
-    <aside
-      className="fixed top-[8rem] z-30 hidden 2xl:block"
-      style={{ left: 'max(1rem, calc((100vw - 1200px) / 2 - 220px))' }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <motion.div
-        initial={false}
-        animate={{ opacity: show ? 1 : 0, x: show ? 0 : -8 }}
-        transition={SPRING_SNAPPY}
-        className="w-[190px] rounded-xl border border-rule/60 bg-white/95 p-3 shadow-[0_4px_20px_rgba(0,0,0,0.04)] backdrop-blur-sm"
-        style={{ pointerEvents: show ? 'auto' : 'none' }}
-      >
-        <SectionNav activeSectionId={activeSectionId} onSectionClick={onSectionClick} compact />
-      </motion.div>
-    </aside>
   )
 }
 
@@ -296,16 +255,14 @@ export function PaperSectionView({
 
   return (
     <>
-      <FloatingTOC activeSectionId={activeSectionId} onSectionClick={onSectionClick} />
-
-      <div className="grid gap-8 xl:grid-cols-[220px_minmax(0,1fr)] 2xl:grid-cols-1">
-        <aside className="hidden xl:block 2xl:hidden xl:sticky xl:top-[8rem] xl:self-start">
+      <div className="grid gap-8 xl:grid-cols-[208px_minmax(0,1fr)] 2xl:grid-cols-[220px_minmax(0,1fr)]">
+        <aside className="hidden xl:block xl:sticky xl:top-[7.75rem] xl:self-start xl:pr-2">
           <div className="rounded-xl border border-rule/60 bg-white/95 p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
             <SectionNav activeSectionId={activeSectionId} onSectionClick={onSectionClick} compact />
           </div>
         </aside>
 
-        <div className="space-y-8 xl:min-w-0">
+        <div className="space-y-10 xl:min-w-0">
           {sections.map((section, index) => {
             const narrative = narratives[section.id]
             const previousSection = sections[index - 1]
@@ -390,7 +347,7 @@ function SectionCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.15 }}
       transition={SPRING}
-      className="group scroll-mt-40 overflow-hidden rounded-2xl border border-rule bg-white p-6 card-hover geo-accent-bar sm:p-7 lg:p-8"
+      className="group scroll-mt-[8.75rem] overflow-hidden rounded-2xl border border-rule bg-white p-6 card-hover geo-accent-bar sm:p-7 lg:p-8"
     >
       <div className="mb-6 border-b border-rule pb-5">
         <div className="flex flex-wrap items-start gap-3">
@@ -440,8 +397,8 @@ function SectionCard({
         </div>
       )}
 
-      <div className={cn('grid min-w-0 gap-6 xl:items-start', hasSupportingBlocks && 'xl:grid-cols-[minmax(0,1fr)_340px]')}>
-        <div className="min-w-0 max-w-4xl space-y-5">
+      <div className={cn('grid min-w-0 gap-7 xl:items-start', hasSupportingBlocks && 'xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]')}>
+        <div className="min-w-0 max-w-4xl space-y-6">
           <p className="max-w-3xl text-xl leading-relaxed text-text-primary font-serif">
             {narrative.lede}
           </p>
@@ -464,7 +421,7 @@ function SectionCard({
         </div>
 
         {hasSupportingBlocks && (
-          <aside className="min-w-0">
+          <aside className="min-w-0 xl:sticky xl:top-[8.75rem]">
             <div className="rounded-2xl border border-rule/80 bg-surface-active/45 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
@@ -486,18 +443,13 @@ function SectionCard({
         )}
       </div>
 
-      {notesVisible && sectionNotes.length > 0 ? (
+      {notesVisible ? (
         <div className="mt-6">
           <InlineSectionNotes
             notes={sectionNotes}
             onOpenNote={onOpenNote}
             showAnnotationHint
           />
-        </div>
-      ) : notesVisible ? (
-        <div className="mt-5 flex items-center gap-2 text-2xs text-text-faint">
-          <MousePointerClick className="h-3 w-3 shrink-0" />
-          <span>Select text to add your annotation</span>
         </div>
       ) : null}
 

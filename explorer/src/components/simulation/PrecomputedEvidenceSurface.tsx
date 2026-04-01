@@ -1,22 +1,19 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SlidersHorizontal, ChevronDown, Map as MapIcon, LayoutGrid, BarChart3, ArrowUpRight } from 'lucide-react'
+import { SlidersHorizontal, ChevronDown, BarChart3 } from 'lucide-react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { cn } from '../../lib/cn'
 import {
-  buildPaperSectionUrl,
   readPublishedEvidenceSelectionFromSearch,
   writePublishedEvidenceSelectionToHistory,
 } from '../../lib/published-evidence-url'
 import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
-import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
 import type { Block } from '../../types/blocks'
 import { formatNumber, paradigmLabel } from './simulation-constants'
 import { CHART_COLORS } from './simulation-evidence-constants'
 import {
-  analyticsMetricSeriesForPayload,
   totalSlotsFromPayload,
   topRegionsForSlot,
   type PublishedAnalyticsPayload,
@@ -32,7 +29,7 @@ import {
   type PlotCategory,
   type TaggedChartBlock,
 } from './EvidenceSurfacePanels'
-import { EvidenceMapSurface, type MapLayout } from './EvidenceMapSurface'
+import { EvidenceMapSurface } from './EvidenceMapSurface'
 
 // ── Catalog loader ──────────────────────────────────────────────────────────
 
@@ -185,469 +182,6 @@ function parseCostFromResult(result: string): number | null {
 
 function formatCostLabel(cost: number): string {
   return cost === 0 ? '0' : cost.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')
-}
-
-type PaperLens = 'evidence' | 'theory' | 'methods'
-
-function datasetPaperSectionId(dataset: ResearchDatasetEntry | null): string | null {
-  if (!dataset) return null
-
-  const evaluation = dataset.evaluation.toLowerCase()
-  const pathLabel = dataset.path.toLowerCase()
-
-  if (evaluation.startsWith('baseline')) return 'baseline-results'
-  if (evaluation.includes('source-placement')) return 'se1-source-placement'
-  if (evaluation.includes('validator-distribution')) return 'se2-distribution'
-  if (evaluation.includes('joint')) return 'se3-joint'
-  if (evaluation.includes('attestation') || evaluation.includes('threshold') || pathLabel.includes('gamma')) return 'se4a-attestation'
-  if (evaluation.includes('slot') || evaluation.includes('shorter') || pathLabel.includes('slot_time') || pathLabel.includes('slot-time')) return 'se4b-slots'
-  return null
-}
-
-function inferPaperSectionId(dataset: ResearchDatasetEntry | null, lens: PaperLens): string {
-  const datasetSectionId = datasetPaperSectionId(dataset)
-
-  if (lens === 'methods') return 'simulation-design'
-  if (lens === 'theory') {
-    if (datasetSectionId && datasetSectionId !== 'baseline-results') return datasetSectionId
-    return 'system-model'
-  }
-  return datasetSectionId ?? 'baseline-results'
-}
-
-function recommendedPaperSections(
-  dataset: ResearchDatasetEntry | null,
-  lens: PaperLens,
-): readonly PaperSection[] {
-  const ids = new Set<string>()
-  const datasetSectionId = datasetPaperSectionId(dataset)
-
-  ids.add(inferPaperSectionId(dataset, lens))
-  if (datasetSectionId) ids.add(datasetSectionId)
-
-  if (lens === 'theory') {
-    ids.add('system-model')
-    ids.add('discussion')
-  } else if (lens === 'methods') {
-    ids.add('simulation-design')
-    ids.add('limitations')
-  } else {
-    ids.add('discussion')
-    ids.add('limitations')
-  }
-
-  return [...ids]
-    .map(id => PAPER_SECTIONS.find(section => section.id === id) ?? null)
-    .filter((section): section is PaperSection => Boolean(section))
-    .slice(0, 4)
-}
-
-function paperLensSummary(lens: PaperLens, dataset: ResearchDatasetEntry): string {
-  const scenarioLabel = `${dataset.evaluation} under ${paradigmLabel(dataset.paradigm)}`
-
-  if (lens === 'theory') {
-    return `${scenarioLabel} can be read through the mechanism sections that explain why geography, information placement, and migration frictions produce this posture.`
-  }
-  if (lens === 'methods') {
-    return `${scenarioLabel} is a published replay, not a fresh engine run. Use the methods sections to check assumptions, scope, and limits before over-reading the charts.`
-  }
-  return `${scenarioLabel} maps back to the paper's empirical sections so the atlas stays anchored to the canonical claims and caveats.`
-}
-
-function formatNullableCount(value: number | null | undefined): string {
-  return typeof value === 'number' && Number.isFinite(value) ? Math.round(value).toLocaleString() : 'N/A'
-}
-
-function formatNullableIndex(value: number | null | undefined): string {
-  return typeof value === 'number' && Number.isFinite(value) ? formatNumber(value, 3) : 'N/A'
-}
-
-function formatNullableMilliseconds(value: number | null | undefined): string {
-  return typeof value === 'number' && Number.isFinite(value) ? `${formatNumber(value, 1)} ms` : 'N/A'
-}
-
-function formatNullableEth(value: number | null | undefined): string {
-  return typeof value === 'number' && Number.isFinite(value) ? `${formatCostLabel(value)} ETH` : 'N/A'
-}
-
-function readLastFiniteValue(series: readonly number[] | undefined): number | null {
-  if (!series) return null
-
-  for (let index = series.length - 1; index >= 0; index -= 1) {
-    const value = series[index]
-    if (typeof value === 'number' && Number.isFinite(value)) return value
-  }
-
-  return null
-}
-
-interface ComparisonCard {
-  readonly label: string
-  readonly primary: string
-  readonly compare: string
-  readonly tone: string
-}
-
-function buildComparisonNarrative(
-  primaryEntry: ResearchDatasetEntry,
-  comparisonEntry: ResearchDatasetEntry | null,
-  primaryPayload: PublishedAnalyticsPayload | null,
-  comparisonPayload: PublishedAnalyticsPayload | null,
-): string {
-  if (!comparisonEntry) {
-    return 'Choose a second published scenario to position the active atlas against another result contract.'
-  }
-
-  const statements: string[] = []
-  const primaryMetadata = primaryEntry.metadata
-  const comparisonMetadata = comparisonEntry.metadata
-
-  if (typeof primaryMetadata?.cost === 'number' && typeof comparisonMetadata?.cost === 'number') {
-    statements.push(
-      primaryMetadata.cost > comparisonMetadata.cost
-        ? 'This scenario carries a higher migration cost.'
-        : primaryMetadata.cost < comparisonMetadata.cost
-          ? 'This scenario carries a lower migration cost.'
-          : 'Both scenarios carry the same migration cost.',
-    )
-  }
-
-  if (typeof primaryMetadata?.delta === 'number' && typeof comparisonMetadata?.delta === 'number') {
-    statements.push(
-      primaryMetadata.delta > comparisonMetadata.delta
-        ? 'It also works against a slower delta assumption.'
-        : primaryMetadata.delta < comparisonMetadata.delta
-          ? 'It operates with a tighter delta assumption.'
-          : 'Their delta assumptions match.',
-    )
-  }
-
-  if (typeof primaryMetadata?.gamma === 'number' && typeof comparisonMetadata?.gamma === 'number') {
-    statements.push(
-      primaryMetadata.gamma > comparisonMetadata.gamma
-        ? 'Gamma is higher here, which can change the consensus posture.'
-        : primaryMetadata.gamma < comparisonMetadata.gamma
-          ? 'Gamma is lower here, giving the foil a different consensus posture.'
-          : 'Gamma is held constant across the comparison.',
-    )
-  }
-
-  const primaryActiveRegions = readLastFiniteValue(analyticsMetricSeriesForPayload(primaryPayload, 'active_regions'))
-  const comparisonActiveRegions = readLastFiniteValue(analyticsMetricSeriesForPayload(comparisonPayload, 'active_regions'))
-  const primaryGini = readLastFiniteValue(analyticsMetricSeriesForPayload(primaryPayload, 'gini'))
-  const comparisonGini = readLastFiniteValue(analyticsMetricSeriesForPayload(comparisonPayload, 'gini'))
-
-  if (primaryActiveRegions != null && comparisonActiveRegions != null && primaryGini != null && comparisonGini != null) {
-    statements.push(
-      `At the final slot it ends with ${formatNullableCount(primaryActiveRegions)} active regions versus ${formatNullableCount(comparisonActiveRegions)}, with Gini ${formatNullableIndex(primaryGini)} versus ${formatNullableIndex(comparisonGini)}.`,
-    )
-  }
-
-  if (statements.length === 0) {
-    return `${comparisonEntry.evaluation} / ${paradigmLabel(comparisonEntry.paradigm)} serves as a foil for reading the active scenario against another published posture.`
-  }
-
-  return `${comparisonEntry.evaluation} / ${paradigmLabel(comparisonEntry.paradigm)} serves as a foil. ${statements.join(' ')}`
-}
-
-function buildComparisonCards(
-  primaryEntry: ResearchDatasetEntry,
-  comparisonEntry: ResearchDatasetEntry | null,
-  primaryPayload: PublishedAnalyticsPayload | null,
-  comparisonPayload: PublishedAnalyticsPayload | null,
-): readonly ComparisonCard[] {
-  if (!comparisonEntry) return []
-
-  const primaryActiveRegions = readLastFiniteValue(analyticsMetricSeriesForPayload(primaryPayload, 'active_regions'))
-  const comparisonActiveRegions = readLastFiniteValue(analyticsMetricSeriesForPayload(comparisonPayload, 'active_regions'))
-  const primaryGini = readLastFiniteValue(analyticsMetricSeriesForPayload(primaryPayload, 'gini'))
-  const comparisonGini = readLastFiniteValue(analyticsMetricSeriesForPayload(comparisonPayload, 'gini'))
-  const primaryProposalTime = readLastFiniteValue(analyticsMetricSeriesForPayload(primaryPayload, 'proposal_times'))
-  const comparisonProposalTime = readLastFiniteValue(analyticsMetricSeriesForPayload(comparisonPayload, 'proposal_times'))
-
-  if (
-    primaryActiveRegions != null
-    && comparisonActiveRegions != null
-    && primaryGini != null
-    && comparisonGini != null
-    && primaryProposalTime != null
-    && comparisonProposalTime != null
-  ) {
-    return [
-      {
-        label: 'Active regions',
-        primary: formatNullableCount(primaryActiveRegions),
-        compare: formatNullableCount(comparisonActiveRegions),
-        tone: primaryActiveRegions > comparisonActiveRegions
-          ? 'Broader spread'
-          : primaryActiveRegions < comparisonActiveRegions
-            ? 'Narrower spread'
-            : 'Matched spread',
-      },
-      {
-        label: 'Gini',
-        primary: formatNullableIndex(primaryGini),
-        compare: formatNullableIndex(comparisonGini),
-        tone: primaryGini > comparisonGini
-          ? 'More concentrated'
-          : primaryGini < comparisonGini
-            ? 'Less concentrated'
-            : 'Matched concentration',
-      },
-      {
-        label: 'Proposal time',
-        primary: formatNullableMilliseconds(primaryProposalTime),
-        compare: formatNullableMilliseconds(comparisonProposalTime),
-        tone: primaryProposalTime > comparisonProposalTime
-          ? 'Slower timing'
-          : primaryProposalTime < comparisonProposalTime
-            ? 'Faster timing'
-            : 'Timing aligned',
-      },
-    ]
-  }
-
-  return [
-    {
-      label: 'Validators',
-      primary: formatNullableCount(primaryEntry.metadata?.v),
-      compare: formatNullableCount(comparisonEntry.metadata?.v),
-      tone: 'Scenario scale',
-    },
-    {
-      label: 'Migration cost',
-      primary: formatNullableEth(primaryEntry.metadata?.cost),
-      compare: formatNullableEth(comparisonEntry.metadata?.cost),
-      tone: 'Relocation friction',
-    },
-    {
-      label: 'Gamma',
-      primary: formatNullableIndex(primaryEntry.metadata?.gamma),
-      compare: formatNullableIndex(comparisonEntry.metadata?.gamma),
-      tone: 'Consensus posture',
-    },
-  ]
-}
-
-function PaperGuide({ selectedEntry }: { readonly selectedEntry: ResearchDatasetEntry }) {
-  const [paperLens, setPaperLens] = useState<PaperLens>('evidence')
-  const [activeSectionId, setActiveSectionId] = useState('')
-  const sections = useMemo(
-    () => recommendedPaperSections(selectedEntry, paperLens),
-    [paperLens, selectedEntry],
-  )
-  const activeSection = useMemo(
-    () => sections.find(section => section.id === activeSectionId) ?? sections[0] ?? null,
-    [activeSectionId, sections],
-  )
-
-  useEffect(() => {
-    if (!sections.some(section => section.id === activeSectionId)) {
-      setActiveSectionId(sections[0]?.id ?? '')
-    }
-  }, [activeSectionId, sections])
-
-  if (sections.length === 0) return null
-
-  return (
-    <div className="rounded-xl border border-rule/70 bg-[#FBFAF8]/85 px-3.5 py-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-faint">
-            Reading Guide
-          </div>
-          <p className="mt-1 text-xs leading-relaxed text-muted">
-            {paperLensSummary(paperLens, selectedEntry)}
-          </p>
-        </div>
-        {activeSection && (
-          <a
-            href={buildPaperSectionUrl(activeSection.id)}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-black/[0.08] bg-white px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors hover:text-text-primary"
-          >
-            Open Paper
-            <ArrowUpRight className="h-3 w-3" />
-          </a>
-        )}
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {([
-          { id: 'evidence' as const, label: 'Evidence' },
-          { id: 'theory' as const, label: 'Theory' },
-          { id: 'methods' as const, label: 'Methods' },
-        ] as const).map(option => (
-          <button
-            key={option.id}
-            onClick={() => setPaperLens(option.id)}
-            className={cn(
-              'rounded-md px-2.5 py-1 text-2xs font-medium transition-colors',
-              paperLens === option.id
-                ? 'bg-white text-text-primary shadow-[0_1px_2px_rgba(0,0,0,0.05)] ring-1 ring-black/[0.06]'
-                : 'text-muted hover:bg-white/70 hover:text-text-secondary',
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {sections.map(section => (
-          <button
-            key={section.id}
-            onClick={() => setActiveSectionId(section.id)}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors',
-              activeSection?.id === section.id
-                ? 'border-accent/20 bg-accent/[0.06] text-text-primary'
-                : 'border-black/[0.06] bg-white/80 text-muted hover:text-text-secondary',
-            )}
-          >
-            <span className="font-mono text-[10px] text-text-faint">{section.number}</span>
-            <span>{section.title}</span>
-          </button>
-        ))}
-      </div>
-
-      {activeSection && (
-        <div className="mt-3 rounded-lg border border-rule/60 bg-white px-3 py-2.5">
-          <div className="flex items-center gap-2">
-            <span className="lab-chip bg-surface-active text-[10px] text-text-faint">
-              {activeSection.category}
-            </span>
-            <span className="font-mono text-[10px] text-text-faint">{activeSection.number}</span>
-            <div className="text-xs font-semibold text-text-primary">{activeSection.title}</div>
-          </div>
-          <p className="mt-1.5 text-xs leading-relaxed text-muted">
-            {activeSection.description}
-          </p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function ComparisonGuide({
-  catalog,
-  selectedEntry,
-  primaryPayload,
-  viewerBaseUrl,
-}: {
-  readonly catalog: ResearchCatalog
-  readonly selectedEntry: ResearchDatasetEntry
-  readonly primaryPayload: PublishedAnalyticsPayload | null
-  readonly viewerBaseUrl: string
-}) {
-  const [comparePath, setComparePath] = useState('')
-  const [isOpen, setIsOpen] = useState(false)
-  const comparisonCandidates = useMemo(
-    () => catalog.datasets.filter(entry => entry.path !== selectedEntry.path),
-    [catalog.datasets, selectedEntry.path],
-  )
-  const comparisonEntry = useMemo(
-    () => comparisonCandidates.find(entry => entry.path === comparePath) ?? comparisonCandidates[0] ?? null,
-    [comparePath, comparisonCandidates],
-  )
-
-  useEffect(() => {
-    if (!comparisonCandidates.length) {
-      setComparePath('')
-      return
-    }
-    if (!comparePath || !comparisonCandidates.some(entry => entry.path === comparePath)) {
-      setComparePath(comparisonCandidates[0]!.path)
-    }
-  }, [comparePath, comparisonCandidates])
-
-  const comparisonPayloadQuery = useQuery({
-    queryKey: ['evidence-compare-payload', comparisonEntry?.path],
-    queryFn: () => fetchPayload(viewerBaseUrl, comparisonEntry!.path),
-    enabled: isOpen && Boolean(comparisonEntry?.path),
-    staleTime: 5 * 60_000,
-    placeholderData: keepPreviousData,
-  })
-
-  const comparisonNarrative = useMemo(
-    () => buildComparisonNarrative(selectedEntry, comparisonEntry, primaryPayload, comparisonPayloadQuery.data ?? null),
-    [comparisonEntry, comparisonPayloadQuery.data, primaryPayload, selectedEntry],
-  )
-  const comparisonCards = useMemo(
-    () => buildComparisonCards(selectedEntry, comparisonEntry, primaryPayload, comparisonPayloadQuery.data ?? null),
-    [comparisonEntry, comparisonPayloadQuery.data, primaryPayload, selectedEntry],
-  )
-
-  if (!comparisonCandidates.length) return null
-
-  return (
-    <details
-      open={isOpen}
-      onToggle={event => setIsOpen(event.currentTarget.open)}
-      className="group/details rounded-xl border border-rule/70 bg-[#FBFAF8]/70"
-    >
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-3.5 py-2.5 text-xs font-medium text-text-secondary transition-colors hover:text-text-primary">
-        <ChevronDown className="h-3 w-3 transition-transform duration-150 group-open/details:rotate-180" />
-        Scenario Foil
-        <span className="text-2xs font-normal text-text-faint">
-          Position the active scenario against another published result
-        </span>
-      </summary>
-
-      <div className="border-t border-rule/60 px-3.5 py-3">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-          <div className="min-w-0 max-w-3xl">
-            <p className="text-xs leading-relaxed text-muted">{comparisonNarrative}</p>
-            {comparisonPayloadQuery.isLoading && (
-              <div className="mt-2 text-2xs text-text-faint">Loading final-slot comparison readout…</div>
-            )}
-            {comparisonPayloadQuery.isError && (
-              <div className="mt-2 text-2xs text-danger">
-                {(comparisonPayloadQuery.error as Error).message}
-              </div>
-            )}
-          </div>
-
-          <div className="min-w-0 xl:w-[22rem]">
-            <label className="mb-1.5 block text-2xs font-medium uppercase tracking-wider text-text-faint">
-              Compare Against
-            </label>
-            <select
-              value={comparisonEntry?.path ?? ''}
-              onChange={event => setComparePath(event.target.value)}
-              className="w-full rounded-lg border border-black/[0.08] bg-white px-3 py-2 text-xs text-text-primary outline-none transition-colors focus:border-stone-400 focus:ring-1 focus:ring-stone-200"
-            >
-              {comparisonCandidates.map(entry => (
-                <option key={entry.path} value={entry.path}>
-                  {entry.evaluation} · {paradigmLabel(entry.paradigm)} · {entry.result}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          {comparisonCards.map(card => (
-            <div key={card.label} className="rounded-lg border border-rule/60 bg-white px-3 py-2.5">
-              <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-text-faint">
-                {card.label}
-              </div>
-              <div className="mt-2 flex items-end justify-between gap-3">
-                <div>
-                  <div className="text-[10px] text-text-faint">Primary</div>
-                  <div className="mt-1 text-sm font-semibold text-text-primary">{card.primary}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[10px] text-text-faint">Foil</div>
-                  <div className="mt-1 text-sm font-semibold text-text-primary">{card.compare}</div>
-                </div>
-              </div>
-              <div className="mt-2 text-[10px] text-muted">{card.tone}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </details>
-  )
 }
 
 // ── Scenario selector with dedicated cost control ───────────────────────────
@@ -897,11 +431,13 @@ interface PrecomputedEvidenceSurfaceProps {
   readonly viewerBaseUrl: string
 }
 
+type EvidenceViewMode = 'atlas' | 'charts'
+
 export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: PrecomputedEvidenceSurfaceProps) {
   const { catalog, error: catalogError } = useResearchCatalog(catalogScriptUrl)
   const [selectedEntry, setSelectedEntry] = useState<ResearchDatasetEntry | null>(null)
   const [activeCategory, setActiveCategory] = useState<PlotCategory>('all')
-  const [mapLayout, setMapLayout] = useState<MapLayout>('split')
+  const [viewMode, setViewMode] = useState<EvidenceViewMode>('atlas')
   const chartGridRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -1004,28 +540,6 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
                   {totalSlots.toLocaleString()} slots
                 </span>
               )}
-              {/* Layout mode toggle */}
-              <div className="flex items-center rounded-[10px] border border-black/[0.06] bg-[#F6F5F4] p-[2px] gap-[2px]" style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}>
-                {([
-                  { mode: 'full' as MapLayout, icon: MapIcon, tip: 'Full map view' },
-                  { mode: 'split' as MapLayout, icon: LayoutGrid, tip: 'Map + charts side by side' },
-                  { mode: 'charts' as MapLayout, icon: BarChart3, tip: 'Charts focused' },
-                ] as const).map(({ mode, icon: Icon, tip }) => (
-                  <button
-                    key={mode}
-                    onClick={() => setMapLayout(mode)}
-                    title={tip}
-                    className={cn(
-                      'flex items-center justify-center h-6 w-6 rounded-[8px] transition-all duration-150',
-                      mapLayout === mode
-                        ? 'bg-white text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                        : 'text-stone-400 hover:text-stone-600',
-                    )}
-                  >
-                    <Icon className="h-3 w-3" />
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -1037,19 +551,6 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
               selectedParadigm={selectedEntry.paradigm}
               selectedResult={selectedEntry.result}
               onSelect={setSelectedEntry}
-            />
-          )}
-
-          {selectedEntry && (
-            <PaperGuide selectedEntry={selectedEntry} />
-          )}
-
-          {selectedEntry && (
-            <ComparisonGuide
-              catalog={catalog}
-              selectedEntry={selectedEntry}
-              primaryPayload={payloadQuery.data ?? null}
-              viewerBaseUrl={viewerBaseUrl}
             />
           )}
         </div>
@@ -1091,7 +592,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
           </div>
 
           {/* Map hero — the primary visual */}
-          {mapLayout !== 'charts' && (
+          {viewMode === 'atlas' && (
             <div className="mt-3">
               <EvidenceMapSurface
                 payload={payloadQuery.data}
@@ -1100,47 +601,75 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
             </div>
           )}
 
-          {/* Analytical lens — directly above the charts it filters */}
-          {mapLayout !== 'full' && (
-            <div className="mt-3">
-              <EvidenceCategoryBar
-                activeCategory={activeCategory}
-                onCategoryChange={setActiveCategory}
-                counts={categoryCounts}
-                chartGridRef={chartGridRef}
-              />
+          <div className="sticky top-[4.85rem] z-10 mt-3 rounded-[1.1rem] border border-rule/70 bg-white/90 px-4 py-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur-md">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                  Figure view
+                </div>
+                <div className="mt-1 text-xs text-muted">
+                  Atlas keeps the map visible. Charts tightens the page around the figure stack.
+                </div>
+              </div>
+              <div className="flex items-center rounded-[12px] border border-black/[0.06] bg-[#F6F5F4] p-[3px] gap-[3px] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]">
+                {([
+                  { id: 'atlas' as const, label: 'Atlas', icon: null },
+                  { id: 'charts' as const, label: 'Charts', icon: BarChart3 },
+                ] as const).map(option => (
+                  <button
+                    key={option.id}
+                    onClick={() => setViewMode(option.id)}
+                    className={cn(
+                      'flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
+                      viewMode === option.id
+                        ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
+                        : 'text-stone-400 hover:text-stone-600',
+                    )}
+                  >
+                    {option.icon ? <option.icon className="h-3 w-3" /> : null}
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
+          </div>
+
+          {/* Analytical lens — directly above the charts it filters */}
+          <div className="mt-3">
+            <EvidenceCategoryBar
+              activeCategory={activeCategory}
+              onCategoryChange={setActiveCategory}
+              counts={categoryCounts}
+              chartGridRef={chartGridRef}
+            />
+          </div>
 
           {/* Config snapshot + slot narrative — collapsible detail below lens */}
-          {mapLayout !== 'full' && (
-            <details className="mt-3 group/details">
-              <summary className="lab-stage-soft px-4 py-2.5 cursor-pointer select-none flex items-center gap-2 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors">
-                <ChevronDown className="h-3 w-3 transition-transform duration-150 group-open/details:rotate-180" />
-                Scenario details
-                {selectedEntry && (
-                  <span className="text-2xs text-text-faint font-normal ml-1">
-                    {selectedEntry.paradigm} · {totalSlots.toLocaleString()} slots
-                  </span>
-                )}
-              </summary>
-              <div className="mt-1 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
-                {selectedEntry && (
-                  <EvidenceConfigSnapshot
-                    metadata={selectedEntry.metadata}
-                    description={payloadQuery.data.description}
-                    paradigm={selectedEntry.paradigm}
-                    totalSlots={totalSlots}
-                  />
-                )}
-                <SlotMetricsGrid payload={payloadQuery.data} />
-              </div>
-            </details>
-          )}
+          <details className="mt-3 group/details">
+            <summary className="lab-stage-soft px-4 py-2.5 cursor-pointer select-none flex items-center gap-2 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors">
+              <ChevronDown className="h-3 w-3 transition-transform duration-150 group-open/details:rotate-180" />
+              Scenario details
+              {selectedEntry && (
+                <span className="text-2xs text-text-faint font-normal ml-1">
+                  {selectedEntry.paradigm} · {totalSlots.toLocaleString()} slots
+                </span>
+              )}
+            </summary>
+            <div className="mt-1 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
+              {selectedEntry && (
+                <EvidenceConfigSnapshot
+                  metadata={selectedEntry.metadata}
+                  description={payloadQuery.data.description}
+                  paradigm={selectedEntry.paradigm}
+                  totalSlots={totalSlots}
+                />
+              )}
+              <SlotMetricsGrid payload={payloadQuery.data} />
+            </div>
+          </details>
 
           {/* Chart panels — layout-aware grid */}
-          {mapLayout !== 'full' && (
-          <div ref={chartGridRef} className={mapLayout === 'charts' ? 'mt-1' : ''}>
+          <div ref={chartGridRef} className={viewMode === 'charts' ? 'mt-1' : ''}>
             {taggedBlocks.length > 0 && (
               <div className="lab-stage px-5 py-3.5">
                 <div className="flex items-center gap-2 mb-2.5">
@@ -1211,7 +740,6 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
               </div>
             )}
           </div>
-          )}
         </motion.div>
       )}
     </div>
