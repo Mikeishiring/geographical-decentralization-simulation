@@ -1020,6 +1020,12 @@ function PublishedGeoCard({
     }
   }, [tooltipRegion, viewportViewBox])
   const focusedRegion = selectedRegion ?? hoveredRegion ?? dominantRegionData
+  const selectedAnnotationNote = useMemo(() => {
+    if (!annotationNotes || annotationNotes.length === 0) return null
+    return annotationNotes.find(note => note.id === selectedNoteId) ?? annotationNotes[0] ?? null
+  }, [annotationNotes, selectedNoteId])
+  const currentModeOption = GEO_MODE_OPTIONS.find(option => option.id === mapMode) ?? GEO_MODE_OPTIONS[0]
+  const currentViewportOption = GEO_VIEWPORT_OPTIONS.find(option => option.id === viewportMode) ?? GEO_VIEWPORT_OPTIONS[0]
   const legendSwatches = useMemo(() => {
     if (mapMode === 'macro') {
       return macroRegionCounts.map(entry => ({
