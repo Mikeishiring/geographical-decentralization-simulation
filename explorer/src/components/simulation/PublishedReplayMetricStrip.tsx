@@ -1,4 +1,10 @@
-import { useMemo, useState } from 'react'
+import {
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING_CRISP } from '../../lib/theme'
@@ -25,6 +31,7 @@ interface PublishedReplayMetricStripProps {
   readonly cards: readonly PublishedReplayMetricStripCard[]
   readonly activeCardId?: string | null
   readonly onCardActivate?: (card: PublishedReplayMetricStripCard) => void
+  readonly onCardScrub?: (card: PublishedReplayMetricStripCard, slotIndex: number) => void
   readonly className?: string
 }
 
@@ -38,6 +45,13 @@ interface SparklineGeometry {
 function clampIndex(length: number, index: number): number {
   if (length <= 0) return 0
   return Math.max(0, Math.min(length - 1, Math.floor(index)))
+}
+
+function alignSlotByProgress(sourceIndex: number, sourceLength: number, comparisonLength: number): number {
+  if (comparisonLength <= 1) return 0
+  if (sourceLength <= 1) return Math.max(0, comparisonLength - 1)
+  const progress = clampIndex(sourceLength, sourceIndex) / Math.max(1, sourceLength - 1)
+  return clampIndex(comparisonLength, progress * Math.max(0, comparisonLength - 1))
 }
 
 function buildSparkline(
@@ -100,43 +114,103 @@ function comparisonDeltaLabel(
   return `${prefix}${formatSeriesValue(delta)}`
 }
 
+function resolveSlotIndexFromPointer(
+  event: ReactPointerEvent<HTMLDivElement>,
+  width: number,
+  seriesLength: number,
+): number {
+  if (seriesLength <= 1 || width <= 0) return 0
+  const clampedX = Math.max(0, Math.min(width, event.clientX - event.currentTarget.getBoundingClientRect().left))
+  const progress = clampedX / width
+  return clampIndex(seriesLength, progress * Math.max(0, seriesLength - 1))
+}
+
 function PublishedReplayMetricCard({
   card,
   active,
   onActivate,
+  onScrub,
 }: {
   readonly card: PublishedReplayMetricStripCard
   readonly active: boolean
   readonly onActivate?: () => void
+  readonly onScrub?: (slotIndex: number) => void
 }) {
   const [hovered, setHovered] = useState(false)
+  const [previewSlotIndex, setPreviewSlotIndex] = useState<number | null>(null)
+  const sparklineRef = useRef<HTMLDivElement | null>(null)
+  const effectiveSlotIndex = previewSlotIndex ?? card.currentSlotIndex
+  const effectiveComparisonSlotIndex = card.comparisonSeries?.length
+    ? previewSlotIndex != null
+      ? alignSlotByProgress(previewSlotIndex, card.series.length, card.comparisonSeries.length)
+      : card.comparisonSlotIndex ?? card.currentSlotIndex
+    : null
+
   const primarySpark = useMemo(
-    () => buildSparkline(card.series, card.currentSlotIndex),
-    [card.currentSlotIndex, card.series],
+    () => buildSparkline(card.series, effectiveSlotIndex),
+    [card.series, effectiveSlotIndex],
   )
   const comparisonSpark = useMemo(
     () => card.comparisonSeries?.length
-      ? buildSparkline(card.comparisonSeries, card.comparisonSlotIndex ?? card.currentSlotIndex)
+      ? buildSparkline(card.comparisonSeries, effectiveComparisonSlotIndex ?? effectiveSlotIndex)
       : null,
-    [card.comparisonSeries, card.comparisonSlotIndex, card.currentSlotIndex],
+    [card.comparisonSeries, effectiveComparisonSlotIndex, effectiveSlotIndex],
   )
 
-  const currentValue = readSeriesValue(card.series, card.currentSlotIndex)
+  const currentValue = readSeriesValue(card.series, effectiveSlotIndex)
   const baselineValue = readSeriesValue(card.series, 0)
   const peakValue = card.series.length > 0 ? Math.max(...card.series) : null
   const comparisonValue = card.comparisonSeries?.length
-    ? readSeriesValue(card.comparisonSeries, card.comparisonSlotIndex ?? card.currentSlotIndex)
+    ? readSeriesValue(card.comparisonSeries, effectiveComparisonSlotIndex ?? effectiveSlotIndex)
     : null
-  const currentSlotNumber = card.currentSlotIndex + 1
+  const effectiveSlotNumber = effectiveSlotIndex + 1
+  const showExpanded = hovered || active || previewSlotIndex != null
+  const headlineValue = previewSlotIndex != null && currentValue != null
+    ? card.formatSeriesValue(currentValue)
+    : card.value
+
+  const commitPreviewSlot = (slotIndexToCommit: number | null) => {
+    if (slotIndexToCommit == null) return
+    onActivate?.()
+    onScrub?.(slotIndexToCommit)
+  }
+
+  const handleSparklinePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const width = sparklineRef.current?.getBoundingClientRect().width ?? 0
+    const nextSlotIndex = resolveSlotIndexFromPointer(event, width, card.series.length)
+    setPreviewSlotIndex(nextSlotIndex)
+    if (event.pointerType !== 'mouse') {
+      commitPreviewSlot(nextSlotIndex)
+    }
+  }
+
+  const handleSparklinePointerLeave = () => {
+    setPreviewSlotIndex(null)
+    setHovered(false)
+  }
+
+  const handleCardKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    onActivate?.()
+  }
 
   return (
-    <motion.button
-      type="button"
+    <motion.div
+      role="button"
+      tabIndex={0}
       onClick={onActivate}
+      onKeyDown={handleCardKeyDown}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => {
+        setHovered(false)
+        setPreviewSlotIndex(null)
+      }}
       onFocus={() => setHovered(true)}
-      onBlur={() => setHovered(false)}
+      onBlur={() => {
+        setHovered(false)
+        setPreviewSlotIndex(null)
+      }}
       className={cn(
         'group relative w-full overflow-hidden rounded-xl border bg-white/96 px-4 py-4 text-left transition-all duration-200',
         active
@@ -156,15 +230,25 @@ function PublishedReplayMetricCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
-          <div className="mt-2 text-lg font-semibold tabular-nums tracking-[-0.02em] text-text-primary">{card.value}</div>
+          <div className="mt-2 text-lg font-semibold tabular-nums tracking-[-0.02em] text-text-primary">{headlineValue}</div>
           <div className="mt-1 text-xs leading-5 text-muted">{card.detail}</div>
         </div>
         <div className="rounded-full border border-rule bg-surface-active px-2.5 py-1 text-[0.625rem] font-medium uppercase tracking-[0.08em] text-text-faint">
-          Slot {currentSlotNumber.toLocaleString()}
+          Slot {effectiveSlotNumber.toLocaleString()}
         </div>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-rule bg-surface-active/70 px-3 py-3">
+      <div
+        ref={sparklineRef}
+        className="mt-4 cursor-crosshair overflow-hidden rounded-xl border border-rule bg-surface-active/70 px-3 py-3"
+        onClick={event => {
+          event.stopPropagation()
+          commitPreviewSlot(previewSlotIndex ?? card.currentSlotIndex)
+        }}
+        onPointerDown={handleSparklinePointerMove}
+        onPointerMove={handleSparklinePointerMove}
+        onPointerLeave={handleSparklinePointerLeave}
+      >
         {card.series.length > 0 ? (
           <svg viewBox={`0 0 ${SPARKLINE_WIDTH} ${SPARKLINE_HEIGHT}`} className="w-full" preserveAspectRatio="none" aria-hidden="true">
             <defs>
@@ -217,8 +301,13 @@ function PublishedReplayMetricCard({
         </span>
       </div>
 
+      <div className="mt-1 flex items-center justify-between gap-3 text-[0.625rem] uppercase tracking-[0.08em] text-text-faint">
+        <span>{previewSlotIndex != null ? 'Previewing replay cursor' : active ? 'Pinned to viewer focus' : 'Tap or drag to scrub'}</span>
+        {previewSlotIndex != null ? <span>slot {effectiveSlotNumber.toLocaleString()}</span> : null}
+      </div>
+
       <AnimatePresence initial={false}>
-        {hovered ? (
+        {showExpanded ? (
           <motion.div
             key="hover-details"
             className="mt-3 grid gap-2 sm:grid-cols-3"
@@ -241,7 +330,11 @@ function PublishedReplayMetricCard({
             </div>
             <div className="rounded-lg border border-rule bg-white/90 px-2.5 py-2">
               <div className="text-[0.625rem] font-medium uppercase tracking-[0.08em] text-text-faint">
-                {card.comparisonSeries?.length ? `vs ${card.comparisonLabel ?? 'comparison'}` : 'Current slot'}
+                {card.comparisonSeries?.length
+                  ? `vs ${card.comparisonLabel ?? 'comparison'}`
+                  : previewSlotIndex != null
+                    ? 'Preview slot'
+                    : 'Current slot'}
               </div>
               <div className="mt-1 text-xs font-medium tabular-nums text-text-primary">
                 {card.comparisonSeries?.length
@@ -254,7 +347,7 @@ function PublishedReplayMetricCard({
           </motion.div>
         ) : null}
       </AnimatePresence>
-    </motion.button>
+    </motion.div>
   )
 }
 
@@ -262,6 +355,7 @@ export function PublishedReplayMetricStrip({
   cards,
   activeCardId = null,
   onCardActivate,
+  onCardScrub,
   className,
 }: PublishedReplayMetricStripProps) {
   return (
@@ -272,6 +366,7 @@ export function PublishedReplayMetricStrip({
           card={card}
           active={activeCardId === card.id}
           onActivate={onCardActivate ? () => onCardActivate(card) : undefined}
+          onScrub={onCardScrub ? slotIndex => onCardScrub(card, slotIndex) : undefined}
         />
       ))}
     </div>

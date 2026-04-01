@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronDown, ExternalLink, LoaderCircle, Lock, Pause, Play, RotateCcw, X } from 'lucide-react'
 import { ChartBlock } from '../blocks/ChartBlock'
@@ -6,6 +6,7 @@ import { InsightBlock } from '../blocks/InsightBlock'
 import { StatBlock } from '../blocks/StatBlock'
 import { TimeSeriesBlock } from '../blocks/TimeSeriesBlock'
 import { formatNumber, paradigmLabel } from './simulation-constants'
+import type { PublishedAnalyticsPayload } from './simulation-analytics'
 import { CONTINENT_OUTLINES } from '../../data/world-outlines'
 import { GCP_REGIONS, type GcpRegion, type MacroRegion } from '../../data/gcp-regions'
 import { cn } from '../../lib/cn'
@@ -99,11 +100,14 @@ interface PublishedDatasetViewerProps {
   readonly dataset: ResearchDatasetEntry
   readonly initialSettings: PublishedViewerSettings
   readonly initialSlotIndex?: number
+  readonly slotIndex?: number | null
+  readonly onSlotIndexChange?: (slotIndex: number) => void
   readonly onClose?: () => void
   readonly onStateChange?: (snapshot: PublishedViewerSnapshot | null) => void
   readonly annotationNotes?: readonly PublishedViewerAnnotationNote[]
   readonly anchorScope?: 'primary' | 'comparison'
   readonly spotlightArea?: PublishedViewerFocusArea | null
+  readonly dataState?: PublishedDatasetDataState | null
 }
 
 interface PublishedMetrics {
@@ -120,20 +124,15 @@ interface PublishedMetrics {
   readonly failed_block_proposals?: readonly number[]
 }
 
-interface PublishedDatasetPayload {
-  readonly v?: number
+export interface PublishedDatasetPayload extends PublishedAnalyticsPayload {
   readonly delta?: number
   readonly cutoff?: number
   readonly cost?: number
   readonly gamma?: number
-  readonly description?: string
-  readonly n_slots?: number
   readonly metrics?: PublishedMetrics
-  readonly sources?: ReadonlyArray<readonly [string, string]>
-  readonly slots?: Record<string, ReadonlyArray<readonly [string, number]>>
 }
 
-interface ViewerState {
+export interface PublishedDatasetDataState {
   readonly status: 'loading' | 'ready' | 'error'
   readonly data: PublishedDatasetPayload | null
   readonly error: string | null
@@ -356,6 +355,103 @@ function noteIntentLabel(intent: PublishedViewerAnnotationNote['intent']): strin
   if (intent === 'theory') return 'Theory'
   if (intent === 'methods') return 'Methods'
   return 'Observation'
+}
+
+interface TimelineMarker {
+  readonly slotIndex: number
+  readonly kind: 'note' | 'leader' | 'concentration'
+  readonly label: string
+  readonly count?: number
+}
+
+function summarizeTimelineMarkers(
+  data: PublishedDatasetPayload | null,
+  annotationNotes: readonly PublishedViewerAnnotationNote[],
+  totalSlots: number,
+): readonly TimelineMarker[] {
+  if (!data || totalSlots <= 1) return []
+
+  const maxSlotIndex = Math.max(0, totalSlots - 1)
+  const markers = new Map<string, TimelineMarker>()
+  const noteCounts = new Map<number, number>()
+
+  for (const note of annotationNotes) {
+    const rawSlotNumber = note.rangeStartSlotNumber ?? note.slotNumber
+    if (typeof rawSlotNumber !== 'number' || !Number.isFinite(rawSlotNumber)) continue
+    const slotIndex = Math.max(0, Math.min(maxSlotIndex, Math.floor(rawSlotNumber - 1)))
+    noteCounts.set(slotIndex, (noteCounts.get(slotIndex) ?? 0) + 1)
+  }
+
+  for (const [slotIndex, count] of [...noteCounts.entries()].sort((left, right) => left[0] - right[0]).slice(0, 12)) {
+    markers.set(`note-${slotIndex}`, {
+      slotIndex,
+      kind: 'note',
+      label: `${count} note${count === 1 ? '' : 's'} at slot ${slotIndex + 1}`,
+      count,
+    })
+  }
+
+  let previousLeader: string | null = null
+  const leaderMarkers: TimelineMarker[] = []
+  const sortedSlots = Object.entries(data.slots ?? {})
+    .map(([slotKey, regions]) => ({
+      slotIndex: Math.max(0, Math.min(maxSlotIndex, Number.parseInt(slotKey, 10))),
+      regions,
+    }))
+    .filter(entry => Number.isFinite(entry.slotIndex))
+    .sort((left, right) => left.slotIndex - right.slotIndex)
+
+  for (const slotEntry of sortedSlots) {
+    let leadingRegionId: string | null = null
+    let leadingCount = 0
+
+    for (const [regionId, count] of slotEntry.regions) {
+      const nextCount = Number(count) || 0
+      if (nextCount > leadingCount) {
+        leadingCount = nextCount
+        leadingRegionId = regionId
+      }
+    }
+
+    if (!leadingRegionId) continue
+    if (previousLeader && previousLeader !== leadingRegionId) {
+      const regionLabel = REGION_LOOKUP.get(leadingRegionId)?.city ?? leadingRegionId
+      leaderMarkers.push({
+        slotIndex: slotEntry.slotIndex,
+        kind: 'leader',
+        label: `Leader switches to ${regionLabel} at slot ${slotEntry.slotIndex + 1}`,
+      })
+    }
+    previousLeader = leadingRegionId
+  }
+
+  for (const marker of leaderMarkers.slice(0, 6)) {
+    markers.set(`leader-${marker.slotIndex}`, marker)
+  }
+
+  const giniSeries = data.metrics?.gini ?? []
+  const concentrationMarkers = giniSeries
+    .map((value, index) => {
+      if (index === 0 || typeof value !== 'number' || !Number.isFinite(value)) return null
+      const previousValue = giniSeries[index - 1]
+      if (typeof previousValue !== 'number' || !Number.isFinite(previousValue)) return null
+      return { slotIndex: index, delta: Math.abs(value - previousValue) }
+    })
+    .filter((entry): entry is { slotIndex: number; delta: number } => Boolean(entry))
+    .sort((left, right) => right.delta - left.delta)
+    .slice(0, 4)
+    .sort((left, right) => left.slotIndex - right.slotIndex)
+
+  for (const marker of concentrationMarkers) {
+    if (marker.delta < 0.01) continue
+    markers.set(`concentration-${marker.slotIndex}`, {
+      slotIndex: marker.slotIndex,
+      kind: 'concentration',
+      label: `Concentration jump at slot ${marker.slotIndex + 1}`,
+    })
+  }
+
+  return [...markers.values()].sort((left, right) => left.slotIndex - right.slotIndex)
 }
 
 function noteIntentClass(intent: PublishedViewerAnnotationNote['intent']): string {
@@ -934,18 +1030,21 @@ export function PublishedDatasetViewer({
   dataset,
   initialSettings,
   initialSlotIndex = 0,
+  slotIndex = null,
+  onSlotIndexChange,
   onClose,
   onStateChange,
   annotationNotes = [] as readonly PublishedViewerAnnotationNote[],
   anchorScope = 'primary',
   spotlightArea = null,
+  dataState = null,
 }: PublishedDatasetViewerProps) {
-  const [viewerState, setViewerState] = useState<ViewerState>({
+  const [fetchedState, setFetchedState] = useState<PublishedDatasetDataState>({
     status: 'loading',
     data: null,
     error: null,
   })
-  const [slot, setSlot] = useState(0)
+  const [internalSlot, setInternalSlot] = useState(0)
   const [playing, setPlaying] = useState(initialSettings.autoplay)
   const [stepSize, setStepSize] = useState<1 | 10 | 50>(initialSettings.step)
   const [slotLocked, setSlotLocked] = useState(() => readInitialSlotLocked())
@@ -961,21 +1060,31 @@ export function PublishedDatasetViewer({
     return new URLSearchParams(window.location.search).get('note')
   })
   const [noteShareStatus, setNoteShareStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const viewerState = dataState ?? fetchedState
+  const isExternallyManaged = dataState != null
+  const isSlotControlled = typeof slotIndex === 'number' && Number.isFinite(slotIndex)
 
   useEffect(() => {
+    onStateChange?.(null)
+    if (!isSlotControlled) {
+      setInternalSlot(Math.max(0, Math.floor(initialSlotIndex)))
+    }
+    setPlaying(initialSettings.autoplay)
+    setStepSize(initialSettings.step)
+    setSlotLocked(readInitialSlotLocked())
+  }, [dataset.path, initialSettings.autoplay, initialSettings.step, initialSlotIndex, isSlotControlled, onStateChange])
+
+  useEffect(() => {
+    if (isExternallyManaged) return
+
     const controller = new AbortController()
     const normalizedBase = viewerBaseUrl.replace(/\/$/, '')
 
-    setViewerState({
+    setFetchedState({
       status: 'loading',
       data: null,
       error: null,
     })
-    onStateChange?.(null)
-    setSlot(Math.max(0, Math.floor(initialSlotIndex)))
-    setPlaying(initialSettings.autoplay)
-    setStepSize(initialSettings.step)
-    setSlotLocked(readInitialSlotLocked())
 
     const load = async () => {
       try {
@@ -994,14 +1103,14 @@ export function PublishedDatasetViewer({
         }
 
         const payload = JSON.parse(text) as PublishedDatasetPayload
-        setViewerState({
+        setFetchedState({
           status: 'ready',
           data: payload,
           error: null,
         })
       } catch (error) {
         if (controller.signal.aborted) return
-        setViewerState({
+        setFetchedState({
           status: 'error',
           data: null,
           error: error instanceof Error ? error.message : 'Unknown dataset error',
@@ -1015,7 +1124,7 @@ export function PublishedDatasetViewer({
       controller.abort()
       onStateChange?.(null)
     }
-  }, [dataset, initialSettings.autoplay, initialSettings.step, initialSlotIndex, onStateChange, viewerBaseUrl])
+  }, [dataset.path, isExternallyManaged, onStateChange, viewerBaseUrl])
 
   const data = viewerState.data
   const totalSlots = Math.max(
@@ -1026,18 +1135,34 @@ export function PublishedDatasetViewer({
     Object.keys(data?.slots ?? {}).length,
   )
   const lastSlot = Math.max(0, totalSlots - 1)
+  const slot = isSlotControlled
+    ? Math.max(0, Math.min(lastSlot, Math.floor(slotIndex ?? 0)))
+    : Math.max(0, Math.min(lastSlot, internalSlot))
+  const setResolvedSlot = useCallback((nextSlot: number | ((previousSlot: number) => number)) => {
+    const previousSlot = slot
+    const targetSlot = typeof nextSlot === 'function' ? nextSlot(previousSlot) : nextSlot
+    const clampedSlot = Math.max(0, Math.min(lastSlot, Math.floor(targetSlot)))
+
+    if (!isSlotControlled) {
+      setInternalSlot(clampedSlot)
+    }
+    if (clampedSlot !== previousSlot) {
+      onSlotIndexChange?.(clampedSlot)
+    }
+  }, [isSlotControlled, lastSlot, onSlotIndexChange, slot])
+
+  useEffect(() => {
+    if (isSlotControlled || internalSlot <= lastSlot) return
+    setInternalSlot(lastSlot)
+  }, [internalSlot, isSlotControlled, lastSlot])
 
   useEffect(() => {
     if (!playing || slotLocked) return
     const intervalId = window.setInterval(() => {
-      setSlot(previous => Math.min(previous + stepSize, lastSlot))
+      setResolvedSlot(previous => Math.min(previous + stepSize, lastSlot))
     }, 240)
     return () => window.clearInterval(intervalId)
-  }, [lastSlot, playing, slotLocked, stepSize])
-
-  useEffect(() => {
-    setSlot(previous => Math.min(previous, lastSlot))
-  }, [lastSlot])
+  }, [lastSlot, playing, setResolvedSlot, slotLocked, stepSize])
 
   useEffect(() => {
     if (slot >= lastSlot) setPlaying(false)
@@ -1166,6 +1291,10 @@ export function PublishedDatasetViewer({
       summary: summarizeNoteCluster(leading[1]),
     }
   }, [filteredAnnotationNotes])
+  const timelineMarkers = useMemo(
+    () => summarizeTimelineMarkers(data, annotationNotes, totalSlots),
+    [annotationNotes, data, totalSlots],
+  )
   const buildChartNotePins = (
     notes: readonly PublishedViewerAnnotationNote[],
     chartKey: 'concentration' | 'distance' | 'proposal' | 'mev',
@@ -1452,7 +1581,7 @@ export function PublishedDatasetViewer({
           <Lock className="h-3.5 w-3.5" />
           {slotLocked ? 'Unlock' : 'Lock'}
         </button>
-        <button onClick={() => { setPlaying(false); setSlotLocked(false); setSlot(0) }} className="inline-flex items-center gap-1.5 rounded-xl border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-all hover:border-border-hover">
+        <button onClick={() => { setPlaying(false); setSlotLocked(false); setResolvedSlot(0) }} className="inline-flex items-center gap-1.5 rounded-xl border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-all hover:border-border-hover">
           <RotateCcw className="h-3.5 w-3.5" />
           Reset
         </button>
@@ -1461,21 +1590,64 @@ export function PublishedDatasetViewer({
             ×{option}
           </button>
         ))}
-        <div className="flex-1 min-w-[120px]">
-          <input
-            type="range"
-            min={0}
-            max={lastSlot}
-            step={1}
-            value={slot}
-            disabled={slotLocked}
-            onChange={event => { setPlaying(false); setSlot(Number(event.target.value)) }}
-            className="h-1.5 w-full appearance-none rounded-full disabled:cursor-not-allowed disabled:opacity-60"
-            style={{
-              background: `linear-gradient(90deg, rgba(37,99,235,0.95) 0%, rgba(37,99,235,0.95) ${timelineProgress}%, rgba(226,232,240,0.95) ${timelineProgress}%, rgba(226,232,240,0.95) 100%)`,
-            }}
-            aria-label="Simulation slot"
-          />
+        <div className="min-w-[220px] flex-1">
+          {timelineMarkers.length > 0 ? (
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[0.625rem] uppercase tracking-[0.08em] text-text-faint">
+              <span>Replay markers</span>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" /> notes</span>
+                <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#C2553A]" /> leader</span>
+                <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#D97706]" /> jump</span>
+              </div>
+            </div>
+          ) : null}
+          <div className="relative pt-3">
+            {timelineMarkers.length > 0 ? (
+              <div className="absolute inset-x-0 top-0 h-3">
+                {timelineMarkers.map(marker => {
+                  const left = lastSlot > 0 ? (marker.slotIndex / lastSlot) * 100 : 0
+                  const tone = marker.kind === 'leader'
+                    ? 'bg-[#C2553A]'
+                    : marker.kind === 'concentration'
+                      ? 'bg-[#D97706]'
+                      : 'bg-[#2563EB]'
+
+                  return (
+                    <button
+                      key={`${marker.kind}-${marker.slotIndex}`}
+                      type="button"
+                      title={marker.label}
+                      aria-label={marker.label}
+                      onClick={() => {
+                        setPlaying(false)
+                        setSlotLocked(false)
+                        setResolvedSlot(marker.slotIndex)
+                      }}
+                      className={cn(
+                        'absolute top-0 h-3 w-2 -translate-x-1/2 rounded-full border border-white/90 shadow-[0_6px_12px_rgba(15,23,42,0.16)] transition-transform hover:scale-110',
+                        tone,
+                      )}
+                      style={{ left: `${left}%` }}
+                    />
+                  )
+                })}
+              </div>
+            ) : null}
+            <input
+              type="range"
+              min={0}
+              max={lastSlot}
+              step={1}
+              value={slot}
+              disabled={slotLocked}
+              onChange={event => { setPlaying(false); setResolvedSlot(Number(event.target.value)) }}
+              className="h-1.5 w-full appearance-none rounded-full disabled:cursor-not-allowed disabled:opacity-60"
+              style={{
+                background: `linear-gradient(90deg, rgba(37,99,235,0.95) 0%, rgba(37,99,235,0.95) ${timelineProgress}%, rgba(226,232,240,0.95) ${timelineProgress}%, rgba(226,232,240,0.95) 100%)`,
+              }}
+              aria-label="Simulation slot"
+            />
+          </div>
         </div>
       </motion.div>
 

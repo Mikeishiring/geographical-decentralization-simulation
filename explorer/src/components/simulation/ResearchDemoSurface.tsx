@@ -22,6 +22,8 @@ import { PublishedReplayNotesPanel } from './PublishedReplayNotesPanel'
 import {
   PublishedDatasetViewer,
   dispatchPublishedReplayAnchorSelection,
+  type PublishedDatasetDataState,
+  type PublishedDatasetPayload,
   type PublishedReplayAnchorSelectionDetail,
   type PublishedViewerFocusArea,
   type PublishedViewerSnapshot,
@@ -29,6 +31,7 @@ import {
 import { SimulationAnalyticsDesk } from './SimulationAnalyticsDesk'
 import {
   analyticsCompareModeOptions,
+  alignSlotByProgress,
   analyticsMetricSeriesForPayload,
   analyticsMetricOptionsForView,
   ANALYTICS_VIEW_OPTIONS,
@@ -130,6 +133,8 @@ interface InitialWorkspaceState {
 interface ReplaySnapshotMetricCard extends PublishedReplayMetricStripCard {
   readonly focusArea: PublishedViewerFocusArea
   readonly anchor: PublishedReplayAnchorSelectionDetail
+  readonly metric: AnalyticsQueryMetric
+  readonly analyticsView: AnalyticsDeckView
 }
 
 interface PromptLauncher {
@@ -407,6 +412,8 @@ export function ResearchDemoSurface({
   const sharedReplayQuestionRef = useRef(initialWorkspaceState.replayQuestion?.trim() ?? '')
   const sharedPaperSectionRef = useRef(initialWorkspaceState.paperSectionId ?? '')
   const [pendingAutoReplayQuestion, setPendingAutoReplayQuestion] = useState(initialWorkspaceState.replayQuestion?.trim() ?? '')
+  const [primaryReplaySlotIndex, setPrimaryReplaySlotIndex] = useState(initialWorkspaceState.focusSlot ?? 0)
+  const [comparisonReplaySlotIndex, setComparisonReplaySlotIndex] = useState(initialWorkspaceState.compareFocusSlot ?? 0)
   const [viewerSnapshot, setViewerSnapshot] = useState<PublishedViewerSnapshot | null>(null)
   const [comparisonViewerSnapshot, setComparisonViewerSnapshot] = useState<PublishedViewerSnapshot | null>(null)
   const [activeReplayMetricCardId, setActiveReplayMetricCardId] = useState<string | null>(null)
@@ -641,8 +648,8 @@ export function ResearchDemoSurface({
         comparePath: comparePath || null,
         paperSectionId: selectedPaperSection?.id ?? null,
         replayQuestion: assistantDraft || null,
-        focusSlot: viewerSnapshot?.slotIndex ?? null,
-        compareFocusSlot: comparisonViewerSnapshot?.slotIndex ?? null,
+        focusSlot: primaryReplaySlotIndex,
+        compareFocusSlot: comparePath ? comparisonReplaySlotIndex : null,
       },
       metadata: selectedDataset.metadata ?? {},
     }, null, 2)
@@ -654,13 +661,14 @@ export function ResearchDemoSurface({
     audienceMode,
     autoplay,
     comparePath,
-    comparisonViewerSnapshot?.slotIndex,
+    comparisonReplaySlotIndex,
     paperLens,
+    primaryReplaySlotIndex,
     selectedDataset,
     selectedPaperSection?.id,
     step,
     theme,
-    viewerSnapshot?.slotIndex,
+    comparePath,
   ])
 
   const paperLenses = useMemo(() => ([
@@ -880,6 +888,51 @@ export function ResearchDemoSurface({
       ? `${comparisonDataset.evaluation} / ${paradigmLabel(comparisonDataset.paradigm)} serves as a foil. ${statements.join(' ')}${replayComparison}`
       : `Compare ${selectedDataset.result} against ${comparisonDataset.result} with the map, timeline, and current paper lens.${replayComparison}`
   }, [comparisonDataset, comparisonViewerSnapshot, selectedDataset, selectedMetadata, viewerSnapshot])
+  const comparisonHighlightCards = useMemo(() => {
+    if (!comparisonDataset) return []
+
+    if (viewerSnapshot && comparisonViewerSnapshot) {
+      return [
+        {
+          label: 'Active regions',
+          current: viewerSnapshot.activeRegions.toLocaleString(),
+          compare: comparisonViewerSnapshot.activeRegions.toLocaleString(),
+          tone: viewerSnapshot.activeRegions > comparisonViewerSnapshot.activeRegions ? 'Higher spread' : viewerSnapshot.activeRegions < comparisonViewerSnapshot.activeRegions ? 'Tighter spread' : 'Matched spread',
+        },
+        {
+          label: 'Gini',
+          current: viewerSnapshot.currentGini != null ? formatIndexValue(viewerSnapshot.currentGini) : 'N/A',
+          compare: comparisonViewerSnapshot.currentGini != null ? formatIndexValue(comparisonViewerSnapshot.currentGini) : 'N/A',
+          tone: viewerSnapshot.currentGini != null && comparisonViewerSnapshot.currentGini != null
+            ? viewerSnapshot.currentGini > comparisonViewerSnapshot.currentGini
+              ? 'More concentrated'
+              : viewerSnapshot.currentGini < comparisonViewerSnapshot.currentGini
+                ? 'Less concentrated'
+                : 'Same concentration'
+            : 'Awaiting exact readout',
+        },
+        {
+          label: 'Proposal time',
+          current: viewerSnapshot.currentProposalTime != null ? formatMillisecondsSeriesValue(viewerSnapshot.currentProposalTime) : 'N/A',
+          compare: comparisonViewerSnapshot.currentProposalTime != null ? formatMillisecondsSeriesValue(comparisonViewerSnapshot.currentProposalTime) : 'N/A',
+          tone: viewerSnapshot.currentProposalTime != null && comparisonViewerSnapshot.currentProposalTime != null
+            ? viewerSnapshot.currentProposalTime > comparisonViewerSnapshot.currentProposalTime
+              ? 'Slower timing'
+              : viewerSnapshot.currentProposalTime < comparisonViewerSnapshot.currentProposalTime
+                ? 'Faster timing'
+                : 'Timing aligned'
+            : 'Awaiting timing readout',
+        },
+      ]
+    }
+
+    return comparisonMetrics.slice(0, 3).map(metric => ({
+      label: metric.label,
+      current: metric.format(metric.current),
+      compare: metric.format(metric.compare),
+      tone: 'Scenario posture',
+    }))
+  }, [comparisonDataset, comparisonMetrics, comparisonViewerSnapshot, viewerSnapshot])
 
   const viewPresets = useMemo(() => ([
     {
@@ -986,22 +1039,30 @@ export function ResearchDemoSurface({
     }
   }, [comparisonDataset, splitCompareActive])
 
+  useEffect(() => {
+    setPrimaryReplaySlotIndex(initialWorkspaceState.focusSlot ?? 0)
+  }, [initialWorkspaceState.focusSlot, selectedDataset?.path])
+
+  useEffect(() => {
+    setComparisonReplaySlotIndex(initialWorkspaceState.compareFocusSlot ?? 0)
+  }, [comparisonDataset?.path, initialWorkspaceState.compareFocusSlot])
+
   const currentSlotNotesQuery = useQuery({
-    enabled: Boolean(selectedDataset && viewerSnapshot),
+    enabled: Boolean(selectedDataset),
     queryKey: [
       'published-replay-inline-notes',
       selectedDataset?.path ?? '',
       splitCompareActive ? comparisonDataset?.path ?? '' : '',
-      viewerSnapshot?.slotIndex ?? -1,
-      splitCompareActive ? comparisonViewerSnapshot?.slotIndex ?? -1 : -1,
+      primaryReplaySlotIndex,
+      splitCompareActive ? comparisonReplaySlotIndex : -1,
       paperLens,
       audienceMode,
     ],
     queryFn: () => listPublishedReplayNotes({
       datasetPath: selectedDataset!.path,
       comparePath: splitCompareActive ? comparisonDataset?.path ?? null : null,
-      slotIndex: viewerSnapshot!.slotIndex,
-      comparisonSlotIndex: splitCompareActive ? comparisonViewerSnapshot?.slotIndex ?? null : null,
+      slotIndex: primaryReplaySlotIndex,
+      comparisonSlotIndex: splitCompareActive ? comparisonReplaySlotIndex : null,
       paperLens,
       audienceMode,
     }),
@@ -1032,6 +1093,48 @@ export function ResearchDemoSurface({
   })
   const primaryAnalyticsPayload = primaryAnalyticsQuery.data ?? null
   const comparisonAnalyticsPayload = comparisonAnalyticsQuery.data ?? null
+  const primaryViewerDataState = useMemo<PublishedDatasetDataState>(() => {
+    if (primaryAnalyticsQuery.isError) {
+      return {
+        status: 'error',
+        data: null,
+        error: (primaryAnalyticsQuery.error as Error).message,
+      }
+    }
+    if (primaryAnalyticsPayload) {
+      return {
+        status: 'ready',
+        data: primaryAnalyticsPayload as PublishedDatasetPayload,
+        error: null,
+      }
+    }
+    return {
+      status: 'loading',
+      data: null,
+      error: null,
+    }
+  }, [primaryAnalyticsPayload, primaryAnalyticsQuery.error, primaryAnalyticsQuery.isError])
+  const comparisonViewerDataState = useMemo<PublishedDatasetDataState>(() => {
+    if (comparisonAnalyticsQuery.isError) {
+      return {
+        status: 'error',
+        data: null,
+        error: (comparisonAnalyticsQuery.error as Error).message,
+      }
+    }
+    if (comparisonAnalyticsPayload) {
+      return {
+        status: 'ready',
+        data: comparisonAnalyticsPayload as PublishedDatasetPayload,
+        error: null,
+      }
+    }
+    return {
+      status: 'loading',
+      data: null,
+      error: null,
+    }
+  }, [comparisonAnalyticsPayload, comparisonAnalyticsQuery.error, comparisonAnalyticsQuery.isError])
 
   const buildWorkspaceUrl = useCallback((overrides?: Partial<{
     selectedEvaluation: string
@@ -1070,9 +1173,9 @@ export function ResearchDemoSurface({
       audienceMode,
       replayQuestion: assistantDraft.trim(),
       paperSectionId: selectedPaperSection?.id ?? paperSectionId,
-      focusSlot: viewerSnapshot?.slotIndex ?? initialWorkspaceState.focusSlot ?? null,
+      focusSlot: primaryReplaySlotIndex,
       compareFocusSlot: splitCompareActive
-        ? comparisonViewerSnapshot?.slotIndex ?? initialWorkspaceState.compareFocusSlot ?? null
+        ? comparisonReplaySlotIndex
         : null,
       analyticsView,
       analyticsMetric,
@@ -1138,11 +1241,10 @@ export function ResearchDemoSurface({
     autoplay,
     comparePath,
     comparisonDataset?.path,
-    comparisonViewerSnapshot?.slotIndex,
-    initialWorkspaceState.compareFocusSlot,
-    initialWorkspaceState.focusSlot,
+    comparisonReplaySlotIndex,
     paperLens,
     paperSectionId,
+    primaryReplaySlotIndex,
     selectedDataset?.path,
     selectedEvaluation,
     selectedPaperSection?.id,
@@ -1151,7 +1253,6 @@ export function ResearchDemoSurface({
     splitCompareActive,
     step,
     theme,
-    viewerSnapshot?.slotIndex,
   ])
 
   const applyWorkspacePose = (config: {
@@ -1174,13 +1275,33 @@ export function ResearchDemoSurface({
   const primaryAnalyticsTotalSlots = totalSlotsFromPayload(primaryAnalyticsPayload)
   const comparisonAnalyticsTotalSlots = totalSlotsFromPayload(comparisonAnalyticsPayload)
   const primaryAnalyticsSlot = clampSlotIndex(
-    viewerSnapshot?.slotIndex ?? initialWorkspaceState.focusSlot ?? 0,
+    primaryReplaySlotIndex,
     primaryAnalyticsTotalSlots,
   )
   const comparisonAnalyticsSlot = clampSlotIndex(
-    comparisonViewerSnapshot?.slotIndex ?? initialWorkspaceState.compareFocusSlot ?? 0,
+    comparisonReplaySlotIndex,
     comparisonAnalyticsTotalSlots,
   )
+  useEffect(() => {
+    if (primaryReplaySlotIndex === primaryAnalyticsSlot) return
+    setPrimaryReplaySlotIndex(primaryAnalyticsSlot)
+  }, [primaryAnalyticsSlot, primaryReplaySlotIndex])
+  useEffect(() => {
+    if (!splitCompareActive) return
+    const alignedComparisonSlot = alignSlotByProgress(
+      primaryAnalyticsSlot,
+      primaryAnalyticsTotalSlots,
+      comparisonAnalyticsTotalSlots,
+    )
+    if (comparisonReplaySlotIndex === alignedComparisonSlot) return
+    setComparisonReplaySlotIndex(alignedComparisonSlot)
+  }, [
+    comparisonAnalyticsTotalSlots,
+    comparisonReplaySlotIndex,
+    primaryAnalyticsSlot,
+    primaryAnalyticsTotalSlots,
+    splitCompareActive,
+  ])
   const analyticsViewOptions = ANALYTICS_VIEW_OPTIONS
   const analyticsMetricOptions = useMemo(
     () => analyticsMetricOptionsForView(analyticsView),
@@ -1532,9 +1653,9 @@ export function ResearchDemoSurface({
         'replay',
         selectedDataset.path,
         selectedPaperSection?.id ?? 'none',
-        viewerSnapshot?.slotIndex ?? 'all',
+        primaryReplaySlotIndex,
         comparisonDataset?.path ?? 'none',
-        comparisonViewerSnapshot?.slotIndex ?? 'all',
+        splitCompareActive ? comparisonReplaySlotIndex : 'all',
       ].join(':')
     : null
 
@@ -1806,6 +1927,7 @@ export function ResearchDemoSurface({
     readonly focusArea: PublishedViewerFocusArea
     readonly anchor: PublishedReplayAnchorSelectionDetail
     readonly metric: AnalyticsQueryMetric
+    readonly analyticsView: AnalyticsDeckView
     readonly currentValue: number | null | undefined
     readonly color: string
     readonly formatSeriesValue: (value: number) => string
@@ -1816,28 +1938,28 @@ export function ResearchDemoSurface({
     detail: input.detail,
     color: input.color,
     series: analyticsMetricSeriesForPayload(primaryAnalyticsPayload, input.metric) ?? [],
-    currentSlotIndex: viewerSnapshot?.slotIndex ?? initialWorkspaceState.focusSlot ?? 0,
+    currentSlotIndex: primaryAnalyticsSlot,
     totalSlotsLabel: `${primaryAnalyticsTotalSlots.toLocaleString()} slots tracked`,
     formatSeriesValue: input.formatSeriesValue,
     comparisonSeries: splitCompareActive
       ? analyticsMetricSeriesForPayload(comparisonAnalyticsPayload, input.metric) ?? []
       : undefined,
     comparisonSlotIndex: splitCompareActive
-      ? comparisonViewerSnapshot?.slotIndex ?? initialWorkspaceState.compareFocusSlot ?? 0
+      ? comparisonAnalyticsSlot
       : undefined,
     comparisonLabel: splitCompareActive && comparisonDataset ? paradigmLabel(comparisonDataset.paradigm) : undefined,
     focusArea: input.focusArea,
     anchor: input.anchor,
+    metric: input.metric,
+    analyticsView: input.analyticsView,
   }), [
     comparisonAnalyticsPayload,
+    comparisonAnalyticsSlot,
     comparisonDataset,
-    comparisonViewerSnapshot?.slotIndex,
-    initialWorkspaceState.compareFocusSlot,
-    initialWorkspaceState.focusSlot,
     primaryAnalyticsPayload,
+    primaryAnalyticsSlot,
     primaryAnalyticsTotalSlots,
     splitCompareActive,
-    viewerSnapshot?.slotIndex,
   ])
 
   const heroSnapshotCards = useMemo<ReplaySnapshotMetricCard[]>(() => {
@@ -1851,6 +1973,7 @@ export function ResearchDemoSurface({
         focusArea: 'geography',
         anchor: { kind: 'metric', key: 'active_regions', label: 'Metric · Active regions' },
         metric: 'active_regions',
+        analyticsView: 'geography',
         currentValue: viewerSnapshot?.activeRegions,
         color: '#7C3AED',
         formatSeriesValue: formatCountValue,
@@ -1862,6 +1985,7 @@ export function ResearchDemoSurface({
         focusArea: 'geography',
         anchor: { kind: 'metric', key: 'leader_share', label: 'Metric · Leader share' },
         metric: 'leader_share',
+        analyticsView: 'geography',
         currentValue: viewerSnapshot?.dominantRegionShare,
         color: '#C2553A',
         formatSeriesValue: formatPercentSeriesValue,
@@ -1873,6 +1997,7 @@ export function ResearchDemoSurface({
         focusArea: 'concentration',
         anchor: { kind: 'metric', key: 'gini', label: 'Metric · Gini' },
         metric: 'gini',
+        analyticsView: 'concentration',
         currentValue: viewerSnapshot?.currentGini,
         color: '#C2553A',
         formatSeriesValue: formatIndexValue,
@@ -1886,6 +2011,7 @@ export function ResearchDemoSurface({
         focusArea: 'performance',
         anchor: { kind: 'metric', key: 'proposal_time', label: 'Metric · Proposal time' },
         metric: 'proposal_times',
+        analyticsView: 'latency',
         currentValue: viewerSnapshot?.currentProposalTime,
         color: '#D97706',
         formatSeriesValue: formatMillisecondsSeriesValue,
@@ -1903,6 +2029,7 @@ export function ResearchDemoSurface({
       focusArea: 'performance',
       anchor: { kind: 'metric', key: 'liveness', label: 'Metric · Liveness' },
       metric: 'liveness',
+      analyticsView: 'latency',
       currentValue: viewerSnapshot?.currentLiveness,
       color: '#16A34A',
       formatSeriesValue: formatPercentSeriesValue,
@@ -1914,6 +2041,7 @@ export function ResearchDemoSurface({
       focusArea: 'concentration',
       anchor: { kind: 'metric', key: 'hhi', label: 'Metric · HHI' },
       metric: 'hhi',
+      analyticsView: 'concentration',
       currentValue: viewerSnapshot?.currentHhi,
       color: '#2563EB',
       formatSeriesValue: formatIndexValue,
@@ -1925,6 +2053,7 @@ export function ResearchDemoSurface({
       focusArea: 'performance',
       anchor: { kind: 'metric', key: 'mev', label: 'Metric · MEV' },
       metric: 'mev',
+      analyticsView: 'economics',
       currentValue: viewerSnapshot?.currentMev,
       color: '#2563EB',
       formatSeriesValue: formatEthSeriesValue,
@@ -1938,6 +2067,7 @@ export function ResearchDemoSurface({
       focusArea: 'performance',
       anchor: { kind: 'metric', key: 'failed_block_proposals', label: 'Metric · Failed proposals' },
       metric: 'failed_block_proposals',
+      analyticsView: 'latency',
       currentValue: viewerSnapshot?.currentFailedBlockProposals,
       color: '#BE123C',
       formatSeriesValue: formatCountValue,
@@ -1986,11 +2116,11 @@ export function ResearchDemoSurface({
     resetReplayPublishMutation()
   }, [
     comparisonDataset?.path,
-    comparisonViewerSnapshot?.slotIndex,
+    comparisonReplaySlotIndex,
+    primaryReplaySlotIndex,
     resetReplayPublishMutation,
     selectedDataset?.path,
     selectedPaperSection?.id,
-    viewerSnapshot?.slotIndex,
   ])
 
   useEffect(() => {
@@ -2042,14 +2172,14 @@ export function ResearchDemoSurface({
       params.delete('paperSection')
     }
 
-    if (typeof viewerSnapshot?.slotIndex === 'number' && viewerSnapshot.slotIndex > 0) {
-      params.set('slot', String(viewerSnapshot.slotIndex))
+    if (primaryReplaySlotIndex > 0) {
+      params.set('slot', String(primaryReplaySlotIndex))
     } else {
       params.delete('slot')
     }
 
-    if (splitCompareActive && typeof comparisonViewerSnapshot?.slotIndex === 'number' && comparisonViewerSnapshot.slotIndex > 0) {
-      params.set('compareSlot', String(comparisonViewerSnapshot.slotIndex))
+    if (splitCompareActive && comparisonReplaySlotIndex > 0) {
+      params.set('compareSlot', String(comparisonReplaySlotIndex))
     } else {
       params.delete('compareSlot')
     }
@@ -2064,8 +2194,9 @@ export function ResearchDemoSurface({
     autoplay,
     comparePath,
     comparisonDataset?.path,
-    comparisonViewerSnapshot?.slotIndex,
+    comparisonReplaySlotIndex,
     paperLens,
+    primaryReplaySlotIndex,
     selectedPaperSection?.id,
     selectedDataset?.path,
     selectedEvaluation,
@@ -2074,7 +2205,6 @@ export function ResearchDemoSurface({
     splitCompareActive,
     step,
     theme,
-    viewerSnapshot?.slotIndex,
   ])
 
   const persistViewerSettings = () => {
@@ -2109,9 +2239,25 @@ export function ResearchDemoSurface({
     viewerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  const handlePrimaryReplaySlotChange = useCallback((nextSlotIndex: number) => {
+    setPrimaryReplaySlotIndex(nextSlotIndex)
+    if (!splitCompareActive) return
+    setComparisonReplaySlotIndex(alignSlotByProgress(
+      nextSlotIndex,
+      primaryAnalyticsTotalSlots,
+      comparisonAnalyticsTotalSlots,
+    ))
+  }, [comparisonAnalyticsTotalSlots, primaryAnalyticsTotalSlots, splitCompareActive])
+
+  const handleComparisonReplaySlotChange = useCallback((nextSlotIndex: number) => {
+    setComparisonReplaySlotIndex(nextSlotIndex)
+  }, [])
+
   const handleReplayMetricCardActivate = useCallback((card: ReplaySnapshotMetricCard) => {
     setActiveReplayMetricCardId(card.id)
     setViewerSpotlightArea(card.focusArea)
+    setAnalyticsView(card.analyticsView)
+    setAnalyticsMetric(card.metric)
     handleFocusViewer()
     dispatchPublishedReplayAnchorSelection(card.anchor)
   }, [handleFocusViewer])
@@ -2254,6 +2400,7 @@ export function ResearchDemoSurface({
               cards={heroSnapshotCards}
               activeCardId={activeReplayMetricCardId}
               onCardActivate={card => handleReplayMetricCardActivate(card as ReplaySnapshotMetricCard)}
+              onCardScrub={(_card, slotIndex) => handlePrimaryReplaySlotChange(slotIndex)}
             />
           </motion.div>
         </motion.div>
@@ -2284,6 +2431,90 @@ export function ResearchDemoSurface({
                 </div>
               </div>
 
+              {comparisonDataset ? (
+                <div className="border-b border-rule bg-[linear-gradient(135deg,rgba(248,250,252,0.96),rgba(255,255,255,0.98))] px-5 py-4">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="max-w-3xl">
+                      <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Comparison posture</div>
+                      <div className="mt-1 text-sm font-medium text-text-primary">
+                        {splitCompareActive ? 'Split compare is live in the main reading flow.' : 'Comparison is staged and ready to activate.'}
+                      </div>
+                      <div className="mt-2 text-sm leading-6 text-text-primary">{comparisonNarrative}</div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => applyViewPreset('compare')} className="follow-up-chip">
+                        {splitCompareActive ? 'Compare active' : 'Activate split compare'}
+                      </button>
+                      <button onClick={() => handlePrimeReplayQuestion(`Compare ${activeViewer.dataset.result} against ${comparisonDataset.result} and tell me what changes materially.`, true)} className="follow-up-chip">
+                        Ask compare question
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-accent bg-white px-4 py-4">
+                        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Primary scenario</div>
+                        <div className="mt-2 text-sm font-medium text-text-primary">
+                          {activeViewer.dataset.evaluation} · {paradigmLabel(activeViewer.dataset.paradigm)}
+                        </div>
+                        <div className="mt-1 text-xs text-muted">{activeViewer.dataset.result}</div>
+                      </div>
+
+                      <div className="rounded-xl border border-rule bg-white px-4 py-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Comparison scenario</div>
+                            <div className="mt-2 text-sm font-medium text-text-primary">
+                              {comparisonDataset.evaluation} · {paradigmLabel(comparisonDataset.paradigm)}
+                            </div>
+                            <div className="mt-1 text-xs text-muted">{comparisonDataset.result}</div>
+                          </div>
+                          {splitCompareActive ? (
+                            <span className="rounded-full bg-accent px-2 py-1 text-2xs font-medium uppercase tracking-[0.1em] text-white">
+                              Live
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-3">
+                          <label className="mb-1.5 block text-xs text-muted">Compare against</label>
+                          <select
+                            value={comparisonDataset.path}
+                            onChange={event => setComparePath(event.target.value)}
+                            className="w-full rounded-lg border border-rule bg-surface-active px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
+                          >
+                            {comparisonCandidates.map(entry => (
+                              <option key={entry.path} value={entry.path}>
+                                {entry.evaluation} · {paradigmLabel(entry.paradigm)} · {entry.result}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {comparisonHighlightCards.map(card => (
+                        <div key={card.label} className="rounded-xl border border-rule bg-white px-4 py-4">
+                          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+                          <div className="mt-3 flex items-end justify-between gap-3">
+                            <div>
+                              <div className="text-xs text-muted">Primary</div>
+                              <div className="mt-1 text-sm font-medium text-text-primary">{card.current}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs text-muted">Compare</div>
+                              <div className="mt-1 text-sm font-medium text-text-primary">{card.compare}</div>
+                            </div>
+                          </div>
+                          <div className="mt-3 text-xs text-muted">{card.tone}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               {splitCompareActive && comparisonDataset ? (
                 <div className="grid gap-4 xl:grid-cols-2">
                   <div className="space-y-3">
@@ -2298,8 +2529,11 @@ export function ResearchDemoSurface({
                       key={`primary:${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}:${initialWorkspaceState.focusSlot ?? 0}`}
                       viewerBaseUrl={viewerBaseUrl}
                       dataset={activeViewer.dataset}
+                      dataState={primaryViewerDataState}
                       initialSettings={activeViewer.settings}
                       initialSlotIndex={initialWorkspaceState.focusSlot}
+                      slotIndex={primaryReplaySlotIndex}
+                      onSlotIndexChange={handlePrimaryReplaySlotChange}
                       onStateChange={setViewerSnapshot}
                       annotationNotes={primarySlotNotes}
                       anchorScope="primary"
@@ -2319,8 +2553,11 @@ export function ResearchDemoSurface({
                       key={`compare:${comparisonDataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}:${initialWorkspaceState.compareFocusSlot ?? 0}`}
                       viewerBaseUrl={viewerBaseUrl}
                       dataset={comparisonDataset}
+                      dataState={comparisonViewerDataState}
                       initialSettings={activeViewer.settings}
                       initialSlotIndex={initialWorkspaceState.compareFocusSlot}
+                      slotIndex={comparisonReplaySlotIndex}
+                      onSlotIndexChange={handleComparisonReplaySlotChange}
                       onStateChange={setComparisonViewerSnapshot}
                       annotationNotes={comparisonSlotNotes}
                       anchorScope="comparison"
@@ -2333,8 +2570,11 @@ export function ResearchDemoSurface({
                   key={`${activeViewer.dataset.path}:${theme}:${step}:${autoplay ? 'auto' : 'manual'}:${initialWorkspaceState.focusSlot ?? 0}`}
                   viewerBaseUrl={viewerBaseUrl}
                   dataset={activeViewer.dataset}
+                  dataState={primaryViewerDataState}
                   initialSettings={activeViewer.settings}
                   initialSlotIndex={initialWorkspaceState.focusSlot}
+                  slotIndex={primaryReplaySlotIndex}
+                  onSlotIndexChange={handlePrimaryReplaySlotChange}
                   onStateChange={setViewerSnapshot}
                   annotationNotes={primarySlotNotes}
                   anchorScope="primary"
@@ -2369,6 +2609,7 @@ export function ResearchDemoSurface({
                     cards={resultSnapshotCards}
                     activeCardId={activeReplayMetricCardId}
                     onCardActivate={card => handleReplayMetricCardActivate(card as ReplaySnapshotMetricCard)}
+                    onCardScrub={(_card, slotIndex) => handlePrimaryReplaySlotChange(slotIndex)}
                   />
                 </div>
               </div>
@@ -2424,6 +2665,7 @@ export function ResearchDemoSurface({
                           )}
                         >
                           <div className="text-xs font-medium text-text-primary">{profile.label}</div>
+                          <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{profile.description}</div>
                         </button>
                       ))}
                     </div>
@@ -2444,6 +2686,7 @@ export function ResearchDemoSurface({
                           )}
                         >
                           <div className="text-xs font-medium text-text-primary">{preset.label}</div>
+                          <div className="mt-1 text-[0.6875rem] leading-5 text-muted">{preset.description}</div>
                         </button>
                       ))}
                     </div>
@@ -3052,162 +3295,69 @@ export function ResearchDemoSurface({
 
               <details className="lab-stage overflow-hidden">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
-                  <span className="text-sm font-medium text-text-primary">Comparison & utilities</span>
-                  <span className="text-xs text-muted">{splitCompareActive ? 'Compare active' : 'Compare ready'}</span>
+                  <span className="text-sm font-medium text-text-primary">Utilities</span>
+                  <span className="text-xs text-muted">Viewer actions</span>
                 </summary>
 
                 <div className="border-t border-rule px-5 py-5">
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => applyViewPreset('compare')}
-                      className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                      onClick={handleFocusViewer}
+                      disabled={!selectedDataset}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      Activate split compare
+                      Return to replay
+                    </button>
+                    <button
+                      onClick={handleLaunchViewer}
+                      disabled={!selectedDataset}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Open standalone viewer →
                     </button>
                     <button
                       onClick={() => applyAudienceMode('reviewer')}
-                      className="rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover"
+                      className="rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover"
                     >
                       Reviewer mode
                     </button>
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="mb-1.5 block text-xs text-muted">Compare against</label>
-                    <select
-                      value={comparisonDataset?.path ?? ''}
-                      onChange={event => setComparePath(event.target.value)}
-                      className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-text-primary outline-none focus:ring-1 focus:ring-accent"
+                    <button
+                      onClick={() => setShowConfig(current => !current)}
+                      disabled={!selectionConfig}
+                      className="rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {comparisonCandidates.map(entry => (
-                        <option key={entry.path} value={entry.path}>
-                          {entry.evaluation} · {paradigmLabel(entry.paradigm)} · {entry.result}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-                    <div>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-xl border border-accent bg-white px-4 py-4">
-                          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Active scenario</div>
-                          <div className="mt-2 text-sm font-medium text-text-primary">
-                            {selectedDataset ? `${selectedDataset.evaluation} · ${paradigmLabel(selectedDataset.paradigm)}` : 'No scenario'}
-                          </div>
-                          <div className="mt-1 text-xs text-muted">{selectedDataset?.result ?? 'N/A'}</div>
-                          <div className="mt-3 text-xs leading-5 text-muted">
-                            {selectedMetadata?.description ?? 'Select a scenario to reveal its published description.'}
-                          </div>
-                        </div>
-
-                        <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
-                          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Comparison scenario</div>
-                          <div className="mt-2 text-sm font-medium text-text-primary">
-                            {comparisonDataset ? `${comparisonDataset.evaluation} · ${paradigmLabel(comparisonDataset.paradigm)}` : 'No comparison'}
-                          </div>
-                          <div className="mt-1 text-xs text-muted">{comparisonDataset?.result ?? 'N/A'}</div>
-                          <div className="mt-3 text-xs leading-5 text-muted">
-                            {comparisonDataset?.metadata?.description ?? 'Choose a second scenario to compare against the active replay.'}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        {comparisonMetrics.map(metric => {
-                          const currentValue = metric.current
-                          const compareValue = metric.compare
-                          const hasBoth = typeof currentValue === 'number' && typeof compareValue === 'number'
-                          const difference = hasBoth ? currentValue - compareValue : null
-                          const differenceLabel = difference == null
-                            ? 'No delta'
-                            : difference > 0
-                              ? 'Higher than comparison'
-                              : difference < 0
-                                ? 'Lower than comparison'
-                                : 'Matches comparison'
-
-                          return (
-                            <div key={metric.label} className="rounded-xl border border-rule bg-white px-4 py-4">
-                              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{metric.label}</div>
-                              <div className="mt-3 flex items-end justify-between gap-3">
-                                <div>
-                                  <div className="text-xs text-muted">Active</div>
-                                  <div className="mt-1 text-sm font-medium text-text-primary">{metric.format(currentValue)}</div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-xs text-muted">Compare</div>
-                                  <div className="mt-1 text-sm font-medium text-text-primary">{metric.format(compareValue)}</div>
-                                </div>
-                              </div>
-                              <div className="mt-3 text-xs text-muted">{differenceLabel}</div>
-                            </div>
-                          )
-                        })}
-                      </div>
-
-                      <div className="mt-4 rounded-xl border border-rule bg-surface-active px-4 py-4">
-                        <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Comparison readout</div>
-                        <div className="mt-2 text-sm leading-6 text-text-primary">{comparisonNarrative}</div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">Actions</div>
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                        <button
-                          onClick={handleFocusViewer}
-                          disabled={!selectedDataset}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          Return to replay
-                        </button>
-                        <button
-                          onClick={handleLaunchViewer}
-                          disabled={!selectedDataset}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          Open standalone viewer →
-                        </button>
-                        <a
-                          href={datasetUrl ?? undefined}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={cn(
-                            'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
-                            !datasetUrl && 'pointer-events-none opacity-60',
-                          )}
-                        >
-                          Download data.json
-                        </a>
-                        <button
-                          onClick={() => setShowConfig(current => !current)}
-                          disabled={!selectionConfig}
-                          className="inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {showConfig ? 'Hide config' : 'Inspect config'}
-                        </button>
-                        <a
-                          href={sourceUrl ?? undefined}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={cn(
-                            'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
-                            !sourceUrl && 'pointer-events-none opacity-60',
-                          )}
-                        >
-                          View source
-                        </a>
-                      </div>
-
-                      {showConfig && selectionConfig && (
-                        <div className="mt-4 rounded-xl border border-rule bg-surface-active p-4">
-                          <div className="mb-2 text-xs text-muted">Selection config</div>
-                          <pre className="overflow-x-auto text-xs text-text-primary">{selectionConfig}</pre>
-                        </div>
+                      {showConfig ? 'Hide config' : 'Inspect config'}
+                    </button>
+                    <a
+                      href={datasetUrl ?? undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={cn(
+                        'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
+                        !datasetUrl && 'pointer-events-none opacity-60',
                       )}
-                    </div>
+                    >
+                      Download data.json
+                    </a>
+                    <a
+                      href={sourceUrl ?? undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={cn(
+                        'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
+                        !sourceUrl && 'pointer-events-none opacity-60',
+                      )}
+                    >
+                      View source
+                    </a>
                   </div>
+
+                  {showConfig && selectionConfig ? (
+                    <div className="mt-4 rounded-xl border border-rule bg-surface-active p-4">
+                      <div className="mb-2 text-xs text-muted">Selection config</div>
+                      <pre className="overflow-x-auto text-xs text-text-primary">{selectionConfig}</pre>
+                    </div>
+                  ) : null}
                 </div>
               </details>
 
