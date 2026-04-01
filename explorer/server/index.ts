@@ -163,6 +163,8 @@ const MAX_PUBLISHED_TAKEAWAY_LENGTH = Math.max(80, Number(process.env.MAX_PUBLIS
 const MAX_PUBLISHED_AUTHOR_LENGTH = Math.max(24, Number(process.env.MAX_PUBLISHED_AUTHOR_LENGTH ?? 80))
 const MAX_EXPLORATION_MODEL_LENGTH = Math.max(32, Number(process.env.MAX_EXPLORATION_MODEL_LENGTH ?? 120))
 const MAX_EDITOR_NOTE_LENGTH = Math.max(40, Number(process.env.MAX_EDITOR_NOTE_LENGTH ?? 240))
+const MAX_REPLY_AUTHOR_LENGTH = Math.max(12, Number(process.env.MAX_REPLY_AUTHOR_LENGTH ?? 80))
+const MAX_REPLY_BODY_LENGTH = Math.max(40, Number(process.env.MAX_REPLY_BODY_LENGTH ?? 500))
 
 function getRequesterId(req: express.Request): string {
   const forwarded = req.headers['x-forwarded-for']
@@ -553,6 +555,15 @@ interface PublishExplorationRequest {
   title?: string
   takeaway?: string
   author?: string
+}
+
+interface CreateExplorationReplyRequest {
+  author?: string
+  body?: string
+}
+
+interface VoteExplorationReplyRequest {
+  delta?: number
 }
 
 interface EditorialExplorationRequest {
@@ -3890,6 +3901,52 @@ app.post('/api/explorations/:id/publish', (req, res) => {
   })
   if (!updated) {
     res.status(404).json({ error: 'Exploration not found' })
+    return
+  }
+
+  res.json(updated)
+})
+
+app.post('/api/explorations/:id/replies', (req, res) => {
+  const { author, body } = req.body as CreateExplorationReplyRequest
+  const trimmedBody = body?.trim()
+  const trimmedAuthor = author?.trim()
+
+  if (!trimmedBody) {
+    res.status(400).json({ error: 'Reply text is required.' })
+    return
+  }
+  if (trimmedBody.length > MAX_REPLY_BODY_LENGTH) {
+    res.status(400).json({ error: `Keep replies under ${MAX_REPLY_BODY_LENGTH} characters.` })
+    return
+  }
+  if (trimmedAuthor && trimmedAuthor.length > MAX_REPLY_AUTHOR_LENGTH) {
+    res.status(400).json({ error: `author is too long. Keep it under ${MAX_REPLY_AUTHOR_LENGTH} characters.` })
+    return
+  }
+
+  const reply = explorationStore.addReply(req.params.id, {
+    author: trimmedAuthor || 'Anonymous',
+    body: trimmedBody,
+  })
+  if (!reply) {
+    res.status(404).json({ error: 'Exploration not found' })
+    return
+  }
+
+  res.status(201).json(reply)
+})
+
+app.post('/api/explorations/:id/replies/:replyId/vote', (req, res) => {
+  const delta = (req.body as VoteExplorationReplyRequest).delta
+  if (delta !== 1 && delta !== -1) {
+    res.status(400).json({ error: 'delta must be 1 or -1' })
+    return
+  }
+
+  const updated = explorationStore.voteReply(req.params.id, req.params.replyId, delta)
+  if (!updated) {
+    res.status(404).json({ error: 'Reply not found' })
     return
   }
 

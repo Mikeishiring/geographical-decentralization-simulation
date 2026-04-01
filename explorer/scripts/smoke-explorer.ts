@@ -253,6 +253,38 @@ async function main() {
       const getExplorationResponse = await fetch(`${BASE_URL}/api/explorations/${persistedExplorationId}`)
       await assertOk(getExplorationResponse, 'Expected /api/explorations/:id to succeed for the persisted history match')
 
+      const replyResponse = await fetch(`${BASE_URL}/api/explorations/${persistedExplorationId}/replies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          author: 'smoke-reply',
+          body: 'Reply smoke test',
+        }),
+      })
+      await assertOk(replyResponse, 'Expected /api/explorations/:id/replies to succeed')
+      const replyPayload = await replyResponse.json() as Record<string, unknown>
+      assert(replyPayload.author === 'smoke-reply', 'Expected reply creation to preserve the author')
+      assert(replyPayload.body === 'Reply smoke test', 'Expected reply creation to preserve the body')
+      assert(typeof replyPayload.id === 'string' && replyPayload.id.length > 0, 'Expected reply creation to return a reply ID')
+      const replyId = replyPayload.id as string
+
+      const voteReplyResponse = await fetch(`${BASE_URL}/api/explorations/${persistedExplorationId}/replies/${replyId}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delta: 1 }),
+      })
+      await assertOk(voteReplyResponse, 'Expected /api/explorations/:id/replies/:replyId/vote to succeed')
+      const votedReplyPayload = await voteReplyResponse.json() as Record<string, unknown>
+      assert(votedReplyPayload.votes === 1, 'Expected reply vote endpoint to increment the vote count')
+
+      const explorationWithRepliesResponse = await fetch(`${BASE_URL}/api/explorations/${persistedExplorationId}`)
+      await assertOk(explorationWithRepliesResponse, 'Expected /api/explorations/:id to include replies after creation')
+      const explorationWithReplies = await explorationWithRepliesResponse.json() as Record<string, unknown>
+      const replies = explorationWithReplies.replies as Array<Record<string, unknown>> | undefined
+      const persistedReply = replies?.find(reply => reply.id === replyId)
+      assert(persistedReply?.author === 'smoke-reply', 'Expected reply author to persist on the exploration record')
+      assert(persistedReply?.votes === 1, 'Expected reply votes to persist on the exploration record')
+
       const publishResponse = await fetch(`${BASE_URL}/api/explorations/${persistedExplorationId}/publish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

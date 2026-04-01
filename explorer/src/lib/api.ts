@@ -208,6 +208,7 @@ interface RawExploration {
   readonly experimentTags: string[]
   readonly verified: boolean
   readonly surface: ExplorationSurface
+  readonly replies?: readonly Reply[]
   readonly publication: {
     readonly published: boolean
     readonly title: string
@@ -223,6 +224,17 @@ function parseExploration(raw: RawExploration): Exploration {
   return {
     ...raw,
     blocks: parseBlocks(raw.blocks ?? []),
+    replies: Array.isArray(raw.replies)
+      ? raw.replies.filter((reply): reply is Reply =>
+        Boolean(reply)
+        && typeof reply.id === 'string'
+        && typeof reply.explorationId === 'string'
+        && typeof reply.author === 'string'
+        && typeof reply.body === 'string'
+        && typeof reply.createdAt === 'string'
+        && typeof reply.votes === 'number',
+      )
+      : [],
   }
 }
 
@@ -326,8 +338,6 @@ export async function publishExploration(
   return parseExploration(raw)
 }
 
-// ── Reply stubs (community features — server not yet deployed) ──────────────
-
 export interface Reply {
   readonly id: string
   readonly explorationId: string
@@ -337,13 +347,13 @@ export interface Reply {
   readonly votes: number
 }
 
-export async function addReply(explorationId: string, body: string): Promise<Reply> {
+export async function addReply(explorationId: string, body: string, author?: string): Promise<Reply> {
   const res = await fetch(`${API_BASE}/explorations/${encodeURIComponent(explorationId)}/replies`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ body }),
+    body: JSON.stringify({ body, author }),
   })
-  if (!res.ok) throw new Error(`Failed to add reply: ${res.statusText}`)
+  if (!res.ok) throw await parseApiError(res, `Failed to add reply: ${res.statusText}`)
   return (await res.json()) as Reply
 }
 
@@ -353,6 +363,6 @@ export async function voteReply(explorationId: string, replyId: string, delta: 1
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ delta }),
   })
-  if (!res.ok) throw new Error(`Failed to vote on reply: ${res.statusText}`)
+  if (!res.ok) throw await parseApiError(res, `Failed to vote on reply: ${res.statusText}`)
   return (await res.json()) as Reply
 }

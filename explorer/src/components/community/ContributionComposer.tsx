@@ -60,7 +60,7 @@ export function ContributionComposer({
   const trimmedTitle = title.trim()
   const trimmedTakeaway = takeaway.trim()
   const hasIntentionalEdit = trimmedTitle !== trimmedDefaultTitle || trimmedTakeaway !== trimmedDefaultTakeaway
-  const canSubmit = trimmedTitle.length > 0 && trimmedTakeaway.length > 0 && hasIntentionalEdit && !isPublishing
+  const canSubmit = trimmedTitle.length > 0 && trimmedTakeaway.length > 0 && !isPublishing
 
   if (published) {
     return (
@@ -164,7 +164,7 @@ export function ContributionComposer({
 
           {!hasIntentionalEdit && (
             <div className="rounded-lg border border-rule bg-surface-active px-3 py-2 text-11 leading-5 text-text-faint">
-              Edit the title or takeaway to publish.
+              Publishing as-is will use the suggested title and takeaway. Edit them if you want a more specific note.
             </div>
           )}
         </div>

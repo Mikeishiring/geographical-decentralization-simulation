@@ -37,7 +37,7 @@ export function ReplyThread({ explorationId, realReplies, mockReplies }: ReplyTh
 
   const addMutation = useMutation({
     mutationFn: (input: { author?: string; body: string }) =>
-      addReply(explorationId, input.body),
+      addReply(explorationId, input.body, input.author),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['explorations'] })
       setBody('')

@@ -214,9 +214,9 @@ export function SelectionPopover({
   const handleShareLocation = useCallback(async () => {
     if (!anchor) return
     const url = new URL(window.location.href)
-    if (anchor.sectionId) url.hash = anchor.sectionId
     const textFragment = encodeURIComponent(anchor.excerpt.slice(0, 80))
-    url.hash = `${url.hash}:~:text=${textFragment}`
+    const fragmentPrefix = anchor.sectionId ? `${anchor.sectionId}:~:` : ':~:'
+    url.hash = `${fragmentPrefix}text=${textFragment}`
     try {
       await navigator.clipboard.writeText(url.toString())
       setLinkCopied(true)

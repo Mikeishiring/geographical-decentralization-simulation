@@ -289,14 +289,18 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                 disabled={apiDisabled || aiLoading}
                 className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-muted/70 outline-none disabled:opacity-50"
               />
-              {query.trim() && !apiDisabled && !aiLoading && (
-                <button
-                  onClick={() => handleAskSubmit(query)}
-                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent/90 transition-colors"
-                >
-                  Ask
-                </button>
-              )}
+              <button
+                onClick={() => handleAskSubmit(query)}
+                disabled={!query.trim() || apiDisabled || aiLoading}
+                className={cn(
+                  'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                  query.trim() && !apiDisabled && !aiLoading
+                    ? 'bg-accent text-white hover:bg-accent/90'
+                    : 'cursor-not-allowed bg-rule text-muted',
+                )}
+              >
+                Ask
+              </button>
             </div>
 
             {/* API health indicator */}

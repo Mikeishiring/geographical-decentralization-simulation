@@ -23,6 +23,11 @@ const tabs: { id: TabId; label: string; icon: typeof BookOpen; hint: string }[] 
 export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
   const tabRefs = React.useRef<Map<TabId, HTMLButtonElement>>(new Map())
   const [hoveredTab, setHoveredTab] = useState<TabId | null>(null)
+  const focusTab = React.useCallback((tab: TabId) => {
+    window.requestAnimationFrame(() => {
+      tabRefs.current.get(tab)?.focus()
+    })
+  }, [])
 
   return (
     <div className="sticky top-0 z-20 border-b border-rule bg-white/92 backdrop-blur-lg shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
@@ -43,17 +48,32 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                     onTabIntent?.(tab.id)
                   }}
                   onMouseLeave={() => setHoveredTab(null)}
-                  onFocus={() => onTabIntent?.(tab.id)}
+                  onFocus={() => {
+                    setHoveredTab(tab.id)
+                    onTabIntent?.(tab.id)
+                  }}
+                  onBlur={() => setHoveredTab(current => (current === tab.id ? null : current))}
                   onKeyDown={e => {
                     const currentIndex = tabs.findIndex(t => t.id === tab.id)
                     if (e.key === 'ArrowRight') {
                       e.preventDefault()
                       const next = tabs[(currentIndex + 1) % tabs.length]
                       onTabChange(next.id)
+                      focusTab(next.id)
                     } else if (e.key === 'ArrowLeft') {
                       e.preventDefault()
                       const prev = tabs[(currentIndex - 1 + tabs.length) % tabs.length]
                       onTabChange(prev.id)
+                      focusTab(prev.id)
+                    } else if (e.key === 'Home') {
+                      e.preventDefault()
+                      onTabChange(tabs[0].id)
+                      focusTab(tabs[0].id)
+                    } else if (e.key === 'End') {
+                      e.preventDefault()
+                      const last = tabs[tabs.length - 1]
+                      onTabChange(last.id)
+                      focusTab(last.id)
                     }
                   }}
                   aria-label={tab.label}

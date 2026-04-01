@@ -63,6 +63,15 @@ export interface TextAnchor {
   readonly viewMode?: string
 }
 
+export interface ExplorationReply {
+  readonly id: string
+  readonly explorationId: string
+  readonly author: string
+  readonly body: string
+  readonly createdAt: string
+  readonly votes: number
+}
+
 export interface Exploration {
   readonly id: string
   readonly query: string
@@ -80,6 +89,7 @@ export interface Exploration {
   readonly verified: boolean
   readonly surface: ExplorationSurface
   readonly anchor?: TextAnchor
+  readonly replies: readonly ExplorationReply[]
   readonly publication: ExplorationPublication
 }
 
@@ -269,6 +279,18 @@ function hydrateExploration(raw: Partial<Exploration> & Pick<Exploration, 'query
     verified: raw.verified ?? false,
     surface: raw.surface ?? 'reading',
     anchor: raw.anchor,
+    replies: Array.isArray(raw.replies)
+      ? raw.replies
+        .filter((reply): reply is ExplorationReply =>
+          Boolean(reply)
+          && typeof reply.id === 'string'
+          && typeof reply.explorationId === 'string'
+          && typeof reply.author === 'string'
+          && typeof reply.body === 'string'
+          && typeof reply.createdAt === 'string'
+          && typeof reply.votes === 'number',
+        )
+      : [],
     publication: {
       published: raw.publication?.published ?? false,
       title: raw.publication?.title ?? '',
@@ -508,6 +530,61 @@ export class ExplorationStore {
 
   getById(id: string): Exploration | null {
     return this.byId.get(id) ?? null
+  }
+
+  addReply(id: string, input: {
+    readonly author: string
+    readonly body: string
+  }): ExplorationReply | null {
+    const index = this.explorations.findIndex(exploration => exploration.id === id)
+    if (index === -1) return null
+
+    const reply: ExplorationReply = {
+      id: randomUUID(),
+      explorationId: id,
+      author: input.author,
+      body: input.body,
+      createdAt: new Date().toISOString(),
+      votes: 0,
+    }
+
+    const updated: Exploration = {
+      ...this.explorations[index],
+      replies: [...this.explorations[index].replies, reply],
+    }
+
+    this.setExplorations(this.explorations.map((exploration, currentIndex) =>
+      currentIndex === index ? updated : exploration,
+    ))
+    this.schedulePersist()
+    return reply
+  }
+
+  voteReply(id: string, replyId: string, delta: 1 | -1): ExplorationReply | null {
+    const index = this.explorations.findIndex(exploration => exploration.id === id)
+    if (index === -1) return null
+
+    const exploration = this.explorations[index]
+    const replyIndex = exploration.replies.findIndex(reply => reply.id === replyId)
+    if (replyIndex === -1) return null
+
+    const updatedReply: ExplorationReply = {
+      ...exploration.replies[replyIndex],
+      votes: exploration.replies[replyIndex].votes + delta,
+    }
+    const updatedReplies = exploration.replies.map((reply, currentIndex) =>
+      currentIndex === replyIndex ? updatedReply : reply,
+    )
+    const updatedExploration: Exploration = {
+      ...exploration,
+      replies: updatedReplies,
+    }
+
+    this.setExplorations(this.explorations.map((current, currentIndex) =>
+      currentIndex === index ? updatedExploration : current,
+    ))
+    this.schedulePersist()
+    return updatedReply
   }
 
   private loadFromDisk(): void {
