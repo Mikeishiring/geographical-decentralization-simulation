@@ -136,7 +136,7 @@ export function PaperViewModeBar({
 
         <div className="flex items-center gap-2 shrink-0">
           {onNotesToggle && (
-            <Tooltip label="Toggle inline community annotations">
+            <Tooltip label="Toggle inline community notes and interpretations">
               <button
                 onClick={onNotesToggle}
                 onMouseEnter={() => setNotesHovered(true)}
@@ -149,7 +149,7 @@ export function PaperViewModeBar({
                 )}
               >
                 <AnimatedMessageSquare isActive={notesVisible} isHovered={notesHovered} />
-                Notes
+                Community notes
                 {noteCount > 0 && (
                   <motion.span
                     className={cn(
@@ -213,12 +213,12 @@ export function PaperViewModeBar({
 
               <div className="grid gap-6 sm:grid-cols-3">
                 <div>
-                  <div className="text-xs font-medium text-text-primary">Best first stops</div>
+                  <div className="text-xs font-medium text-text-primary">Suggested entry points</div>
                   <div className="mt-2 space-y-1.5">
                     {[
+                      { id: 'system-model', label: 'System model and mechanism' },
+                      { id: 'baseline-results', label: 'Baseline results' },
                       { id: 'se4a-attestation', label: 'SE4a attestation threshold' },
-                      { id: 'se2-distribution', label: 'SE2 starting geography' },
-                      { id: 'discussion', label: 'Discussion and implications' },
                       { id: 'limitations', label: 'Limitations (truth boundary)' },
                     ].map((entry, i) => (
                       <a key={entry.id} href={`#${entry.id}`} onClick={() => onSectionClick(entry.id)} className="block text-sm text-muted hover:text-accent transition-colors">

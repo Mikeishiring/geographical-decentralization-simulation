@@ -129,7 +129,7 @@ export function ArgumentsView({
       animate={{ opacity: 1 }}
       transition={SPRING_CRISP}
     >
-      {/* Top-level key claims banner */}
+      {/* Top-level abstract claims banner */}
       <motion.div
         className="mt-6 rounded-xl border border-accent/10 bg-accent/[0.03] p-5"
         variants={STAGGER_CONTAINER}
@@ -137,7 +137,7 @@ export function ArgumentsView({
         animate="visible"
       >
         <div className="text-2xs font-medium uppercase tracking-[0.1em] text-accent/60 mb-3">
-          Paper thesis — 3 key claims
+          Abstract-level claims
         </div>
         <div className="space-y-2">
           {PAPER_METADATA.keyClaims.map((claim, i) => (
@@ -156,7 +156,7 @@ export function ArgumentsView({
         {notesVisible && (
           <div className="mt-4 flex items-center gap-1.5 text-2xs text-text-faint">
             <MousePointerClick className="h-3 w-3" />
-            Select any text to annotate it
+            Select any text to add a community note
           </div>
         )}
       </motion.div>

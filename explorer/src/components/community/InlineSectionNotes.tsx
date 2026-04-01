@@ -46,7 +46,7 @@ export function InlineSectionNotes({ notes, onOpenNote, showAnnotationHint = fal
           <Users className="h-2.5 w-2.5 text-accent" />
         </span>
         <span className="text-11 font-semibold tracking-wide uppercase text-muted">
-          {published.length} note{published.length !== 1 ? 's' : ''}
+          Community notes · {published.length}
         </span>
         <span className="ml-auto flex items-center gap-1.5 text-text-faint transition-colors group-hover/notes-toggle:text-accent">
           <span className="text-[10px]">{expanded ? 'Collapse' : 'Expand'}</span>
@@ -56,6 +56,10 @@ export function InlineSectionNotes({ notes, onOpenNote, showAnnotationHint = fal
           }
         </span>
       </button>
+
+      <div className="mt-2 text-[11px] leading-relaxed text-text-faint">
+        Reader interpretations layered on top of the paper. Useful context, not paper claims.
+      </div>
 
       {/* Preview row when collapsed — show first 2 note titles */}
       {!expanded && published.length > 0 && (
@@ -70,9 +74,14 @@ export function InlineSectionNotes({ notes, onOpenNote, showAnnotationHint = fal
               {note.anchor?.excerpt && (
                 <span className="shrink-0 w-1 h-4 rounded-full bg-accent/20" />
               )}
-              <span className="text-xs font-medium text-text-primary truncate">
-                {note.publication.title}
-              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                  Community interpretation
+                </div>
+                <div className="text-xs font-medium text-text-primary truncate">
+                  {note.publication.title}
+                </div>
+              </div>
               <span className="ml-auto shrink-0 text-2xs text-text-faint">
                 {note.publication.author || 'Anon'}
               </span>
@@ -182,6 +191,10 @@ function NoteCard({
           </div>
         )}
 
+        <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.08em] text-text-faint">
+          Community interpretation
+        </div>
+
         <div className="text-[13px] font-medium leading-snug text-text-primary">
           {note.publication.title}
         </div>
@@ -202,16 +215,6 @@ function NoteCard({
               {note.publication.author || 'Anonymous'}
             </span>
           </div>
-          {note.publication.featured && (
-            <span className="shrink-0 rounded-full border border-amber-200/60 bg-amber-50/80 px-1.5 py-px text-[9px] font-medium text-amber-600/70">
-              Featured
-            </span>
-          )}
-          {note.verified && (
-            <span className="shrink-0 rounded-full border border-emerald-300/30 bg-emerald-50/60 px-1.5 py-px text-[9px] font-medium text-emerald-600">
-              Verified
-            </span>
-          )}
           <div className="ml-auto flex items-center gap-2">
             {note.votes !== 0 && (
               <span className="flex items-center gap-0.5 text-2xs tabular-nums text-text-faint">

@@ -2,7 +2,7 @@ import type { PaperSection } from '../../data/paper-sections'
 
 export function summarizeSection(section: PaperSection): string[] {
   const tags: string[] = []
-  if (section.id === 'se4a-attestation') tags.push('best paradox')
+  if (section.id === 'se4a-attestation') tags.push('paradigm-sensitive result')
   if (section.id === 'se2-distribution') tags.push('starting-state effect')
   if (section.id === 'limitations') tags.push('confidence boundary')
   if (section.id === 'discussion') tags.push('design implications')
@@ -11,7 +11,7 @@ export function summarizeSection(section: PaperSection): string[] {
   if (blockTypes.has('table')) tags.push('tables')
   if (blockTypes.has('comparison')) tags.push('comparisons')
   if (section.blocks.some(block => block.type === 'insight' && block.emphasis === 'surprising')) {
-    tags.push('surprising result')
+    tags.push('counterintuitive result')
   }
   if (section.blocks.some(block => block.type === 'caveat')) tags.push('caveat')
   return tags.slice(0, 3)
@@ -23,7 +23,7 @@ export function sectionEntryLine(section: PaperSection): string {
     'simulation-design': 'Start here for the model boundary: what is simplified, fixed, and directly measured.',
     'baseline-results': 'Start here for the baseline claim that both paradigms centralize without exotic assumptions.',
     'se1-source-placement': 'Start here for the infrastructure-placement flip that helps one paradigm while hurting the other.',
-    'se2-distribution': 'Start here if you want to ask whether starting geography matters more than paradigm choice.',
+    'se2-distribution': 'Start here if you want to ask when starting geography can outweigh paradigm differences in SE2.',
     'se3-joint': 'Start here for the transient dip and the warning against overreading it as mitigation.',
     'se4a-attestation': 'Start here for SE4a\'s key contrast: in the homogeneous parameter study, gamma pushes external and local block building in opposite directions.',
     'se4b-slots': 'Start here for the fairness-versus-geography distinction under shorter slots.',
@@ -33,7 +33,7 @@ export function sectionEntryLine(section: PaperSection): string {
   return lines[section.id] ?? section.description
 }
 
-export const BEST_FIRST_STOP_IDS = ['se4a-attestation', 'se2-distribution', 'discussion', 'limitations'] as const
+export const BEST_FIRST_STOP_IDS = ['system-model', 'baseline-results', 'se4a-attestation', 'limitations'] as const
 
 export const ARXIV_PDF_URL = 'https://arxiv.org/pdf/2509.21475'
 

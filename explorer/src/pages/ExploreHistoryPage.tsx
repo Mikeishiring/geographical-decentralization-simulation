@@ -15,11 +15,11 @@ import type { TabId } from '../components/layout/TabNav'
 type SortMode = 'recent' | 'top' | 'discussed' | 'controversial'
 type ViewMode = 'cards' | 'compact'
 
-const SORT_OPTIONS: readonly { readonly value: SortMode; readonly label: string; readonly description: string }[] = [
-  { value: 'recent', label: 'Newest first', description: 'Most recently published' },
-  { value: 'top', label: 'Most liked', description: 'Highest vote count' },
-  { value: 'discussed', label: 'Most discussed', description: 'Most replies' },
-  { value: 'controversial', label: 'Controversial', description: 'High engagement, divided opinion' },
+const SORT_OPTIONS: readonly { readonly value: SortMode; readonly label: string; readonly shortLabel: string; readonly description: string }[] = [
+  { value: 'recent', label: 'Newest first', shortLabel: 'Newest', description: 'Most recently published' },
+  { value: 'top', label: 'Most liked', shortLabel: 'Top', description: 'Highest vote count' },
+  { value: 'discussed', label: 'Most discussed', shortLabel: 'Discussed', description: 'Most replies' },
+  { value: 'controversial', label: 'Controversial', shortLabel: 'Mixed', description: 'High engagement, divided opinion' },
 ]
 
 
@@ -165,15 +165,10 @@ export function ExploreHistoryPage({
     }, 2_000)
   }
 
-  const featuredContributions = displayedExplorations.filter(exploration =>
-    exploration.publication.published && (exploration.publication.featured || exploration.verified),
-  )
-  const featuredIds = new Set(featuredContributions.map(exploration => exploration.id))
-  const communityContributions = displayedExplorations.filter(exploration =>
-    exploration.publication.published && !featuredIds.has(exploration.id),
-  )
-  const publishedReadingNotes = displayedExplorations.filter(exploration => exploration.surface === 'reading')
-  const publishedSimulationNotes = displayedExplorations.filter(exploration => exploration.surface === 'simulation')
+  const publishedExplorations = displayedExplorations.filter(exploration => exploration.publication.published)
+  const publishedReadingNotes = publishedExplorations.filter(exploration => exploration.surface === 'reading')
+  const publishedSimulationNotes = publishedExplorations.filter(exploration => exploration.surface === 'simulation')
+  const currentSort = SORT_OPTIONS.find(option => option.value === sort) ?? SORT_OPTIONS[0]
 
   if ((isLoading || deepLinkedExplorationQuery.isLoading) && displayedExplorations.length === 0) {
     return <LoadingSkeleton />
@@ -188,18 +183,23 @@ export function ExploreHistoryPage({
       {/* ── Single-row toolbar: KPIs · search · view · sort ────── */}
       <div className="flex items-center gap-2">
         {/* Inline KPI counts */}
-        <div className="hidden items-center gap-3 pr-2 sm:flex">
-          <span className="flex items-center gap-1 text-2xs text-muted tabular-nums">
+        <div className="flex items-center gap-1.5 pr-1 sm:gap-3 sm:pr-2">
+          <span className="inline-flex items-center gap-1 rounded-full border border-rule bg-white px-2 py-1 text-2xs text-muted tabular-nums">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            <span className="sm:hidden">Read</span>
+            <span className="hidden sm:inline">Reading</span>
             {publishedReadingNotes.length}
           </span>
-          <span className="flex items-center gap-1 text-2xs text-muted tabular-nums">
+          <span className="inline-flex items-center gap-1 rounded-full border border-rule bg-white px-2 py-1 text-2xs text-muted tabular-nums">
             <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+            <span className="sm:hidden">Runs</span>
+            <span className="hidden sm:inline">Simulation</span>
             {publishedSimulationNotes.length}
           </span>
-          <span className="flex items-center gap-1 text-2xs text-muted tabular-nums">
+          <span className="hidden items-center gap-1 rounded-full border border-rule bg-white px-2 py-1 text-2xs text-muted tabular-nums sm:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-accent-warm" />
-            {featuredContributions.length}
+            Published
+            {publishedExplorations.length}
           </span>
         </div>
 
@@ -232,10 +232,12 @@ export function ExploreHistoryPage({
         <div ref={sortMenuRef} className="relative shrink-0">
           <button
             onClick={() => setSortMenuOpen(prev => !prev)}
+            aria-expanded={sortMenuOpen}
+            aria-haspopup="menu"
             className="flex items-center gap-1 rounded-md px-1.5 py-1.5 text-2xs font-medium text-muted transition-colors hover:bg-surface-active hover:text-text-primary"
           >
             <ArrowUpDown className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{SORT_OPTIONS.find(o => o.value === sort)?.label}</span>
+            <span>{currentSort.shortLabel}</span>
           </button>
           <AnimatePresence>
             {sortMenuOpen && (
@@ -303,10 +305,10 @@ export function ExploreHistoryPage({
       ) : (
         <div className="space-y-6">
           <ContributionSection
-            eyebrow="Featured"
-            title="Featured contributions"
-            detail="Researcher-verified or editorially surfaced notes over the evidence."
-            explorations={featuredContributions}
+            eyebrow="Reading"
+            title="Published reading notes"
+            detail="Community interpretations layered on top of the paper reading experience."
+            explorations={publishedReadingNotes}
             expandedId={expandedId}
             onToggleExpand={toggleExpand}
             onVote={delta => voteMutation.mutate(delta)}
@@ -315,15 +317,15 @@ export function ExploreHistoryPage({
             onShare={handleShare}
             sharedId={sharedId}
             deepLinkedExplorationId={initialExplorationId}
-            emptyMessage="No featured contributions match the current filters yet."
+            emptyMessage="No published reading notes match the current filters yet."
             viewMode={viewMode}
           />
 
           <ContributionSection
-            eyebrow="Latest"
-            title="Latest published notes"
-            detail="Published readings and simulation notes sent to the shared surface after reviewing the evidence."
-            explorations={communityContributions}
+            eyebrow="Simulation"
+            title="Published exact-run notes"
+            detail="Community notes attached to simulation outputs and exact-run artifacts."
+            explorations={publishedSimulationNotes}
             expandedId={expandedId}
             onToggleExpand={toggleExpand}
             onVote={delta => voteMutation.mutate(delta)}
@@ -332,7 +334,7 @@ export function ExploreHistoryPage({
             onShare={handleShare}
             sharedId={sharedId}
             deepLinkedExplorationId={initialExplorationId}
-            emptyMessage="No published contributions match the current filters yet."
+            emptyMessage="No published exact-run notes match the current filters yet."
             viewMode={viewMode}
           />
         </div>
