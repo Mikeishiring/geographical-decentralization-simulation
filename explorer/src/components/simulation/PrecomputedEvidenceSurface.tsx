@@ -16,6 +16,7 @@ import type { Block } from '../../types/blocks'
 import { formatNumber, paradigmLabel } from './simulation-constants'
 import { CHART_COLORS } from './simulation-evidence-constants'
 import {
+  analyticsMetricSeriesForPayload,
   totalSlotsFromPayload,
   topRegionsForSlot,
   type PublishedAnalyticsPayload,
@@ -253,6 +254,181 @@ function paperLensSummary(lens: PaperLens, dataset: ResearchDatasetEntry): strin
   return `${scenarioLabel} maps back to the paper's empirical sections so the atlas stays anchored to the canonical claims and caveats.`
 }
 
+function formatNullableCount(value: number | null | undefined): string {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.round(value).toLocaleString() : 'N/A'
+}
+
+function formatNullableIndex(value: number | null | undefined): string {
+  return typeof value === 'number' && Number.isFinite(value) ? formatNumber(value, 3) : 'N/A'
+}
+
+function formatNullableMilliseconds(value: number | null | undefined): string {
+  return typeof value === 'number' && Number.isFinite(value) ? `${formatNumber(value, 1)} ms` : 'N/A'
+}
+
+function formatNullableEth(value: number | null | undefined): string {
+  return typeof value === 'number' && Number.isFinite(value) ? `${formatCostLabel(value)} ETH` : 'N/A'
+}
+
+function readLastFiniteValue(series: readonly number[] | undefined): number | null {
+  if (!series) return null
+
+  for (let index = series.length - 1; index >= 0; index -= 1) {
+    const value = series[index]
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  }
+
+  return null
+}
+
+interface ComparisonCard {
+  readonly label: string
+  readonly primary: string
+  readonly compare: string
+  readonly tone: string
+}
+
+function buildComparisonNarrative(
+  primaryEntry: ResearchDatasetEntry,
+  comparisonEntry: ResearchDatasetEntry | null,
+  primaryPayload: PublishedAnalyticsPayload | null,
+  comparisonPayload: PublishedAnalyticsPayload | null,
+): string {
+  if (!comparisonEntry) {
+    return 'Choose a second published scenario to position the active atlas against another result contract.'
+  }
+
+  const statements: string[] = []
+  const primaryMetadata = primaryEntry.metadata
+  const comparisonMetadata = comparisonEntry.metadata
+
+  if (typeof primaryMetadata?.cost === 'number' && typeof comparisonMetadata?.cost === 'number') {
+    statements.push(
+      primaryMetadata.cost > comparisonMetadata.cost
+        ? 'This scenario carries a higher migration cost.'
+        : primaryMetadata.cost < comparisonMetadata.cost
+          ? 'This scenario carries a lower migration cost.'
+          : 'Both scenarios carry the same migration cost.',
+    )
+  }
+
+  if (typeof primaryMetadata?.delta === 'number' && typeof comparisonMetadata?.delta === 'number') {
+    statements.push(
+      primaryMetadata.delta > comparisonMetadata.delta
+        ? 'It also works against a slower delta assumption.'
+        : primaryMetadata.delta < comparisonMetadata.delta
+          ? 'It operates with a tighter delta assumption.'
+          : 'Their delta assumptions match.',
+    )
+  }
+
+  if (typeof primaryMetadata?.gamma === 'number' && typeof comparisonMetadata?.gamma === 'number') {
+    statements.push(
+      primaryMetadata.gamma > comparisonMetadata.gamma
+        ? 'Gamma is higher here, which can change the consensus posture.'
+        : primaryMetadata.gamma < comparisonMetadata.gamma
+          ? 'Gamma is lower here, giving the foil a different consensus posture.'
+          : 'Gamma is held constant across the comparison.',
+    )
+  }
+
+  const primaryActiveRegions = readLastFiniteValue(analyticsMetricSeriesForPayload(primaryPayload, 'active_regions'))
+  const comparisonActiveRegions = readLastFiniteValue(analyticsMetricSeriesForPayload(comparisonPayload, 'active_regions'))
+  const primaryGini = readLastFiniteValue(analyticsMetricSeriesForPayload(primaryPayload, 'gini'))
+  const comparisonGini = readLastFiniteValue(analyticsMetricSeriesForPayload(comparisonPayload, 'gini'))
+
+  if (primaryActiveRegions != null && comparisonActiveRegions != null && primaryGini != null && comparisonGini != null) {
+    statements.push(
+      `At the final slot it ends with ${formatNullableCount(primaryActiveRegions)} active regions versus ${formatNullableCount(comparisonActiveRegions)}, with Gini ${formatNullableIndex(primaryGini)} versus ${formatNullableIndex(comparisonGini)}.`,
+    )
+  }
+
+  if (statements.length === 0) {
+    return `${comparisonEntry.evaluation} / ${paradigmLabel(comparisonEntry.paradigm)} serves as a foil for reading the active scenario against another published posture.`
+  }
+
+  return `${comparisonEntry.evaluation} / ${paradigmLabel(comparisonEntry.paradigm)} serves as a foil. ${statements.join(' ')}`
+}
+
+function buildComparisonCards(
+  primaryEntry: ResearchDatasetEntry,
+  comparisonEntry: ResearchDatasetEntry | null,
+  primaryPayload: PublishedAnalyticsPayload | null,
+  comparisonPayload: PublishedAnalyticsPayload | null,
+): readonly ComparisonCard[] {
+  if (!comparisonEntry) return []
+
+  const primaryActiveRegions = readLastFiniteValue(analyticsMetricSeriesForPayload(primaryPayload, 'active_regions'))
+  const comparisonActiveRegions = readLastFiniteValue(analyticsMetricSeriesForPayload(comparisonPayload, 'active_regions'))
+  const primaryGini = readLastFiniteValue(analyticsMetricSeriesForPayload(primaryPayload, 'gini'))
+  const comparisonGini = readLastFiniteValue(analyticsMetricSeriesForPayload(comparisonPayload, 'gini'))
+  const primaryProposalTime = readLastFiniteValue(analyticsMetricSeriesForPayload(primaryPayload, 'proposal_times'))
+  const comparisonProposalTime = readLastFiniteValue(analyticsMetricSeriesForPayload(comparisonPayload, 'proposal_times'))
+
+  if (
+    primaryActiveRegions != null
+    && comparisonActiveRegions != null
+    && primaryGini != null
+    && comparisonGini != null
+    && primaryProposalTime != null
+    && comparisonProposalTime != null
+  ) {
+    return [
+      {
+        label: 'Active regions',
+        primary: formatNullableCount(primaryActiveRegions),
+        compare: formatNullableCount(comparisonActiveRegions),
+        tone: primaryActiveRegions > comparisonActiveRegions
+          ? 'Broader spread'
+          : primaryActiveRegions < comparisonActiveRegions
+            ? 'Narrower spread'
+            : 'Matched spread',
+      },
+      {
+        label: 'Gini',
+        primary: formatNullableIndex(primaryGini),
+        compare: formatNullableIndex(comparisonGini),
+        tone: primaryGini > comparisonGini
+          ? 'More concentrated'
+          : primaryGini < comparisonGini
+            ? 'Less concentrated'
+            : 'Matched concentration',
+      },
+      {
+        label: 'Proposal time',
+        primary: formatNullableMilliseconds(primaryProposalTime),
+        compare: formatNullableMilliseconds(comparisonProposalTime),
+        tone: primaryProposalTime > comparisonProposalTime
+          ? 'Slower timing'
+          : primaryProposalTime < comparisonProposalTime
+            ? 'Faster timing'
+            : 'Timing aligned',
+      },
+    ]
+  }
+
+  return [
+    {
+      label: 'Validators',
+      primary: formatNullableCount(primaryEntry.metadata?.v),
+      compare: formatNullableCount(comparisonEntry.metadata?.v),
+      tone: 'Scenario scale',
+    },
+    {
+      label: 'Migration cost',
+      primary: formatNullableEth(primaryEntry.metadata?.cost),
+      compare: formatNullableEth(comparisonEntry.metadata?.cost),
+      tone: 'Relocation friction',
+    },
+    {
+      label: 'Gamma',
+      primary: formatNullableIndex(primaryEntry.metadata?.gamma),
+      compare: formatNullableIndex(comparisonEntry.metadata?.gamma),
+      tone: 'Consensus posture',
+    },
+  ]
+}
+
 function PaperGuide({ selectedEntry }: { readonly selectedEntry: ResearchDatasetEntry }) {
   const [paperLens, setPaperLens] = useState<PaperLens>('evidence')
   const [activeSectionId, setActiveSectionId] = useState('')
@@ -349,6 +525,128 @@ function PaperGuide({ selectedEntry }: { readonly selectedEntry: ResearchDataset
         </div>
       )}
     </div>
+  )
+}
+
+function ComparisonGuide({
+  catalog,
+  selectedEntry,
+  primaryPayload,
+  viewerBaseUrl,
+}: {
+  readonly catalog: ResearchCatalog
+  readonly selectedEntry: ResearchDatasetEntry
+  readonly primaryPayload: PublishedAnalyticsPayload | null
+  readonly viewerBaseUrl: string
+}) {
+  const [comparePath, setComparePath] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+  const comparisonCandidates = useMemo(
+    () => catalog.datasets.filter(entry => entry.path !== selectedEntry.path),
+    [catalog.datasets, selectedEntry.path],
+  )
+  const comparisonEntry = useMemo(
+    () => comparisonCandidates.find(entry => entry.path === comparePath) ?? comparisonCandidates[0] ?? null,
+    [comparePath, comparisonCandidates],
+  )
+
+  useEffect(() => {
+    if (!comparisonCandidates.length) {
+      setComparePath('')
+      return
+    }
+    if (!comparePath || !comparisonCandidates.some(entry => entry.path === comparePath)) {
+      setComparePath(comparisonCandidates[0]!.path)
+    }
+  }, [comparePath, comparisonCandidates])
+
+  const comparisonPayloadQuery = useQuery({
+    queryKey: ['evidence-compare-payload', comparisonEntry?.path],
+    queryFn: () => fetchPayload(viewerBaseUrl, comparisonEntry!.path),
+    enabled: isOpen && Boolean(comparisonEntry?.path),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+  })
+
+  const comparisonNarrative = useMemo(
+    () => buildComparisonNarrative(selectedEntry, comparisonEntry, primaryPayload, comparisonPayloadQuery.data ?? null),
+    [comparisonEntry, comparisonPayloadQuery.data, primaryPayload, selectedEntry],
+  )
+  const comparisonCards = useMemo(
+    () => buildComparisonCards(selectedEntry, comparisonEntry, primaryPayload, comparisonPayloadQuery.data ?? null),
+    [comparisonEntry, comparisonPayloadQuery.data, primaryPayload, selectedEntry],
+  )
+
+  if (!comparisonCandidates.length) return null
+
+  return (
+    <details
+      open={isOpen}
+      onToggle={event => setIsOpen(event.currentTarget.open)}
+      className="group/details rounded-xl border border-rule/70 bg-[#FBFAF8]/70"
+    >
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-3.5 py-2.5 text-xs font-medium text-text-secondary transition-colors hover:text-text-primary">
+        <ChevronDown className="h-3 w-3 transition-transform duration-150 group-open/details:rotate-180" />
+        Scenario Foil
+        <span className="text-2xs font-normal text-text-faint">
+          Position the active scenario against another published result
+        </span>
+      </summary>
+
+      <div className="border-t border-rule/60 px-3.5 py-3">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0 max-w-3xl">
+            <p className="text-xs leading-relaxed text-muted">{comparisonNarrative}</p>
+            {comparisonPayloadQuery.isLoading && (
+              <div className="mt-2 text-2xs text-text-faint">Loading final-slot comparison readout…</div>
+            )}
+            {comparisonPayloadQuery.isError && (
+              <div className="mt-2 text-2xs text-danger">
+                {(comparisonPayloadQuery.error as Error).message}
+              </div>
+            )}
+          </div>
+
+          <div className="min-w-0 xl:w-[22rem]">
+            <label className="mb-1.5 block text-2xs font-medium uppercase tracking-wider text-text-faint">
+              Compare Against
+            </label>
+            <select
+              value={comparisonEntry?.path ?? ''}
+              onChange={event => setComparePath(event.target.value)}
+              className="w-full rounded-lg border border-black/[0.08] bg-white px-3 py-2 text-xs text-text-primary outline-none transition-colors focus:border-stone-400 focus:ring-1 focus:ring-stone-200"
+            >
+              {comparisonCandidates.map(entry => (
+                <option key={entry.path} value={entry.path}>
+                  {entry.evaluation} · {paradigmLabel(entry.paradigm)} · {entry.result}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {comparisonCards.map(card => (
+            <div key={card.label} className="rounded-lg border border-rule/60 bg-white px-3 py-2.5">
+              <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-text-faint">
+                {card.label}
+              </div>
+              <div className="mt-2 flex items-end justify-between gap-3">
+                <div>
+                  <div className="text-[10px] text-text-faint">Primary</div>
+                  <div className="mt-1 text-sm font-semibold text-text-primary">{card.primary}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] text-text-faint">Foil</div>
+                  <div className="mt-1 text-sm font-semibold text-text-primary">{card.compare}</div>
+                </div>
+              </div>
+              <div className="mt-2 text-[10px] text-muted">{card.tone}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </details>
   )
 }
 
@@ -744,6 +1042,15 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
 
           {selectedEntry && (
             <PaperGuide selectedEntry={selectedEntry} />
+          )}
+
+          {selectedEntry && (
+            <ComparisonGuide
+              catalog={catalog}
+              selectedEntry={selectedEntry}
+              primaryPayload={payloadQuery.data ?? null}
+              viewerBaseUrl={viewerBaseUrl}
+            />
           )}
         </div>
       </motion.section>
