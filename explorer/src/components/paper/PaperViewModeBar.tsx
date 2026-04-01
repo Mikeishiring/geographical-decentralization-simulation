@@ -87,8 +87,8 @@ export function PaperViewModeBar({
   const [notesHovered, setNotesHovered] = useState(false)
 
   return (
-    <div className="sticky top-[4.5rem] z-20 -mx-4 px-4 py-2 bg-white/95 backdrop-blur-sm border-b border-rule sm:-mx-6 sm:px-6">
-      <div className="flex items-center justify-between gap-x-3">
+    <div className="sticky top-[4.5rem] z-20 -mx-4 border-b border-rule bg-white/95 px-4 py-2 backdrop-blur-sm sm:-mx-6 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap sm:gap-x-3">
         {/* Mode switcher */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-0.5 shrink-0" role="tablist" aria-label="Reading mode">
@@ -134,7 +134,7 @@ export function PaperViewModeBar({
 
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:shrink-0">
           {onNotesToggle && (
             <Tooltip label="Toggle inline community notes and interpretations">
               <button
@@ -149,7 +149,8 @@ export function PaperViewModeBar({
                 )}
               >
                 <AnimatedMessageSquare isActive={notesVisible} isHovered={notesHovered} />
-                Community notes
+                <span className="sm:hidden">Notes</span>
+                <span className="hidden sm:inline">Community notes</span>
                 {noteCount > 0 && (
                   <motion.span
                     className={cn(
@@ -176,7 +177,8 @@ export function PaperViewModeBar({
               )}
             >
               <AnimatedChevronToggle isActive={guideOpen} />
-              Reading guide
+              <span className="sm:hidden">Guide</span>
+              <span className="hidden sm:inline">Reading guide</span>
             </button>
           </Tooltip>
         </div>
