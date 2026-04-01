@@ -6,7 +6,6 @@ import { PaperReaderPage } from './pages/PaperReaderPage'
 import { PaperHtmlPreviewPage } from './pages/PaperHtmlPreviewPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { cn } from './lib/cn'
-import { CONTENT_MAX_WIDTH } from './lib/theme'
 import { AGENT_ROUTE_PARAM_KEYS, readRouteStateFromLocation, type ExplorerRouteState } from './lib/route-state'
 import { PAPER_SECTIONS } from './data/paper-sections'
 
@@ -222,7 +221,11 @@ function App() {
           id="main-content"
           className={cn(
             'mx-auto overflow-x-hidden px-4 py-8 sm:px-6',
-            CONTENT_MAX_WIDTH,
+            activeTab === 'paper'
+              ? 'max-w-[88rem]'
+              : (activeTab === 'agent' || activeTab === 'results')
+                ? 'max-w-[96rem]'
+                : 'max-w-6xl',
           )}
         >
         <div {...hiddenPanelProps(activeTab !== 'paper')}>
