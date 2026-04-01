@@ -171,6 +171,13 @@ export const equationBlockSchema = z.object({
   cite: citeSchema,
 })
 
+export const paperChartBlockSchema = z.object({
+  type: z.literal('paperChart'),
+  title: z.string(),
+  dataKey: z.string(),
+  cite: citeSchema,
+})
+
 // --- Cite type export ---
 
 export type Cite = z.infer<typeof citeSchema>
@@ -192,6 +199,7 @@ export const blockSchema = z.discriminatedUnion('type', [
   heatmapBlockSchema,
   stackedBarBlockSchema,
   equationBlockSchema,
+  paperChartBlockSchema,
 ])
 
 // --- TypeScript types (inferred from schemas) ---
@@ -210,6 +218,7 @@ export type HistogramBlock = z.infer<typeof histogramBlockSchema>
 export type HeatmapBlock = z.infer<typeof heatmapBlockSchema>
 export type StackedBarBlock = z.infer<typeof stackedBarBlockSchema>
 export type EquationBlock = z.infer<typeof equationBlockSchema>
+export type PaperChartBlock = z.infer<typeof paperChartBlockSchema>
 export type Block = z.infer<typeof blockSchema>
 
 // --- Validation helper ---

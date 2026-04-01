@@ -13,6 +13,7 @@ import { HistogramBlock } from './HistogramBlock'
 import { HeatmapBlock } from './HeatmapBlock'
 import { StackedBarBlock } from './StackedBarBlock'
 import { EquationBlock } from './EquationBlock'
+import { PaperChartBlock } from './PaperChartBlock'
 
 interface BlockRendererProps {
   block: Block
@@ -48,5 +49,7 @@ export function BlockRenderer({ block }: BlockRendererProps) {
       return <StackedBarBlock block={block} />
     case 'equation':
       return <EquationBlock block={block} />
+    case 'paperChart':
+      return <PaperChartBlock block={block} />
   }
 }
