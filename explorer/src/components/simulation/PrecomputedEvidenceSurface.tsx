@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SlidersHorizontal, ChevronDown, Map as MapIcon, LayoutGrid, BarChart3 } from 'lucide-react'
+import { SlidersHorizontal, ChevronDown, Map as MapIcon, LayoutGrid, BarChart3, ArrowUpRight } from 'lucide-react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { cn } from '../../lib/cn'
 import {
+  buildPaperSectionUrl,
   readPublishedEvidenceSelectionFromSearch,
   writePublishedEvidenceSelectionToHistory,
 } from '../../lib/published-evidence-url'
 import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
+import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
 import type { Block } from '../../types/blocks'
 import { formatNumber, paradigmLabel } from './simulation-constants'
 import { CHART_COLORS } from './simulation-evidence-constants'
@@ -182,6 +184,172 @@ function parseCostFromResult(result: string): number | null {
 
 function formatCostLabel(cost: number): string {
   return cost === 0 ? '0' : cost.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')
+}
+
+type PaperLens = 'evidence' | 'theory' | 'methods'
+
+function datasetPaperSectionId(dataset: ResearchDatasetEntry | null): string | null {
+  if (!dataset) return null
+
+  const evaluation = dataset.evaluation.toLowerCase()
+  const pathLabel = dataset.path.toLowerCase()
+
+  if (evaluation.startsWith('baseline')) return 'baseline-results'
+  if (evaluation.includes('source-placement')) return 'se1-source-placement'
+  if (evaluation.includes('validator-distribution')) return 'se2-distribution'
+  if (evaluation.includes('joint')) return 'se3-joint'
+  if (evaluation.includes('attestation') || evaluation.includes('threshold') || pathLabel.includes('gamma')) return 'se4a-attestation'
+  if (evaluation.includes('slot') || evaluation.includes('shorter') || pathLabel.includes('slot_time') || pathLabel.includes('slot-time')) return 'se4b-slots'
+  return null
+}
+
+function inferPaperSectionId(dataset: ResearchDatasetEntry | null, lens: PaperLens): string {
+  const datasetSectionId = datasetPaperSectionId(dataset)
+
+  if (lens === 'methods') return 'simulation-design'
+  if (lens === 'theory') {
+    if (datasetSectionId && datasetSectionId !== 'baseline-results') return datasetSectionId
+    return 'system-model'
+  }
+  return datasetSectionId ?? 'baseline-results'
+}
+
+function recommendedPaperSections(
+  dataset: ResearchDatasetEntry | null,
+  lens: PaperLens,
+): readonly PaperSection[] {
+  const ids = new Set<string>()
+  const datasetSectionId = datasetPaperSectionId(dataset)
+
+  ids.add(inferPaperSectionId(dataset, lens))
+  if (datasetSectionId) ids.add(datasetSectionId)
+
+  if (lens === 'theory') {
+    ids.add('system-model')
+    ids.add('discussion')
+  } else if (lens === 'methods') {
+    ids.add('simulation-design')
+    ids.add('limitations')
+  } else {
+    ids.add('discussion')
+    ids.add('limitations')
+  }
+
+  return [...ids]
+    .map(id => PAPER_SECTIONS.find(section => section.id === id) ?? null)
+    .filter((section): section is PaperSection => Boolean(section))
+    .slice(0, 4)
+}
+
+function paperLensSummary(lens: PaperLens, dataset: ResearchDatasetEntry): string {
+  const scenarioLabel = `${dataset.evaluation} under ${paradigmLabel(dataset.paradigm)}`
+
+  if (lens === 'theory') {
+    return `${scenarioLabel} can be read through the mechanism sections that explain why geography, information placement, and migration frictions produce this posture.`
+  }
+  if (lens === 'methods') {
+    return `${scenarioLabel} is a published replay, not a fresh engine run. Use the methods sections to check assumptions, scope, and limits before over-reading the charts.`
+  }
+  return `${scenarioLabel} maps back to the paper's empirical sections so the atlas stays anchored to the canonical claims and caveats.`
+}
+
+function PaperGuide({ selectedEntry }: { readonly selectedEntry: ResearchDatasetEntry }) {
+  const [paperLens, setPaperLens] = useState<PaperLens>('evidence')
+  const [activeSectionId, setActiveSectionId] = useState('')
+  const sections = useMemo(
+    () => recommendedPaperSections(selectedEntry, paperLens),
+    [paperLens, selectedEntry],
+  )
+  const activeSection = useMemo(
+    () => sections.find(section => section.id === activeSectionId) ?? sections[0] ?? null,
+    [activeSectionId, sections],
+  )
+
+  useEffect(() => {
+    if (!sections.some(section => section.id === activeSectionId)) {
+      setActiveSectionId(sections[0]?.id ?? '')
+    }
+  }, [activeSectionId, sections])
+
+  if (sections.length === 0) return null
+
+  return (
+    <div className="rounded-xl border border-rule/70 bg-[#FBFAF8]/85 px-3.5 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-faint">
+            Reading Guide
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            {paperLensSummary(paperLens, selectedEntry)}
+          </p>
+        </div>
+        {activeSection && (
+          <a
+            href={buildPaperSectionUrl(activeSection.id)}
+            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-black/[0.08] bg-white px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors hover:text-text-primary"
+          >
+            Open Paper
+            <ArrowUpRight className="h-3 w-3" />
+          </a>
+        )}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {([
+          { id: 'evidence' as const, label: 'Evidence' },
+          { id: 'theory' as const, label: 'Theory' },
+          { id: 'methods' as const, label: 'Methods' },
+        ] as const).map(option => (
+          <button
+            key={option.id}
+            onClick={() => setPaperLens(option.id)}
+            className={cn(
+              'rounded-md px-2.5 py-1 text-2xs font-medium transition-colors',
+              paperLens === option.id
+                ? 'bg-white text-text-primary shadow-[0_1px_2px_rgba(0,0,0,0.05)] ring-1 ring-black/[0.06]'
+                : 'text-muted hover:bg-white/70 hover:text-text-secondary',
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {sections.map(section => (
+          <button
+            key={section.id}
+            onClick={() => setActiveSectionId(section.id)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors',
+              activeSection?.id === section.id
+                ? 'border-accent/20 bg-accent/[0.06] text-text-primary'
+                : 'border-black/[0.06] bg-white/80 text-muted hover:text-text-secondary',
+            )}
+          >
+            <span className="font-mono text-[10px] text-text-faint">{section.number}</span>
+            <span>{section.title}</span>
+          </button>
+        ))}
+      </div>
+
+      {activeSection && (
+        <div className="mt-3 rounded-lg border border-rule/60 bg-white px-3 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="lab-chip bg-surface-active text-[10px] text-text-faint">
+              {activeSection.category}
+            </span>
+            <span className="font-mono text-[10px] text-text-faint">{activeSection.number}</span>
+            <div className="text-xs font-semibold text-text-primary">{activeSection.title}</div>
+          </div>
+          <p className="mt-1.5 text-xs leading-relaxed text-muted">
+            {activeSection.description}
+          </p>
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ── Scenario selector with dedicated cost control ───────────────────────────
@@ -572,6 +740,10 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
               selectedResult={selectedEntry.result}
               onSelect={setSelectedEntry}
             />
+          )}
+
+          {selectedEntry && (
+            <PaperGuide selectedEntry={selectedEntry} />
           )}
         </div>
       </motion.section>
