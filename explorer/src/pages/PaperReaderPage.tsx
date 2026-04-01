@@ -90,7 +90,7 @@ export function PaperReaderPage({
     ? (notesBySection.get(selection.sectionId)?.length ?? 0)
     : 0
 
-  const handleAddNote = useCallback(async (anchor: TextAnchor, comment: string) => {
+  const handleAddNote = useCallback(async (anchor: TextAnchor, comment: string): Promise<boolean> => {
     try {
       const section = anchor.sectionId
         ? PAPER_SECTIONS.find(s => s.id === anchor.sectionId)
@@ -132,16 +132,20 @@ export function PaperReaderPage({
         },
       )
 
-      clearSelection()
+      // Don't clearSelection here — let the popover show its
+      // confirmation animation, then dismiss via onDismiss callback
       window.getSelection()?.removeAllRanges()
 
-      // Reconcile with server data
-      await queryClient.invalidateQueries({ queryKey: ['explorations'] })
+      // Reconcile with server data in background
+      queryClient.invalidateQueries({ queryKey: ['explorations'] })
+
+      return true
     } catch {
       setNoteError('Failed to publish note. Please try again.')
       window.setTimeout(() => setNoteError(null), 4000)
+      return false
     }
-  }, [clearSelection, queryClient])
+  }, [queryClient])
 
   // Persist mode to localStorage
   useEffect(() => {
