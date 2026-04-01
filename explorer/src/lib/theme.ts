@@ -42,10 +42,10 @@ export const TOPIC_THEME_STYLE: Record<string, { dot: string; activeBorder: stri
   methodology: { dot: '#6B7280', activeBorder: 'border-gray-400', activeBg: 'bg-gray-50/50' },
 } as const
 
-/** Block visualization palette — SSP ocean, MSP earth, plus supporting colors */
+/** Block visualization palette — external block building ocean, local block building earth, plus supporting colors */
 export const BLOCK_COLORS = [
-  '#2563EB', // ocean blue (SSP)
-  '#C2553A', // terracotta (MSP)
+  '#2563EB', // ocean blue (external block building)
+  '#C2553A', // terracotta (local block building)
   '#16A34A', // meridian green
   '#D97706', // amber
   '#DC2626', // signal red
@@ -121,7 +121,7 @@ export const MAP_NODE_COLORS = {
   /** 4-tier concentration scale using the page accent (blue) */
   low: '#93C5FD',       // blue-300 — faint presence
   mid: '#60A5FA',       // blue-400 — moderate
-  high: '#2563EB',      // blue-600 — matches accent / SSP
+  high: '#2563EB',      // blue-600 — matches accent / external block building
   top: '#1E40AF',       // blue-800 — dominant
   /** Overlay-specific */
   sources: '#16A34A',   // meridian green — matches page success color

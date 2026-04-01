@@ -324,7 +324,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
               {/* Source paradigm */}
               {paradigms.length > 1 && (
                 <>
-                  <span className={filterLabel} title="Block-building paradigm: SSP or MSP">Source</span>
+                  <span className={filterLabel} title="Block-building paradigm: External or Local">Paradigm</span>
                   <div className="flex gap-1">
                     {paradigms.map(paradigm => (
                       <button

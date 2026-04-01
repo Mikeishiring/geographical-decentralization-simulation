@@ -117,7 +117,7 @@ export function SimConfigPanel({
               {(['SSP', 'MSP'] as const).map(paradigm => (
                 <button
                   key={paradigm}
-                  title={paradigm === 'SSP' ? 'Single Slot Proposer — current Ethereum design where one builder proposes per slot' : 'Multiple Slot Proposer — proposed design where several builders contribute to each slot'}
+                  title={paradigm === 'SSP' ? 'External block building — proposers outsource block construction to specialized suppliers (PBS/ePBS)' : 'Local block building — proposers self-construct blocks from distributed signal sources'}
                   onClick={() => onConfigChange('paradigm', paradigm)}
                   className={cn(
                     segmentButtonClassName,

@@ -25,7 +25,7 @@ export function sectionEntryLine(section: PaperSection): string {
     'se1-source-placement': 'Start here for the infrastructure-placement flip that helps one paradigm while hurting the other.',
     'se2-distribution': 'Start here if you want to ask whether starting geography matters more than paradigm choice.',
     'se3-joint': 'Start here for the transient dip and the warning against overreading it as mitigation.',
-    'se4a-attestation': 'Start here for the paper\'s sharpest paradox: the same gamma change pushes SSP and MSP in opposite directions.',
+    'se4a-attestation': 'Start here for the paper\'s sharpest paradox: the same gamma change pushes external and local block building in opposite directions.',
     'se4b-slots': 'Start here for the fairness-versus-geography distinction under shorter slots.',
     discussion: 'Start here for design implications without overstating what the model has solved.',
     limitations: 'Start here for the confidence boundary of the model.',

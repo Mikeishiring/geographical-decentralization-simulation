@@ -78,8 +78,8 @@ export function CompactExplorationRow({
             <span key={tag} className="lab-chip !py-0 !text-2xs">
               <span className={cn(
                 'h-1 w-1 rounded-full',
-                tag === 'SSP' && 'bg-accent',
-                tag === 'MSP' && 'bg-accent-warm',
+                tag === 'External' && 'bg-accent',
+                tag === 'Local' && 'bg-accent-warm',
                 tag.startsWith('SE') && 'bg-success',
               )} />
               {tag}

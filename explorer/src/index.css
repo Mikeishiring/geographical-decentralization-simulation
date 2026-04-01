@@ -16,8 +16,8 @@
   --color-text-faint: rgba(0, 0, 0, 0.42);
 
   /* Geo-themed accent palette */
-  --color-accent: #2563EB;          /* ocean blue — SSP, centralized flows */
-  --color-accent-warm: #C2553A;     /* terracotta — MSP, local/grounded */
+  --color-accent: #2563EB;          /* ocean blue — external block building */
+  --color-accent-warm: #C2553A;     /* terracotta — local block building */
   --color-success: #16A34A;         /* meridian green — verified, surveyor marks */
   --color-warning: #D97706;         /* amber — caveats, caution */
   --color-danger: #DC2626;          /* signal red — surprising findings */
