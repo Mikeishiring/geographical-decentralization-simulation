@@ -18,6 +18,12 @@ interface NoteHighlight {
   readonly takeaway: string
 }
 
+interface SectionNavProps {
+  readonly activeSectionId: string
+  readonly onSectionClick?: (id: string) => void
+  readonly compact?: boolean
+}
+
 /** Collect unique note excerpts from exploration data */
 function collectNoteHighlights(notes: readonly Exploration[]): readonly NoteHighlight[] {
   const seen = new Map<string, NoteHighlight>()
@@ -101,7 +107,7 @@ function NoteHoverCard({
               </span>
             )}
             <span className="mt-2 flex items-center gap-1 text-[10px] font-medium text-accent">
-              View note <span className="transition-transform group-hover:translate-x-0.5">&darr;</span>
+              Show notes <span className="transition-transform group-hover:translate-x-0.5">&darr;</span>
             </span>
           </motion.span>
         )}
@@ -190,6 +196,37 @@ function renderWithNoteHighlights(
   return text
 }
 
+function SectionNav({ activeSectionId, onSectionClick, compact = false }: SectionNavProps) {
+  return (
+    <>
+      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/60">Sections</div>
+      <nav className={cn('space-y-0.5', compact && 'max-h-[calc(100vh-14rem)] overflow-auto pr-1')}>
+        {PAPER_SECTIONS.map(section => (
+          <a
+            key={section.id}
+            href={`#${section.id}`}
+            onClick={() => onSectionClick?.(section.id)}
+            className={cn(
+              'flex items-baseline gap-2 rounded-md px-2 py-1.5 text-xs transition-all duration-150',
+              activeSectionId === section.id
+                ? 'bg-accent/[0.06] text-text-primary'
+                : 'text-muted/70 hover:text-text-primary hover:bg-surface-active/60',
+            )}
+          >
+            <span className={cn(
+              'shrink-0 font-mono text-[10px] transition-colors duration-150',
+              activeSectionId === section.id ? 'text-accent' : 'text-muted/40',
+            )}>
+              {section.number}
+            </span>
+            <span className="leading-snug">{section.title}</span>
+          </a>
+        ))}
+      </nav>
+    </>
+  )
+}
+
 /* ── Floating TOC sidebar ─────────────────────────────────────────────── */
 
 function FloatingTOC({
@@ -231,30 +268,7 @@ function FloatingTOC({
         className="w-[190px] rounded-xl border border-rule/60 bg-white/95 p-3 shadow-[0_4px_20px_rgba(0,0,0,0.04)] backdrop-blur-sm"
         style={{ pointerEvents: show ? 'auto' : 'none' }}
       >
-        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/60 mb-2">Sections</div>
-        <nav className="space-y-0.5">
-          {PAPER_SECTIONS.map(section => (
-            <a
-              key={section.id}
-              href={`#${section.id}`}
-              onClick={() => onSectionClick?.(section.id)}
-              className={cn(
-                'flex items-baseline gap-2 rounded-md px-2 py-1.5 text-xs transition-all duration-150',
-                activeSectionId === section.id
-                  ? 'bg-accent/[0.06] text-text-primary'
-                  : 'text-muted/70 hover:text-text-primary hover:bg-surface-active/60',
-              )}
-            >
-              <span className={cn(
-                'font-mono text-[10px] shrink-0 transition-colors duration-150',
-                activeSectionId === section.id ? 'text-accent' : 'text-muted/40',
-              )}>
-                {section.number}
-              </span>
-              <span className="leading-snug">{section.title}</span>
-            </a>
-          ))}
-        </nav>
+        <SectionNav activeSectionId={activeSectionId} onSectionClick={onSectionClick} compact />
       </motion.div>
     </aside>
   )
@@ -295,39 +309,47 @@ export function PaperSectionView({
       {/* Floating TOC — fixed position, outside document flow, no layout shift */}
       <FloatingTOC activeSectionId={activeSectionId} onSectionClick={onSectionClick} />
 
-      {/* Sections — full width now that TOC is floating */}
-      <div className="space-y-10">
-        {PAPER_SECTIONS.map((section, index) => {
-          const narrative = PAPER_NARRATIVE[section.id]
-          const figuresFirst = index % 2 === 1
-          const previousSection = PAPER_SECTIONS[index - 1]
-          const nextSection = PAPER_SECTIONS[index + 1]
+      {/* Laptop/Desktop TOC in flow; floating TOC takes over on very wide screens */}
+      <div className="grid gap-8 xl:grid-cols-[220px_minmax(0,1fr)] 2xl:grid-cols-1">
+        <aside className="hidden xl:block 2xl:hidden xl:sticky xl:top-40 xl:self-start">
+          <div className="rounded-xl border border-rule/60 bg-white/95 p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+            <SectionNav activeSectionId={activeSectionId} onSectionClick={onSectionClick} compact />
+          </div>
+        </aside>
 
-          return (
-            <div key={section.id}>
-              {index > 0 && (
-                <div className="section-journey-divider mb-10">
-                  <div className="section-journey-node" />
-                </div>
-              )}
-            <SectionCard
-              section={section}
-              narrative={narrative}
-              figuresFirst={figuresFirst}
-              previousSection={previousSection}
-              nextSection={nextSection}
-              copiedSectionId={copiedSectionId}
-              onCopyLink={handleCopySectionLink}
-              onNavigate={(id: string) => {
-                document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
-              }}
-              notesVisible={notesVisible}
-              sectionNotes={notesBySection?.get(section.id) ?? []}
-              onOpenNote={onOpenNote}
-            />
-            </div>
-          )
-        })}
+        <div className="space-y-10 xl:min-w-0">
+          {PAPER_SECTIONS.map((section, index) => {
+            const narrative = PAPER_NARRATIVE[section.id]
+            const figuresFirst = index % 2 === 1
+            const previousSection = PAPER_SECTIONS[index - 1]
+            const nextSection = PAPER_SECTIONS[index + 1]
+
+            return (
+              <div key={section.id}>
+                {index > 0 && (
+                  <div className="section-journey-divider mb-10">
+                    <div className="section-journey-node" />
+                  </div>
+                )}
+                <SectionCard
+                  section={section}
+                  narrative={narrative}
+                  figuresFirst={figuresFirst}
+                  previousSection={previousSection}
+                  nextSection={nextSection}
+                  copiedSectionId={copiedSectionId}
+                  onCopyLink={handleCopySectionLink}
+                  onNavigate={(id: string) => {
+                    document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                  }}
+                  notesVisible={notesVisible}
+                  sectionNotes={notesBySection?.get(section.id) ?? []}
+                  onOpenNote={onOpenNote}
+                />
+              </div>
+            )
+          })}
+        </div>
       </div>
     </>
   )
@@ -390,7 +412,7 @@ function SectionCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.15 }}
       transition={SPRING}
-      className="group scroll-mt-40 rounded-2xl border border-rule bg-white p-6 card-hover geo-accent-bar sm:p-8 lg:p-10"
+      className="group scroll-mt-40 overflow-hidden rounded-2xl border border-rule bg-white p-6 card-hover geo-accent-bar sm:p-8 lg:p-10"
     >
       {/* Header */}
       <div className="mb-8 border-b border-rule pb-6">
@@ -432,10 +454,10 @@ function SectionCard({
       )}
 
       {/* Content grid — wider prose column */}
-      <div className={cn('grid gap-8', hasSupportingBlocks && 'xl:grid-cols-12')}>
+      <div className={cn('grid min-w-0 gap-8', hasSupportingBlocks && 'xl:grid-cols-12')}>
         <div
           className={cn(
-            'space-y-6',
+            'min-w-0 space-y-6',
             hasSupportingBlocks
               ? hasFeaturedChart
                 ? 'xl:col-span-8'
@@ -468,7 +490,7 @@ function SectionCard({
         {hasSupportingBlocks && (
           <div
             className={cn(
-              'space-y-4',
+              'min-w-0 space-y-4',
               hasFeaturedChart ? 'xl:col-span-4' : 'xl:col-span-5',
               !hasFeaturedChart && figuresFirst && 'xl:order-1',
             )}

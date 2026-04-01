@@ -52,7 +52,13 @@ export function EditorialView({
   const showTopic = activeTopic !== null
 
   return (
-    <motion.div key="editorial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={PAGE_TRANSITION}>
+    <motion.div
+      key="editorial"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={PAGE_TRANSITION}
+      className="min-w-0 overflow-x-hidden"
+    >
       <PaperHero />
 
       <div className="mt-6">

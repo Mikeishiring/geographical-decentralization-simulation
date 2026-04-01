@@ -28,14 +28,14 @@ export function TopicCardGrid({
 
   return (
     <motion.div
-      className="rounded-xl border border-rule bg-white px-4 py-4 geo-accent-bar"
+      className="overflow-hidden rounded-xl border border-rule bg-white px-4 py-4 geo-accent-bar"
       initial={{ opacity: 0, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
       transition={SPRING}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="lab-section-title">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="lab-section-title min-w-0">
 Paper topics
         </div>
         <div className="flex items-center gap-3">
@@ -82,7 +82,7 @@ Paper topics
               aria-label={card.title}
               aria-pressed={isActive}
               className={cn(
-                'text-left rounded-lg border px-3 py-2.5 transition-colors group card-hover',
+                'min-w-0 text-left rounded-lg border px-3 py-2.5 transition-colors group card-hover',
                 isActive
                   ? `${themeStyle.activeBorder} ${themeStyle.activeBg}`
                   : isDimmed
@@ -90,12 +90,12 @@ Paper topics
                     : 'border-rule bg-surface-active hover:border-border-hover',
               )}
             >
-              <div className="flex items-start gap-2">
+              <div className="flex min-w-0 items-start gap-2">
                 <span
                   className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
                   style={{ backgroundColor: themeStyle.dot }}
                 />
-                <h4 className="text-xs font-medium text-text-primary leading-snug line-clamp-2">
+                <h4 className="min-w-0 text-xs font-medium text-text-primary leading-snug line-clamp-2">
                   {card.title}
                 </h4>
               </div>

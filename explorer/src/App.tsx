@@ -202,7 +202,7 @@ function App() {
         <main
           id="main-content"
           className={cn(
-            'mx-auto px-4 py-8 sm:px-6',
+            'mx-auto overflow-x-hidden px-4 py-8 sm:px-6',
             CONTENT_MAX_WIDTH,
           )}
         >

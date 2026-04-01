@@ -96,6 +96,15 @@ function MiniChart({
     ? CHART.crosshairOpacity * crosshairFadeNearLive(hoverSvgX, latestSvgX, CHART.crosshairFadeDistance)
     : 0
 
+  function updateHoverSlot(clientX: number, currentTarget: SVGSVGElement) {
+    const rect = currentTarget.getBoundingClientRect()
+    const relX = ((clientX - rect.left) / rect.width) * svgW
+    if (relX >= padding.left && relX <= svgW - padding.right) {
+      const slot = minX + ((relX - padding.left) / chartW) * rangeX
+      onHoverSlot(Math.round(slot))
+    }
+  }
+
   return (
     <div className="relative">
       <div className="absolute left-2.5 top-2.5 z-10 inline-flex items-center gap-1 rounded-full border border-rule/60 bg-white/90 px-2 py-1 text-[10px] font-semibold tracking-wide text-muted/80 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
@@ -106,15 +115,17 @@ function MiniChart({
         viewBox={`0 0 ${svgW} ${svgH}`}
         className="aspect-[19/11] w-full"
         preserveAspectRatio="xMidYMid meet"
-        onMouseMove={event => {
-          const rect = event.currentTarget.getBoundingClientRect()
-          const relX = ((event.clientX - rect.left) / rect.width) * svgW
-          if (relX >= padding.left && relX <= svgW - padding.right) {
-            const slot = minX + ((relX - padding.left) / chartW) * rangeX
-            onHoverSlot(Math.round(slot))
-          }
+        onPointerMove={event => {
+          if (event.pointerType !== 'mouse') return
+          updateHoverSlot(event.clientX, event.currentTarget)
         }}
-        onMouseLeave={() => onHoverSlot(null)}
+        onPointerDown={event => {
+          updateHoverSlot(event.clientX, event.currentTarget)
+        }}
+        onPointerLeave={event => {
+          if (event.pointerType === 'mouse') onHoverSlot(null)
+        }}
+        style={{ touchAction: 'pan-y' }}
       >
         <defs>
           {datasets.map((d, i) => (
@@ -340,7 +351,7 @@ export function PaperChartBlock({ block }: PaperChartBlockProps) {
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <span className="inline-flex items-center rounded-full border border-rule/70 bg-white/80 px-3 py-1 text-[11px] font-medium text-text-faint">
-            {hoverSlot != null ? `Slot ${hoverSlot.toLocaleString()}` : 'Hover to inspect values'}
+            {hoverSlot != null ? `Slot ${hoverSlot.toLocaleString()}` : 'Hover or tap to inspect values'}
           </span>
           {block.cite && <CiteBadge cite={block.cite} />}
         </div>
