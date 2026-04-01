@@ -324,6 +324,25 @@ export function CustomAnalysisNotebookIncubator({
                   </div>
                   <div className="mt-2 text-sm leading-6 text-muted">{activeRecipe.prompt}</div>
                   <div className="mt-2 text-xs leading-5 text-muted">{activeRecipe.readinessDetail}</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {activeRecipe.dataSourceIds.map(sourceId => {
+                      const source = plan.dataSources.find(candidate => candidate.id === sourceId) ?? null
+                      if (!source) return null
+                      return (
+                        <div
+                          key={source.id}
+                          className={cn(
+                            'rounded-full border px-3 py-1.5 text-xs',
+                            source.ready
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'border-amber-200 bg-amber-50 text-amber-700',
+                          )}
+                        >
+                          {source.label}
+                        </div>
+                      )
+                    })}
+                  </div>
                   <div className="mt-4 text-xs font-medium uppercase tracking-[0.1em] text-text-faint">Bounded script preview</div>
                   <pre className="mt-2 overflow-x-auto rounded-xl bg-slate-950 px-4 py-4 text-xs leading-6 text-slate-100">
                     <code>{activeRecipe.script}</code>
