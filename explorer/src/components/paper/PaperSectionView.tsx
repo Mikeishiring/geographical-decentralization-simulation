@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Link2, Quote, Check, Lightbulb, MousePointerClick, MessageSquare } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
+import { Tooltip } from '../ui/Tooltip'
 import { cn } from '../../lib/cn'
 import { SPRING, SECTION_CATEGORY_STYLE } from '../../lib/theme'
 import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
@@ -38,7 +39,8 @@ function renderParagraph(
   text: string,
   keyClaim: string | undefined,
   highlights: readonly NoteHighlight[],
-  onHighlightClick?: (noteTitle: string) => void,
+  onHighlightClick?: () => void,
+  highlightsVisible = true,
 ): ReactNode {
   // First apply keyClaim highlight
   if (keyClaim) {
@@ -46,24 +48,25 @@ function renderParagraph(
     if (idx !== -1) {
       return (
         <>
-          {renderWithNoteHighlights(text.slice(0, idx), highlights, onHighlightClick)}
+          {renderWithNoteHighlights(text.slice(0, idx), highlights, onHighlightClick, highlightsVisible)}
           <span className="key-claim-highlight relative">
             <Lightbulb className="inline-block h-3 w-3 text-accent/40 mr-0.5 -mt-0.5" />
             {text.slice(idx, idx + keyClaim.length)}
           </span>
-          {renderWithNoteHighlights(text.slice(idx + keyClaim.length), highlights, onHighlightClick)}
+          {renderWithNoteHighlights(text.slice(idx + keyClaim.length), highlights, onHighlightClick, highlightsVisible)}
         </>
       )
     }
   }
-  return renderWithNoteHighlights(text, highlights, onHighlightClick)
+  return renderWithNoteHighlights(text, highlights, onHighlightClick, highlightsVisible)
 }
 
 /** Renders text with note excerpt highlights as inline marks */
 function renderWithNoteHighlights(
   text: string,
   highlights: readonly NoteHighlight[],
-  onHighlightClick?: (noteTitle: string) => void,
+  onHighlightClick?: () => void,
+  visible = true,
 ): ReactNode {
   if (highlights.length === 0) return text
 
@@ -81,19 +84,30 @@ function renderWithNoteHighlights(
     const match = text.slice(idx, matchEnd)
     const after = text.slice(matchEnd)
 
+    const noteLabel = `${highlight.noteCount} note${highlight.noteCount !== 1 ? 's' : ''}: ${highlight.noteTitle}`
+
     return (
       <>
         {before}
-        <mark
-          className="relative cursor-pointer rounded-sm bg-accent/[0.07] border-b border-accent/30 px-px -mx-px transition-colors hover:bg-accent/[0.14] group/mark"
-          onClick={() => onHighlightClick?.(highlight.noteTitle)}
-          title={`${highlight.noteCount} note${highlight.noteCount !== 1 ? 's' : ''}: ${highlight.noteTitle}`}
-        >
-          {match}
-          <span className="absolute -top-1 -right-1 inline-flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-accent px-0.5 text-[8px] font-bold text-white opacity-0 transition-opacity group-hover/mark:opacity-100 pointer-events-none">
-            <MessageSquare className="h-2 w-2" />
-          </span>
-        </mark>
+        <Tooltip label={noteLabel} placement="above" className="inline">
+          <mark
+            className={cn(
+              'relative rounded-sm px-px -mx-px transition-all duration-150',
+              visible
+                ? 'cursor-pointer bg-accent/[0.07] border-b border-accent/30 hover:bg-accent/[0.14] group/mark'
+                : 'bg-transparent border-b-transparent cursor-default',
+            )}
+            onClick={visible ? () => onHighlightClick?.() : undefined}
+          >
+            {match}
+            <span className={cn(
+              'absolute -top-1 -right-1 inline-flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-accent px-0.5 text-[8px] font-bold text-white transition-opacity pointer-events-none',
+              visible ? 'opacity-0 group-hover/mark:opacity-100' : 'opacity-0',
+            )}>
+              <MessageSquare className="h-2 w-2" />
+            </span>
+          </mark>
+        </Tooltip>
         {after}
       </>
     )
@@ -226,18 +240,22 @@ function SectionCard({
   onOpenNote?: (explorationId: string) => void
 }) {
   const noteHighlights = useMemo(
-    () => notesVisible ? collectNoteHighlights(sectionNotes) : [],
-    [notesVisible, sectionNotes],
+    () => collectNoteHighlights(sectionNotes),
+    [sectionNotes],
   )
 
-  const handleHighlightClick = (noteTitle: string) => {
-    // Scroll to the inline notes section for this card
-    const notesEl = document.querySelector(`#${section.id} [aria-label*="community notes"]`)
-    if (notesEl) {
-      notesEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-      // Click to expand if collapsed
-      const btn = notesEl as HTMLButtonElement
-      if (btn.getAttribute('aria-expanded') === 'false') btn.click()
+  const handleHighlightClick = () => {
+    const sectionEl = document.getElementById(section.id)
+    if (!sectionEl) return
+    // Find the notes card within this section using data attribute
+    const notesBtn = sectionEl.querySelector<HTMLButtonElement>('[data-notes-toggle]')
+    if (notesBtn) {
+      // Expand if collapsed
+      if (notesBtn.getAttribute('aria-expanded') === 'false') notesBtn.click()
+      // Scroll after a tick so the expanded content is rendered
+      requestAnimationFrame(() => {
+        notesBtn.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      })
     }
   }
 
@@ -289,7 +307,7 @@ function SectionCard({
           <div className="space-y-4 text-base leading-8 text-text-body font-serif">
             {narrative.paragraphs.map(paragraph => (
               <p key={paragraph} className="max-w-2xl">
-                {renderParagraph(paragraph, narrative.keyClaim, noteHighlights, handleHighlightClick)}
+                {renderParagraph(paragraph, narrative.keyClaim, noteHighlights, handleHighlightClick, notesVisible)}
               </p>
             ))}
           </div>

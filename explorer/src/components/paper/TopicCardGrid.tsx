@@ -36,7 +36,7 @@ export function TopicCardGrid({
     >
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="lab-section-title">
-          {activeTopic || showingAi ? 'Paper topics' : 'Explore by topic'}
+Paper topics
         </div>
         <div className="flex items-center gap-3">
           {(activeTopic || showingAi) && (

@@ -153,10 +153,12 @@ export function ArgumentsView({
             </motion.div>
           ))}
         </div>
-        <div className="mt-4 flex items-center gap-1.5 text-2xs text-text-faint">
-          <MousePointerClick className="h-3 w-3" />
-          Select any text to annotate it
-        </div>
+        {notesVisible && (
+          <div className="mt-4 flex items-center gap-1.5 text-2xs text-text-faint">
+            <MousePointerClick className="h-3 w-3" />
+            Select any text to annotate it
+          </div>
+        )}
       </motion.div>
 
       {/* Section accordion */}
@@ -288,6 +290,7 @@ export function ArgumentsView({
                           <InlineSectionNotes
                             notes={notesBySection.get(section.id) ?? []}
                             onOpenNote={onOpenNote}
+                            showAnnotationHint
                           />
                         )}
                       </div>
