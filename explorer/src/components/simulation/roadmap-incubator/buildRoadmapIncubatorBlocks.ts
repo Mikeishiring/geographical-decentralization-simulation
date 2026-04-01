@@ -10,6 +10,7 @@ import {
   type IncubatorPublishedAnalyticsPayload,
   type PaperGeographyMetrics,
   type RegionProfitEntry,
+  type ValidatorMetricMatrix,
 } from './csvArtifacts'
 
 const ACTION_REASON_COLORS: Readonly<Record<ActionReasonGroup, string>> = {
@@ -176,6 +177,76 @@ function numericSeries(value: unknown): readonly number[] {
 function nestedNumericSeries(value: unknown): ReadonlyArray<readonly number[]> {
   if (!Array.isArray(value)) return []
   return value.map(entry => numericSeries(entry)).filter(entry => entry.length > 0)
+}
+
+function positiveProposalTimes(values: readonly number[]): number[] {
+  return values.flatMap(value => (
+    typeof value === 'number' && Number.isFinite(value) && value > 0 ? [value] : []
+  ))
+}
+
+function observedAttestationRates(values: readonly number[]): number[] {
+  return values.flatMap(value => (
+    typeof value === 'number' && Number.isFinite(value) && value > 0 ? [value] : []
+  ))
+}
+
+function average(values: readonly number[]): number {
+  if (values.length === 0) return 0
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function quantile(values: readonly number[], ratio: number): number {
+  if (values.length === 0) return 0
+  const sorted = [...values].sort((left, right) => left - right)
+  const index = Math.max(0, Math.min(sorted.length - 1, Math.round(ratio * (sorted.length - 1))))
+  return sorted[index] ?? 0
+}
+
+function proposalDistributionBins(maxValue: number): ReadonlyArray<{
+  readonly label: string
+  readonly matches: (value: number) => boolean
+}> {
+  const upperBound = Math.max(4000, Math.ceil(maxValue / 500) * 500)
+  const step = Math.max(500, Math.ceil((upperBound / 5) / 250) * 250)
+  const bins = Array.from({ length: 5 }, (_, index) => {
+    const lower = index * step
+    const upper = lower + step
+    return {
+      label: `${lower}-${upper} ms`,
+      matches: (value: number) => value >= lower && value < upper,
+    }
+  })
+
+  return [
+    ...bins,
+    {
+      label: `${5 * step}+ ms`,
+      matches: (value: number) => value >= 5 * step,
+    },
+  ]
+}
+
+function validatorBandLabels(totalValidators: number, maxBands = 12): ReadonlyArray<{
+  readonly label: string
+  readonly start: number
+  readonly end: number
+}> {
+  if (totalValidators <= 0) return []
+  const bandCount = Math.max(1, Math.min(maxBands, totalValidators))
+  const bandSize = Math.max(1, Math.ceil(totalValidators / bandCount))
+  const labels: Array<{ label: string; start: number; end: number }> = []
+
+  for (let start = 0; start < totalValidators; start += bandSize) {
+    const end = Math.min(totalValidators - 1, start + bandSize - 1)
+    labels.push({
+      label: `V${start + 1}-${end + 1}`,
+      start,
+      end,
+    })
+  }
+
+  return labels
 }
 
 export function buildMigrationAuditTrailBlocks(entries: readonly ActionReasonEntry[]): readonly Block[] {
@@ -631,6 +702,109 @@ export function buildSourceProximityBlocks(
   blocks.push({
     type: 'caveat',
     text: 'The macro-region chart is derived from slot-level region counts and source coordinates using nearest-source great-circle distance. The raw `info_avg_distance` vector is preserved separately as an all-validators-to-each-source readout.',
+  })
+
+  return blocks
+}
+
+export function buildPerValidatorDistributionBlocks(
+  proposalTimeBySlot: ValidatorMetricMatrix,
+  attestBySlot: ValidatorMetricMatrix,
+): readonly Block[] {
+  const totalSlots = Math.max(proposalTimeBySlot.length, attestBySlot.length)
+  if (totalSlots === 0) return []
+
+  const buckets = buildWindowBuckets(totalSlots, 16)
+  const allProposalTimes = proposalTimeBySlot.flatMap(slotValues => positiveProposalTimes(slotValues))
+  const allAttestationRates = attestBySlot.flatMap(slotValues => observedAttestationRates(slotValues))
+  const totalValidators = Math.max(
+    0,
+    ...proposalTimeBySlot.map(slotValues => slotValues.length),
+    ...attestBySlot.map(slotValues => slotValues.length),
+  )
+
+  const blocks: Block[] = []
+  const weakestAttestation = allAttestationRates.length > 0 ? Math.min(...allAttestationRates) : null
+  const proposalP90 = allProposalTimes.length > 0 ? quantile(allProposalTimes, 0.9) : null
+
+  blocks.push({
+    type: 'insight',
+    title: 'Per-validator distributions',
+    text: allProposalTimes.length === 0
+      ? 'The raw validator traces are present, but no positive proposal timings were recorded in this payload.'
+      : `These traces are sparse by design: only the active proposer records a positive timing each slot. Across ${allProposalTimes.length.toLocaleString()} observed proposer slots, proposal-time p90 reaches ${formatNumber(proposalP90 ?? 0, 0)} ms${weakestAttestation != null ? ` and the weakest observed proposer attestation rate is ${formatNumber(weakestAttestation, 1)}%.` : '.'}`,
+    emphasis: 'key-finding',
+  })
+
+  if (allProposalTimes.length > 0) {
+    const bins = proposalDistributionBins(Math.max(...allProposalTimes))
+    blocks.push({
+      type: 'heatmap',
+      title: 'Proposal-time distribution by slot window',
+      rows: bins.map(bin => bin.label),
+      columns: buckets.map(bucket => formatSlotWindow(bucket.startSlot, bucket.endSlot)),
+      values: bins.map(bin => buckets.map(bucket => {
+        const windowValues = proposalTimeBySlot
+          .slice(bucket.startSlot, bucket.endSlot + 1)
+          .flatMap(slotValues => positiveProposalTimes(slotValues))
+        if (windowValues.length === 0) return 0
+        const matches = windowValues.filter(bin.matches).length
+        return Number(((matches / windowValues.length) * 100).toFixed(1))
+      })),
+      colorScale: 'sequential',
+      unit: '% of proposer slots',
+    })
+
+    blocks.push({
+      type: 'table',
+      title: 'Proposal timing quantiles by slot window',
+      headers: ['Window', 'Observed proposer slots', 'Median', 'P90', 'P99', 'Max'],
+      rows: buckets.map(bucket => {
+        const windowValues = proposalTimeBySlot
+          .slice(bucket.startSlot, bucket.endSlot + 1)
+          .flatMap(slotValues => positiveProposalTimes(slotValues))
+
+        return [
+          formatSlotWindow(bucket.startSlot, bucket.endSlot),
+          windowValues.length.toLocaleString(),
+          windowValues.length > 0 ? `${formatNumber(quantile(windowValues, 0.5), 0)} ms` : 'N/A',
+          windowValues.length > 0 ? `${formatNumber(quantile(windowValues, 0.9), 0)} ms` : 'N/A',
+          windowValues.length > 0 ? `${formatNumber(quantile(windowValues, 0.99), 0)} ms` : 'N/A',
+          windowValues.length > 0 ? `${formatNumber(Math.max(...windowValues), 0)} ms` : 'N/A',
+        ]
+      }),
+    })
+  }
+
+  if (allAttestationRates.length > 0 && totalValidators > 0) {
+    const bands = validatorBandLabels(totalValidators)
+    blocks.push({
+      type: 'heatmap',
+      title: 'Proposer attestation shortfall by validator band and slot window',
+      rows: bands.map(band => band.label),
+      columns: buckets.map(bucket => formatSlotWindow(bucket.startSlot, bucket.endSlot)),
+      values: bands.map(band => buckets.map(bucket => {
+        const failures: number[] = []
+
+        for (let slot = bucket.startSlot; slot <= bucket.endSlot; slot += 1) {
+          const slotValues = attestBySlot[slot] ?? []
+          for (let validatorIndex = band.start; validatorIndex <= band.end; validatorIndex += 1) {
+            const value = slotValues[validatorIndex]
+            if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) continue
+            failures.push(Math.max(0, 100 - value))
+          }
+        }
+
+        return Number(average(failures).toFixed(1))
+      })),
+      colorScale: 'sequential',
+      unit: 'Avg failure points',
+    })
+  }
+
+  blocks.push({
+    type: 'caveat',
+    text: 'The proposal and attestation matrices are downsampled into slot windows to stay renderable. Zero or negative values are treated as inactive non-proposer entries, so these views emphasize proposer rotation and tail behavior rather than a dense all-validator latency field.',
   })
 
   return blocks

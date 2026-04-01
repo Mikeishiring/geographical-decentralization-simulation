@@ -123,6 +123,44 @@ export function AnimatedListTree({ className = 'h-3.5 w-3.5', isActive, isHovere
 }
 
 /**
+ * ScrollText — HTML view icon.
+ * Active: paragraph lines breathe to suggest a live article surface.
+ * Hover: spring scale pop.
+ */
+export function AnimatedScrollText({ className = 'h-3.5 w-3.5', isActive, isHovered }: AnimatedIconProps) {
+  const lines = [
+    { x1: 6, x2: 18, y: 7, dur: BREATHE_DUR },
+    { x1: 6, x2: 16, y: 11, dur: BREATHE_DUR_OFFSET },
+    { x1: 6, x2: 17, y: 15, dur: BREATHE_DUR_OFFSET_2 },
+    { x1: 6, x2: 14, y: 19, dur: BREATHE_DUR },
+  ]
+
+  return (
+    <motion.svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      animate={{ scale: isHovered ? 1.1 : 1 }}
+      transition={SPRING_SNAPPY}
+    >
+      <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+      <path d="M14 3v5h5" />
+      {lines.map(line => (
+        <line key={line.y} x1={line.x1} x2={line.x2} y1={line.y} y2={line.y} opacity={isActive ? undefined : 1}>
+          {isActive && (
+            <animate attributeName="opacity" values="0.45;1;0.45" dur={line.dur} repeatCount="indefinite" />
+          )}
+        </line>
+      ))}
+    </motion.svg>
+  )
+}
+
+/**
  * FileText — Original PDF icon.
  * Active: text lines shimmer with a subtle opacity wave (staggered),
  * using SVG native animate like GlobeNetwork graticules.

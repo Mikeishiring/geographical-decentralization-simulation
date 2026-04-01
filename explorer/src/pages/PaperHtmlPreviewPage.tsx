@@ -23,7 +23,11 @@ function buildResultsUrl(selection: PublishedEvidenceSelection): string {
   return buildPublishedEvidenceUrl(selection)
 }
 
-export function PaperHtmlPreviewPage() {
+interface PaperHtmlPreviewPageProps {
+  readonly embedded?: boolean
+}
+
+export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageProps) {
   const study = getActiveStudy()
   const backHref = withoutPreviewParam()
   const htmlUrl = getStudyHtmlUrl()
@@ -62,38 +66,40 @@ export function PaperHtmlPreviewPage() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="border-b border-rule/70 bg-white/92 backdrop-blur-lg">
-        <div className={cn('mx-auto flex items-center justify-between gap-4 px-4 py-3 sm:px-6', CONTENT_MAX_WIDTH)}>
-          <div className="min-w-0">
-            <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-text-faint">
-              Hidden Preview
+      {!embedded && (
+        <div className="border-b border-rule/70 bg-white/92 backdrop-blur-lg">
+          <div className={cn('mx-auto flex items-center justify-between gap-4 px-4 py-3 sm:px-6', CONTENT_MAX_WIDTH)}>
+            <div className="min-w-0">
+              <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-text-faint">
+                Hidden Preview
+              </div>
+              <div className="mt-1 text-sm text-text-primary">
+                HTML reading layer prototype. Not linked from the main explorer navigation.
+              </div>
             </div>
-            <div className="mt-1 text-sm text-text-primary">
-              HTML reading layer prototype. Not linked from the main explorer navigation.
+            <div className="flex shrink-0 items-center gap-2">
+              <a
+                href={backHref}
+                className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-active"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Main explorer
+              </a>
+              <a
+                href={htmlUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.05] px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/[0.1]"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                arXiv HTML
+              </a>
             </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <a
-              href={backHref}
-              className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-active"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Main explorer
-            </a>
-            <a
-              href={htmlUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.05] px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/[0.1]"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              arXiv HTML
-            </a>
           </div>
         </div>
-      </div>
+      )}
 
-      <main className={cn('mx-auto px-4 py-8 sm:px-6', CONTENT_MAX_WIDTH)}>
+      <main className={cn('mx-auto px-4 sm:px-6', CONTENT_MAX_WIDTH, embedded ? 'py-6' : 'py-8')}>
         <div className="grid gap-8 xl:grid-cols-[250px_minmax(0,1fr)]">
           <aside className="hidden xl:block">
             <div className="sticky top-28 rounded-2xl border border-rule/70 bg-white/95 p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
@@ -161,7 +167,7 @@ export function PaperHtmlPreviewPage() {
             <header className="overflow-hidden rounded-[1.8rem] border border-rule/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-6 py-7 shadow-[0_6px_24px_rgba(0,0,0,0.05)] sm:px-8">
               <div className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/[0.05] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] text-accent">
                 <FlaskConical className="h-3.5 w-3.5" />
-                Research HTML Preview
+                {embedded ? 'HTML Source View' : 'Research HTML Preview'}
               </div>
               <h1 className="mt-4 max-w-4xl text-3xl font-medium leading-tight text-text-primary font-serif sm:text-4xl">
                 {study.metadata.title}
@@ -185,6 +191,17 @@ export function PaperHtmlPreviewPage() {
                     </a>
                   ) : null
                 ))}
+                {embedded && (
+                  <a
+                    href={htmlUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.05] px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/[0.1]"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Open arXiv HTML
+                  </a>
+                )}
               </div>
 
               <div className="mt-6 grid gap-5 border-t border-rule/70 pt-6 lg:grid-cols-[minmax(0,1fr)_260px]">

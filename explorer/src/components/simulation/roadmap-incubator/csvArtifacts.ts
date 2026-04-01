@@ -47,6 +47,9 @@ export interface PaperGeographyMetrics {
   readonly profitVariance: readonly number[]
 }
 
+export type ValidatorMetricMatrix = ReadonlyArray<readonly number[]>
+export type RegionCounterBySlot = Readonly<Record<number, ReadonlyArray<readonly [string, number]>>>
+
 export interface IncubatorPublishedAnalyticsPayload {
   readonly v?: number
   readonly description?: string
@@ -201,6 +204,17 @@ function parseNumericSeries(value: unknown): readonly number[] {
   })
 }
 
+function parseValidatorMetricMatrix(value: unknown): ValidatorMetricMatrix {
+  if (!Array.isArray(value)) return []
+  return value.map(slotValues => (
+    Array.isArray(slotValues)
+      ? slotValues.flatMap(item => (
+          typeof item === 'number' && Number.isFinite(item) ? [item] : []
+        ))
+      : []
+  ))
+}
+
 export function toContinent(regionName: string | null | undefined): Continent {
   const normalized = String(regionName ?? '').trim().toLowerCase()
   for (const [prefix, continent] of CONTINENT_PREFIXES) {
@@ -292,6 +306,47 @@ export function parsePaperGeographyMetrics(rawText: string): PaperGeographyMetri
     }
   } catch {
     return null
+  }
+}
+
+export function parseProposalTimeBySlotJson(rawText: string): ValidatorMetricMatrix {
+  try {
+    return parseValidatorMetricMatrix(JSON.parse(rawText) as unknown)
+  } catch {
+    return []
+  }
+}
+
+export function parseAttestBySlotJson(rawText: string): ValidatorMetricMatrix {
+  try {
+    return parseValidatorMetricMatrix(JSON.parse(rawText) as unknown)
+  } catch {
+    return []
+  }
+}
+
+export function parseRegionCounterBySlotJson(rawText: string): RegionCounterBySlot {
+  try {
+    const payload = JSON.parse(rawText) as Record<string, unknown>
+    const entries = Object.entries(payload)
+      .flatMap(([slotKey, slotEntries]) => {
+        const slot = Number.parseInt(slotKey, 10)
+        if (!Number.isFinite(slot) || !Array.isArray(slotEntries)) return []
+
+        const normalizedEntries = slotEntries.flatMap(entry => {
+          if (!Array.isArray(entry) || entry.length < 2) return []
+          const region = typeof entry[0] === 'string' ? entry[0] : null
+          const count = Number(entry[1])
+          if (!region || !Number.isFinite(count)) return []
+          return [[region, count] as const]
+        })
+
+        return [[slot, normalizedEntries] as const]
+      })
+
+    return Object.fromEntries(entries)
+  } catch {
+    return {}
   }
 }
 
