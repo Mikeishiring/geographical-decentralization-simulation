@@ -14,11 +14,22 @@ import { downloadBlobFile } from '../../lib/simulation-export'
 import type { Block, SourceBlock } from '../../types/blocks'
 import { formatNumber, paradigmLabel } from './simulation-constants'
 import { PublishedReplayCompanionPanel } from './PublishedReplayCompanionPanel'
+import {
+  PublishedReplayMetricStrip,
+  type PublishedReplayMetricStripCard,
+} from './PublishedReplayMetricStrip'
 import { PublishedReplayNotesPanel } from './PublishedReplayNotesPanel'
-import { PublishedDatasetViewer, type PublishedViewerSnapshot } from './PublishedDatasetViewer'
+import {
+  PublishedDatasetViewer,
+  dispatchPublishedReplayAnchorSelection,
+  type PublishedReplayAnchorSelectionDetail,
+  type PublishedViewerFocusArea,
+  type PublishedViewerSnapshot,
+} from './PublishedDatasetViewer'
 import { SimulationAnalyticsDesk } from './SimulationAnalyticsDesk'
 import {
   analyticsCompareModeOptions,
+  analyticsMetricSeriesForPayload,
   analyticsMetricOptionsForView,
   ANALYTICS_VIEW_OPTIONS,
   buildAnalyticsDashboardPresets,
@@ -116,10 +127,9 @@ interface InitialWorkspaceState {
   readonly analyticsCompareMode?: AnalyticsCompareMode
 }
 
-interface ResultSnapshotCard {
-  readonly label: string
-  readonly value: string
-  readonly detail: string
+interface ReplaySnapshotMetricCard extends PublishedReplayMetricStripCard {
+  readonly focusArea: PublishedViewerFocusArea
+  readonly anchor: PublishedReplayAnchorSelectionDetail
 }
 
 interface PromptLauncher {
@@ -159,6 +169,26 @@ function formatPercentValue(value: number | null | undefined, digits = 1): strin
 function formatOptionalMilliseconds(value: number | null | undefined, digits = 1): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
   return `${formatNumber(value, digits)} ms`
+}
+
+function formatCountValue(value: number): string {
+  return Math.round(value).toLocaleString()
+}
+
+function formatIndexValue(value: number): string {
+  return formatNumber(value, 3)
+}
+
+function formatPercentSeriesValue(value: number): string {
+  return `${formatNumber(value, 1)}%`
+}
+
+function formatMillisecondsSeriesValue(value: number): string {
+  return `${formatNumber(value, 1)} ms`
+}
+
+function formatEthSeriesValue(value: number): string {
+  return `${formatNumber(value, 4)} ETH`
 }
 
 function parseTheme(value: string | null): WorkspaceTheme | undefined {
@@ -379,6 +409,8 @@ export function ResearchDemoSurface({
   const [pendingAutoReplayQuestion, setPendingAutoReplayQuestion] = useState(initialWorkspaceState.replayQuestion?.trim() ?? '')
   const [viewerSnapshot, setViewerSnapshot] = useState<PublishedViewerSnapshot | null>(null)
   const [comparisonViewerSnapshot, setComparisonViewerSnapshot] = useState<PublishedViewerSnapshot | null>(null)
+  const [activeReplayMetricCardId, setActiveReplayMetricCardId] = useState<string | null>(null)
+  const [viewerSpotlightArea, setViewerSpotlightArea] = useState<PublishedViewerFocusArea | null>(null)
   const [lastReplayAnswer, setLastReplayAnswer] = useState<{
     question: string
     response: PublishedReplayCopilotResponse
@@ -1767,75 +1799,155 @@ export function ResearchDemoSurface({
       ?? 'The published workspace opens on the checked-in replay so readers start from evidence instead of a setup screen.'
   })()
 
-  const resultSnapshotCards = useMemo<ResultSnapshotCard[]>(() => {
-    const dominantRegion = viewerSnapshot?.dominantRegionCity ?? viewerSnapshot?.dominantRegionId ?? '--'
-
-    return [
-      {
-        label: 'Slot',
-        value: viewerSnapshot ? viewerSnapshot.slotNumber.toLocaleString() : '--',
-        detail: viewerSnapshot ? `${viewerSnapshot.activeRegions.toLocaleString()} regions` : '',
-      },
-      {
-        label: 'Leading region',
-        value: dominantRegion,
-        detail: viewerSnapshot?.dominantRegionShare != null ? `${formatPercentValue(viewerSnapshot.dominantRegionShare)} share` : '',
-      },
-      {
-        label: 'Gini',
-        value: viewerSnapshot?.currentGini != null ? formatNumber(viewerSnapshot.currentGini, 3) : '--',
-        detail: viewerSnapshot?.currentHhi != null ? `HHI ${formatNumber(viewerSnapshot.currentHhi, 3)}` : '',
-      },
-      {
-        label: splitCompareActive && comparisonDataset ? 'Comparison' : 'Liveness',
-        value: splitCompareActive && comparisonDataset
-          ? comparisonViewerSnapshot ? `Slot ${comparisonViewerSnapshot.slotNumber.toLocaleString()}` : paradigmLabel(comparisonDataset.paradigm)
-          : viewerSnapshot?.currentLiveness != null ? formatPercentValue(viewerSnapshot.currentLiveness) : '--',
-        detail: splitCompareActive && comparisonDataset
-          ? comparisonDataset.result
-          : viewerSnapshot ? `Proposal ${formatOptionalMilliseconds(viewerSnapshot.currentProposalTime)}` : '',
-      },
-    ]
-  }, [comparisonDataset, comparisonViewerSnapshot, splitCompareActive, viewerSnapshot])
-
-  const heroSnapshotCards = useMemo<ResultSnapshotCard[]>(() => {
-    const dominantRegion = viewerSnapshot?.dominantRegionCity ?? viewerSnapshot?.dominantRegionId ?? null
-
-    return [
-      {
-        label: 'Scenario',
-        value: selectedDataset ? selectedDataset.result : 'Loading',
-        detail: selectedDataset?.metadata?.description ?? '',
-      },
-      {
-        label: 'Slot',
-        value: viewerSnapshot ? viewerSnapshot.slotNumber.toLocaleString() : '--',
-        detail: viewerSnapshot
-          ? `${viewerSnapshot.activeRegions.toLocaleString()} regions · ${dominantRegion ?? 'N/A'} leading`
-          : '',
-      },
-      {
-        label: splitCompareActive && comparisonDataset ? 'Comparison' : 'Paper section',
-        value: splitCompareActive && comparisonDataset
-          ? `${paradigmLabel(comparisonDataset.paradigm)}`
-          : selectedPaperSection ? selectedPaperSection.number : '--',
-        detail: splitCompareActive && comparisonDataset
-          ? comparisonDataset.result
-          : selectedPaperSection?.title ?? '',
-      },
-      {
-        label: 'Concentration',
-        value: viewerSnapshot?.currentGini != null ? formatNumber(viewerSnapshot.currentGini, 3) : '--',
-        detail: viewerSnapshot?.currentHhi != null ? `HHI ${formatNumber(viewerSnapshot.currentHhi, 3)}` : '',
-      },
-    ]
-  }, [
+  const buildReplayMetricCard = useCallback((input: {
+    readonly id: string
+    readonly label: string
+    readonly detail: string
+    readonly focusArea: PublishedViewerFocusArea
+    readonly anchor: PublishedReplayAnchorSelectionDetail
+    readonly metric: AnalyticsQueryMetric
+    readonly currentValue: number | null | undefined
+    readonly color: string
+    readonly formatSeriesValue: (value: number) => string
+  }): ReplaySnapshotMetricCard => ({
+    id: input.id,
+    label: input.label,
+    value: input.currentValue == null ? '--' : input.formatSeriesValue(input.currentValue),
+    detail: input.detail,
+    color: input.color,
+    series: analyticsMetricSeriesForPayload(primaryAnalyticsPayload, input.metric) ?? [],
+    currentSlotIndex: viewerSnapshot?.slotIndex ?? initialWorkspaceState.focusSlot ?? 0,
+    totalSlotsLabel: `${primaryAnalyticsTotalSlots.toLocaleString()} slots tracked`,
+    formatSeriesValue: input.formatSeriesValue,
+    comparisonSeries: splitCompareActive
+      ? analyticsMetricSeriesForPayload(comparisonAnalyticsPayload, input.metric) ?? []
+      : undefined,
+    comparisonSlotIndex: splitCompareActive
+      ? comparisonViewerSnapshot?.slotIndex ?? initialWorkspaceState.compareFocusSlot ?? 0
+      : undefined,
+    comparisonLabel: splitCompareActive && comparisonDataset ? paradigmLabel(comparisonDataset.paradigm) : undefined,
+    focusArea: input.focusArea,
+    anchor: input.anchor,
+  }), [
+    comparisonAnalyticsPayload,
     comparisonDataset,
-    selectedDataset,
-    selectedPaperSection,
+    comparisonViewerSnapshot?.slotIndex,
+    initialWorkspaceState.compareFocusSlot,
+    initialWorkspaceState.focusSlot,
+    primaryAnalyticsPayload,
+    primaryAnalyticsTotalSlots,
     splitCompareActive,
-    viewerSnapshot,
+    viewerSnapshot?.slotIndex,
   ])
+
+  const heroSnapshotCards = useMemo<ReplaySnapshotMetricCard[]>(() => {
+    const dominantRegion = viewerSnapshot?.dominantRegionCity ?? viewerSnapshot?.dominantRegionId ?? 'No active region'
+
+    return [
+      buildReplayMetricCard({
+        id: 'active-regions',
+        label: 'Active regions',
+        detail: `${dominantRegion} currently leads the map.`,
+        focusArea: 'geography',
+        anchor: { kind: 'metric', key: 'active_regions', label: 'Metric · Active regions' },
+        metric: 'active_regions',
+        currentValue: viewerSnapshot?.activeRegions,
+        color: '#7C3AED',
+        formatSeriesValue: formatCountValue,
+      }),
+      buildReplayMetricCard({
+        id: 'leader-share',
+        label: 'Leader share',
+        detail: `${dominantRegion} holds the current top share.`,
+        focusArea: 'geography',
+        anchor: { kind: 'metric', key: 'leader_share', label: 'Metric · Leader share' },
+        metric: 'leader_share',
+        currentValue: viewerSnapshot?.dominantRegionShare,
+        color: '#C2553A',
+        formatSeriesValue: formatPercentSeriesValue,
+      }),
+      buildReplayMetricCard({
+        id: 'gini',
+        label: 'Gini',
+        detail: viewerSnapshot?.currentHhi != null ? `HHI ${formatIndexValue(viewerSnapshot.currentHhi)}` : 'Geographic inequality signal.',
+        focusArea: 'concentration',
+        anchor: { kind: 'metric', key: 'gini', label: 'Metric · Gini' },
+        metric: 'gini',
+        currentValue: viewerSnapshot?.currentGini,
+        color: '#C2553A',
+        formatSeriesValue: formatIndexValue,
+      }),
+      buildReplayMetricCard({
+        id: 'proposal-time',
+        label: 'Proposal time',
+        detail: viewerSnapshot?.currentLiveness != null
+          ? `Liveness ${formatPercentValue(viewerSnapshot.currentLiveness)}`
+          : 'Consensus timing posture.',
+        focusArea: 'performance',
+        anchor: { kind: 'metric', key: 'proposal_time', label: 'Metric · Proposal time' },
+        metric: 'proposal_times',
+        currentValue: viewerSnapshot?.currentProposalTime,
+        color: '#D97706',
+        formatSeriesValue: formatMillisecondsSeriesValue,
+      }),
+    ]
+  }, [buildReplayMetricCard, viewerSnapshot])
+
+  const resultSnapshotCards = useMemo<ReplaySnapshotMetricCard[]>(() => [
+    buildReplayMetricCard({
+      id: 'liveness',
+      label: 'Liveness',
+      detail: viewerSnapshot?.currentProposalTime != null
+        ? `Proposal ${formatOptionalMilliseconds(viewerSnapshot.currentProposalTime)}`
+        : 'Completion posture over slot progression.',
+      focusArea: 'performance',
+      anchor: { kind: 'metric', key: 'liveness', label: 'Metric · Liveness' },
+      metric: 'liveness',
+      currentValue: viewerSnapshot?.currentLiveness,
+      color: '#16A34A',
+      formatSeriesValue: formatPercentSeriesValue,
+    }),
+    buildReplayMetricCard({
+      id: 'hhi',
+      label: 'HHI',
+      detail: viewerSnapshot?.currentGini != null ? `Gini ${formatIndexValue(viewerSnapshot.currentGini)}` : 'Regional dominance concentration.',
+      focusArea: 'concentration',
+      anchor: { kind: 'metric', key: 'hhi', label: 'Metric · HHI' },
+      metric: 'hhi',
+      currentValue: viewerSnapshot?.currentHhi,
+      color: '#2563EB',
+      formatSeriesValue: formatIndexValue,
+    }),
+    buildReplayMetricCard({
+      id: 'mev',
+      label: 'Average MEV',
+      detail: selectedDataset ? `${selectedDataset.evaluation} under ${paradigmLabel(selectedDataset.paradigm)}.` : 'Reward surface over time.',
+      focusArea: 'performance',
+      anchor: { kind: 'metric', key: 'mev', label: 'Metric · MEV' },
+      metric: 'mev',
+      currentValue: viewerSnapshot?.currentMev,
+      color: '#2563EB',
+      formatSeriesValue: formatEthSeriesValue,
+    }),
+    buildReplayMetricCard({
+      id: 'failed-proposals',
+      label: 'Failed proposals',
+      detail: splitCompareActive && comparisonDataset
+        ? `Overlaying ${paradigmLabel(comparisonDataset.paradigm)} for posture comparison.`
+        : 'Accumulated timing failures across the replay.',
+      focusArea: 'performance',
+      anchor: { kind: 'metric', key: 'failed_block_proposals', label: 'Metric · Failed proposals' },
+      metric: 'failed_block_proposals',
+      currentValue: viewerSnapshot?.currentFailedBlockProposals,
+      color: '#BE123C',
+      formatSeriesValue: formatCountValue,
+    }),
+  ], [buildReplayMetricCard, comparisonDataset, selectedDataset, splitCompareActive, viewerSnapshot])
+
+  useEffect(() => {
+    setActiveReplayMetricCardId(null)
+    setViewerSpotlightArea(null)
+  }, [comparisonDataset?.path, selectedDataset?.path])
 
   useEffect(() => {
     const sharedQuestion = sharedReplayQuestionRef.current
@@ -1997,6 +2109,13 @@ export function ResearchDemoSurface({
     viewerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  const handleReplayMetricCardActivate = useCallback((card: ReplaySnapshotMetricCard) => {
+    setActiveReplayMetricCardId(card.id)
+    setViewerSpotlightArea(card.focusArea)
+    handleFocusViewer()
+    dispatchPublishedReplayAnchorSelection(card.anchor)
+  }, [handleFocusViewer])
+
   const handleFocusInquiry = () => {
     inquiryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -2130,13 +2249,13 @@ export function ResearchDemoSurface({
           initial="hidden"
           animate="visible"
         >
-          {heroSnapshotCards.map((card, index) => (
-            <motion.div key={card.label} variants={STAGGER_ITEM} className={cn('lab-metric-card', index === 0 && 'border-accent/20')}>
-              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
-              <div className="mt-1.5 text-sm font-semibold text-text-primary">{card.value}</div>
-              <div className="mt-1 text-xs text-muted line-clamp-2" title={card.detail}>{card.detail}</div>
-            </motion.div>
-          ))}
+          <motion.div variants={STAGGER_ITEM} className="md:col-span-2 xl:col-span-4">
+            <PublishedReplayMetricStrip
+              cards={heroSnapshotCards}
+              activeCardId={activeReplayMetricCardId}
+              onCardActivate={card => handleReplayMetricCardActivate(card as ReplaySnapshotMetricCard)}
+            />
+          </motion.div>
         </motion.div>
       </div>
 
@@ -2184,6 +2303,7 @@ export function ResearchDemoSurface({
                       onStateChange={setViewerSnapshot}
                       annotationNotes={primarySlotNotes}
                       anchorScope="primary"
+                      spotlightArea={viewerSpotlightArea}
                     />
                   </div>
 
@@ -2204,6 +2324,7 @@ export function ResearchDemoSurface({
                       onStateChange={setComparisonViewerSnapshot}
                       annotationNotes={comparisonSlotNotes}
                       anchorScope="comparison"
+                      spotlightArea={viewerSpotlightArea}
                     />
                   </div>
                 </div>
@@ -2217,6 +2338,7 @@ export function ResearchDemoSurface({
                   onStateChange={setViewerSnapshot}
                   annotationNotes={primarySlotNotes}
                   anchorScope="primary"
+                  spotlightArea={viewerSpotlightArea}
                 />
               )}
             </div>
@@ -2242,13 +2364,13 @@ export function ResearchDemoSurface({
               </div>
 
               <div className="grid gap-3 px-5 py-4 md:grid-cols-2 xl:grid-cols-4">
-                {resultSnapshotCards.map((card, index) => (
-                  <div key={card.label} className={cn('lab-metric-card', index === 0 && 'border-accent/20')}>
-                    <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
-                    <div className="mt-1.5 text-sm font-semibold tabular-nums text-text-primary">{card.value}</div>
-                    {card.detail && <div className="mt-1 text-xs text-muted">{card.detail}</div>}
-                  </div>
-                ))}
+                <div className="md:col-span-2 xl:col-span-4">
+                  <PublishedReplayMetricStrip
+                    cards={resultSnapshotCards}
+                    activeCardId={activeReplayMetricCardId}
+                    onCardActivate={card => handleReplayMetricCardActivate(card as ReplaySnapshotMetricCard)}
+                  />
+                </div>
               </div>
             </div>
           </div>

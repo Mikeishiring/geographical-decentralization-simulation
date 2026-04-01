@@ -58,7 +58,13 @@ interface PublishedViewerAnnotationNote {
 }
 
 type PublishedViewerNoteFilter = 'all' | PublishedViewerAnnotationNote['intent']
-type PublishedViewerFocusArea = 'geography' | 'concentration' | 'performance' | 'config'
+export type PublishedViewerFocusArea = 'geography' | 'concentration' | 'performance' | 'config'
+
+export interface PublishedReplayAnchorSelectionDetail {
+  readonly kind: 'general' | 'region' | 'metric' | 'comparison'
+  readonly key: string
+  readonly label: string
+}
 
 function readInitialSlotLocked(): boolean {
   if (typeof window === 'undefined') return false
@@ -97,6 +103,7 @@ interface PublishedDatasetViewerProps {
   readonly onStateChange?: (snapshot: PublishedViewerSnapshot | null) => void
   readonly annotationNotes?: readonly PublishedViewerAnnotationNote[]
   readonly anchorScope?: 'primary' | 'comparison'
+  readonly spotlightArea?: PublishedViewerFocusArea | null
 }
 
 interface PublishedMetrics {
@@ -547,11 +554,9 @@ function buildPublishedReplayAnchorSelection(
   return detail
 }
 
-function dispatchPublishedReplayAnchorSelection(detail: {
-  kind: 'general' | 'region' | 'metric' | 'comparison'
-  key: string
-  label: string
-}) {
+export function dispatchPublishedReplayAnchorSelection(
+  detail: PublishedReplayAnchorSelectionDetail,
+) {
   if (typeof window === 'undefined') return
   window.dispatchEvent(new CustomEvent('published-replay-anchor-select', { detail }))
 }
@@ -559,6 +564,7 @@ function dispatchPublishedReplayAnchorSelection(detail: {
 function PublishedGeoCard({
   title,
   regions,
+  summary,
   annotationNotes,
   selectedNoteId,
   onSelectNote,
@@ -567,6 +573,17 @@ function PublishedGeoCard({
 }: {
   title: string
   regions: readonly RegionCount[]
+  summary: {
+    readonly activeRegions: number
+    readonly totalValidators: number
+    readonly dominantRegionLabel: string | null
+    readonly dominantShare: number
+    readonly currentGini: number | null
+    readonly currentHhi: number | null
+    readonly currentLiveness: number | null
+    readonly currentClusters: number | null
+    readonly currentTotalDistance: number | null
+  }
   annotationNotes?: readonly PublishedViewerAnnotationNote[]
   selectedNoteId?: string | null
   onSelectNote?: (id: string) => void
@@ -593,6 +610,46 @@ function PublishedGeoCard({
   const dominantRegionPoint = dominantRegion?.region
     ? latLonToMercator(dominantRegion.region.lat, dominantRegion.region.lon, svgWidth, svgHeight)
     : null
+  const liveReadoutCards: Array<{
+    readonly label: string
+    readonly value: string
+    readonly detail: string
+    readonly featured?: boolean
+  }> = [
+    {
+      label: 'Dominant region',
+      value: summary.dominantRegionLabel ?? 'No active leader',
+      detail: `${percentage(summary.dominantShare, 1)} share`,
+      featured: true,
+    },
+    {
+      label: 'Active regions',
+      value: countLabel(summary.activeRegions),
+      detail: `${countLabel(summary.totalValidators)} validators`,
+    },
+    {
+      label: 'Gini',
+      value: summary.currentGini != null ? compactNumber(summary.currentGini, 3) : 'N/A',
+      detail: 'Geographic inequality',
+    },
+    {
+      label: 'HHI',
+      value: summary.currentHhi != null ? compactNumber(summary.currentHhi, 3) : 'N/A',
+      detail: 'Dominance concentration',
+    },
+    {
+      label: 'Liveness',
+      value: summary.currentLiveness != null ? percentage(summary.currentLiveness, 1) : 'N/A',
+      detail: 'Completion posture',
+    },
+    {
+      label: 'Clusters',
+      value: summary.currentClusters != null ? countLabel(Math.round(summary.currentClusters)) : 'N/A',
+      detail: summary.currentTotalDistance != null
+        ? `Distance ${compactNumber(summary.currentTotalDistance, 0)}`
+        : 'Topology signal',
+    },
+  ]
 
   return (
     <div className={cn(
@@ -612,220 +669,260 @@ function PublishedGeoCard({
         </div>
       </div>
 
-      <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.65fr)]">
-        <div className="relative overflow-hidden rounded-2xl border border-[#1F2937] bg-[#0D1117]">
-          {annotationNotes && annotationNotes.length > 0 ? (
-            <div className="absolute inset-x-4 top-4 z-10 flex max-w-xl flex-wrap gap-2">
-              <div className="rounded-full border border-white/12 bg-[#0F172A]/78 px-3 py-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-white/85 backdrop-blur-md">
-                {annotationNotes.length} paper note{annotationNotes.length === 1 ? '' : 's'} pinned to this slot
-              </div>
-              {annotationNotes.slice(0, 2).map(note => (
-                <button
-                  key={note.id}
-                  onClick={() => onSelectNote?.(note.id)}
-                  className={cn(
-                    'pointer-events-auto max-w-[18rem] rounded-full border px-3 py-1.5 text-left text-11 text-white/88 backdrop-blur-md transition-all',
-                    selectedNoteId === note.id
-                      ? 'border-white/45 bg-white/20 shadow-[0_16px_30px_rgba(15,23,42,0.22)]'
-                      : 'border-white/12 bg-white/10 hover:border-white/30 hover:bg-white/14',
-                  )}
-                >
-                  <span className="font-medium">{noteIntentLabel(note.intent)}{note.anchorLabel ? ` · ${note.anchorLabel}` : ''}:</span> {note.note}
-                </button>
-              ))}
-            </div>
-          ) : null}
-          <svg
-            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-            className="w-full"
-            preserveAspectRatio="xMidYMid meet"
-            role="img"
-            aria-label={title}
-          >
-            <defs>
-              <linearGradient id={atmosphereId} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#08111F" />
-                <stop offset="55%" stopColor="#0B1323" />
-                <stop offset="100%" stopColor="#101A2E" />
-              </linearGradient>
-              <radialGradient id={dominantGlowId} cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="rgba(96,165,250,0.72)" />
-                <stop offset="55%" stopColor="rgba(59,130,246,0.22)" />
-                <stop offset="100%" stopColor="rgba(15,23,42,0)" />
-              </radialGradient>
-            </defs>
-
-            <rect x={0} y={0} width={svgWidth} height={svgHeight} fill={`url(#${atmosphereId})`} />
-
-            {dominantRegionPoint ? (
-              <circle
-                cx={dominantRegionPoint.x}
-                cy={dominantRegionPoint.y}
-                r={72}
-                fill={`url(#${dominantGlowId})`}
-                opacity={0.7}
-              >
-                <animate attributeName="opacity" values="0.48;0.82;0.48" dur="3.2s" repeatCount="indefinite" />
-              </circle>
-            ) : null}
-
-            {[0.2, 0.4, 0.6, 0.8].map(fraction => (
-              <line
-                key={`h-${fraction}`}
-                x1={0}
-                y1={svgHeight * fraction}
-                x2={svgWidth}
-                y2={svgHeight * fraction}
-                stroke="#1F2937"
-                strokeWidth={0.6}
-              />
-            ))}
-
-            {[0.2, 0.4, 0.6, 0.8].map(fraction => (
-              <line
-                key={`v-${fraction}`}
-                x1={svgWidth * fraction}
-                y1={0}
-                x2={svgWidth * fraction}
-                y2={svgHeight}
-                stroke="#1F2937"
-                strokeWidth={0.6}
-              />
-            ))}
-
-            {continentShapePaths.map((pathD, index) => (
-              <path
-                key={CONTINENT_OUTLINES[index]!.name}
-                d={pathD}
-                fill="#172233"
-                stroke="#2B3A52"
-                strokeWidth={0.5}
-                strokeLinejoin="round"
-              />
-            ))}
-
-            {sortedRegions
-              .filter(region => region.region)
-              .map(region => {
-                const geoRegion = region.region!
-                const { x, y } = latLonToMercator(geoRegion.lat, geoRegion.lon, svgWidth, svgHeight)
-                const fill = regionValueColor(region.count, maxValue)
-                const radius = regionValueRadius(region.count, maxValue)
-                const share = totalValidators > 0 ? (region.count / totalValidators) * 100 : 0
-
-                return (
-                  <g
-                    key={region.regionId}
-                    onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, {
-                      kind: 'region',
-                      key: region.regionId,
-                      label: `Region · ${geoRegion.city}`,
-                    }))}
-                    style={{ cursor: 'pointer' }}
+      <div className="grid items-start gap-4 p-4 xl:grid-cols-[minmax(0,1.28fr)_minmax(260px,0.72fr)]">
+        <div className="space-y-4">
+          <div className="relative self-start overflow-hidden rounded-2xl border border-[#1F2937] bg-[#0D1117]">
+            {annotationNotes && annotationNotes.length > 0 ? (
+              <div className="absolute inset-x-4 top-4 z-10 flex max-w-xl flex-wrap gap-2">
+                <div className="rounded-full border border-white/12 bg-[#0F172A]/78 px-3 py-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-white/85 backdrop-blur-md">
+                  {annotationNotes.length} paper note{annotationNotes.length === 1 ? '' : 's'} pinned to this slot
+                </div>
+                {annotationNotes.slice(0, 2).map(note => (
+                  <button
+                    key={note.id}
+                    onClick={() => onSelectNote?.(note.id)}
+                    className={cn(
+                      'pointer-events-auto max-w-[18rem] rounded-full border px-3 py-1.5 text-left text-11 text-white/88 backdrop-blur-md transition-all',
+                      selectedNoteId === note.id
+                        ? 'border-white/45 bg-white/20 shadow-[0_16px_30px_rgba(15,23,42,0.22)]'
+                        : 'border-white/12 bg-white/10 hover:border-white/30 hover:bg-white/14',
+                    )}
                   >
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r={radius * 1.8}
-                      fill={fill}
-                      opacity={0.1}
-                      style={{ transition: 'r 360ms ease, opacity 360ms ease, fill 360ms ease' }}
-                    />
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r={radius}
-                      fill={fill}
-                      stroke="rgba(255,255,255,0.85)"
-                      strokeWidth={1}
-                      style={{ transition: 'r 360ms ease, opacity 360ms ease, fill 360ms ease, cx 360ms ease, cy 360ms ease' }}
+                    <span className="font-medium">{noteIntentLabel(note.intent)}{note.anchorLabel ? ` · ${note.anchorLabel}` : ''}:</span> {note.note}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <svg
+              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+              className="block w-full"
+              preserveAspectRatio="xMidYMid meet"
+              role="img"
+              aria-label={title}
+            >
+              <defs>
+                <linearGradient id={atmosphereId} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#08111F" />
+                  <stop offset="55%" stopColor="#0B1323" />
+                  <stop offset="100%" stopColor="#101A2E" />
+                </linearGradient>
+                <radialGradient id={dominantGlowId} cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="rgba(96,165,250,0.72)" />
+                  <stop offset="55%" stopColor="rgba(59,130,246,0.22)" />
+                  <stop offset="100%" stopColor="rgba(15,23,42,0)" />
+                </radialGradient>
+              </defs>
+
+              <rect x={0} y={0} width={svgWidth} height={svgHeight} fill={`url(#${atmosphereId})`} />
+
+              {dominantRegionPoint ? (
+                <circle
+                  cx={dominantRegionPoint.x}
+                  cy={dominantRegionPoint.y}
+                  r={72}
+                  fill={`url(#${dominantGlowId})`}
+                  opacity={0.7}
+                >
+                  <animate attributeName="opacity" values="0.48;0.82;0.48" dur="3.2s" repeatCount="indefinite" />
+                </circle>
+              ) : null}
+
+              {[0.2, 0.4, 0.6, 0.8].map(fraction => (
+                <line
+                  key={`h-${fraction}`}
+                  x1={0}
+                  y1={svgHeight * fraction}
+                  x2={svgWidth}
+                  y2={svgHeight * fraction}
+                  stroke="#1F2937"
+                  strokeWidth={0.6}
+                />
+              ))}
+
+              {[0.2, 0.4, 0.6, 0.8].map(fraction => (
+                <line
+                  key={`v-${fraction}`}
+                  x1={svgWidth * fraction}
+                  y1={0}
+                  x2={svgWidth * fraction}
+                  y2={svgHeight}
+                  stroke="#1F2937"
+                  strokeWidth={0.6}
+                />
+              ))}
+
+              {continentShapePaths.map((pathD, index) => (
+                <path
+                  key={CONTINENT_OUTLINES[index]!.name}
+                  d={pathD}
+                  fill="#172233"
+                  stroke="#2B3A52"
+                  strokeWidth={0.5}
+                  strokeLinejoin="round"
+                />
+              ))}
+
+              {sortedRegions
+                .filter(region => region.region)
+                .map(region => {
+                  const geoRegion = region.region!
+                  const { x, y } = latLonToMercator(geoRegion.lat, geoRegion.lon, svgWidth, svgHeight)
+                  const fill = regionValueColor(region.count, maxValue)
+                  const radius = regionValueRadius(region.count, maxValue)
+                  const share = totalValidators > 0 ? (region.count / totalValidators) * 100 : 0
+
+                  return (
+                    <g
+                      key={region.regionId}
+                      onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, {
+                        kind: 'region',
+                        key: region.regionId,
+                        label: `Region · ${geoRegion.city}`,
+                      }))}
+                      style={{ cursor: 'pointer' }}
                     >
-                      <title>{`${geoRegion.city} (${region.regionId}) · ${countLabel(region.count)} validators · ${percentage(share, 1)}`}</title>
-                    </circle>
-                  </g>
-                )
-              })}
-          </svg>
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={radius * 1.8}
+                        fill={fill}
+                        opacity={0.1}
+                        style={{ transition: 'r 360ms ease, opacity 360ms ease, fill 360ms ease' }}
+                      />
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={radius}
+                        fill={fill}
+                        stroke="rgba(255,255,255,0.85)"
+                        strokeWidth={1}
+                        style={{ transition: 'r 360ms ease, opacity 360ms ease, fill 360ms ease, cx 360ms ease, cy 360ms ease' }}
+                      >
+                        <title>{`${geoRegion.city} (${region.regionId}) · ${countLabel(region.count)} validators · ${percentage(share, 1)}`}</title>
+                      </circle>
+                    </g>
+                  )
+                })}
+            </svg>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+            <div className="rounded-xl border border-rule bg-surface-active p-4">
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Top regions</div>
+              <div className="mt-3 space-y-2.5">
+                {topRegions.map(region => {
+                  const regionLabel = region.region ? region.region.city : region.regionId
+                  const fill = regionValueColor(region.count, maxValue)
+                  const share = totalValidators > 0 ? (region.count / totalValidators) * 100 : 0
+                  const regionNotes = regionAnchoredNotes.filter(note => noteMatchesRegion(note, region.regionId, regionLabel))
+                  const regionNoteCount = regionNotes.length
+                  const regionNoteSummary = summarizeNoteCluster(regionNotes)
+                  return (
+                    <button
+                      key={region.regionId}
+                      type="button"
+                      onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, {
+                        kind: 'region',
+                        key: region.regionId,
+                        label: `Region · ${regionLabel}`,
+                      }))}
+                      className="block w-full rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/75"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <div className="truncate text-xs font-medium text-text-primary">{regionLabel}</div>
+                            {regionNoteCount > 0 ? (
+                              <span className="rounded-full border border-[#DBE4F0] bg-[#F8FAFC] px-2 py-0.5 text-2xs font-medium text-text-primary">
+                                {regionNoteCount} note{regionNoteCount === 1 ? '' : 's'}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="truncate text-11 text-muted">{region.regionId}</div>
+                          {regionNoteSummary ? (
+                            <div className="mt-1 truncate text-2xs font-medium text-text-primary">
+                              {regionNoteSummary}
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <div className="text-xs font-medium tabular-nums text-text-primary">{countLabel(region.count)}</div>
+                          <div className="text-11 text-muted">{percentage(share, 1)}</div>
+                        </div>
+                      </div>
+                      <div className="mt-1.5 h-1.5 rounded-full bg-white/70">
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${share}%`, backgroundColor: fill, transition: 'width 420ms ease' }}
+                        />
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-rule bg-white p-4">
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Macro regions</div>
+              <div className="mt-3 space-y-2">
+                {macroRegionCounts.map(entry => {
+                  const share = totalValidators > 0 ? (entry.count / totalValidators) * 100 : 0
+                  return (
+                    <div key={entry.region}>
+                      <div className="flex items-center justify-between gap-3 text-xs">
+                        <span className="text-text-primary">{entry.region}</span>
+                        <span className="tabular-nums text-muted">{percentage(share, 1)}</span>
+                      </div>
+                      <div className="mt-1 h-1 rounded-full bg-surface-active">
+                        <div
+                          className="h-full rounded-full bg-accent"
+                          style={{ width: `${share}%`, transition: 'width 420ms ease' }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-3">
-          <div className="rounded-xl border border-rule bg-surface-active p-4">
-            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Top regions</div>
-            <div className="mt-3 space-y-2.5">
-              {topRegions.map(region => {
-                const regionLabel = region.region ? region.region.city : region.regionId
-                const fill = regionValueColor(region.count, maxValue)
-                const share = totalValidators > 0 ? (region.count / totalValidators) * 100 : 0
-                const regionNotes = regionAnchoredNotes.filter(note => noteMatchesRegion(note, region.regionId, regionLabel))
-                const regionNoteCount = regionNotes.length
-                const regionNoteSummary = summarizeNoteCluster(regionNotes)
-                return (
-                  <button
-                    key={region.regionId}
-                    type="button"
-                    onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, {
-                      kind: 'region',
-                      key: region.regionId,
-                      label: `Region · ${regionLabel}`,
-                    }))}
-                    className="block w-full rounded-xl px-2 py-2 text-left transition-colors hover:bg-surface-active"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="truncate text-xs font-medium text-text-primary">{regionLabel}</div>
-                          {regionNoteCount > 0 ? (
-                            <span className="rounded-full border border-[#DBE4F0] bg-[#F8FAFC] px-2 py-0.5 text-2xs font-medium text-text-primary">
-                              {regionNoteCount} note{regionNoteCount === 1 ? '' : 's'}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="truncate text-11 text-muted">{region.regionId}</div>
-                        {regionNoteSummary ? (
-                          <div className="mt-1 truncate text-2xs font-medium text-text-primary">
-                            {regionNoteSummary}
-                          </div>
-                        ) : null}
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <div className="text-xs font-medium tabular-nums text-text-primary">{countLabel(region.count)}</div>
-                        <div className="text-11 text-muted">{percentage(share, 1)}</div>
-                      </div>
-                    </div>
-                    <div className="mt-1.5 h-1.5 rounded-full bg-surface-active">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${share}%`, backgroundColor: fill, transition: 'width 420ms ease' }}
-                      />
-                    </div>
-                  </button>
-                )
-              })}
+          <div className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-slate-50/94 p-4">
+            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Live geography readout</div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              {liveReadoutCards.map(card => (
+                <div
+                  key={card.label}
+                  className={cn(
+                    'rounded-xl border border-rule bg-white px-3 py-3',
+                    card.featured ? 'sm:col-span-2 xl:col-span-1' : '',
+                  )}
+                >
+                  <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+                  <div className={cn(
+                    'mt-2 font-semibold text-text-primary',
+                    card.featured ? 'text-sm' : 'text-base tabular-nums',
+                  )}>
+                    {card.value}
+                  </div>
+                  <div className="mt-1 text-xs text-muted">{card.detail}</div>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="rounded-xl border border-rule bg-white p-4">
-            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Macro regions</div>
-            <div className="mt-3 space-y-2">
-              {macroRegionCounts.map(entry => {
-                const share = totalValidators > 0 ? (entry.count / totalValidators) * 100 : 0
-                return (
-                  <div key={entry.region}>
-                    <div className="flex items-center justify-between gap-3 text-xs">
-                      <span className="text-text-primary">{entry.region}</span>
-                      <span className="tabular-nums text-muted">{percentage(share, 1)}</span>
-                    </div>
-                    <div className="mt-1 h-1 rounded-full bg-surface-active">
-                      <div
-                        className="h-full rounded-full bg-accent"
-                        style={{ width: `${share}%`, transition: 'width 420ms ease' }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
+          {annotationNotes && annotationNotes.length > 0 ? (
+            <div className="rounded-xl border border-rule bg-surface-active/70 p-4">
+              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Discussion posture</div>
+              <div className="mt-2 text-sm font-medium text-text-primary">
+                {annotationNotes.length} note{annotationNotes.length === 1 ? '' : 's'} on this slot
+              </div>
+              <div className="mt-1 text-xs leading-5 text-muted">
+                {summarizeNoteCluster(annotationNotes) ?? 'Region and metric discussion is active for this posture.'}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -841,6 +938,7 @@ export function PublishedDatasetViewer({
   onStateChange,
   annotationNotes = [] as readonly PublishedViewerAnnotationNote[],
   anchorScope = 'primary',
+  spotlightArea = null,
 }: PublishedDatasetViewerProps) {
   const [viewerState, setViewerState] = useState<ViewerState>({
     status: 'loading',
@@ -1038,6 +1136,7 @@ export function PublishedDatasetViewer({
     [filteredAnnotationNotes, selectedNoteId],
   )
   const focusedArea = focusedNote ? noteFocusArea(focusedNote) : null
+  const activeFocusArea = spotlightArea ?? focusedArea
   const discussionSummary = useMemo(() => ({
     openQuestions: annotationNotes.filter(note => note.status === 'open_question' || note.contributionType === 'question').length,
     challenged: annotationNotes.filter(note => note.status === 'challenged' || note.contributionType === 'counterpoint').length,
@@ -1390,10 +1489,21 @@ export function PublishedDatasetViewer({
         <PublishedGeoCard
           title={`${dataset.evaluation} · ${paradigmLabel(dataset.paradigm)} · ${dataset.result}`}
           regions={currentRegions}
+          summary={{
+            activeRegions: currentRegions.length,
+            totalValidators,
+            dominantRegionLabel: topRegion?.region?.city ?? topRegion?.regionId ?? null,
+            dominantShare,
+            currentGini,
+            currentHhi,
+            currentLiveness,
+            currentClusters,
+            currentTotalDistance,
+          }}
           annotationNotes={filteredAnnotationNotes}
           selectedNoteId={focusedNote?.id ?? null}
           onSelectNote={setSelectedNoteId}
-          focusAreaActive={focusedArea === 'geography'}
+          focusAreaActive={activeFocusArea === 'geography'}
           anchorScope={anchorScope}
         />
         <div className="space-y-4">
@@ -1489,8 +1599,8 @@ export function PublishedDatasetViewer({
             ) : null}
             <div className={cn(
               'transition-all duration-300',
-              (focusedArea === 'concentration' && entry.key === 'concentration')
-                || (focusedArea === 'performance' && entry.key !== 'concentration')
+              (activeFocusArea === 'concentration' && entry.key === 'concentration')
+                || (activeFocusArea === 'performance' && entry.key !== 'concentration')
                 ? 'rounded-xl ring-2 ring-accent/35 shadow-[0_18px_36px_rgba(37,99,235,0.1)]'
                 : '',
             )}>
@@ -1532,7 +1642,7 @@ export function PublishedDatasetViewer({
                 key: 'regions',
                 noteCount: metricNoteCounts.geography,
                 noteSummary: noteSurfaceSummaries.geography,
-                focus: focusedArea === 'geography',
+                focus: activeFocusArea === 'geography',
                 anchor: topRegion?.region
                   ? { kind: 'region' as const, key: topRegion.regionId, label: `Region · ${topRegion.region.city}` }
                   : { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
@@ -1542,7 +1652,7 @@ export function PublishedDatasetViewer({
                 key: 'dominant',
                 noteCount: metricNoteCounts.geography,
                 noteSummary: noteSurfaceSummaries.geography,
-                focus: focusedArea === 'geography',
+                focus: activeFocusArea === 'geography',
                 anchor: topRegion?.region
                   ? { kind: 'region' as const, key: topRegion.regionId, label: `Region · ${topRegion.region.city}` }
                   : { kind: 'general' as const, key: 'slot', label: 'Whole slot' },
@@ -1552,7 +1662,7 @@ export function PublishedDatasetViewer({
                 key: 'gini',
                 noteCount: metricNoteCounts.gini,
                 noteSummary: noteSurfaceSummaries.gini,
-                focus: focusedArea === 'concentration',
+                focus: activeFocusArea === 'concentration',
                 anchor: { kind: 'metric' as const, key: 'gini', label: 'Metric · Gini' },
                 block: { type: 'stat' as const, value: currentGini != null ? compactNumber(currentGini, 3) : 'N/A', label: 'Gini', sublabel: 'Geographic concentration', delta: deltaLabel(currentGini, initialGini), sentiment: (currentGini ?? 0) <= (initialGini ?? 0) ? 'positive' as const : 'negative' as const },
               },
@@ -1560,7 +1670,7 @@ export function PublishedDatasetViewer({
                 key: 'mev',
                 noteCount: metricNoteCounts.mev,
                 noteSummary: noteSurfaceSummaries.mev,
-                focus: focusedArea === 'performance',
+                focus: activeFocusArea === 'performance',
                 anchor: { kind: 'metric' as const, key: 'mev', label: 'Metric · MEV' },
                 block: { type: 'stat' as const, value: currentMev != null ? `${compactNumber(currentMev, 4)} ETH` : 'N/A', label: 'Average MEV', sublabel: 'Current slot reward surface', delta: deltaLabel(currentMev, initialMev), sentiment: (currentMev ?? 0) >= (initialMev ?? 0) ? 'positive' as const : 'neutral' as const },
               },
@@ -1568,7 +1678,7 @@ export function PublishedDatasetViewer({
                 key: 'proposal',
                 noteCount: metricNoteCounts.proposalTime,
                 noteSummary: noteSurfaceSummaries.proposal,
-                focus: focusedArea === 'performance',
+                focus: activeFocusArea === 'performance',
                 anchor: { kind: 'metric' as const, key: 'proposal_time', label: 'Metric · Proposal time' },
                 block: { type: 'stat' as const, value: currentProposalTime != null ? `${compactNumber(currentProposalTime, 1)} ms` : 'N/A', label: 'Proposal time', sublabel: currentAttestation != null ? `Attestation ${percentage(currentAttestation, 1)}` : 'Consensus timing', delta: deltaLabel(currentProposalTime, initialProposalTime), sentiment: (currentProposalTime ?? Number.POSITIVE_INFINITY) <= (initialProposalTime ?? Number.POSITIVE_INFINITY) ? 'positive' as const : 'negative' as const },
               },
@@ -1635,7 +1745,7 @@ export function PublishedDatasetViewer({
                 </div>
                 {focusedNote ? (
                   <div className="rounded-full border border-accent/18 bg-[rgba(37,99,235,0.08)] px-2.5 py-1 text-2xs font-medium text-accent">
-                    Focus on {focusAreaLabel(focusedArea ?? 'geography')}
+                    Focus on {focusAreaLabel(activeFocusArea ?? 'geography')}
                   </div>
                 ) : null}
               </div>
@@ -1692,7 +1802,7 @@ export function PublishedDatasetViewer({
       {/* ── Frozen configuration (inside details) ── */}
           <div className={cn(
             'rounded-xl border border-rule bg-white px-4 py-4 text-xs text-muted transition-all duration-300',
-            focusedArea === 'config' ? 'ring-2 ring-accent/35 shadow-[0_18px_36px_rgba(37,99,235,0.1)]' : '',
+                      activeFocusArea === 'config' ? 'ring-2 ring-accent/35 shadow-[0_18px_36px_rgba(37,99,235,0.1)]' : '',
           )}>
             <div className="flex items-center justify-between gap-3">
               <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Frozen configuration</div>

@@ -462,7 +462,7 @@ function derivedLeaderShareSeries(payload: PublishedAnalyticsPayload | null): nu
   return Array.from({ length: totalSlots }, (_, slotIndex) => topRegionsForSlot(payload, slotIndex, 1)[0]?.share ?? 0)
 }
 
-function metricSeriesForPayload(
+export function analyticsMetricSeriesForPayload(
   payload: PublishedAnalyticsPayload | null,
   queryMetric: AnalyticsQueryMetric,
 ): readonly number[] | undefined {
@@ -499,7 +499,7 @@ function metricValueForPayload(
   queryMetric: AnalyticsQueryMetric,
   slot: number,
 ): number | null {
-  return readMetricValue(metricSeriesForPayload(payload, queryMetric), slot)
+  return readMetricValue(analyticsMetricSeriesForPayload(payload, queryMetric), slot)
 }
 
 function sampleMetricSeries(
@@ -507,7 +507,7 @@ function sampleMetricSeries(
   queryMetric: AnalyticsQueryMetric,
   maxPoints = 240,
 ): Array<{ x: number; y: number }> {
-  return sampleSeries(metricSeriesForPayload(payload, queryMetric), maxPoints)
+  return sampleSeries(analyticsMetricSeriesForPayload(payload, queryMetric), maxPoints)
 }
 
 function sampleMetricDeltaSeries(
@@ -935,10 +935,10 @@ export function buildAnalyticsExportRows({
   readonly primaryPayload: PublishedAnalyticsPayload
   readonly comparisonPayload?: PublishedAnalyticsPayload | null
 }): readonly AnalyticsExportRow[] {
-  const primarySeries = metricSeriesForPayload(primaryPayload, queryMetric)
+  const primarySeries = analyticsMetricSeriesForPayload(primaryPayload, queryMetric)
   const primaryTotalSlots = totalSlotsFromPayload(primaryPayload)
   const comparisonSeries = comparisonPayload
-    ? metricSeriesForPayload(comparisonPayload, queryMetric)
+    ? analyticsMetricSeriesForPayload(comparisonPayload, queryMetric)
     : undefined
   const comparisonTotalSlots = comparisonPayload
     ? totalSlotsFromPayload(comparisonPayload)
