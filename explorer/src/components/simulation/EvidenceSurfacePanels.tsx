@@ -21,7 +21,7 @@ import {
 // ── Inline sparkline ────────────────────────────────────────────────────────
 
 function Sparkline({ data, color, width = 48, height = 16 }: {
-  data: readonly number[]; color: string; width?: number; height?: number
+  readonly data: readonly number[]; readonly color: string; readonly width?: number; readonly height?: number
 }) {
   if (data.length < 2) return null
   const min = Math.min(...data)
