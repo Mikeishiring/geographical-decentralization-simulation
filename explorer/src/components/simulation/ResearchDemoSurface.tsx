@@ -2417,17 +2417,10 @@ export function ResearchDemoSurface({
           <div className="space-y-4">
             <div className="lab-stage overflow-hidden p-0">
               <div className="border-b border-rule bg-surface-active/60 px-5 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                    <span className="lab-chip">{activeViewer.dataset.evaluation}</span>
-                    <span className="lab-chip">{paradigmLabel(activeViewer.dataset.paradigm)}</span>
-                    <span className="lab-chip">{activeViewer.dataset.result}</span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                    <span className="lab-chip">{themeLabel(theme)}</span>
-                    <span className="lab-chip">step {step}</span>
-                    {autoplay && <span className="lab-chip">autoplay</span>}
-                  </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                  <span className="lab-chip">{activeViewer.dataset.evaluation}</span>
+                  <span className="lab-chip">{paradigmLabel(activeViewer.dataset.paradigm)}</span>
+                  <span className="lab-chip">{activeViewer.dataset.result}</span>
                 </div>
               </div>
 

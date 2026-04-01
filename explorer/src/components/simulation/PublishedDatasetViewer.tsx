@@ -1181,12 +1181,8 @@ function PublishedGeoCard({
             <div className="border-b border-white/10 bg-[rgba(8,17,31,0.92)] px-4 py-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-2xs font-medium uppercase tracking-[0.1em] text-white/58">Map view</div>
-                  <div className="mt-1 text-xs text-white/88">
+                  <div className="text-xs text-white/88">
                     {currentModeOption.label} · {currentViewportDetail}
-                  </div>
-                  <div className="mt-1 text-[0.68rem] text-white/58">
-                    {currentModeOption.detail}
                   </div>
                 </div>
                 <div className="flex flex-wrap items-end gap-3">
@@ -1237,6 +1233,7 @@ function PublishedGeoCard({
               <div className="absolute inset-x-4 top-20 z-10 flex max-w-xl flex-wrap gap-2">
                 <div className="rounded-full border border-white/12 bg-[#0F172A]/78 px-3 py-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-white/85 backdrop-blur-md">
                   {annotationNotes.length} paper note{annotationNotes.length === 1 ? '' : 's'} pinned to this slot
+                  {summarizeNoteCluster(annotationNotes) ? ` · ${summarizeNoteCluster(annotationNotes)}` : ''}
                 </div>
                 {selectedAnnotationNote ? (
                   <button
@@ -1631,18 +1628,6 @@ function PublishedGeoCard({
               ))}
             </div>
           </div>
-
-          {annotationNotes && annotationNotes.length > 0 ? (
-            <div className="rounded-xl border border-rule bg-surface-active/70 p-4">
-              <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Discussion posture</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">
-                {annotationNotes.length} note{annotationNotes.length === 1 ? '' : 's'} on this slot
-              </div>
-              <div className="mt-1 text-xs leading-5 text-muted">
-                {summarizeNoteCluster(annotationNotes) ?? 'Region and metric discussion is active for this posture.'}
-              </div>
-            </div>
-          ) : null}
         </div>
       </div>
     </div>

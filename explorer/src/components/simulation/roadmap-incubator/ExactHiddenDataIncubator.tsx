@@ -4,13 +4,16 @@ import { BlockCanvas } from '../../explore/BlockCanvas'
 import { getSimulationArtifact, type SimulationManifest } from '../../../lib/simulation-api'
 import { EXACT_ANALYTICS_ARTIFACT_NAME } from '../pending-run-helpers'
 import {
+  parseAttestBySlotJson,
   parseActionReasonsCsv,
   parsePublishedAnalyticsPayload,
   parsePaperGeographyMetrics,
+  parseProposalTimeBySlotJson,
   parseRegionProfitsCsv,
 } from './csvArtifacts'
 import {
   buildMigrationAuditTrailBlocks,
+  buildPerValidatorDistributionBlocks,
   buildRegionProfitTrajectoryBlocks,
   buildSourceProximityBlocks,
   buildSpatialTopologyBlocks,
@@ -50,11 +53,15 @@ export function ExactHiddenDataIncubator({
   const regionProfitsArtifact = manifest?.artifacts.find(artifact => artifact.name === 'region_profits.csv') ?? null
   const paperMetricsArtifact = manifest?.artifacts.find(artifact => artifact.name === 'paper_geography_metrics.json') ?? null
   const analyticsPayloadArtifact = manifest?.artifacts.find(artifact => artifact.name === EXACT_ANALYTICS_ARTIFACT_NAME) ?? null
+  const proposalTimeArtifact = manifest?.artifacts.find(artifact => artifact.name === 'proposal_time_by_slot.json') ?? null
+  const attestBySlotArtifact = manifest?.artifacts.find(artifact => artifact.name === 'attest_by_slot.json') ?? null
 
   const actionReasonsQuery = useQuery(buildArtifactQueryOptions(currentJobId, actionReasonsArtifact))
   const regionProfitsQuery = useQuery(buildArtifactQueryOptions(currentJobId, regionProfitsArtifact))
   const paperMetricsQuery = useQuery(buildArtifactQueryOptions(currentJobId, paperMetricsArtifact))
   const analyticsPayloadQuery = useQuery(buildArtifactQueryOptions(currentJobId, analyticsPayloadArtifact))
+  const proposalTimeQuery = useQuery(buildArtifactQueryOptions(currentJobId, proposalTimeArtifact))
+  const attestBySlotQuery = useQuery(buildArtifactQueryOptions(currentJobId, attestBySlotArtifact))
 
   const actionReasonEntries = useMemo(
     () => typeof actionReasonsQuery.data === 'string' ? parseActionReasonsCsv(actionReasonsQuery.data) : [],
@@ -72,6 +79,14 @@ export function ExactHiddenDataIncubator({
     () => typeof analyticsPayloadQuery.data === 'string' ? parsePublishedAnalyticsPayload(analyticsPayloadQuery.data) : null,
     [analyticsPayloadQuery.data],
   )
+  const proposalTimeBySlot = useMemo(
+    () => typeof proposalTimeQuery.data === 'string' ? parseProposalTimeBySlotJson(proposalTimeQuery.data) : [],
+    [proposalTimeQuery.data],
+  )
+  const attestBySlot = useMemo(
+    () => typeof attestBySlotQuery.data === 'string' ? parseAttestBySlotJson(attestBySlotQuery.data) : [],
+    [attestBySlotQuery.data],
+  )
 
   const migrationBlocks = useMemo(
     () => buildMigrationAuditTrailBlocks(actionReasonEntries),
@@ -88,6 +103,10 @@ export function ExactHiddenDataIncubator({
   const sourceProximityBlocks = useMemo(
     () => buildSourceProximityBlocks(analyticsPayload),
     [analyticsPayload],
+  )
+  const validatorDistributionBlocks = useMemo(
+    () => buildPerValidatorDistributionBlocks(proposalTimeBySlot, attestBySlot),
+    [attestBySlot, proposalTimeBySlot],
   )
 
   const sectionStatuses = useMemo(() => ([
@@ -125,18 +144,44 @@ export function ExactHiddenDataIncubator({
         ? `Backed by ${EXACT_ANALYTICS_ARTIFACT_NAME}.`
         : `Waiting for ${EXACT_ANALYTICS_ARTIFACT_NAME} in the exact-run manifest.`,
     },
-  ]), [actionReasonsArtifact, analyticsPayloadArtifact, paperMetricsArtifact, regionProfitsArtifact])
+    {
+      id: '3d',
+      title: 'Per-validator distributions',
+      ready: Boolean(proposalTimeArtifact || attestBySlotArtifact),
+      detail: proposalTimeArtifact && attestBySlotArtifact
+        ? 'Backed by proposal_time_by_slot.json and attest_by_slot.json.'
+        : proposalTimeArtifact
+          ? 'Backed by proposal_time_by_slot.json; attestation heatmap coverage is missing.'
+          : attestBySlotArtifact
+            ? 'Backed by attest_by_slot.json; proposal distribution coverage is missing.'
+            : 'Waiting for proposal_time_by_slot.json and/or attest_by_slot.json in the exact-run manifest.',
+    },
+  ]), [
+    actionReasonsArtifact,
+    analyticsPayloadArtifact,
+    attestBySlotArtifact,
+    paperMetricsArtifact,
+    proposalTimeArtifact,
+    regionProfitsArtifact,
+  ])
 
-  if (!actionReasonsArtifact && !regionProfitsArtifact && !analyticsPayloadArtifact) {
+  if (!actionReasonsArtifact && !regionProfitsArtifact && !analyticsPayloadArtifact && !proposalTimeArtifact && !attestBySlotArtifact) {
     return null
   }
 
-  const loading = actionReasonsQuery.isLoading || regionProfitsQuery.isLoading || paperMetricsQuery.isLoading || analyticsPayloadQuery.isLoading
+  const loading = actionReasonsQuery.isLoading
+    || regionProfitsQuery.isLoading
+    || paperMetricsQuery.isLoading
+    || analyticsPayloadQuery.isLoading
+    || proposalTimeQuery.isLoading
+    || attestBySlotQuery.isLoading
   const errorMessages = [
     actionReasonsQuery.error,
     regionProfitsQuery.error,
     paperMetricsQuery.error,
     analyticsPayloadQuery.error,
+    proposalTimeQuery.error,
+    attestBySlotQuery.error,
   ].flatMap(error => error instanceof Error ? [error.message] : [])
 
   return (
@@ -169,7 +214,8 @@ export function ExactHiddenDataIncubator({
           && migrationBlocks.length === 0
           && regionProfitBlocks.length === 0
           && topologyBlocks.length === 0
-          && sourceProximityBlocks.length === 0 ? (
+          && sourceProximityBlocks.length === 0
+          && validatorDistributionBlocks.length === 0 ? (
           <div className="rounded-xl border border-rule bg-white px-4 py-4 text-sm text-muted">
             Loading hidden exact-run artifacts for the incubator surface...
           </div>
@@ -206,6 +252,13 @@ export function ExactHiddenDataIncubator({
           <section>
             <div className="mb-3 text-sm font-medium text-text-primary">3e. Information source distance</div>
             <BlockCanvas blocks={sourceProximityBlocks} showExport={false} />
+          </section>
+        ) : null}
+
+        {validatorDistributionBlocks.length > 0 ? (
+          <section>
+            <div className="mb-3 text-sm font-medium text-text-primary">3d. Per-validator distributions</div>
+            <BlockCanvas blocks={validatorDistributionBlocks} showExport={false} />
           </section>
         ) : null}
       </div>

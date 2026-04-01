@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ListTree, FileText, BookOpen } from 'lucide-react'
+import { ListTree, FileText, BookOpen, ScrollText } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { getActiveStudy } from '../../studies'
@@ -10,12 +10,13 @@ import {
   AnimatedBookOpen,
   AnimatedListTree,
   AnimatedFileText,
+  AnimatedScrollText,
   AnimatedMessageSquare,
   AnimatedChevronToggle,
   AnimatedSparkles,
 } from './AnimatedViewIcons'
 
-export type ReaderMode = 'editorial' | 'arguments' | 'paper'
+export type ReaderMode = 'editorial' | 'arguments' | 'html' | 'paper'
 
 export const MODE_META: Record<ReaderMode, { icon: typeof ListTree; label: string; detail: string; fidelity: string; fidelityShort: string; provenanceHint: string }> = {
   editorial: {
@@ -34,6 +35,14 @@ export const MODE_META: Record<ReaderMode, { icon: typeof ListTree; label: strin
     fidelityShort: 'Arguments',
     provenanceHint: 'Claims and evidence extracted from the paper. Narrative is minimal; source pills show provenance.',
   },
+  html: {
+    icon: ScrollText,
+    label: 'HTML View',
+    detail: 'Source-oriented article with anchored sections, figures, and appendices',
+    fidelity: 'HTML source',
+    fidelityShort: 'HTML',
+    provenanceHint: 'Article-style source view. Keeps section structure and source links without PDF-only navigation.',
+  },
   paper: {
     icon: FileText,
     label: 'Original PDF',
@@ -44,11 +53,12 @@ export const MODE_META: Record<ReaderMode, { icon: typeof ListTree; label: strin
   },
 }
 
-const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'arguments', 'paper'] as const
+const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'arguments', 'html', 'paper'] as const
 
 const SPECTRUM_POSITIONS: Record<ReaderMode, number> = {
   editorial: 0,
-  arguments: 50,
+  arguments: 34,
+  html: 70,
   paper: 100,
 }
 
@@ -132,6 +142,7 @@ export function PaperViewModeBar({
                     <span className="relative flex items-center gap-1.5">
                       {mode === 'editorial' && <AnimatedBookOpen isActive={isActive} isHovered={isHovered} />}
                       {mode === 'arguments' && <AnimatedListTree isActive={isActive} isHovered={isHovered} />}
+                      {mode === 'html' && <AnimatedScrollText isActive={isActive} isHovered={isHovered} />}
                       {mode === 'paper' && <AnimatedFileText isActive={isActive} isHovered={isHovered} />}
                       <span className="hidden sm:inline">{meta.label}</span>
                     </span>

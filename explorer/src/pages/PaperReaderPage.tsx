@@ -6,6 +6,7 @@ import { PaperViewModeBar, type ReaderMode } from '../components/paper/PaperView
 import { EditorialView } from '../components/paper/EditorialView'
 import { ArgumentsView } from '../components/paper/ArgumentsView'
 import { FullTextView } from '../components/paper/FullTextView'
+import { PaperHtmlPreviewPage } from './PaperHtmlPreviewPage'
 import { PaperNavProvider } from '../components/paper/PaperNavContext'
 import { SelectionPopover } from '../components/community/SelectionPopover'
 import { useTextSelection } from '../hooks/useTextSelection'
@@ -31,7 +32,7 @@ export function PaperReaderPage({
 
   const [readerMode, setReaderMode] = useState<ReaderMode>(() => {
     const stored = window.localStorage.getItem('paper-reader-mode')
-    if (stored === 'arguments' || stored === 'paper') return stored
+    if (stored === 'arguments' || stored === 'html' || stored === 'paper') return stored
     return 'editorial'
   })
 
@@ -254,6 +255,8 @@ export function PaperReaderPage({
       {/* Active view */}
       {readerMode === 'paper' ? (
         <FullTextView initialPage={pdfTargetPage} />
+      ) : readerMode === 'html' ? (
+        <PaperHtmlPreviewPage embedded />
       ) : readerMode === 'arguments' ? (
         <ArgumentsView
           activeSectionId={activeSectionId}

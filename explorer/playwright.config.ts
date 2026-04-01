@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 45_000,
+  timeout: 90_000,
   expect: {
     timeout: 10_000,
   },
@@ -25,10 +25,10 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: 'npm run dev -- --host 127.0.0.1 --port 3200',
+      command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 3200',
       url: 'http://127.0.0.1:3200',
       reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
+      timeout: 180_000,
     },
   ],
 })

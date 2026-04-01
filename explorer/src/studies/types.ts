@@ -3,23 +3,37 @@ import type { PaperNarrative } from '../data/paper-narrative'
 import type { Author, PaperSection } from '../data/paper-sections'
 import type { TopicCard } from '../data/default-blocks'
 import type {
+  StudyArtifactRef,
   StudyAppendixLink,
+  StudyClaimRegistry,
+  StudyDashboardMetric,
+  StudyDashboardSpec,
+  StudyGenerationDecision,
   StudyMetadata,
   StudyNavigationConfig,
+  StudyPackageFrame,
   StudyPublishedScenarioLink,
   StudyRuntimeConfig,
   StudySimulationConfig,
+  StudySurfaceSpec,
   StudySourceRef,
 } from '../../../packages/study-schema/src/index.ts'
 
 export type { Author, PaperNarrative, PaperSection, TopicCard }
 export type {
+  StudyArtifactRef,
   StudyAppendixLink,
+  StudyClaimRegistry,
+  StudyDashboardMetric,
+  StudyDashboardSpec,
+  StudyGenerationDecision,
   StudyMetadata,
   StudyNavigationConfig,
+  StudyPackageFrame,
   StudyPublishedScenarioLink,
   StudyRuntimeConfig,
   StudySimulationConfig,
+  StudySurfaceSpec,
   StudySourceRef,
 }
 
@@ -35,14 +49,10 @@ export interface StudyPaperChart {
   readonly publishedScenarioLinks?: readonly StudyPublishedScenarioLink[]
 }
 
-export interface StudyPackage {
-  readonly id: string
-  readonly metadata: StudyMetadata
+export interface StudyPackage extends StudyPackageFrame {
   readonly sections: readonly PaperSection[]
   readonly narratives: Readonly<Record<string, PaperNarrative>>
   readonly overviewCard: TopicCard
   readonly topicCards: readonly TopicCard[]
   readonly paperCharts: Readonly<Record<string, StudyPaperChart>>
-  readonly navigation: StudyNavigationConfig
-  readonly runtime: StudyRuntimeConfig
 }

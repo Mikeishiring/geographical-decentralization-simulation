@@ -9,8 +9,7 @@ import { SPRING, SPRING_SNAPPY, SPRING_POPUP, SECTION_CATEGORY_STYLE } from '../
 import { getActiveStudy } from '../../studies'
 import type { PaperNarrative, PaperSection } from '../../studies/types'
 import type { Exploration } from '../../lib/api'
-
-/* ── Highlight types ─────────────────────────────────────────────────────── */
+import { sectionToHtmlUrl, sectionToPage } from './paper-helpers'
 
 interface NoteHighlight {
   readonly excerpt: string
@@ -25,7 +24,6 @@ interface SectionNavProps {
   readonly compact?: boolean
 }
 
-/** Collect unique note excerpts from exploration data */
 function collectNoteHighlights(notes: readonly Exploration[]): readonly NoteHighlight[] {
   const seen = new Map<string, NoteHighlight>()
   for (const note of notes) {
@@ -45,8 +43,6 @@ function collectNoteHighlights(notes: readonly Exploration[]): readonly NoteHigh
   }
   return [...seen.values()]
 }
-
-/* ── Rich note hover card (replaces plain Tooltip) ───────────────────────── */
 
 function NoteHoverCard({
   highlight,
@@ -117,7 +113,6 @@ function NoteHoverCard({
   )
 }
 
-/** Renders paragraph text with keyClaim highlight and note excerpt indicators */
 function renderParagraph(
   text: string,
   keyClaim: string | undefined,
@@ -132,7 +127,7 @@ function renderParagraph(
         <>
           {renderWithNoteHighlights(text.slice(0, idx), highlights, onHighlightClick, highlightsVisible)}
           <span className="key-claim-highlight relative">
-            <Lightbulb className="inline-block h-3 w-3 text-accent/40 mr-0.5 -mt-0.5" />
+            <Lightbulb className="mr-0.5 -mt-0.5 inline-block h-3 w-3 text-accent/40" />
             {text.slice(idx, idx + keyClaim.length)}
           </span>
           {renderWithNoteHighlights(text.slice(idx + keyClaim.length), highlights, onHighlightClick, highlightsVisible)}
@@ -143,7 +138,6 @@ function renderParagraph(
   return renderWithNoteHighlights(text, highlights, onHighlightClick, highlightsVisible)
 }
 
-/** Renders text with note excerpt highlights as inline marks */
 function renderWithNoteHighlights(
   text: string,
   highlights: readonly NoteHighlight[],
@@ -170,16 +164,16 @@ function renderWithNoteHighlights(
         <NoteHoverCard highlight={highlight} onClickOpen={() => onHighlightClick?.()} visible={visible}>
           <mark
             className={cn(
-              'relative rounded-sm px-px -mx-px transition-all duration-200',
+              'relative -mx-px rounded-sm px-px transition-all duration-200',
               visible
-                ? 'cursor-pointer bg-accent/[0.06] border-b border-dashed border-accent/25 hover:bg-accent/[0.12] hover:border-solid hover:border-accent/40 group/mark'
-                : 'bg-transparent border-b-transparent cursor-default',
+                ? 'group/mark cursor-pointer border-b border-dashed border-accent/25 bg-accent/[0.06] hover:border-solid hover:border-accent/40 hover:bg-accent/[0.12]'
+                : 'cursor-default border-b-transparent bg-transparent',
             )}
             onClick={visible ? () => onHighlightClick?.() : undefined}
           >
             {match}
             {visible && (
-              <span className="absolute -top-0.5 -right-3 inline-flex items-center gap-0.5 text-[9px] font-semibold text-accent/60 opacity-0 group-hover/mark:opacity-100 transition-opacity duration-150 pointer-events-none select-none">
+              <span className="pointer-events-none absolute -right-3 -top-0.5 inline-flex select-none items-center gap-0.5 text-[9px] font-semibold text-accent/60 opacity-0 transition-opacity duration-150 group-hover/mark:opacity-100">
                 <MessageSquare className="h-2.5 w-2.5" />
                 {highlight.noteCount}
               </span>
@@ -210,7 +204,7 @@ function SectionNav({ activeSectionId, onSectionClick, compact = false }: Sectio
               'flex items-baseline gap-2 rounded-md px-2 py-1.5 text-xs transition-all duration-150',
               activeSectionId === section.id
                 ? 'bg-accent/[0.06] text-text-primary'
-                : 'text-muted/70 hover:text-text-primary hover:bg-surface-active/60',
+                : 'text-muted/70 hover:bg-surface-active/60 hover:text-text-primary',
             )}
           >
             <span className={cn(
@@ -226,8 +220,6 @@ function SectionNav({ activeSectionId, onSectionClick, compact = false }: Sectio
     </>
   )
 }
-
-/* ── Floating TOC sidebar ─────────────────────────────────────────────── */
 
 function FloatingTOC({
   activeSectionId,
@@ -252,17 +244,14 @@ function FloatingTOC({
 
   return (
     <aside
-      className="hidden 2xl:block fixed z-30 top-[8rem]"
+      className="fixed top-[8rem] z-30 hidden 2xl:block"
       style={{ left: 'max(1rem, calc((100vw - 1200px) / 2 - 220px))' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <motion.div
         initial={false}
-        animate={{
-          opacity: show ? 1 : 0,
-          x: show ? 0 : -8,
-        }}
+        animate={{ opacity: show ? 1 : 0, x: show ? 0 : -8 }}
         transition={SPRING_SNAPPY}
         className="w-[190px] rounded-xl border border-rule/60 bg-white/95 p-3 shadow-[0_4px_20px_rgba(0,0,0,0.04)] backdrop-blur-sm"
         style={{ pointerEvents: show ? 'auto' : 'none' }}
@@ -272,8 +261,6 @@ function FloatingTOC({
     </aside>
   )
 }
-
-/* ── Main section view ───────────────────────────────────────────────────── */
 
 interface PaperSectionViewProps {
   readonly activeSectionId?: string
@@ -302,8 +289,10 @@ export function PaperSectionView({
     try {
       await navigator.clipboard.writeText(url.toString())
       setCopiedSectionId(sectionId)
-      window.setTimeout(() => setCopiedSectionId(c => (c === sectionId ? null : c)), 1600)
-    } catch { /* ignore */ }
+      window.setTimeout(() => setCopiedSectionId(current => (current === sectionId ? null : current)), 1600)
+    } catch {
+      // ignore clipboard failures
+    }
   }
 
   return (
@@ -317,24 +306,22 @@ export function PaperSectionView({
           </div>
         </aside>
 
-        <div className="space-y-10 xl:min-w-0">
+        <div className="space-y-8 xl:min-w-0">
           {sections.map((section, index) => {
             const narrative = narratives[section.id]
-            const figuresFirst = index % 2 === 1
             const previousSection = sections[index - 1]
             const nextSection = sections[index + 1]
 
             return (
               <div key={section.id}>
                 {index > 0 && (
-                  <div className="section-journey-divider mb-10">
+                  <div className="section-journey-divider mb-8">
                     <div className="section-journey-node" />
                   </div>
                 )}
                 <SectionCard
                   section={section}
                   narrative={narrative}
-                  figuresFirst={figuresFirst}
                   previousSection={previousSection}
                   nextSection={nextSection}
                   copiedSectionId={copiedSectionId}
@@ -358,7 +345,6 @@ export function PaperSectionView({
 function SectionCard({
   section,
   narrative,
-  figuresFirst,
   previousSection,
   nextSection,
   copiedSectionId,
@@ -368,26 +354,25 @@ function SectionCard({
   sectionNotes = [],
   onOpenNote,
 }: {
-  section: PaperSection
-  narrative: PaperNarrative
-  figuresFirst: boolean
-  previousSection?: PaperSection
-  nextSection?: PaperSection
-  copiedSectionId: string | null
-  onCopyLink: (id: string) => void
-  onNavigate: (id: string) => void
-  notesVisible?: boolean
-  sectionNotes?: readonly Exploration[]
-  onOpenNote?: (explorationId: string) => void
+  readonly section: PaperSection
+  readonly narrative: PaperNarrative
+  readonly previousSection?: PaperSection
+  readonly nextSection?: PaperSection
+  readonly copiedSectionId: string | null
+  readonly onCopyLink: (id: string) => void
+  readonly onNavigate: (id: string) => void
+  readonly notesVisible?: boolean
+  readonly sectionNotes?: readonly Exploration[]
+  readonly onOpenNote?: (explorationId: string) => void
 }) {
-  const noteHighlights = useMemo(
-    () => collectNoteHighlights(sectionNotes),
-    [sectionNotes],
-  )
+  const noteHighlights = useMemo(() => collectNoteHighlights(sectionNotes), [sectionNotes])
   const featuredChartBlocks = section.blocks.filter(block => block.type === 'paperChart')
   const supportingBlocks = section.blocks.filter(block => block.type !== 'paperChart')
   const hasFeaturedChart = featuredChartBlocks.length > 0
   const hasSupportingBlocks = supportingBlocks.length > 0
+  const htmlSectionUrl = sectionToHtmlUrl(section.id)
+  const pdfPage = sectionToPage(section.number)
+  const pdfUrl = getActiveStudy().navigation.pdfUrl
 
   const handleHighlightClick = () => {
     const sectionEl = document.getElementById(section.id)
@@ -409,37 +394,64 @@ function SectionCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.15 }}
       transition={SPRING}
-      className="group scroll-mt-40 overflow-hidden rounded-2xl border border-rule bg-white p-6 card-hover geo-accent-bar sm:p-8 lg:p-10"
+      className="group scroll-mt-40 overflow-hidden rounded-2xl border border-rule bg-white p-6 card-hover geo-accent-bar sm:p-7 lg:p-8"
     >
-      <div className="mb-8 border-b border-rule pb-6">
-        <div className="flex items-center gap-3">
-          <span className="mono-xs text-accent">{section.number}</span>
-          {(() => {
-            const catStyle = SECTION_CATEGORY_STYLE[section.category]
-            return catStyle ? (
-              <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-2xs font-medium', catStyle.bg, catStyle.text, catStyle.border)}>
-                {catStyle.label}
-              </span>
-            ) : null
-          })()}
-          <button
-            onClick={() => onCopyLink(section.id)}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted opacity-40 transition-all group-hover:opacity-100 hover:bg-surface-active hover:text-text-primary"
-          >
-            {copiedSectionId === section.id ? <Check className="h-3 w-3 text-success" /> : <Link2 className="h-3 w-3" />}
-            {copiedSectionId === section.id ? 'Copied!' : 'Link'}
-          </button>
+      <div className="mb-6 border-b border-rule pb-5">
+        <div className="flex flex-wrap items-start gap-3">
+          <div className="flex items-center gap-3">
+            <span className="mono-xs text-accent">{section.number}</span>
+            {(() => {
+              const catStyle = SECTION_CATEGORY_STYLE[section.category]
+              return catStyle ? (
+                <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-2xs font-medium', catStyle.bg, catStyle.text, catStyle.border)}>
+                  {catStyle.label}
+                </span>
+              ) : null
+            })()}
+          </div>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {htmlSectionUrl && (
+              <a
+                href={htmlSectionUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-active"
+              >
+                Source HTML
+              </a>
+            )}
+            {pdfPage != null && (
+              <a
+                href={`${pdfUrl}#page=${pdfPage}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-active"
+              >
+                PDF page {pdfPage}
+              </a>
+            )}
+            <button
+              onClick={() => onCopyLink(section.id)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-[11px] font-medium text-muted transition-colors hover:bg-surface-active hover:text-text-primary"
+            >
+              {copiedSectionId === section.id ? <Check className="h-3 w-3 text-success" /> : <Link2 className="h-3 w-3" />}
+              {copiedSectionId === section.id ? 'Copied' : 'Section link'}
+            </button>
+          </div>
         </div>
-        <h2 className="mt-3 text-2xl font-medium text-text-primary font-serif sm:text-3xl text-balance">
-          {section.title}
-        </h2>
-        <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted">
-          {section.description}
-        </p>
+
+        <div className="mt-4 max-w-4xl">
+          <h2 className="text-2xl font-medium text-text-primary font-serif text-balance sm:text-3xl">
+            {section.title}
+          </h2>
+          <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted">
+            {section.description}
+          </p>
+        </div>
       </div>
 
       {hasFeaturedChart && (
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="space-y-4">
             {featuredChartBlocks.map(block => (
               <PaperChartBlock
@@ -452,61 +464,54 @@ function SectionCard({
         </div>
       )}
 
-      <div className={cn('grid min-w-0 gap-8', hasSupportingBlocks && 'xl:grid-cols-12')}>
-        <div
-          className={cn(
-            'min-w-0 space-y-6',
-            hasSupportingBlocks
-              ? hasFeaturedChart
-                ? 'xl:col-span-8'
-                : 'xl:col-span-7'
-              : 'max-w-4xl',
-            !hasFeaturedChart && figuresFirst && hasSupportingBlocks && 'xl:order-2',
-          )}
-        >
+      <div className={cn('grid min-w-0 gap-6 xl:items-start', hasSupportingBlocks && 'xl:grid-cols-[minmax(0,1fr)_340px]')}>
+        <div className="min-w-0 max-w-4xl space-y-5">
           <p className="max-w-3xl text-xl leading-relaxed text-text-primary font-serif">
             {narrative.lede}
           </p>
-          <div className="space-y-5 text-[15px] leading-[1.9] text-text-body font-serif">
+          <div className="space-y-4 text-[15px] leading-[1.85] text-text-body font-serif">
             {narrative.paragraphs.map(paragraph => (
               <p key={paragraph} className="max-w-3xl">
                 {renderParagraph(paragraph, narrative.keyClaim, noteHighlights, handleHighlightClick, notesVisible)}
               </p>
             ))}
           </div>
-          <div className="border-l-[3px] border-l-accent/50 rounded-r-lg bg-accent/[0.03] pl-6 pr-5 py-4">
+          <div className="max-w-3xl rounded-xl border border-accent/10 bg-accent/[0.03] px-5 py-4">
             <div className="mb-2 flex items-center gap-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-accent/50">
               <Quote className="h-3 w-3" />
               Pull quote
             </div>
-            <p className="max-w-3xl text-lg leading-relaxed text-text-primary font-serif italic text-balance">
+            <p className="text-lg leading-relaxed text-text-primary font-serif italic text-balance">
               {narrative.pullQuote}
             </p>
           </div>
         </div>
 
         {hasSupportingBlocks && (
-          <div
-            className={cn(
-              'min-w-0 space-y-4',
-              hasFeaturedChart ? 'xl:col-span-4' : 'xl:col-span-5',
-              !hasFeaturedChart && figuresFirst && 'xl:order-1',
-            )}
-          >
-            <div className="rounded-xl border border-rule/80 bg-surface-active/55 p-4">
+          <aside className="min-w-0">
+            <div className="rounded-2xl border border-rule/80 bg-surface-active/45 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-text-faint">Evidence</div>
+                  <div className="mt-1 text-sm font-medium text-text-primary">Tables, caveats, and source blocks</div>
+                </div>
+                <span className="rounded-full border border-rule/60 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-text-faint">
+                  {supportingBlocks.length} block{supportingBlocks.length === 1 ? '' : 's'}
+                </span>
+              </div>
               <BlockCanvas blocks={supportingBlocks} showExport={false} />
             </div>
-            {!hasFeaturedChart && (
-              <p className="px-1 text-xs leading-6 text-muted">
+            {!hasFeaturedChart && narrative.figureCaption && (
+              <p className="mt-3 px-1 text-xs leading-6 text-muted">
                 {narrative.figureCaption}
               </p>
             )}
-          </div>
+          </aside>
         )}
       </div>
 
       {notesVisible && sectionNotes.length > 0 ? (
-        <div className="mt-8">
+        <div className="mt-6">
           <InlineSectionNotes
             notes={sectionNotes}
             onOpenNote={onOpenNote}
@@ -514,13 +519,13 @@ function SectionCard({
           />
         </div>
       ) : notesVisible ? (
-        <div className="mt-6 flex items-center gap-2 text-2xs text-text-faint">
+        <div className="mt-5 flex items-center gap-2 text-2xs text-text-faint">
           <MousePointerClick className="h-3 w-3 shrink-0" />
           <span>Select text to add your annotation</span>
         </div>
       ) : null}
 
-      <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-6">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-5">
         {previousSection ? (
           <a
             href={`#${previousSection.id}`}
