@@ -208,7 +208,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
           ['Shorter slots', 'Raises payoff inequality more clearly than it changes the geographic map', 'Not evidence that slot reduction solves or reverses centralization'],
           ['Attestation threshold', 'Can tighten external block building concentration while loosening local block building concentration', 'The same protocol lever does not generalize across paradigms'],
           ['Supplier / source placement', 'Infrastructure geography changes concentration pressure directly', 'This is partly an ecosystem and operator-coordination problem, not just a core-protocol one'],
-          ['Diversity incentives', 'Could counteract concentration pressure in principle', 'The paper does not validate a production-ready incentive design'],
+          ['MEV-burn / reward dampening', 'Reduces latency-driven payoff differences, weakening migration incentives', 'Primarily motivated by fairness; geographic effect is indirect and untested by this model'],
         ],
       },
       {
