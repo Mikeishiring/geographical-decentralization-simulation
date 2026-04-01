@@ -1,3 +1,5 @@
+import { RESULTS_ROUTE_PARAM_KEYS } from './route-state'
+
 export interface PublishedEvidenceSelection {
   readonly evaluation: string
   readonly paradigm: 'External' | 'Local'
@@ -52,6 +54,23 @@ export function buildPublishedEvidenceUrl(
   url.searchParams.delete('preview')
   url.searchParams.set('tab', 'results')
   applySelection(url, selection)
+  return url.toString()
+}
+
+export function buildPaperSectionUrl(
+  sectionId: string,
+  currentHref = typeof window !== 'undefined' ? window.location.href : 'http://localhost/',
+): string {
+  const url = new URL(currentHref)
+  url.searchParams.delete('preview')
+  url.searchParams.delete('q')
+  url.searchParams.delete('eid')
+  url.searchParams.delete('topic')
+  url.searchParams.set('tab', 'paper')
+  for (const key of RESULTS_ROUTE_PARAM_KEYS) {
+    url.searchParams.delete(key)
+  }
+  url.hash = sectionId
   return url.toString()
 }
 
