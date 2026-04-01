@@ -129,7 +129,6 @@ export function SimConfigPanel({
                   )}
                 >
                   <div className="text-sm font-medium">{describeParadigm(paradigm)}</div>
-                  <div className="mt-1 text-2xs font-medium uppercase tracking-[0.1em] opacity-75">{paradigm}</div>
                 </button>
               ))}
             </div>

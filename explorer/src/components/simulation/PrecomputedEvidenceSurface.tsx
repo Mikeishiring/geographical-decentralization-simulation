@@ -7,7 +7,7 @@ import { cn } from '../../lib/cn'
 import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
 import type { Block } from '../../types/blocks'
-import { formatNumber } from './simulation-constants'
+import { formatNumber, paradigmLabel } from './simulation-constants'
 import { CHART_COLORS } from './simulation-evidence-constants'
 import {
   totalSlotsFromPayload,
@@ -332,7 +332,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
                         onClick={() => findAndSelect(selectedEvaluation, paradigm)}
                         className={cn(chipBase, selectedParadigm === paradigm ? chipActive : chipInactive)}
                       >
-                        {paradigm}
+                        {paradigmLabel(paradigm)}
                       </button>
                     ))}
                   </div>
