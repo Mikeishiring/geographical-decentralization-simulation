@@ -7,6 +7,7 @@ import { PaperViewModeBar, type ReaderMode } from '../components/paper/PaperView
 import { EditorialView } from '../components/paper/EditorialView'
 import { ArgumentsView } from '../components/paper/ArgumentsView'
 import { FullTextView } from '../components/paper/FullTextView'
+import { PaperNavProvider } from '../components/paper/PaperNavContext'
 import { SelectionPopover } from '../components/community/SelectionPopover'
 import { useTextSelection } from '../hooks/useTextSelection'
 import type { TextAnchor } from '../types/anchors'
@@ -43,6 +44,14 @@ export function PaperReaderPage({
 
   const [guideOpen, setGuideOpen] = useState(false)
   const [notesVisible, setNotesVisible] = useState(true)
+  const [pdfTargetPage, setPdfTargetPage] = useState<number | undefined>(undefined)
+
+  const goToPdfPage = useCallback((page: number) => {
+    setPdfTargetPage(page)
+    setReaderMode('paper')
+  }, [])
+
+  const paperNavValue = useMemo(() => ({ goToPdfPage }), [goToPdfPage])
 
   // Text selection for community notes
   const { containerRef, selection, selectionRect, clearSelection } = useTextSelection(readerMode)
@@ -196,7 +205,7 @@ export function PaperReaderPage({
   )
 
   return (
-    <>
+    <PaperNavProvider value={paperNavValue}>
     {/* Popover lives OUTSIDE the container so mousedown on it
         never triggers the container's selection-clear handler */}
     <SelectionPopover
@@ -238,7 +247,7 @@ export function PaperReaderPage({
 
       {/* Active view */}
       {readerMode === 'paper' ? (
-        <FullTextView />
+        <FullTextView initialPage={pdfTargetPage} />
       ) : readerMode === 'arguments' ? (
         <ArgumentsView
           activeSectionId={activeSectionId}
@@ -260,6 +269,6 @@ export function PaperReaderPage({
         />
       )}
     </div>
-    </>
+    </PaperNavProvider>
   )
 }
