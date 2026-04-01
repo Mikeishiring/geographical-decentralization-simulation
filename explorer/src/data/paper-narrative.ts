@@ -91,7 +91,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   discussion: {
     lede: 'The discussion section is diagnostic rather than prescriptive, and that is the right tone to preserve in the UI.',
     paragraphs: [
-      'The paper sketches mitigation directions such as rewarding underrepresented regions, decentralizing suppliers and sources, or compensating for latency at the protocol layer. But none of these are presented as settled policy recommendations.',
+      'The paper sketches mitigation directions: weakening proposer monopoly power through decentralized block building (BuilderNet, MCP), dampening latency sensitivity via MEV-burn, and encouraging geographic diversity among suppliers and signal sources. None of these are presented as settled policy recommendations.',
       'That restraint matters. The contribution is to show that geographic concentration is endogenous to the timing structure of the system, not to claim the model has already solved how to counteract it.',
     ],
     pullQuote: 'The strongest claim here is about diagnosis: the protocol and infrastructure together create concentration pressure.',
