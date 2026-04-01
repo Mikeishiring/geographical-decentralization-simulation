@@ -48,11 +48,15 @@ const MARGIN_GAP = 16
 
 function computePosition(rect: DOMRect, containerRef?: React.RefObject<HTMLElement | null>) {
   // Try right-margin placement (Word-style comments)
+  // Find the prose column (xl:col-span-7) by walking up from the selection's position
   const container = containerRef?.current
   if (container) {
-    const containerRect = container.getBoundingClientRect()
-    // Find the prose column's right edge (xl:col-span-7 within the grid)
-    const proseRight = containerRect.right
+    // Look for the closest section card's content grid to find prose column width
+    const proseCol = document.elementFromPoint(rect.left + 1, rect.top + 1)
+      ?.closest('.xl\\:col-span-7, [class*="col-span-7"]')
+    const proseRight = proseCol
+      ? proseCol.getBoundingClientRect().right
+      : rect.right + 40 // fallback: use selection right edge + small offset
     const marginAvailable = window.innerWidth - proseRight
     if (marginAvailable > POPUP_WIDTH + MARGIN_GAP * 2) {
       return {

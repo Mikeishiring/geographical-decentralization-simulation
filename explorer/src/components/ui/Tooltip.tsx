@@ -20,8 +20,8 @@ export function Tooltip({ children, label, placement = 'below', className }: Too
       <span
         role="tooltip"
         className={cn(
-          'pointer-events-none absolute left-1/2 z-50 -translate-x-1/2 whitespace-nowrap',
-          'rounded-lg bg-[#1a1a1a] px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg',
+          'pointer-events-none absolute left-1/2 z-50 -translate-x-1/2',
+          'max-w-[220px] rounded-lg bg-[#1a1a1a] px-2.5 py-1.5 text-[11px] font-medium leading-snug text-white shadow-lg',
           'opacity-0 transition-[opacity,transform] duration-200',
           'group-hover/tip:opacity-100 group-hover/tip:delay-[850ms]',
           placement === 'below'

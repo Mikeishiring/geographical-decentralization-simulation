@@ -39,6 +39,7 @@ export function InlineSectionNotes({ notes, onOpenNote, showAnnotationHint = fal
         className="flex w-full items-center gap-2 text-left"
         aria-expanded={expanded}
         aria-label={`${published.length} community notes`}
+        data-notes-toggle
       >
         <Users className="h-3 w-3 text-accent" />
         <span className="text-11 font-semibold tracking-wide uppercase text-muted">
