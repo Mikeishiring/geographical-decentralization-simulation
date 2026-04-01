@@ -404,7 +404,7 @@ export function clampSlotIndex(slot: number | null | undefined, totalSlots: numb
   return Math.max(0, Math.min(Math.floor(slot), Math.max(0, totalSlots - 1)))
 }
 
-function alignSlotByProgress(
+export function alignSlotByProgress(
   primarySlot: number,
   primaryTotalSlots: number,
   comparisonTotalSlots: number,
