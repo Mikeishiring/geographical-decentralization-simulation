@@ -21,7 +21,7 @@ export const MODE_META: Record<ReaderMode, { icon: typeof ListTree; label: strin
   editorial: {
     icon: BookOpen,
     label: 'Editorial',
-    detail: 'LLM-generated narrative walkthrough with source provenance',
+    detail: 'Interpreted walkthrough with source pills',
     fidelity: 'LLM narrative',
     fidelityShort: 'Interpreted',
     provenanceHint: 'Narrative text is LLM-generated. Source pills show provenance.',
@@ -29,7 +29,7 @@ export const MODE_META: Record<ReaderMode, { icon: typeof ListTree; label: strin
   arguments: {
     icon: ListTree,
     label: 'Arguments',
-    detail: 'Core claims organized by argument structure with cited evidence',
+    detail: 'Argument structure with citations',
     fidelity: 'Structured claims',
     fidelityShort: 'Arguments',
     provenanceHint: 'Claims and evidence extracted from the paper. Narrative is minimal; source pills show provenance.',
@@ -37,7 +37,7 @@ export const MODE_META: Record<ReaderMode, { icon: typeof ListTree; label: strin
   paper: {
     icon: FileText,
     label: 'Original PDF',
-    detail: 'Published arXiv PDF — unmodified source document',
+    detail: 'Unmodified arXiv PDF',
     fidelity: 'Original arXiv',
     fidelityShort: 'Source',
     provenanceHint: 'Unmodified published document — no interpretation layer.',
