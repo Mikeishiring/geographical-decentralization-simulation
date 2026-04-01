@@ -1,5 +1,5 @@
-import { useId, useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { buildPublishedEvidenceUrl } from '../../lib/published-evidence-url'
@@ -11,8 +11,8 @@ import { CiteBadge } from './CiteBadge'
 import type { PaperChartPoint, PaperChartDataset } from '../../data/paper-chart-data'
 
 interface PaperChartBlockProps {
-  block: PaperChartBlockType
-  caption?: string
+  readonly block: PaperChartBlockType
+  readonly caption?: string
 }
 
 type MetricKey = 'gini' | 'hhi' | 'liveness' | 'cv'
@@ -89,7 +89,7 @@ function getSlotBounds(datasets: readonly PaperChartDataset[]) {
   }
 }
 
-function MiniChart({
+const MiniChart = memo(function MiniChart({
   datasets,
   metricKey,
   metricLabel,
@@ -97,18 +97,16 @@ function MiniChart({
   hoverSlot,
   onHoverSlot,
   gradientPrefix,
-  panelIndex,
   activeGroup,
 }: {
-  datasets: readonly PaperChartDataset[]
-  metricKey: MetricKey
-  metricLabel: string
-  yLabel: string
-  hoverSlot: number | null
-  onHoverSlot: (slot: number | null) => void
-  gradientPrefix: string
-  panelIndex: number
-  activeGroup: string | null
+  readonly datasets: readonly PaperChartDataset[]
+  readonly metricKey: MetricKey
+  readonly metricLabel: string
+  readonly yLabel: string
+  readonly hoverSlot: number | null
+  readonly onHoverSlot: (slot: number | null) => void
+  readonly gradientPrefix: string
+  readonly activeGroup: string | null
 }) {
   const padding = { top: 12, right: 16, bottom: 30, left: 48 }
   const svgW = 380
@@ -162,7 +160,6 @@ function MiniChart({
       minX,
       maxX,
       rangeX,
-      yLo,
       yTicks,
       xTicks,
       latestSvgX: mapX(maxX),
@@ -170,18 +167,14 @@ function MiniChart({
       mapY,
       series,
     }
-  }, [chartH, chartW, datasets, metricKey, padding.bottom, padding.left, padding.right, padding.top])
+  }, [chartH, chartW, datasets, metricKey, padding.left, padding.right, padding.top])
 
   if (!chartGeometry) return null
 
   const { minX, rangeX, yTicks, xTicks, latestSvgX, mapX, mapY, series } = chartGeometry
-  const baseDelay = panelIndex * 0.05
   const isDenseFigure = datasets.length > 4
   const showAreaFill = !isDenseFigure
-
-  const hoverSvgX = hoverSlot != null
-    ? mapX(hoverSlot)
-    : null
+  const hoverSvgX = hoverSlot != null ? mapX(hoverSlot) : null
   const crosshairOpacity = hoverSvgX != null
     ? CHART.crosshairOpacity * crosshairFadeNearLive(hoverSvgX, latestSvgX, CHART.crosshairFadeDistance)
     : 0
@@ -241,12 +234,7 @@ function MiniChart({
         {yTicks.map((tick, tickIndex) => {
           const sy = mapY(tick)
           return (
-            <motion.g
-              key={tick}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ ...SPRING_CRISP, delay: baseDelay + tickIndex * 0.03 }}
-            >
+            <g key={tick} opacity={0.92 - tickIndex * 0.12}>
               <line
                 x1={padding.left}
                 y1={sy}
@@ -265,41 +253,37 @@ function MiniChart({
               >
                 {formatNum(tick)}
               </text>
-            </motion.g>
+            </g>
           )
         })}
 
         {xTicks.map((tick, index) => {
           const sx = mapX(tick)
           return (
-            <motion.text
+            <text
               key={tick}
               x={sx}
               y={svgH - 11}
               textAnchor="middle"
               className="fill-muted"
               style={{ fontSize: 10 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ ...SPRING_CRISP, delay: baseDelay + 0.15 + index * 0.03 }}
+              opacity={0.78 - index * 0.08}
             >
               {formatSlotTick(tick)}
-            </motion.text>
+            </text>
           )
         })}
 
-        <motion.text
+        <text
           x={padding.left + chartW / 2}
           y={svgH - 1}
           textAnchor="middle"
           className="fill-muted"
           style={{ fontSize: 9 }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.6 }}
-          transition={{ ...SPRING_CRISP, delay: baseDelay + 0.3 }}
+          opacity={0.6}
         >
           Slot
-        </motion.text>
+        </text>
 
         {hoverSvgX != null && crosshairOpacity > 0.01 && (
           <>
@@ -324,7 +308,6 @@ function MiniChart({
         )}
 
         {series.map(({ dataset, index, points, pathD, areaD, latest }) => {
-          const seriesDelay = baseDelay + 0.1 + index * 0.04
           const isFocusedSeries = activeGroup == null || getSeriesGroupLabel(dataset.label) === activeGroup
           const showMarkers = !isDenseFigure || activeGroup !== null
           const lineOpacity = isFocusedSeries ? 0.96 : 0.2
@@ -332,7 +315,6 @@ function MiniChart({
           const strokeWidth = isDenseFigure
             ? dataset.dashed ? 1.45 : 1.7
             : dataset.dashed ? 2 : 2.2
-
           const hoveredPoint = hoverSlot != null && showMarkers && isFocusedSeries ? pointAtSlot(points, hoverSlot) : null
           const hoveredCoord = hoveredPoint
             ? { sx: mapX(hoveredPoint.x), sy: mapY(hoveredPoint.y) }
@@ -341,16 +323,14 @@ function MiniChart({
           return (
             <g key={dataset.label}>
               {showAreaFill && areaD && isFocusedSeries && (
-                <motion.path
+                <path
                   d={areaD}
                   fill={`url(#${gradientPrefix}-${metricKey}-${index})`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ ...SPRING_CRISP, delay: seriesDelay }}
+                  opacity={0.95}
                 />
               )}
 
-              <motion.path
+              <path
                 d={pathD}
                 fill="none"
                 stroke={dataset.color}
@@ -359,9 +339,6 @@ function MiniChart({
                 strokeLinejoin="round"
                 strokeDasharray={dataset.dashed ? '6 3' : undefined}
                 opacity={lineOpacity}
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ ...SPRING_CRISP, delay: seriesDelay + 0.05 }}
               />
 
               {latest && showMarkers && (
@@ -377,7 +354,7 @@ function MiniChart({
                     className="live-dot-pulse"
                     style={{ opacity: latestOpacity * 0.24 }}
                   />
-                  <motion.circle
+                  <circle
                     cx={latest.sx}
                     cy={latest.sy}
                     r={4.25}
@@ -386,54 +363,61 @@ function MiniChart({
                     strokeWidth={1.4}
                     filter={`drop-shadow(0 1px 2px ${dataset.color}25)`}
                     opacity={latestOpacity}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ ...SPRING_CRISP, delay: seriesDelay + 0.3 }}
                   />
-                  <motion.circle
+                  <circle
                     cx={latest.sx}
                     cy={latest.sy}
                     r={2.15}
                     fill={dataset.color}
                     opacity={latestOpacity}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ ...SPRING_CRISP, delay: seriesDelay + 0.35 }}
                   />
                 </g>
               )}
 
-              <AnimatePresence>
-                {hoveredCoord && (
-                  <motion.circle
-                    cx={hoveredCoord.sx}
-                    cy={hoveredCoord.sy}
-                    r={4.75}
-                    fill="white"
-                    stroke={dataset.color}
-                    strokeWidth={1.8}
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
-                    transition={CHART.tooltipSpring}
-                  />
-                )}
-              </AnimatePresence>
+              {hoveredCoord && (
+                <circle
+                  cx={hoveredCoord.sx}
+                  cy={hoveredCoord.sy}
+                  r={4.75}
+                  fill="white"
+                  stroke={dataset.color}
+                  strokeWidth={1.8}
+                />
+              )}
             </g>
           )
         })}
       </svg>
     </div>
   )
-}
+})
 
 export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
   const chart = getActiveStudy().paperCharts[block.dataKey]
   const chartData = chart?.data
   const [hoverSlot, setHoverSlot] = useState<number | null>(null)
+  const [focusedGroup, setFocusedGroup] = useState<string | null>(null)
   const gradientPrefix = useId().replace(/:/g, '')
+  const hoverRafRef = useRef<number | null>(null)
+  const pendingHoverSlotRef = useRef<number | null>(null)
 
-  if (!chartData) {
+  const commitHoverSlot = useCallback((slot: number | null) => {
+    pendingHoverSlotRef.current = slot
+    if (hoverRafRef.current != null) return
+
+    hoverRafRef.current = window.requestAnimationFrame(() => {
+      hoverRafRef.current = null
+      setHoverSlot(current => (current === pendingHoverSlotRef.current ? current : pendingHoverSlotRef.current))
+    })
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (hoverRafRef.current != null) window.cancelAnimationFrame(hoverRafRef.current)
+    }
+  }, [])
+
+  if (!chartData || !chart) {
     return (
       <div className="lab-panel rounded-xl p-5">
         <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
@@ -443,22 +427,13 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
   }
 
   const { datasets } = chartData
-  const description = chart.description
-  const takeaway = chart.takeaway
-  const metadata = chart.metadata
-  const provenance = {
-    figureHref: chart.figureHref,
-    figureLabel: chart.figureLabel,
-    datasetSummary: chart.datasetSummary,
-    repoPaths: chart.repoPaths,
-    publishedScenarioLinks: chart.publishedScenarioLinks ?? [],
-  }
   const { minSlot, maxSlot } = getSlotBounds(datasets)
   const inspectedSlot = hoverSlot ?? maxSlot
   const isDenseFigure = datasets.length > 4
   const seriesGroups = Array.from(new Set(datasets.map(dataset => getSeriesGroupLabel(dataset.label))))
-  const defaultFocusedGroup = seriesGroups.includes('γ=2/3') ? 'γ=2/3' : (seriesGroups[0] ?? null)
-  const [focusedGroup, setFocusedGroup] = useState<string | null>(defaultFocusedGroup)
+  const resolvedFocusedGroup = isDenseFigure
+    ? (focusedGroup ?? (seriesGroups.includes('γ=2/3') ? 'γ=2/3' : (seriesGroups[0] ?? null)))
+    : null
 
   const legendStats = datasets.map(dataset => {
     const first = dataset.gini[0]?.y ?? 0
@@ -466,13 +441,13 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
     const delta = last - first
     return { label: dataset.label, color: dataset.color, dashed: dataset.dashed, first, last, delta }
   })
-  const activeGroup = isDenseFigure ? focusedGroup : null
-  const visibleLegendStats = activeGroup == null
+
+  const visibleLegendStats = resolvedFocusedGroup == null
     ? legendStats
-    : legendStats.filter(series => getSeriesGroupLabel(series.label) === activeGroup)
-  const inspectorDatasets = activeGroup == null
+    : legendStats.filter(series => getSeriesGroupLabel(series.label) === resolvedFocusedGroup)
+  const inspectorDatasets = resolvedFocusedGroup == null
     ? datasets
-    : datasets.filter(dataset => getSeriesGroupLabel(dataset.label) === activeGroup)
+    : datasets.filter(dataset => getSeriesGroupLabel(dataset.label) === resolvedFocusedGroup)
   const showLegendDelta = !isDenseFigure
 
   return (
@@ -491,20 +466,20 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
               </h3>
               {block.cite && <CiteBadge cite={block.cite} />}
             </div>
-            {description && (
+            {chart.description && (
               <p className="mt-1.5 text-sm leading-6 text-muted">
-                {description}
+                {chart.description}
               </p>
             )}
-            {takeaway && (
+            {chart.takeaway && (
               <p className="mt-2 text-[13px] leading-6 text-text-body">
                 <span className="font-medium text-text-primary">What changes:</span>{' '}
-                {takeaway}
+                {chart.takeaway}
               </p>
             )}
-            {metadata.length > 0 && (
+            {chart.metadata.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
-                {metadata.map(item => (
+                {chart.metadata.map(item => (
                   <span
                     key={item}
                     className="inline-flex items-center rounded-full border border-rule/60 bg-white/78 px-2.5 py-1 text-[11px] text-text-faint"
@@ -514,9 +489,9 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
                 ))}
               </div>
             )}
-            {provenance.publishedScenarioLinks.length > 0 && (
+            {(chart.publishedScenarioLinks ?? []).length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
-                {provenance.publishedScenarioLinks.map(link => (
+                {(chart.publishedScenarioLinks ?? []).map(link => (
                   <a
                     key={`${link.evaluation}-${link.paradigm}-${link.result}`}
                     href={buildPublishedEvidenceUrl(link)}
@@ -547,7 +522,7 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
                   onClick={() => setFocusedGroup(group)}
                   className={cn(
                     'rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors',
-                    focusedGroup === group
+                    resolvedFocusedGroup === group
                       ? 'border-accent/40 bg-accent/[0.08] text-text-primary'
                       : 'border-rule/60 bg-white/80 text-text-faint hover:text-text-primary',
                   )}
@@ -627,144 +602,146 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
       </div>
 
       <div className="px-4 py-4 sm:px-5">
-        <div className="overflow-hidden rounded-[1.12rem] border border-rule/60 bg-surface-active/45">
-          <div className="grid gap-px bg-rule/55 lg:grid-cols-2">
-            {METRICS.map(({ key, label, yLabel }, panelIndex) => (
-              <div
-                key={key}
-                className="bg-white/90 px-3 py-3.5 sm:px-4"
-              >
-                <MiniChart
-                  datasets={datasets}
-                  metricKey={key}
-                  metricLabel={label}
-                  yLabel={yLabel}
-                  hoverSlot={hoverSlot}
-                  onHoverSlot={setHoverSlot}
-                  gradientPrefix={gradientPrefix}
-                  panelIndex={panelIndex}
-                  activeGroup={activeGroup}
-                />
-              </div>
-            ))}
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="overflow-hidden rounded-[1.12rem] border border-rule/60 bg-surface-active/45">
+            <div className="grid gap-px bg-rule/55 lg:grid-cols-2">
+              {METRICS.map(({ key, label, yLabel }) => (
+                <div
+                  key={key}
+                  className="bg-white/90 px-3 py-3.5 sm:px-4"
+                >
+                  <MiniChart
+                    datasets={datasets}
+                    metricKey={key}
+                    metricLabel={label}
+                    yLabel={yLabel}
+                    hoverSlot={hoverSlot}
+                    onHoverSlot={commitHoverSlot}
+                    gradientPrefix={gradientPrefix}
+                    activeGroup={resolvedFocusedGroup}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
+
+          <aside className="rounded-[1.12rem] border border-rule/60 bg-white/86 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                  Slot inspector
+                </p>
+                <p className="mt-1 text-sm font-medium tabular-nums text-text-primary">
+                  {hoverSlot != null ? `Nearest available values at slot ${hoverSlot.toLocaleString()}` : `Latest available values at slot ${maxSlot.toLocaleString()}`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => commitHoverSlot(null)}
+                disabled={hoverSlot === null}
+                className="rounded-full border border-rule/70 bg-white px-3 py-1.5 text-[11px] font-medium text-text-faint transition-colors hover:text-text-primary disabled:cursor-default disabled:opacity-50"
+              >
+                Reset
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center gap-3">
+              <span className="text-[11px] font-medium tabular-nums text-text-faint">{minSlot}</span>
+              <input
+                type="range"
+                min={minSlot}
+                max={maxSlot}
+                step={1}
+                value={inspectedSlot}
+                onChange={event => commitHoverSlot(Number(event.currentTarget.value))}
+                className="h-2 w-full cursor-pointer accent-[var(--color-accent)]"
+                aria-label="Inspect chart values by slot"
+              />
+              <span className="text-[11px] font-medium tabular-nums text-text-faint">{maxSlot.toLocaleString()}</span>
+            </div>
+
+            {isDenseFigure && (
+              <p className="mt-3 text-[11px] leading-5 text-text-faint">
+                {resolvedFocusedGroup == null
+                  ? 'Showing all gamma pairs. Use the focus pills above for a cleaner comparison.'
+                  : `Showing the ${resolvedFocusedGroup} external/local pair. Switch to Show all to compare every threshold at once.`}
+              </p>
+            )}
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              {inspectorDatasets.map(dataset => {
+                const values = METRICS.map(metric => ({
+                  label: metric.label,
+                  value: pointAtSlot(dataset[metric.key], inspectedSlot)?.y ?? 0,
+                }))
+
+                return (
+                  <div
+                    key={dataset.label}
+                    className="rounded-xl border border-rule/60 bg-surface-active/25 px-3.5 py-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <svg width="14" height="7" viewBox="0 0 14 7" className="shrink-0">
+                        <line
+                          x1="0"
+                          y1="3.5"
+                          x2="14"
+                          y2="3.5"
+                          stroke={dataset.color}
+                          strokeWidth={2}
+                          strokeDasharray={dataset.dashed ? '3 2' : undefined}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <span className="text-sm font-medium text-text-primary">{dataset.label}</span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] tabular-nums">
+                      {values.map(value => (
+                        <span key={value.label} className="flex items-baseline justify-between gap-2 text-text-body">
+                          <span className="text-text-faint">{value.label}</span>
+                          <span className="font-semibold text-text-primary">{formatNum(value.value)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </aside>
         </div>
       </div>
 
       <div className="border-t border-rule/70 bg-white/74 px-5 py-4 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
-              Slot inspector
-            </p>
-            <p className="mt-1 text-sm font-medium tabular-nums text-text-primary">
-              {hoverSlot != null ? `Showing nearest available values at slot ${hoverSlot.toLocaleString()}` : `Showing latest available values at slot ${maxSlot.toLocaleString()}`}
-            </p>
-            {isDenseFigure && (
-              <p className="mt-1 text-[11px] leading-5 text-text-faint">
-                {activeGroup == null
-                  ? 'Showing all gamma pairs. Use the focus pills above for a cleaner comparison.'
-                  : `Showing the ${activeGroup} external/local pair. Switch to Show all to compare every threshold at once.`}
-              </p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => setHoverSlot(null)}
-            disabled={hoverSlot === null}
-            className="rounded-full border border-rule/70 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-text-faint transition-colors hover:text-text-primary disabled:cursor-default disabled:opacity-50"
-          >
-            Reset to latest
-          </button>
-        </div>
-
-        <div className="mt-3 flex items-center gap-3">
-          <span className="text-[11px] font-medium tabular-nums text-text-faint">{minSlot}</span>
-          <input
-            type="range"
-            min={minSlot}
-            max={maxSlot}
-            step={1}
-            value={inspectedSlot}
-            onChange={event => setHoverSlot(Number(event.currentTarget.value))}
-            className="h-2 w-full cursor-pointer accent-[var(--color-accent)]"
-            aria-label="Inspect chart values by slot"
-          />
-          <span className="text-[11px] font-medium tabular-nums text-text-faint">{maxSlot.toLocaleString()}</span>
-        </div>
-
-        <div className={cn('mt-4 grid gap-2', isDenseFigure ? 'sm:grid-cols-2' : 'sm:grid-cols-2 xl:grid-cols-4')}>
-          {inspectorDatasets.map(dataset => {
-            const values = METRICS.map(metric => ({
-              label: metric.label,
-              value: pointAtSlot(dataset[metric.key], inspectedSlot)?.y ?? 0,
-            }))
-
-            return (
-              <div
-                key={dataset.label}
-                className="rounded-xl border border-rule/60 bg-white/88 px-3.5 py-3"
-              >
-                <div className="flex items-center gap-2">
-                  <svg width="14" height="7" viewBox="0 0 14 7" className="shrink-0">
-                    <line
-                      x1="0"
-                      y1="3.5"
-                      x2="14"
-                      y2="3.5"
-                      stroke={dataset.color}
-                      strokeWidth={2}
-                      strokeDasharray={dataset.dashed ? '3 2' : undefined}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span className="text-sm font-medium text-text-primary">{dataset.label}</span>
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] tabular-nums">
-                  {values.map(value => (
-                    <span key={value.label} className="flex items-baseline justify-between gap-2 text-text-body">
-                      <span className="text-text-faint">{value.label}</span>
-                      <span className="font-semibold text-text-primary">{formatNum(value.value)}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
         {caption && (
-          <p className="mt-4 text-xs leading-6 text-muted">
+          <p className="text-xs leading-6 text-muted">
             {caption}
           </p>
         )}
 
-        {provenance && (
-          <details className="mt-4 overflow-hidden rounded-xl border border-rule/60 bg-white/72">
-            <summary className="cursor-pointer list-none px-3.5 py-2.5 text-[12px] font-medium text-text-primary marker:content-none">
-              Provenance
-            </summary>
-            <div className="border-t border-rule/60 px-3.5 py-3 text-xs leading-6 text-muted">
-              <p>{provenance.datasetSummary}</p>
-              <a
-                href={provenance.figureHref}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-accent hover:text-accent/80"
-              >
-                <ExternalLink className="h-3 w-3" />
-                {provenance.figureLabel}
-              </a>
-              <div className="mt-2 space-y-1.5">
-                {provenance.repoPaths.map(path => (
-                  <p key={path} className="font-mono text-[11px] text-text-faint">
-                    {path}
-                  </p>
-                ))}
-              </div>
+        <details className={cn('overflow-hidden rounded-xl border border-rule/60 bg-white/72', caption ? 'mt-4' : '')}>
+          <summary className="cursor-pointer list-none px-3.5 py-2.5 text-[12px] font-medium text-text-primary marker:content-none">
+            Provenance
+          </summary>
+          <div className="border-t border-rule/60 px-3.5 py-3 text-xs leading-6 text-muted">
+            <p>{chart.datasetSummary}</p>
+            <a
+              href={chart.figureHref}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-accent hover:text-accent/80"
+            >
+              <ExternalLink className="h-3 w-3" />
+              {chart.figureLabel}
+            </a>
+            <div className="mt-2 space-y-1.5">
+              {chart.repoPaths.map(path => (
+                <p key={path} className="font-mono text-[11px] text-text-faint">
+                  {path}
+                </p>
+              ))}
             </div>
-          </details>
-        )}
+          </div>
+        </details>
       </div>
     </motion.div>
   )
