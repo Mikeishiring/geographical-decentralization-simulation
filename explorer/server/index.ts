@@ -21,7 +21,6 @@ import { ExplorationStore, normalizeQuery, type ExplorationSurface, type ListOpt
 import { AgentLoopStore } from './agent-loop-store.ts'
 import { AgentLoopOrchestrator } from './agent-loop-orchestrator.ts'
 import { AGENT_LOOP_DEFAULTS } from './agent-loop-types.ts'
-import { OVERVIEW_CARD, TOPIC_CARDS, type TopicCard } from '../src/data/default-blocks.ts'
 import { GCP_REGIONS } from '../src/data/gcp-regions.ts'
 import {
   buildSimulationArtifactBundle,
@@ -38,6 +37,8 @@ import {
   type SimulationViewSection,
   type SimulationViewSpec,
 } from '../src/types/simulation-view.ts'
+import { getActiveStudy } from '../src/studies/index.ts'
+import type { TopicCard } from '../src/studies/types.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXPLORER_ROOT = path.resolve(__dirname, '..')
@@ -75,6 +76,9 @@ const STOP_WORDS = new Set([
   'with',
 ])
 
+const ACTIVE_STUDY = getActiveStudy()
+const OVERVIEW_CARD = ACTIVE_STUDY.overviewCard
+const TOPIC_CARDS = ACTIVE_STUDY.topicCards
 const CURATED_CARDS = [OVERVIEW_CARD, ...TOPIC_CARDS]
 const ALL_EXPLORATION_TOPICS = TOPIC_CARDS
 const MAX_GENERATED_BLOCKS = 6
@@ -83,18 +87,7 @@ const DEFAULT_GENERATED_FALLBACK_TEXT =
   'The explorer is falling back to a conservative paper-backed note because the model did not return a safe structured visualization.'
 const DEFAULT_GENERATED_SOURCE_BLOCK: Block = {
   type: 'source',
-  refs: [
-    {
-      label: 'arXiv:2509.21475',
-      section: 'Geo-decentralization study',
-      url: 'https://arxiv.org/abs/2509.21475',
-    },
-    {
-      label: 'Simulation repository',
-      section: 'Code and datasets',
-      url: 'https://github.com/syang-ng/geographical-decentralization-simulation',
-    },
-  ],
+  refs: ACTIVE_STUDY.runtime.sourceBlockRefs,
 }
 const DEFAULT_GENERATED_CAVEAT_BLOCK: Block = {
   type: 'caveat',
@@ -102,52 +95,15 @@ const DEFAULT_GENERATED_CAVEAT_BLOCK: Block = {
 }
 
 const DEFAULT_SIMULATION_CONFIG: SimulationRequest = {
-  paradigm: 'SSP',
-  validators: 1000,
-  slots: 1000,
-  distribution: 'homogeneous',
-  sourcePlacement: 'homogeneous',
-  migrationCost: 0.0001,
-  attestationThreshold: 2 / 3,
-  slotTime: 12,
-  seed: 25873,
+  ...ACTIVE_STUDY.runtime.defaultSimulationConfig,
 }
 
 const PAPER_REFERENCE_OVERRIDES = {
-  validators: 1000,
-  slots: 10000,
-  distribution: 'homogeneous',
-  sourcePlacement: 'homogeneous',
-  migrationCost: 0.002,
-  attestationThreshold: 2 / 3,
-  slotTime: 12,
+  ...ACTIVE_STUDY.runtime.paperReferenceOverrides,
 } satisfies Partial<SimulationRequest>
 
 const SIMULATION_PRESETS = {
-  'baseline-ssp': {
-    ...PAPER_REFERENCE_OVERRIDES,
-    paradigm: 'SSP',
-  },
-  'baseline-msp': {
-    ...PAPER_REFERENCE_OVERRIDES,
-    paradigm: 'MSP',
-  },
-  'latency-aligned': {
-    ...PAPER_REFERENCE_OVERRIDES,
-    sourcePlacement: 'latency-aligned',
-  },
-  'latency-misaligned': {
-    ...PAPER_REFERENCE_OVERRIDES,
-    sourcePlacement: 'latency-misaligned',
-  },
-  'heterogeneous-start': {
-    ...PAPER_REFERENCE_OVERRIDES,
-    distribution: 'heterogeneous',
-  },
-  'eip-7782': {
-    ...PAPER_REFERENCE_OVERRIDES,
-    slotTime: 6,
-  },
+  ...ACTIVE_STUDY.runtime.simulationPresets,
 } satisfies Record<string, Partial<SimulationRequest>>
 
 const apiKey = process.env.ANTHROPIC_API_KEY
@@ -3531,12 +3487,11 @@ The Original PDF mode shows the unmodified published paper.
 
 // ── llm-full.txt — deep content for agents that want section narratives ──
 app.get('/llm-full.txt', async (_req, res) => {
-  // Dynamically import the narrative data so this stays in sync
-  const { PAPER_NARRATIVE } = await import('../src/data/paper-narrative.ts')
-  const { PAPER_SECTIONS } = await import('../src/data/paper-sections.ts')
+  const paperNarrative = ACTIVE_STUDY.narratives
+  const paperSections = ACTIVE_STUDY.sections
 
-  const sections = PAPER_SECTIONS.map(section => {
-    const narrative = PAPER_NARRATIVE[section.id]
+  const sections = paperSections.map(section => {
+    const narrative = paperNarrative[section.id]
     const refs = narrative?.sourceRefs
     const sourceInfo = (ref: { label: string; kind: string; page?: number } | undefined) =>
       ref ? `[${ref.kind}: ${ref.label}${ref.page ? ` p.${ref.page}` : ''}]` : ''
@@ -3576,7 +3531,7 @@ app.get('/llm-full.txt', async (_req, res) => {
     '- [table: Table N pN] = interprets table N from the paper',
     '- [editorial] = LLM-generated interpretation, not a direct paraphrase',
     '',
-    `## Section narratives (${PAPER_SECTIONS.length} sections)`,
+    `## Section narratives (${paperSections.length} sections)`,
     '',
     sections,
   ].join('\n'))

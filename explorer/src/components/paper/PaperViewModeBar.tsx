@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ListTree, FileText, BookOpen } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
-import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
+import { getActiveStudy } from '../../studies'
 import { Tooltip } from '../ui/Tooltip'
 import type { TabId } from '../layout/TabNav'
 import {
@@ -79,12 +79,21 @@ export function PaperViewModeBar({
   onNotesToggle,
   noteCount = 0,
 }: PaperViewModeBarProps) {
+  const study = getActiveStudy()
+  const sections = study.sections
   const paperMode = readerMode === 'paper'
-  const progressPercent = ((activeSectionIndex + 1) / PAPER_SECTIONS.length) * 100
+  const progressPercent = ((activeSectionIndex + 1) / sections.length) * 100
 
-  const activeSection = !paperMode ? PAPER_SECTIONS[activeSectionIndex] : null
+  const activeSection = !paperMode ? sections[activeSectionIndex] : null
   const [hoveredMode, setHoveredMode] = useState<ReaderMode | null>(null)
   const [notesHovered, setNotesHovered] = useState(false)
+  const suggestedEntryIds = study.navigation.bestFirstStopIds
+  const suggestedEntries = suggestedEntryIds
+    .map(id => sections.find(section => section.id === id))
+    .filter((section): section is (typeof sections)[number] => !!section)
+  const referenceLinks = study.metadata.references.filter(
+    (ref): ref is typeof ref & { readonly url: string } => typeof ref.url === 'string' && ref.url.length > 0,
+  )
 
   return (
     <div className="sticky top-[4.5rem] z-20 -mx-4 border-b border-rule bg-white/95 px-4 py-2 backdrop-blur-sm sm:-mx-6 sm:px-6">
@@ -201,7 +210,7 @@ export function PaperViewModeBar({
                   <span className="mono-xs text-accent shrink-0">{activeSection.number}</span>
                   <span className="text-xs text-text-primary truncate">{activeSection.title}</span>
                   <div className="ml-auto flex items-center gap-2 shrink-0 text-xs text-muted">
-                    <span className="tabular-nums">{activeSectionIndex + 1}/{PAPER_SECTIONS.length}</span>
+                    <span className="tabular-nums">{activeSectionIndex + 1}/{sections.length}</span>
                     <div className="h-1 w-16 overflow-hidden rounded-full bg-surface-active">
                       <motion.div
                         className="h-full rounded-full bg-accent"
@@ -217,14 +226,9 @@ export function PaperViewModeBar({
                 <div>
                   <div className="text-xs font-medium text-text-primary">Suggested entry points</div>
                   <div className="mt-2 space-y-1.5">
-                    {[
-                      { id: 'system-model', label: 'System model and mechanism' },
-                      { id: 'baseline-results', label: 'Baseline results' },
-                      { id: 'se4a-attestation', label: 'SE4a attestation threshold' },
-                      { id: 'limitations', label: 'Limitations (truth boundary)' },
-                    ].map((entry, i) => (
+                    {suggestedEntries.map((entry, i) => (
                       <a key={entry.id} href={`#${entry.id}`} onClick={() => onSectionClick(entry.id)} className="block text-sm text-muted hover:text-accent transition-colors">
-                        <span className="text-xs text-accent mr-1">{i + 1}.</span> {entry.label}
+                        <span className="text-xs text-accent mr-1">{i + 1}.</span> {entry.title}
                       </a>
                     ))}
                   </div>
@@ -289,7 +293,7 @@ export function PaperViewModeBar({
                 <div>
                   <div className="text-xs font-medium text-text-primary">References & artifacts</div>
                   <div className="mt-2 space-y-1.5">
-                    {PAPER_METADATA.references.map(ref => (
+                    {referenceLinks.map(ref => (
                       <a key={ref.label} href={ref.url} target="_blank" rel="noopener noreferrer" className="arrow-link text-xs">
                         {ref.label}
                       </a>

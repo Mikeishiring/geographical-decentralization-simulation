@@ -3,6 +3,7 @@ import { Header } from './components/layout/Header'
 import { TabNav, type TabId } from './components/layout/TabNav'
 import { Footer } from './components/layout/Footer'
 import { PaperReaderPage } from './pages/PaperReaderPage'
+import { PaperHtmlPreviewPage } from './pages/PaperHtmlPreviewPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { cn } from './lib/cn'
 import { CONTENT_MAX_WIDTH } from './lib/theme'
@@ -107,7 +108,25 @@ function PageFallback({ label }: { readonly label: string }) {
   )
 }
 
+function hiddenPanelProps(isHidden: boolean) {
+  return {
+    hidden: isHidden,
+    'aria-hidden': isHidden,
+    ...(isHidden ? ({ inert: true } as Record<string, unknown>) : {}),
+  }
+}
+
+function readPreviewMode(): string | null {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('preview')
+}
+
 function App() {
+  const previewMode = readPreviewMode()
+  if (previewMode === 'paper-html') {
+    return <PaperHtmlPreviewPage />
+  }
+
   const initialRoute = readRouteState()
   const [activeTab, setActiveTab] = useState<TabId>(initialRoute.tab)
   const [sharedQuery, setSharedQuery] = useState<string | null>(initialRoute.query)
@@ -206,7 +225,7 @@ function App() {
             CONTENT_MAX_WIDTH,
           )}
         >
-        <div hidden={activeTab !== 'paper'} aria-hidden={activeTab !== 'paper'}>
+        <div {...hiddenPanelProps(activeTab !== 'paper')}>
           <ErrorBoundary fallbackLabel="The Paper tab encountered an error.">
             <PaperReaderPage
               isActive={activeTab === 'paper'}
@@ -218,7 +237,7 @@ function App() {
         </div>
 
         {visitedTabs.results && (
-          <div hidden={activeTab !== 'results'} aria-hidden={activeTab !== 'results'}>
+          <div {...hiddenPanelProps(activeTab !== 'results')}>
             <ErrorBoundary fallbackLabel="The Results tab encountered an error.">
               <Suspense fallback={<PageFallback label="Loading simulation lab" />}>
                 <SimulationLabPage
@@ -231,7 +250,7 @@ function App() {
         )}
 
         {visitedTabs.agent && (
-          <div hidden={activeTab !== 'agent'} aria-hidden={activeTab !== 'agent'}>
+          <div {...hiddenPanelProps(activeTab !== 'agent')}>
             <ErrorBoundary fallbackLabel="The Agent encountered an error.">
               <Suspense fallback={<PageFallback label="Loading agent workspace" />}>
                 <AgentLabPage
@@ -244,7 +263,7 @@ function App() {
         )}
 
         {visitedTabs.community && (
-          <div hidden={activeTab !== 'community'} aria-hidden={activeTab !== 'community'}>
+          <div {...hiddenPanelProps(activeTab !== 'community')}>
             <ErrorBoundary fallbackLabel="The Community tab encountered an error.">
               <Suspense fallback={<PageFallback label="Loading community notes" />}>
                 <ExploreHistoryPage

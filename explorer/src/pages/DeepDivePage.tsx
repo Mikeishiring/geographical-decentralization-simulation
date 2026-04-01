@@ -3,55 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { SPRING_CRISP } from '../lib/theme'
-import { PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
-
-function summarizeSection(section: PaperSection): string[] {
-  const tags: string[] = []
-  if (section.id === 'se4a-attestation') tags.push('paradigm-sensitive result')
-  if (section.id === 'se2-distribution') tags.push('starting-state effect')
-  if (section.id === 'limitations') tags.push('confidence boundary')
-  if (section.id === 'discussion') tags.push('design implications')
-  const blockTypes = new Set(section.blocks.map(block => block.type))
-  if (blockTypes.has('chart') || blockTypes.has('timeseries')) tags.push('charts')
-  if (blockTypes.has('table')) tags.push('tables')
-  if (blockTypes.has('comparison')) tags.push('comparisons')
-  if (section.blocks.some(block => block.type === 'insight' && block.emphasis === 'surprising')) {
-    tags.push('counterintuitive result')
-  }
-  if (section.blocks.some(block => block.type === 'caveat')) tags.push('caveat')
-  return tags.slice(0, 3)
-}
-
-function sectionEntryLine(section: PaperSection): string {
-  switch (section.id) {
-    case 'system-model':
-      return 'Start here for the core mechanism: how latency turns geography into payoff.'
-    case 'simulation-design':
-      return 'Start here for the model boundary: what is simplified, fixed, and directly measured.'
-    case 'baseline-results':
-      return 'Start here for the baseline claim that both paradigms centralize without exotic assumptions.'
-    case 'se1-source-placement':
-      return 'Start here for the infrastructure-placement flip that helps one paradigm while hurting the other.'
-    case 'se2-distribution':
-      return 'Start here if you want to ask when starting geography can outweigh paradigm differences in SE2.'
-    case 'se3-joint':
-      return 'Start here for the transient dip and the warning against overreading it as mitigation.'
-    case 'se4a-attestation':
-      return "Start here for SE4a's key contrast: in the homogeneous parameter study, gamma pushes external and local block building in opposite directions."
-    case 'se4b-slots':
-      return 'Start here for the fairness-versus-geography distinction under shorter slots.'
-    case 'discussion':
-      return 'Start here for design implications without overstating what the model has solved.'
-    case 'limitations':
-      return 'Start here for the confidence boundary of the model.'
-    default:
-      return section.description
-  }
-}
+import { summarizeSection, sectionEntryLine } from '../components/paper/paper-helpers'
+import { getActiveStudy } from '../studies'
 
 export function DeepDivePage() {
+  const study = getActiveStudy()
+  const sections = study.sections
+  const paperUrl = study.metadata.references[0]?.url ?? '#'
+  const repoUrl = study.metadata.references[1]?.url ?? '#'
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
-    () => new Set(PAPER_SECTIONS.length > 0 ? [PAPER_SECTIONS[0].id] : []),
+    () => new Set(sections.length > 0 ? [sections[0].id] : []),
   )
 
   const toggle = (id: string) => {
@@ -64,7 +25,7 @@ export function DeepDivePage() {
   }
 
   const expandAll = () => {
-    setExpandedIds(new Set(PAPER_SECTIONS.map(section => section.id)))
+    setExpandedIds(new Set(sections.map(section => section.id)))
   }
 
   const collapseAll = () => {
@@ -105,7 +66,7 @@ export function DeepDivePage() {
 
       <div className="stagger-reveal mb-6 rounded-xl border border-rule bg-white divide-y divide-rule">
         <a
-          href="https://arxiv.org/abs/2509.21475"
+          href={paperUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 transition-colors hover:bg-surface-active/50"
@@ -127,7 +88,7 @@ export function DeepDivePage() {
           <span className="shrink-0 text-sm text-text-faint transition-all group-hover:text-accent group-hover:translate-x-0.5">→</span>
         </a>
         <a
-          href="https://github.com/syang-ng/geographical-decentralization-simulation"
+          href={repoUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="group flex w-full items-baseline justify-between gap-4 px-5 py-4 transition-colors hover:bg-surface-active/50"
@@ -142,7 +103,7 @@ export function DeepDivePage() {
 
       {/* Accordion sections — FAQ-style single container */}
       <div className="stagger-reveal rounded-xl border border-rule bg-white divide-y divide-rule">
-        {PAPER_SECTIONS.map(section => {
+        {sections.map(section => {
           const isExpanded = expandedIds.has(section.id)
           const summaryTags = summarizeSection(section)
           return (

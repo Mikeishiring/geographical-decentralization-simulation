@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SNAPPY, SPRING_CRISP } from '../../lib/theme'
-import { ARXIV_PDF_URL } from './paper-helpers'
+import { getStudyPdfUrl } from './paper-helpers'
 import { useFadeOnIdle } from '../../hooks/useFadeOnIdle'
 
 // Configure pdf.js worker
@@ -19,6 +19,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString()
 
 const LOCAL_PDF_URL = '/paper.pdf'
+const ARXIV_PDF_URL = getStudyPdfUrl()
 
 /* ── Annotations ──────────────────────────────── */
 

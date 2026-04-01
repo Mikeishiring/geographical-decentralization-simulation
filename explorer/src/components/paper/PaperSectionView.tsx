@@ -6,8 +6,8 @@ import { PaperChartBlock } from '../blocks/PaperChartBlock'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SNAPPY, SPRING_POPUP, SECTION_CATEGORY_STYLE } from '../../lib/theme'
-import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
-import { PAPER_NARRATIVE, type PaperNarrative } from '../../data/paper-narrative'
+import { getActiveStudy } from '../../studies'
+import type { PaperNarrative, PaperSection } from '../../studies/types'
 import type { Exploration } from '../../lib/api'
 
 /* ── Highlight types ─────────────────────────────────────────────────────── */
@@ -195,11 +195,13 @@ function renderWithNoteHighlights(
 }
 
 function SectionNav({ activeSectionId, onSectionClick, compact = false }: SectionNavProps) {
+  const sections = getActiveStudy().sections
+
   return (
     <>
       <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/60">Sections</div>
       <nav className={cn('space-y-0.5', compact && 'max-h-[calc(100vh-14rem)] overflow-auto pr-1')}>
-        {PAPER_SECTIONS.map(section => (
+        {sections.map(section => (
           <a
             key={section.id}
             href={`#${section.id}`}
@@ -288,7 +290,10 @@ export function PaperSectionView({
   onOpenNote,
   onSectionClick,
 }: PaperSectionViewProps) {
-  const activeSectionId = activeSectionIdProp ?? PAPER_SECTIONS[0].id
+  const study = getActiveStudy()
+  const sections = study.sections
+  const narratives = study.narratives
+  const activeSectionId = activeSectionIdProp ?? sections[0].id
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
 
   const handleCopySectionLink = async (sectionId: string) => {
@@ -313,11 +318,11 @@ export function PaperSectionView({
         </aside>
 
         <div className="space-y-10 xl:min-w-0">
-          {PAPER_SECTIONS.map((section, index) => {
-            const narrative = PAPER_NARRATIVE[section.id]
+          {sections.map((section, index) => {
+            const narrative = narratives[section.id]
             const figuresFirst = index % 2 === 1
-            const previousSection = PAPER_SECTIONS[index - 1]
-            const nextSection = PAPER_SECTIONS[index + 1]
+            const previousSection = sections[index - 1]
+            const nextSection = sections[index + 1]
 
             return (
               <div key={section.id}>

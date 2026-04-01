@@ -1,4 +1,5 @@
-import type { PaperSection } from '../../data/paper-sections'
+import { getActiveStudy } from '../../studies'
+import type { PaperSection } from '../../studies/types'
 
 export function summarizeSection(section: PaperSection): string[] {
   const tags: string[] = []
@@ -33,21 +34,30 @@ export function sectionEntryLine(section: PaperSection): string {
   return lines[section.id] ?? section.description
 }
 
-export const BEST_FIRST_STOP_IDS = ['system-model', 'baseline-results', 'se4a-attestation', 'limitations'] as const
+export function getBestFirstStopIds(): readonly string[] {
+  return getActiveStudy().navigation.bestFirstStopIds
+}
 
-export const ARXIV_PDF_URL = 'https://arxiv.org/pdf/2509.21475'
+export function getStudyPdfUrl(): string {
+  return getActiveStudy().navigation.pdfUrl
+}
 
-/** Maps paper section labels to arXiv PDF page numbers. */
-export const SECTION_PAGE_MAP: Record<string, number> = {
-  '§3': 4, '§3.1': 5, '§3.2': 5, '§3.1–3.2': 5,
-  '§4': 6, '§4.1': 6, '§4.2': 7, '§4.3': 8, '§4.4': 8, '§4.5': 9, '§4.6.1': 10, '§4.6.2': 10,
-  '§4.5 + App. E': 9,
-  '§5': 11, '§5.1': 11, '§5.2': 11, '§5.3': 11, '§5.1-§5.2': 11,
-  'App. E': 13, 'App. E.3': 14, 'App. E.4': 15,
+export function getStudyHtmlUrl(): string {
+  return getActiveStudy().navigation.htmlUrl
+}
+
+export function sectionToHtmlUrl(sectionId: string | undefined): string | undefined {
+  if (!sectionId) return undefined
+
+  const study = getActiveStudy()
+  const anchorId = study.navigation.sectionHtmlIdMap[sectionId]
+  if (!anchorId) return study.navigation.htmlUrl
+
+  return `${study.navigation.htmlUrl}#${anchorId}`
 }
 
 /** Resolve a paperSection string to a PDF page, or undefined. */
 export function sectionToPage(paperSection: string | undefined): number | undefined {
   if (!paperSection) return undefined
-  return SECTION_PAGE_MAP[paperSection]
+  return getActiveStudy().navigation.sectionPageMap[paperSection]
 }

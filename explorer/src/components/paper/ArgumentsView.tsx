@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, FileText, Lightbulb, MousePointerClick } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_CRISP, SECTION_CATEGORY_STYLE, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
-import { PAPER_SECTIONS, PAPER_METADATA, type PaperSection } from '../../data/paper-sections'
-import { PAPER_NARRATIVE } from '../../data/paper-narrative'
+import { getActiveStudy } from '../../studies'
+import type { PaperSection } from '../../studies/types'
 import { summarizeSection, sectionEntryLine, sectionToPage } from './paper-helpers'
 import { usePaperNav } from './PaperNavContext'
 import { BlockCanvas } from '../explore/BlockCanvas'
@@ -106,8 +106,10 @@ export function ArgumentsView({
   notesBySection,
   onOpenNote,
 }: ArgumentsViewProps) {
+  const study = getActiveStudy()
+  const sections = study.sections
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
-    () => new Set(activeSectionId ? [activeSectionId] : PAPER_SECTIONS.length > 0 ? [PAPER_SECTIONS[0].id] : []),
+    () => new Set(activeSectionId ? [activeSectionId] : sections.length > 0 ? [sections[0].id] : []),
   )
 
   const toggleSection = (id: string) => {
@@ -120,7 +122,7 @@ export function ArgumentsView({
     onSectionClick(id)
   }
 
-  const expandAll = () => setExpandedIds(new Set(PAPER_SECTIONS.map(s => s.id)))
+  const expandAll = () => setExpandedIds(new Set(sections.map(s => s.id)))
   const collapseAll = () => setExpandedIds(new Set())
 
   return (
@@ -140,7 +142,7 @@ export function ArgumentsView({
           Abstract-level claims
         </div>
         <div className="space-y-2">
-          {PAPER_METADATA.keyClaims.map((claim, i) => (
+          {study.metadata.keyClaims.map((claim, i) => (
             <motion.div
               key={claim}
               variants={STAGGER_ITEM}
@@ -183,10 +185,10 @@ export function ArgumentsView({
         </div>
 
         <div className="divide-y divide-rule">
-          {PAPER_SECTIONS.map(section => {
+          {sections.map(section => {
             const isExpanded = expandedIds.has(section.id)
             const summaryTags = summarizeSection(section)
-            const narrative = PAPER_NARRATIVE[section.id]
+            const narrative = study.narratives[section.id]
             const catStyle = SECTION_CATEGORY_STYLE[section.category]
             const { claims, evidence, caveats } = groupBlocksByRole(section.blocks)
 

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { PAPER_SECTIONS } from '../data/paper-sections'
 import { createExploration, publishExploration, listExplorations, type Exploration } from '../lib/api'
 import { MOCK_COMMUNITY_NOTES } from '../data/mock-community-notes'
 import { PaperViewModeBar, type ReaderMode } from '../components/paper/PaperViewModeBar'
@@ -10,6 +9,7 @@ import { FullTextView } from '../components/paper/FullTextView'
 import { PaperNavProvider } from '../components/paper/PaperNavContext'
 import { SelectionPopover } from '../components/community/SelectionPopover'
 import { useTextSelection } from '../hooks/useTextSelection'
+import { getActiveStudy } from '../studies'
 import type { TextAnchor } from '../types/anchors'
 import type { TabId } from '../components/layout/TabNav'
 
@@ -26,6 +26,7 @@ export function PaperReaderPage({
   onTabChange,
   onQueryAgent,
 }: PaperReaderPageProps) {
+  const sections = getActiveStudy().sections
   const queryClient = useQueryClient()
 
   const [readerMode, setReaderMode] = useState<ReaderMode>(() => {
@@ -37,9 +38,9 @@ export function PaperReaderPage({
   const [noteError, setNoteError] = useState<string | null>(null)
   const [activeSectionId, setActiveSectionId] = useState<string>(() => {
     const initialHash = window.location.hash.replace('#', '')
-    return PAPER_SECTIONS.some(section => section.id === initialHash)
+    return sections.some(section => section.id === initialHash)
       ? initialHash
-      : PAPER_SECTIONS[0].id
+      : sections[0].id
   })
 
   const [guideOpen, setGuideOpen] = useState(false)
@@ -93,7 +94,7 @@ export function PaperReaderPage({
   const handleAddNote = useCallback(async (anchor: TextAnchor, comment: string): Promise<boolean> => {
     try {
       const section = anchor.sectionId
-        ? PAPER_SECTIONS.find(s => s.id === anchor.sectionId)
+        ? sections.find(s => s.id === anchor.sectionId)
         : null
 
       const created = await createExploration({
@@ -145,7 +146,7 @@ export function PaperReaderPage({
       window.setTimeout(() => setNoteError(null), 4000)
       return false
     }
-  }, [queryClient])
+  }, [queryClient, sections])
 
   // Persist mode to localStorage
   useEffect(() => {
@@ -169,11 +170,11 @@ export function PaperReaderPage({
 
   // Intersection observer for active section tracking
   useEffect(() => {
-    const sections = PAPER_SECTIONS
+    const trackedSections = sections
       .map(section => document.getElementById(section.id))
       .filter((element): element is HTMLElement => element instanceof HTMLElement)
 
-    if (sections.length === 0) return
+    if (trackedSections.length === 0) return
 
     const observer = new IntersectionObserver(
       entries => {
@@ -191,9 +192,9 @@ export function PaperReaderPage({
       },
     )
 
-    sections.forEach(section => observer.observe(section))
+    trackedSections.forEach(section => observer.observe(section))
     return () => observer.disconnect()
-  }, [])
+  }, [sections])
 
   // Sync hash with active section
   useEffect(() => {
@@ -205,7 +206,7 @@ export function PaperReaderPage({
 
   const activeSectionIndex = Math.max(
     0,
-    PAPER_SECTIONS.findIndex(section => section.id === activeSectionId),
+    sections.findIndex(section => section.id === activeSectionId),
   )
 
   return (

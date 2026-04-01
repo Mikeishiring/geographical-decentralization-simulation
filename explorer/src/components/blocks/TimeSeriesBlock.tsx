@@ -19,9 +19,20 @@ interface TimeSeriesBlockProps {
 
 function formatSeriesNumber(value: number): string {
   if (!Number.isFinite(value)) return '0'
-  if (Math.abs(value) >= 100) return value.toFixed(0)
-  if (Math.abs(value) >= 10) return value.toFixed(1)
-  return value.toFixed(2)
+  const absoluteValue = Math.abs(value)
+  if (absoluteValue === 0) return '0'
+
+  const digits = absoluteValue >= 100
+    ? 0
+    : absoluteValue >= 10
+      ? 1
+      : absoluteValue >= 1
+        ? 2
+        : absoluteValue >= 0.1
+          ? 3
+          : 4
+
+  return value.toFixed(digits).replace(/\.?0+$/, '')
 }
 
 function notePinColor(intent: 'observation' | 'question' | 'theory' | 'methods'): string {
@@ -67,6 +78,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
   const svgH = 240
   const chartW = svgW - padding.left - padding.right
   const chartH = svgH - padding.top - padding.bottom
+  const xAxisLabel = block.xLabel?.trim() || 'Slot'
 
   const allPoints = block.series.flatMap(series => series.data)
   if (allPoints.length === 0) {
@@ -123,7 +135,10 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
   }
 
   const yTicks = Array.from({ length: 5 }, (_, index) => minY + (rangeY * index) / 4)
-  const xTicks = Array.from({ length: 5 }, (_, index) => Math.round(minX + (rangeX * index) / 4))
+  const uniqueXValues = Array.from(new Set(allPoints.map(point => point.x))).sort((left, right) => left - right)
+  const xTicks = uniqueXValues.length <= 6
+    ? uniqueXValues
+    : Array.from({ length: 5 }, (_, index) => minX + (rangeX * index) / 4)
 
   /* Tooltip position: anchor near the first series' hovered point, flip if near right edge */
   const tooltipAnchor = hover && hoverReadout.length > 0
@@ -204,7 +219,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
             <div className="flex items-center gap-3">
               {hoverSlot != null ? (
                 <span className="text-11 font-medium tabular-nums text-text-primary">
-                  Slot {hoverSlot}
+                  {xAxisLabel} {formatSeriesNumber(hoverSlot)}
                   {hoverReadout.map(point => (
                     <span key={point.label} className="ml-2">
                       <span className="inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ backgroundColor: point.color }} />
@@ -214,7 +229,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 </span>
               ) : (
                 <span className="text-11 text-text-faint tabular-nums">
-                  {block.series.length} series · slots {formatSeriesNumber(minX)}–{formatSeriesNumber(maxX)}
+                  {block.series.length} series · {xAxisLabel} {formatSeriesNumber(minX)}–{formatSeriesNumber(maxX)}
                 </span>
               )}
             </div>
@@ -298,7 +313,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                   animate={{ opacity: 1 }}
                   transition={{ ...SPRING_CRISP, delay: 0.2 + index * 0.04 }}
                 >
-                  {tick}
+                  {formatSeriesNumber(tick)}
                 </motion.text>
               )
             })}

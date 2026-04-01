@@ -4,6 +4,10 @@ import { SlidersHorizontal, ChevronDown, Map as MapIcon, LayoutGrid, BarChart3 }
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { cn } from '../../lib/cn'
+import {
+  readPublishedEvidenceSelectionFromSearch,
+  writePublishedEvidenceSelectionToHistory,
+} from '../../lib/published-evidence-url'
 import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
 import type { Block } from '../../types/blocks'
@@ -436,6 +440,19 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
 
   useEffect(() => {
     if (!catalog || selectedEntry) return
+    const requestedSelection = readPublishedEvidenceSelectionFromSearch(window.location.search)
+    if (requestedSelection) {
+      const requestedEntry = catalog.datasets.find(dataset => (
+        dataset.evaluation === requestedSelection.evaluation
+        && dataset.paradigm === requestedSelection.paradigm
+        && dataset.result === requestedSelection.result
+      ))
+      if (requestedEntry) {
+        setSelectedEntry(requestedEntry)
+        return
+      }
+    }
+
     const defaultEntry = catalog.defaultSelection
       ? catalog.datasets.find(d =>
           d.evaluation === catalog.defaultSelection!.evaluation
@@ -447,6 +464,15 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
   }, [catalog, selectedEntry])
 
   useEffect(() => { setActiveCategory('all') }, [selectedEntry?.path])
+
+  useEffect(() => {
+    if (!selectedEntry) return
+    writePublishedEvidenceSelectionToHistory({
+      evaluation: selectedEntry.evaluation,
+      paradigm: selectedEntry.paradigm,
+      result: selectedEntry.result,
+    })
+  }, [selectedEntry])
 
   const payloadQuery = useQuery({
     queryKey: ['evidence-payload', selectedEntry?.path],

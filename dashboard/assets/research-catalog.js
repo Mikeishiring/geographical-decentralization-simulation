@@ -64,7 +64,7 @@ This frozen dashboard is for inspecting reported simulation outputs without re-r
       sourceRole: "signal",
       metadata: {
         v: 1000,
-        cost: 0,
+        cost: 0.002,
         delta: 12000,
         cutoff: 4000,
         gamma: 0.6667,
@@ -244,7 +244,7 @@ This frozen dashboard is for inspecting reported simulation outputs without re-r
       sourceRole: "supplier",
       metadata: {
         v: 1000,
-        cost: 0.002,
+        cost: 0,
         delta: 12000,
         cutoff: 4000,
         gamma: 0.6667,
