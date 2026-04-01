@@ -7,8 +7,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Smile, Link2, Check, Users } from 'lucide-react'
-import { SPRING_POPUP, SPRING_SNAPPY } from '../../lib/theme'
+import { Smile, Link2, Check, Users, Loader2 } from 'lucide-react'
+import { SPRING_POPUP, SPRING_SNAPPY, SPRING_CRISP } from '../../lib/theme'
 import type { TextAnchor } from '../../types/anchors'
 
 /* ── Emoji picker ───────────────────────────────────────────────────────── */
@@ -54,12 +54,18 @@ function computePosition(rect: DOMRect) {
   return { top, left, placeBelow }
 }
 
+/* ── Submission states ─────────────────────────────────────────────────── */
+
+type SubmitPhase = 'idle' | 'submitting' | 'success' | 'error'
+
+const CONFIRM_DWELL_MS = 1400
+
 /* ── Props ──────────────────────────────────────────────────────────────── */
 
 interface SelectionPopoverProps {
   readonly anchor: TextAnchor | null
   readonly rect: DOMRect | null
-  readonly onAddNote: (anchor: TextAnchor, comment: string) => void
+  readonly onAddNote: (anchor: TextAnchor, comment: string) => Promise<boolean>
   readonly onDismiss: () => void
   readonly sectionNoteCount?: number
 }
@@ -80,12 +86,14 @@ export function SelectionPopover({
   const [isShaking, setIsShaking] = useState(false)
   const [showEmoji, setShowEmoji] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [phase, setPhase] = useState<SubmitPhase>('idle')
 
   // Reset state when selection changes
   useEffect(() => {
     setComment('')
     setShowEmoji(false)
     setLinkCopied(false)
+    setPhase('idle')
   }, [anchor?.excerpt])
 
   // Compute position from selection rect
@@ -96,20 +104,20 @@ export function SelectionPopover({
 
   // Auto-focus textarea after popup mounts (agentation: 50ms delay)
   useEffect(() => {
-    if (!anchor || !position) return
+    if (!anchor || !position || phase !== 'idle') return
     const timer = window.setTimeout(() => {
       const el = textareaRef.current
       if (!el) return
       el.focus()
-      // Place cursor at end (agentation pattern)
       el.setSelectionRange(el.value.length, el.value.length)
     }, 50)
     return () => window.clearTimeout(timer)
-  }, [anchor, position])
+  }, [anchor, position, phase])
 
   // Outside click: shake if has text, dismiss if empty (agentation pattern)
+  // Disable outside-click dismiss during submitting/success phases
   useEffect(() => {
-    if (!anchor) return
+    if (!anchor || phase === 'submitting' || phase === 'success') return
     const handleClick = (e: MouseEvent) => {
       if (popoverRef.current?.contains(e.target as Node)) return
       if (comment.trim()) {
@@ -126,20 +134,40 @@ export function SelectionPopover({
       window.clearTimeout(timeoutId)
       document.removeEventListener('mousedown', handleClick)
     }
-  }, [anchor, comment, onDismiss])
+  }, [anchor, comment, onDismiss, phase])
 
-  const handleSubmit = useCallback(() => {
-    if (!anchor || !comment.trim()) return
-    onAddNote(anchor, comment.trim())
-    setComment('')
+  const handleSubmit = useCallback(async () => {
+    if (!anchor || !comment.trim() || phase !== 'idle') return
+
+    setPhase('submitting')
     setShowEmoji(false)
-  }, [anchor, comment, onAddNote])
+
+    const ok = await onAddNote(anchor, comment.trim())
+
+    if (ok) {
+      setPhase('success')
+      // Dwell on confirmation, then let parent dismiss
+      window.setTimeout(() => {
+        setComment('')
+        onDismiss()
+      }, CONFIRM_DWELL_MS)
+    } else {
+      setPhase('error')
+      // Shake on error and return to idle
+      setIsShaking(true)
+      window.setTimeout(() => {
+        setIsShaking(false)
+        setPhase('idle')
+      }, 300)
+    }
+  }, [anchor, comment, onAddNote, onDismiss, phase])
 
   const handleCancel = useCallback(() => {
+    if (phase === 'submitting' || phase === 'success') return
     setComment('')
     setShowEmoji(false)
     onDismiss()
-  }, [onDismiss])
+  }, [onDismiss, phase])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -171,6 +199,7 @@ export function SelectionPopover({
 
   const isVisible = anchor !== null && position !== null
   const excerpt = anchor?.excerpt ?? ''
+  const isLocked = phase === 'submitting' || phase === 'success'
 
   return (
     <AnimatePresence>
@@ -180,7 +209,6 @@ export function SelectionPopover({
           initial={{ opacity: 0, y: position.placeBelow ? -6 : 6, scale: 0.95 }}
           animate={{
             opacity: 1, y: 0, scale: 1,
-            // Agentation shake: 0.25s horizontal oscillation
             x: isShaking ? [0, -3, 3, -2, 2, 0] : 0,
           }}
           exit={{ opacity: 0, y: position.placeBelow ? -4 : 4, scale: 0.97 }}
@@ -195,91 +223,148 @@ export function SelectionPopover({
           onMouseDown={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
         >
-          {/* Header: community note identity + section context */}
-          <div className="mb-2 flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-black/60">
-              <Users className="h-3 w-3 text-accent" />
-              Community Note
-            </span>
-            {sectionNoteCount > 0 && (
-              <span className="text-[10px] font-medium tabular-nums text-black/40">
-                {sectionNoteCount} note{sectionNoteCount !== 1 ? 's' : ''} here
-              </span>
+          <AnimatePresence mode="wait">
+            {phase === 'success' ? (
+              /* ── Success confirmation overlay ─────────────────────────── */
+              <motion.div
+                key="success"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={SPRING_CRISP}
+                className="flex flex-col items-center justify-center py-5"
+              >
+                <motion.div
+                  initial={{ scale: 0, rotate: -45 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ ...SPRING_POPUP, delay: 0.05 }}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50"
+                >
+                  <Check className="h-5 w-5 text-emerald-500" strokeWidth={2.5} />
+                </motion.div>
+                <motion.p
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...SPRING_CRISP, delay: 0.1 }}
+                  className="mt-2.5 text-[13px] font-medium text-stone-800"
+                >
+                  Note published
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ ...SPRING_CRISP, delay: 0.18 }}
+                  className="mt-1 text-[11px] text-stone-400"
+                >
+                  Visible to all readers
+                </motion.p>
+              </motion.div>
+            ) : (
+              /* ── Compose form ─────────────────────────────────────────── */
+              <motion.div
+                key="compose"
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12 }}
+              >
+                {/* Header: community note identity + section context */}
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-black/60">
+                    <Users className="h-3 w-3 text-accent" />
+                    Community Note
+                  </span>
+                  {sectionNoteCount > 0 && (
+                    <span className="text-[10px] font-medium tabular-nums text-black/40">
+                      {sectionNoteCount} note{sectionNoteCount !== 1 ? 's' : ''} here
+                    </span>
+                  )}
+                </div>
+
+                {/* Quoted selection (agentation: 80 char, italic, subtle bg) */}
+                <div className="mb-2 text-xs italic leading-[1.45] text-black/55 bg-black/[0.04] rounded px-2 py-1.5">
+                  &ldquo;{excerpt.length > 80 ? `${excerpt.slice(0, 80)}\u2026` : excerpt}&rdquo;
+                  <button
+                    type="button"
+                    onClick={handleShareLocation}
+                    disabled={isLocked}
+                    className="mt-1 flex items-center gap-1 text-[10px] font-medium text-black/40 transition-colors hover:text-accent disabled:opacity-40"
+                  >
+                    {linkCopied ? (
+                      <><Check className="h-2.5 w-2.5 text-emerald-500" /><span>Copied</span></>
+                    ) : (
+                      <><Link2 className="h-2.5 w-2.5" /><span>Share passage</span></>
+                    )}
+                  </button>
+                </div>
+
+                {/* Textarea */}
+                <textarea
+                  ref={textareaRef}
+                  value={comment}
+                  onChange={e => setComment(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Add context readers should know..."
+                  rows={2}
+                  disabled={isLocked}
+                  className="annotation-textarea w-full resize-none outline-none text-[13px] font-[inherit] leading-normal text-[#1a1a1a] bg-black/[0.03] border border-black/[0.12] rounded-lg px-2.5 py-2 transition-colors focus:border-accent disabled:opacity-50"
+                />
+
+                {/* Helper text */}
+                <p className="mt-1.5 text-[10px] leading-snug text-black/40">
+                  Notes are public. Lead with what you observed, not what you assumed.
+                </p>
+
+                {/* Actions bar */}
+                <div className="relative mt-2 flex items-center">
+                  <div className="relative">
+                    <AnimatePresence>
+                      {showEmoji && !isLocked && <EmojiPicker onSelect={handleEmojiSelect} />}
+                    </AnimatePresence>
+                    <motion.button
+                      type="button"
+                      onClick={() => !isLocked && setShowEmoji(prev => !prev)}
+                      whileTap={{ scale: 0.92 }}
+                      disabled={isLocked}
+                      aria-label="Add emoji reaction"
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-black/40 transition-colors hover:bg-black/[0.06] hover:text-black/60 focus-visible:ring-2 focus-visible:ring-accent/30 disabled:opacity-40"
+                    >
+                      <Smile className="h-4 w-4" />
+                    </motion.button>
+                  </div>
+
+                  <div className="ml-auto flex gap-1.5">
+                    {/* Cancel */}
+                    <motion.button
+                      type="button"
+                      onClick={handleCancel}
+                      whileTap={{ scale: 0.96 }}
+                      disabled={isLocked}
+                      className="rounded-2xl px-3.5 py-1.5 text-xs font-medium text-black/50 transition-[background-color,color] duration-150 hover:bg-black/[0.06] hover:text-black/80 disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      Cancel
+                    </motion.button>
+                    {/* Submit */}
+                    <motion.button
+                      type="button"
+                      onClick={handleSubmit}
+                      disabled={!comment.trim() || isLocked}
+                      whileTap={{ scale: 0.96 }}
+                      className="rounded-2xl bg-accent px-3.5 py-1.5 text-xs font-medium text-white transition-[filter,opacity] duration-150 hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {phase === 'submitting' ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Publishing...
+                        </span>
+                      ) : (
+                        'Publish note'
+                      )}
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
             )}
-          </div>
-
-          {/* Quoted selection (agentation: 80 char, italic, subtle bg) */}
-          <div className="mb-2 text-xs italic leading-[1.45] text-black/55 bg-black/[0.04] rounded px-2 py-1.5">
-            &ldquo;{excerpt.length > 80 ? `${excerpt.slice(0, 80)}\u2026` : excerpt}&rdquo;
-            {/* Share passage pill */}
-            <button
-              type="button"
-              onClick={handleShareLocation}
-              className="mt-1 flex items-center gap-1 text-[10px] font-medium text-black/40 transition-colors hover:text-accent"
-            >
-              {linkCopied ? (
-                <><Check className="h-2.5 w-2.5 text-emerald-500" /><span>Copied</span></>
-              ) : (
-                <><Link2 className="h-2.5 w-2.5" /><span>Share passage</span></>
-              )}
-            </button>
-          </div>
-
-          {/* Textarea (agentation: 8px radius, 13px, border → accent on focus) */}
-          <textarea
-            ref={textareaRef}
-            value={comment}
-            onChange={e => setComment(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Add context readers should know..."
-            rows={2}
-            className="annotation-textarea w-full resize-none outline-none text-[13px] font-[inherit] leading-normal text-[#1a1a1a] bg-black/[0.03] border border-black/[0.12] rounded-lg px-2.5 py-2 transition-colors focus:border-accent"
-          />
-
-          {/* Helper text */}
-          <p className="mt-1.5 text-[10px] leading-snug text-black/40">
-            Notes are public. Lead with what you observed, not what you assumed.
-          </p>
-
-          {/* Actions bar (agentation: flex-end, 6px gap, mt-8px) */}
-          <div className="relative mt-2 flex items-center">
-            <div className="relative">
-              <AnimatePresence>
-                {showEmoji && <EmojiPicker onSelect={handleEmojiSelect} />}
-              </AnimatePresence>
-              <motion.button
-                type="button"
-                onClick={() => setShowEmoji(prev => !prev)}
-                whileTap={{ scale: 0.92 }}
-                aria-label="Add emoji reaction"
-                className="flex h-7 w-7 items-center justify-center rounded-full text-black/40 transition-colors hover:bg-black/[0.06] hover:text-black/60 focus-visible:ring-2 focus-visible:ring-accent/30"
-              >
-                <Smile className="h-4 w-4" />
-              </motion.button>
-            </div>
-
-            <div className="ml-auto flex gap-1.5">
-              {/* Cancel — agentation: pill, transparent, 12px, 500 weight */}
-              <motion.button
-                type="button"
-                onClick={handleCancel}
-                whileTap={{ scale: 0.96 }}
-                className="rounded-2xl px-3.5 py-1.5 text-xs font-medium text-black/50 transition-[background-color,color] duration-150 hover:bg-black/[0.06] hover:text-black/80"
-              >
-                Cancel
-              </motion.button>
-              {/* Submit — agentation: pill, accent bg, white text, disabled 0.4 opacity */}
-              <motion.button
-                type="button"
-                onClick={handleSubmit}
-                disabled={!comment.trim()}
-                whileTap={{ scale: 0.96 }}
-                className="rounded-2xl bg-accent px-3.5 py-1.5 text-xs font-medium text-white transition-[filter,opacity] duration-150 hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Publish note
-              </motion.button>
-            </div>
-          </div>
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>

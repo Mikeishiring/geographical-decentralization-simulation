@@ -20,15 +20,29 @@ export function useTextSelection(viewMode?: string) {
     rangeRef.current = null
   }, [])
 
-  // Recompute rect from the stored Range on every scroll/resize
-  // so the fixed-position popover tracks the selected text.
+  // Recompute rect from the stored Range on every scroll/resize.
+  // Debounced to prevent flicker during fast scrolling — the popover
+  // uses a spring transition so 16ms lag is imperceptible.
   useEffect(() => {
     if (!rangeRef.current) return
 
+    let rafId: number | null = null
+
     const recompute = () => {
-      const range = rangeRef.current
-      if (!range) return
-      setRect(range.getBoundingClientRect())
+      // Coalesce rapid scroll events into a single rAF
+      if (rafId !== null) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        const range = rangeRef.current
+        if (!range) return
+        // Verify the range is still valid (its container is in the DOM)
+        const container = containerRef.current
+        if (container && !container.contains(range.commonAncestorContainer)) {
+          clearSelection()
+          return
+        }
+        setRect(range.getBoundingClientRect())
+      })
     }
 
     window.addEventListener('scroll', recompute, { passive: true })
@@ -36,8 +50,9 @@ export function useTextSelection(viewMode?: string) {
     return () => {
       window.removeEventListener('scroll', recompute)
       window.removeEventListener('resize', recompute)
+      if (rafId !== null) cancelAnimationFrame(rafId)
     }
-  }, [anchor]) // Re-attach when anchor changes (i.e. new selection)
+  }, [anchor]) // Re-attach when anchor changes (i.e. new selection); clearSelection is stable (useCallback with [])
 
   useEffect(() => {
     const container = containerRef.current
