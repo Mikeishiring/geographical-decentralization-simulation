@@ -53,6 +53,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel }: Eviden
   const [tooltip, setTooltip] = useState<TooltipData | null>(null)
   const [hoveredRegion, setHoveredRegion] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [mapViewportHeight, setMapViewportHeight] = useState<number | null>(null)
   const rafRef = useRef<number | null>(null)
   const lastFrameRef = useRef(0)
 
@@ -259,65 +260,79 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel }: Eviden
 
   const progress = lastSlot > 0 ? (slot / lastSlot) * 100 : 100
 
+  useEffect(() => {
+    const container = mapContainerRef.current
+    if (!container || typeof ResizeObserver === 'undefined') return
+
+    const updateHeight = () => {
+      const next = container.getBoundingClientRect().height
+      setMapViewportHeight(current => (Math.abs((current ?? 0) - next) < 1 ? current : next))
+    }
+
+    updateHeight()
+
+    const observer = new ResizeObserver(() => updateHeight())
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <div className={cn('lab-stage overflow-hidden', className)}>
       {/* ── Hero header ── */}
-      <div className="border-b border-black/[0.06] px-5 py-3.5">
+      <div className="border-b border-black/[0.06] px-4 py-3 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2.5">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
               <span aria-hidden="true" className="w-2 h-2 rounded-full bg-accent dot-pulse" />
-              <h3 className="text-base font-semibold tracking-tight text-text-primary">
+              <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">
                 Validator Geography
               </h3>
+              {overlay === 'validators' && (
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <motion.span
+                    key={`regions-${displayNodes.length}`}
+                    className="inline-flex items-center gap-1 rounded-md bg-stone-900 px-2 py-0.5 text-[10px] font-medium text-white tabular-nums"
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={SPRING_SNAPPY}
+                    title="Distinct GCP regions with at least one validator at this slot"
+                  >
+                    {displayNodes.length} regions
+                  </motion.span>
+                  <motion.span
+                    key={`validators-${totalValidators}`}
+                    className="inline-flex items-center gap-1 rounded-md border border-black/[0.06] bg-white px-2 py-0.5 text-[10px] font-medium text-stone-600 tabular-nums shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ ...SPRING_SNAPPY, delay: 0.05 }}
+                    title="Total validator agents distributed across regions"
+                  >
+                    {totalValidators.toLocaleString()} validators
+                  </motion.span>
+                  <motion.span
+                    key={`slot-${slot}`}
+                    className="inline-flex items-center gap-1 rounded-md border border-black/[0.06] bg-white px-2 py-0.5 text-[10px] font-mono text-stone-400 tabular-nums shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ ...SPRING_SNAPPY, delay: 0.1 }}
+                    title="Current consensus round in the simulation timeline"
+                  >
+                    slot {(slot + 1).toLocaleString()}
+                  </motion.span>
+                </div>
+              )}
             </div>
-            <p className="mt-1 text-2xs text-muted pl-[22px]">
+            <p className="mt-1 text-2xs text-muted">
               {overlay === 'latency'
                 ? `Inter-region latency arcs (${LATENCY_MIN.toFixed(0)}–${LATENCY_MAX.toFixed(0)} ms). Color = round-trip time.`
                 : overlay === 'sources'
                   ? 'Information source placement across GCP regions.'
                   : 'Live geographic distribution of validator stake across GCP regions.'}
             </p>
-            {/* Stat badges — animated on slot change */}
-            {overlay === 'validators' && (
-              <div className="mt-2 flex items-center gap-1.5 pl-[22px]">
-                <motion.span
-                  key={`regions-${displayNodes.length}`}
-                  className="inline-flex items-center gap-1 rounded-md bg-stone-900 px-2 py-0.5 text-[10px] font-medium text-white tabular-nums"
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={SPRING_SNAPPY}
-                  title="Distinct GCP regions with at least one validator at this slot"
-                >
-                  {displayNodes.length} regions
-                </motion.span>
-                <motion.span
-                  key={`validators-${totalValidators}`}
-                  className="inline-flex items-center gap-1 rounded-md border border-black/[0.06] bg-white px-2 py-0.5 text-[10px] font-medium text-stone-600 tabular-nums shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ ...SPRING_SNAPPY, delay: 0.05 }}
-                  title="Total validator agents distributed across regions"
-                >
-                  {totalValidators.toLocaleString()} validators
-                </motion.span>
-                <motion.span
-                  key={`slot-${slot}`}
-                  className="inline-flex items-center gap-1 rounded-md border border-black/[0.06] bg-white px-2 py-0.5 text-[10px] font-mono text-stone-400 tabular-nums shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ ...SPRING_SNAPPY, delay: 0.1 }}
-                  title="Current consensus round in the simulation timeline"
-                >
-                  slot {(slot + 1).toLocaleString()}
-                </motion.span>
-              </div>
-            )}
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Overlay mode toggle — Agentation-style segmented control */}
-            <div className="flex items-center rounded-[14px] border border-black/[0.06] bg-[#F6F5F4] p-[3px] gap-[3px]" style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}>
+          <div className="rounded-[16px] border border-black/[0.06] bg-[#F6F5F4] p-[3px] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center gap-[3px]">
               {([
                 { mode: 'validators' as const, icon: Radio, label: 'Validators', detail: 'Show validator stake distribution across regions' },
                 { mode: 'latency' as const, icon: Zap, label: 'Latency', detail: 'Show inter-region network latency arcs' },
@@ -328,7 +343,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel }: Eviden
                   onClick={() => setOverlay(mode)}
                   title={detail}
                   className={cn(
-                    'flex items-center gap-1.5 rounded-[11px] px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
+                    'flex items-center gap-1.5 rounded-[11px] px-2.5 py-1.5 text-[11px] font-medium transition-all duration-150',
                     overlay === mode
                       ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
                       : 'text-stone-400 hover:text-stone-600',
@@ -338,10 +353,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel }: Eviden
                   {label}
                 </button>
               ))}
-            </div>
-
-            {/* Export actions */}
-            <div className="flex items-center gap-1">
+              <div className="mx-0.5 h-5 w-px bg-black/[0.06]" />
               <button
                 onClick={() => {
                   const params = new URLSearchParams(window.location.search)
@@ -383,11 +395,11 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel }: Eviden
       </div>
 
       {/* ── Map + Sidebar ── */}
-      <div className="grid gap-0 lg:grid-cols-[1fr_260px]">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_248px] lg:items-start">
         {/* SVG Map */}
         <div
           ref={mapContainerRef}
-          className="relative overflow-hidden"
+          className="relative overflow-hidden lg:self-start"
           style={{ aspectRatio: `${SVG_W} / ${MAP_VISIBLE_H}`, backgroundColor: LIGHT_SURFACE.bg, cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
@@ -767,6 +779,8 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel }: Eviden
 
         {/* ── Sidebar ── */}
         <EvidenceMapSidebar
+          className="lg:self-start"
+          style={mapViewportHeight != null ? { maxHeight: `${mapViewportHeight}px` } : undefined}
           overlay={overlay}
           slot={slot}
           gini={gini}
