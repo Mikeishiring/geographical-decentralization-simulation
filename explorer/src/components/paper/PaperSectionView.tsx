@@ -9,6 +9,7 @@ import { SPRING, SPRING_POPUP, SECTION_CATEGORY_STYLE } from '../../lib/theme'
 import { getActiveStudy } from '../../studies'
 import type { PaperNarrative, PaperSection } from '../../studies/types'
 import type { Exploration } from '../../lib/api'
+import type { Block } from '../../types/blocks'
 
 interface NoteHighlight {
   readonly excerpt: string
@@ -220,6 +221,21 @@ function SectionNav({ activeSectionId, onSectionClick, compact = false }: Sectio
   )
 }
 
+const NARROW_UNFRIENDLY_BLOCK_TYPES = new Set<Block['type']>([
+  'table',
+  'comparison',
+  'equation',
+])
+
+function shouldInlineSupportingBlocks(blocks: readonly Block[]) {
+  if (blocks.length === 0) return false
+  const statCount = blocks.filter(block => block.type === 'stat').length
+  if (blocks.length <= 2) return true
+  if (statCount >= 2) return true
+  if (blocks.some(block => NARROW_UNFRIENDLY_BLOCK_TYPES.has(block.type))) return true
+  return blocks.every(block => block.type === 'stat' || block.type === 'insight' || block.type === 'caveat')
+}
+
 interface PaperSectionViewProps {
   readonly activeSectionId?: string
   readonly notesVisible?: boolean
@@ -326,6 +342,9 @@ function SectionCard({
   const supportingBlocks = section.blocks.filter(block => block.type !== 'paperChart')
   const hasFeaturedChart = featuredChartBlocks.length > 0
   const hasSupportingBlocks = supportingBlocks.length > 0
+  const inlineSupportingBlocks = shouldInlineSupportingBlocks(supportingBlocks)
+  const showInlineSupporting = hasSupportingBlocks && inlineSupportingBlocks
+  const showSidebarSupporting = hasSupportingBlocks && !inlineSupportingBlocks
 
   const handleHighlightClick = () => {
     const sectionEl = document.getElementById(section.id)
@@ -373,11 +392,11 @@ function SectionCard({
           </div>
         </div>
 
-        <div className="mt-4 max-w-4xl">
+        <div className={cn('mt-4', showSidebarSupporting ? 'max-w-4xl' : 'max-w-[58rem]')}>
           <h2 className="text-2xl font-medium text-text-primary font-serif text-balance sm:text-3xl">
             {section.title}
           </h2>
-          <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted">
+          <p className={cn('mt-3 text-base leading-relaxed text-muted', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[52rem]')}>
             {section.description}
           </p>
         </div>
@@ -397,19 +416,39 @@ function SectionCard({
         </div>
       )}
 
-      <div className={cn('grid min-w-0 gap-8 xl:items-start', hasSupportingBlocks && 'xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]')}>
-        <div className="min-w-0 max-w-4xl space-y-6">
-          <p className="max-w-3xl text-xl leading-relaxed text-text-primary font-serif">
+      {showInlineSupporting && (
+        <div className="mb-6 rounded-2xl border border-rule/80 bg-surface-active/35 p-4 sm:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-text-faint">Evidence</div>
+              <div className="mt-1 text-sm font-medium text-text-primary">Tables, caveats, and source blocks</div>
+            </div>
+            <span className="rounded-full border border-rule/60 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-text-faint">
+              {supportingBlocks.length} block{supportingBlocks.length === 1 ? '' : 's'}
+            </span>
+          </div>
+          <BlockCanvas blocks={supportingBlocks} showExport={false} />
+          {!hasFeaturedChart && narrative.figureCaption && (
+            <p className="mt-3 px-1 text-xs leading-6 text-muted">
+              {narrative.figureCaption}
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className={cn('grid min-w-0 gap-8 xl:items-start', showSidebarSupporting && 'xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]')}>
+        <div className={cn('min-w-0 space-y-6', showSidebarSupporting ? 'max-w-4xl' : 'max-w-[56rem]')}>
+          <p className={cn('text-xl leading-relaxed text-text-primary font-serif', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[50rem]')}>
             {narrative.lede}
           </p>
           <div className="space-y-4 text-[15px] leading-[1.85] text-text-body font-serif">
             {narrative.paragraphs.map(paragraph => (
-              <p key={paragraph} className="max-w-3xl">
+              <p key={paragraph} className={cn(showSidebarSupporting ? 'max-w-3xl' : 'max-w-[50rem]')}>
                 {renderParagraph(paragraph, narrative.keyClaim, noteHighlights, handleHighlightClick, notesVisible)}
               </p>
             ))}
           </div>
-          <div className="max-w-3xl rounded-xl border border-accent/10 bg-accent/[0.03] px-5 py-4">
+          <div className={cn('rounded-xl border border-accent/10 bg-accent/[0.03] px-5 py-4', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[50rem]')}>
             <div className="mb-2 flex items-center gap-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-accent/50">
               <Quote className="h-3 w-3" />
               Pull quote
@@ -420,7 +459,7 @@ function SectionCard({
           </div>
         </div>
 
-        {hasSupportingBlocks && (
+        {showSidebarSupporting && (
           <aside className="min-w-0 xl:sticky xl:top-[9.8rem]">
             <div className="rounded-2xl border border-rule/80 bg-surface-active/45 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
