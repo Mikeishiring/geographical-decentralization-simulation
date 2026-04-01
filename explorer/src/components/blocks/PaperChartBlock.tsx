@@ -225,9 +225,10 @@ function MiniChart({
                 d={pathD}
                 fill="none"
                 stroke={d.color}
-                strokeWidth={1.8}
+                strokeWidth={d.dashed ? 1.6 : 1.8}
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                strokeDasharray={d.dashed ? '6 3' : undefined}
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
                 transition={{ ...SPRING_CRISP, delay: seriesDelay + 0.05 }}
@@ -345,7 +346,16 @@ export function PaperChartBlock({ block }: PaperChartBlockProps) {
       <div className="flex flex-wrap items-center gap-1.5 px-5 pt-3 pb-1">
         {datasets.map(d => (
           <span key={d.label} className="lab-chip !py-0.5 !text-2xs">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: d.color }} />
+            {/* Line indicator: solid or dashed, matching chart rendering */}
+            <svg width="14" height="8" viewBox="0 0 14 8" className="shrink-0">
+              <line
+                x1="0" y1="4" x2="14" y2="4"
+                stroke={d.color}
+                strokeWidth={2}
+                strokeDasharray={d.dashed ? '4 2' : undefined}
+                strokeLinecap="round"
+              />
+            </svg>
             {d.label}
           </span>
         ))}
@@ -405,7 +415,9 @@ export function PaperChartBlock({ block }: PaperChartBlockProps) {
                 }))
                 return (
                   <div key={d.label} className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                    <svg width="12" height="6" viewBox="0 0 12 6" className="shrink-0">
+                      <line x1="0" y1="3" x2="12" y2="3" stroke={d.color} strokeWidth={2} strokeDasharray={d.dashed ? '3 2' : undefined} strokeLinecap="round" />
+                    </svg>
                     <span className="text-muted font-semibold">{d.label}</span>
                     {vals.map(v => (
                       <span key={v.label} className="text-text-body">

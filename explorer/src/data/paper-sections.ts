@@ -133,17 +133,11 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     category: 'finding',
     blocks: [
       {
-        type: 'paperChart',
-        title: 'Information-Source Placement: External vs Local',
-        dataKey: 'se1-source-placement',
-        cite: { paperSection: '§4.3', experiment: 'SE1', figure: 'Figure 4' },
-      },
-      {
         type: 'insight',
         emphasis: 'surprising',
         title: 'Opposite paradigm sensitivities',
-        text: 'The same infrastructure change has opposite effects depending on the paradigm. Under local block building, latency-aligned sources centralize more rapidly. Under external block building, latency-misaligned sources exhibit stronger centralization — poorly connected suppliers create a large co-location premium.',
-        cite: { paperSection: '§4.3', experiment: 'SE1' },
+        text: 'Under local block building, **latency-aligned** sources centralize more rapidly — low-latency regions benefit both value capture and propagation simultaneously. Under external block building, **latency-misaligned** sources exhibit stronger centralization — poorly connected suppliers create a large co-location premium, making migration toward the supplier disproportionately valuable.',
+        cite: { paperSection: '§4.3', experiment: 'SE1', figure: 'Figure 4' },
       },
     ],
   },
@@ -155,17 +149,11 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     category: 'finding',
     blocks: [
       {
-        type: 'paperChart',
-        title: 'Validator Distribution Effect: Baseline vs Heterogeneous',
-        dataKey: 'se2-distribution',
-        cite: { paperSection: '§4.4', experiment: 'SE2', figure: 'Figure 5' },
-      },
-      {
         type: 'insight',
         emphasis: 'key-finding',
         title: 'Initial conditions dominate',
-        text: "When validators start from today's concentrated Ethereum geography, both paradigms converge rapidly to co-location. The starting distribution matters more than paradigm choice for the first-order outcome. External block building shows stronger amplification of inter-regional reward disparities when validators are already clustered.",
-        cite: { paperSection: '§4.4', experiment: 'SE2' },
+        text: "When validators start from today's concentrated Ethereum geography (Chainbound data), both paradigms converge rapidly to co-location — the starting distribution matters more than paradigm choice for the first-order outcome. Unlike the baseline, the two paradigms exhibit **no substantial difference** in convergence speed or degree when incumbent hubs already exist.",
+        cite: { paperSection: '§4.4', experiment: 'SE2', figure: 'Figure 5' },
       },
     ],
   },
@@ -177,17 +165,11 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     category: 'finding',
     blocks: [
       {
-        type: 'paperChart',
-        title: 'Joint Heterogeneity: Validators + Information Sources',
-        dataKey: 'se3-joint',
-        cite: { paperSection: '§4.5', experiment: 'SE3', figure: 'Figure 6' },
-      },
-      {
         type: 'insight',
         emphasis: 'surprising',
         title: 'Transient decentralization under external block building',
-        text: "Under external block building with misaligned suppliers, validators initially migrate away from incumbent hubs toward supplier regions, briefly improving geographic decentralization. Over time, co-location incentives dominate and concentration returns.",
-        cite: { paperSection: '§4.5', experiment: 'SE3' },
+        text: "Under external block building with misaligned suppliers, validators initially migrate **away** from incumbent hubs toward supplier regions, briefly improving geographic decentralization. Over time, co-location incentives dominate and concentration returns. This is the only scenario in the paper where Gini temporarily decreases.",
+        cite: { paperSection: '§4.5', experiment: 'SE3', figure: 'Figure 6' },
       },
       {
         type: 'caveat',
@@ -225,17 +207,11 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     category: 'finding',
     blocks: [
       {
-        type: 'paperChart',
-        title: 'Shorter Slot Time Effect (6s vs 12s)',
-        dataKey: 'se4b-slots',
-        cite: { paperSection: '§4.6.2', experiment: 'SE4b', figure: 'Figure 8' },
-      },
-      {
         type: 'insight',
         emphasis: 'key-finding',
         title: 'Same trajectories, higher reward variance',
-        text: 'Centralization trajectories (Gini, HHI, LC) remain largely unchanged under 6s slots. But CV_g is higher — a fixed latency advantage becomes a larger fraction of the shortened timing window, amplifying cross-regional reward disparities.',
-        cite: { paperSection: '§4.6.2', experiment: 'SE4b' },
+        text: 'Halving slot time to 6s leaves centralization trajectories (Gini, HHI, LC) **largely unchanged** — proposers face the same co-location trade-offs. But CV_g (reward variance) is higher: a fixed latency advantage becomes a larger fraction of the shortened timing window, amplifying cross-regional reward disparities without changing the geographic equilibrium.',
+        cite: { paperSection: '§4.6.2', experiment: 'SE4b', figure: 'Figure 8' },
       },
     ],
   },
