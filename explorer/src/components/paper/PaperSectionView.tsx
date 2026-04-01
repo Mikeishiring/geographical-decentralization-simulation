@@ -299,7 +299,7 @@ export function PaperSectionView({
       <FloatingTOC activeSectionId={activeSectionId} onSectionClick={onSectionClick} />
 
       <div className="grid gap-8 xl:grid-cols-[220px_minmax(0,1fr)] 2xl:grid-cols-1">
-        <aside className="hidden xl:block 2xl:hidden xl:sticky xl:top-40 xl:self-start">
+        <aside className="hidden xl:block 2xl:hidden xl:sticky xl:top-[8rem] xl:self-start">
           <div className="rounded-xl border border-rule/60 bg-white/95 p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
             <SectionNav activeSectionId={activeSectionId} onSectionClick={onSectionClick} compact />
           </div>
