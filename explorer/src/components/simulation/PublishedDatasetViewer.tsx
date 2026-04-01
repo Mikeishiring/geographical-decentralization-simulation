@@ -356,15 +356,6 @@ const GEO_MODE_OPTIONS: ReadonlyArray<{
   { id: 'macro', label: 'Macro region', detail: 'Size = validators, color = macro region' },
 ]
 
-const GEO_VIEWPORT_OPTIONS: ReadonlyArray<{
-  readonly id: GeoViewportMode
-  readonly label: string
-}> = [
-  { id: 'auto', label: 'Auto' },
-  { id: 'world', label: 'World' },
-  { id: 'focus', label: 'Focus' },
-]
-
 const MACRO_REGION_COLORS: Record<MacroRegion | 'Unknown', string> = {
   Europe: '#2563EB',
   'North America': '#C2553A',
@@ -801,7 +792,7 @@ function PublishedGeoCard({
   title,
   regions,
   initialRegions,
-  summary,
+  summary: _summary,
   annotationNotes,
   selectedNoteId,
   onSelectNote,
@@ -830,8 +821,8 @@ function PublishedGeoCard({
   focusAreaActive?: boolean
   anchorScope: 'primary' | 'comparison'
 }) {
-  const [mapMode, setMapMode] = useState<GeoMapMode>('count')
-  const [viewportMode, setViewportMode] = useState<GeoViewportMode>('auto')
+  const [mapMode] = useState<GeoMapMode>('count')
+  const [viewportMode] = useState<GeoViewportMode>('auto')
   const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null)
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null)
   const sortedRegions = [...regions].sort((left, right) => right.count - left.count)
@@ -1033,7 +1024,6 @@ function PublishedGeoCard({
       height,
     }
   }, [tooltipRegion, viewportViewBox])
-  const focusedRegion = selectedRegion ?? hoveredRegion ?? dominantRegionData
   const selectedAnnotationNote = useMemo(() => {
     if (!annotationNotes || annotationNotes.length === 0) return null
     return annotationNotes.find(note => note.id === selectedNoteId) ?? annotationNotes[0] ?? null
@@ -1109,53 +1099,6 @@ function PublishedGeoCard({
     return Math.max(8, Math.min(100, maxLegendValue > 0 ? (region.count / maxLegendValue) * 100 : 0))
   }, [mapMode, maxLegendValue])
   const mapViewBox = `${viewportViewBox.minX} ${viewportViewBox.minY} ${viewportViewBox.width} ${viewportViewBox.height}`
-  const liveReadoutCards: Array<{
-    readonly label: string
-    readonly value: string
-    readonly detail: string
-    readonly featured?: boolean
-  }> = [
-    {
-      label: selectedRegion ? 'Selected region' : hoveredRegion ? 'Hover region' : 'Dominant region',
-      value: focusedRegion?.geoRegion.city ?? summary.dominantRegionLabel ?? 'No active leader',
-      detail: focusedRegion
-        ? `${formatRegionContext(focusedRegion)}${focusedRegion.noteCount > 0 ? ` · ${focusedRegion.noteCount} note${focusedRegion.noteCount === 1 ? '' : 's'}` : ''}`
-        : `${percentage(summary.dominantShare, 1)} share`,
-      featured: true,
-    },
-    {
-      label: 'Active regions',
-      value: countLabel(summary.activeRegions),
-      detail: `${countLabel(summary.totalValidators)} validators`,
-    },
-    {
-      label: 'Gini',
-      value: summary.currentGini != null ? compactNumber(summary.currentGini, 3) : 'N/A',
-      detail: 'Geographic inequality',
-    },
-    {
-      label: 'Liveness',
-      value: summary.currentLiveness != null ? percentage(summary.currentLiveness, 1) : 'N/A',
-      detail: 'Completion posture',
-    },
-    {
-      label: 'Average MEV',
-      value: summary.currentMev != null ? `${compactNumber(summary.currentMev, 4)} ETH` : 'N/A',
-      detail: 'Reward surface',
-    },
-    {
-      label: 'Proposal time',
-      value: summary.currentProposalTime != null ? `${compactNumber(summary.currentProposalTime, 1)} ms` : 'N/A',
-      detail: 'Timing pressure',
-    },
-    {
-      label: 'Clusters',
-      value: summary.currentClusters != null ? countLabel(Math.round(summary.currentClusters)) : 'N/A',
-      detail: summary.currentTotalDistance != null
-        ? `Distance ${compactNumber(summary.currentTotalDistance, 0)}`
-        : 'Topology signal',
-    },
-  ]
 
   return (
     <div className={cn(
@@ -1175,57 +1118,10 @@ function PublishedGeoCard({
         </div>
       </div>
 
-      <div className="grid items-start gap-4 p-4 xl:grid-cols-[minmax(0,1.28fr)_minmax(260px,0.72fr)]">
-        <div className="space-y-4">
+      <div className="space-y-4 p-4">
           <div className="relative self-start overflow-hidden rounded-2xl border border-[#1F2937] bg-[#0D1117]">
-            <div className="border-b border-white/10 bg-[rgba(8,17,31,0.92)] px-4 py-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex flex-wrap items-end gap-3">
-                  <div>
-                    <div className="mb-1 text-[0.6rem] font-medium uppercase tracking-[0.08em] text-white/45">Metric</div>
-                    <div className="flex flex-wrap gap-1 rounded-full border border-white/10 bg-white/6 p-1">
-                      {GEO_MODE_OPTIONS.map(option => (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => setMapMode(option.id)}
-                          aria-pressed={mapMode === option.id}
-                          className={cn(
-                            'rounded-full px-3 py-1.5 text-[0.625rem] font-medium uppercase tracking-[0.08em] transition-colors',
-                            mapMode === option.id
-                              ? 'bg-white text-[#0F172A]'
-                              : 'text-white/72 hover:bg-white/10 hover:text-white',
-                          )}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[0.6rem] font-medium uppercase tracking-[0.08em] text-white/45" htmlFor={`geo-view-${gradientKey}`}>
-                      View
-                    </label>
-                    <div className="rounded-full border border-white/10 bg-white/6 px-3 py-2">
-                      <select
-                        id={`geo-view-${gradientKey}`}
-                        value={viewportMode}
-                        onChange={event => setViewportMode(event.target.value as GeoViewportMode)}
-                        className="bg-transparent pr-6 text-[0.7rem] font-medium uppercase tracking-[0.08em] text-white outline-none"
-                      >
-                        {GEO_VIEWPORT_OPTIONS.map(option => (
-                          <option key={option.id} value={option.id} className="text-slate-900">
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
             {annotationNotes && annotationNotes.length > 0 ? (
-              <div className="absolute inset-x-4 top-20 z-10 flex max-w-xl flex-wrap gap-2">
+              <div className="absolute inset-x-4 top-4 z-10 flex max-w-xl flex-wrap gap-2">
                 <div className="rounded-full border border-white/12 bg-[#0F172A]/78 px-3 py-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-white/85 backdrop-blur-md">
                   {annotationNotes.length} paper note{annotationNotes.length === 1 ? '' : 's'} pinned to this slot
                 </div>
@@ -1596,33 +1492,6 @@ function PublishedGeoCard({
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="rounded-xl border border-rule bg-gradient-to-b from-white/98 to-slate-50/94 p-4">
-            <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Live geography readout</div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-              {liveReadoutCards.map(card => (
-                <div
-                  key={card.label}
-                  className={cn(
-                    'rounded-xl border border-rule bg-white px-3 py-3',
-                    card.featured ? 'sm:col-span-2 xl:col-span-1' : '',
-                  )}
-                >
-                  <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
-                  <div className={cn(
-                    'mt-2 font-semibold text-text-primary',
-                    card.featured ? 'text-sm' : 'text-base tabular-nums',
-                  )}>
-                    {card.value}
-                  </div>
-                  <div className="mt-1 text-xs text-muted">{card.detail}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )
