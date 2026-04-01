@@ -5,6 +5,11 @@ export interface PaperNarrative {
   readonly figureCaption: string
   /** Substring within paragraphs to highlight as the key claim callout */
   readonly keyClaim?: string
+  readonly sourceRefs?: {
+    readonly lede?: { readonly label: string; readonly kind: string; readonly page?: number }
+    readonly paragraphs?: ReadonlyArray<{ readonly label: string; readonly kind: string; readonly page?: number } | undefined>
+    readonly pullQuote?: { readonly label: string; readonly kind: string; readonly page?: number }
+  }
 }
 
 export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
@@ -52,11 +57,11 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     lede: 'The paper then asks a harder question: what if the system is already geographically unequal before agents start moving?',
     paragraphs: [
       'Using a more realistic validator distribution shifts the interpretation of the results. Once the starting state is already concentrated in the US and Europe, both paradigms converge quickly because the system begins near the eventual attractor.',
-      'That result is important for the website because it keeps the narrative honest. Paradigm choice matters, but initial conditions can dominate. The model is not claiming a single mechanism explains all observed concentration on its own.',
+      'That result is important for the website because it keeps the narrative honest. Paradigm choice matters, but in SE2 the starting geography can outweigh paradigm differences for the first-order outcome. The model is not claiming a single mechanism explains all observed concentration on its own.',
     ],
     pullQuote: 'If the system starts centralized, the paradigm mostly changes how the imbalance amplifies, not whether it exists.',
-    figureCaption: 'SE2 reframes the story from "which paradigm centralizes more?" to "how much of the outcome was already baked into the starting distribution?"',
-    keyClaim: 'starting distribution matters more than the paradigm label for the first-order result',
+    figureCaption: 'SE2 reframes the story from "which paradigm centralizes more?" to "how much of the outcome was already baked into the starting distribution used in the experiment?"',
+    keyClaim: 'the starting geography can outweigh paradigm differences for the first-order outcome',
   },
   'se3-joint': {
     lede: 'Joint heterogeneity is where the paper briefly finds something that looks like relief, then carefully refuses to overclaim it.',
@@ -69,13 +74,13 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     keyClaim: 'temporary artifact of competing geographic pulls, not a recipe for decentralization',
   },
   'se4a-attestation': {
-    lede: 'SE4a is the paper\'s signature result because, in its homogeneous setup, the same protocol parameter moves the two paradigms in opposite directions.',
+    lede: 'SE4a provides one of the paper\'s clearest paradigm contrasts: in its homogeneous setup, the same protocol parameter moves the two paradigms in opposite directions.',
     paragraphs: [
       'Within the attestation-threshold experiment, raising the threshold makes external block building centralize more because the supplier path becomes more timing-sensitive. The proposer gains more by clustering tightly around the supplier geography that minimizes end-to-end delay.',
       'In that same experiment, a higher threshold forces local block building into a harder compromise between being close to attesters and being close to information sources. Those geographic objectives do not perfectly coincide, so stronger timing pressure can disperse the equilibrium rather than compress it.',
     ],
-    pullQuote: 'The most surprising result in the paper is also the most revealing: timing rules are not paradigm-neutral.',
-    figureCaption: 'Attestation threshold is where the paper most clearly shows that "faster consensus" and "more centralization" do not move identically across external and local block building.',
+    pullQuote: 'A notable result here is that timing rules are not paradigm-neutral.',
+    figureCaption: 'Attestation threshold is where the paper most clearly shows, within a homogeneous setup, that "faster consensus" and "more centralization" do not move identically across external and local block building.',
     keyClaim: 'in its homogeneous setup, the same protocol parameter moves the two paradigms in opposite directions',
   },
   'se4b-slots': {

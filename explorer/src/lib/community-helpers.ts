@@ -17,7 +17,7 @@ export function controversyScore(exploration: Exploration): number {
 }
 
 export function surfaceLabel(exploration: Exploration): string {
-  return exploration.surface === 'simulation' ? 'Exact-run surface' : 'Paper-reading surface'
+  return exploration.surface === 'simulation' ? 'Exact-run note' : 'Reading note'
 }
 
 export function cardTitle(exploration: Exploration): string {

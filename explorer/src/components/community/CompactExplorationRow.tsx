@@ -87,14 +87,6 @@ export function CompactExplorationRow({
           ))}
         </span>
 
-        {/* Badges */}
-        {exploration.publication.featured && (
-          <span className="hidden text-2xs text-warning sm:block" title="Editor's pick">★</span>
-        )}
-        {exploration.verified && (
-          <span className="hidden text-2xs text-success sm:block" title="Researcher verified">✓</span>
-        )}
-
         {/* Reply count */}
         {replies > 0 && (
           <span className="flex items-center gap-0.5 text-2xs text-muted tabular-nums">

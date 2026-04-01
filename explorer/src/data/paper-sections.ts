@@ -28,11 +28,11 @@ export const PAPER_METADATA = {
     { name: 'Fei Wu', role: 'King\'s College London', focus: 'Co-author' },
     { name: 'Fan Zhang', role: 'Yale University', focus: 'MEV, cryptographic protocols, trusted execution', url: 'https://scholar.google.com/citations?user=YTokrfkAAAAJ' },
   ] as readonly Author[],
-  abstract: 'The paper models validators as geographically mobile agents who optimize for MEV capture and consensus latency. Even under simplified assumptions, both external and local block building push validators toward a small set of low-latency regions, with different mechanisms and sensitivities.',
+  abstract: "The paper studies how Ethereum's local and external block-building paradigms interact with validator and information-source distributions to shape geographical positioning incentives. Across the bounded simulations, both paradigms induce location-dependent payoffs and migration incentives, while information asymmetries and consensus parameters modulate the strength of concentration pressure.",
   keyClaims: [
-    'Both external and local block building make geography part of block-building economics, not just network background.',
-    'In SE4a\'s homogeneous setup, higher attestation thresholds strengthen external centralization but dampen local migration incentives.',
-    'Starting validator geography can matter as much as, or more than, paradigm choice.',
+    "Validator geography is modeled as an endogenous response to Ethereum's timing and information structure.",
+    'Both local and external block building induce location-dependent payoffs and migration incentives through different latency-critical paths.',
+    'Information-source placement and consensus parameters modulate how strongly those incentives amplify centralization pressure.',
   ],
   references: [
     { label: 'arXiv paper', url: 'https://arxiv.org/abs/2509.21475' },
@@ -151,8 +151,8 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
       {
         type: 'insight',
         emphasis: 'key-finding',
-        title: 'Initial conditions dominate',
-        text: "When validators start from today's concentrated Ethereum geography (Chainbound data), both paradigms converge rapidly to co-location — the starting distribution matters more than paradigm choice for the first-order outcome. Unlike the baseline, the two paradigms exhibit **no substantial difference** in convergence speed or degree when incumbent hubs already exist.",
+        title: 'Concentrated starts compress paradigm differences',
+        text: "When validators start from today's concentrated Ethereum geography (Chainbound data), both paradigms converge rapidly to co-location. In this setup, the starting distribution can outweigh paradigm differences for the first-order convergence outcome. Unlike the homogeneous baseline, the two paradigms exhibit **no substantial difference** in convergence speed or degree when incumbent hubs already exist.",
         cite: { paperSection: '§4.4', experiment: 'SE2', figure: 'Figure 5' },
       },
     ],
@@ -181,7 +181,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     id: 'se4a-attestation',
     number: '§4.6.1',
     title: 'SE4a: Attestation Threshold (gamma)',
-    description: 'The paper\'s most surprising finding — opposite effects across paradigms.',
+    description: 'A paradigm-sensitive contrast in the homogeneous consensus-parameter study.',
     category: 'finding',
     blocks: [
       {
@@ -193,8 +193,8 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
       {
         type: 'insight',
         emphasis: 'surprising',
-        title: 'SE4a moves the paradigms in opposite directions',
-        text: 'Within SE4a\'s homogeneous validator-and-source setup, higher gamma amplifies external centralization (tighter timing makes supplier proximity more valuable) but dampens local centralization (forces a trade-off between attester proximity and signal proximity that points in different geographic directions). This makes the attestation threshold the paper\'s clearest paradigm-sensitive protocol lever.',
+        title: 'SE4a pulls the paradigms in opposite directions',
+        text: 'Within SE4a\'s homogeneous validator-and-source setup, higher gamma amplifies external centralization (tighter timing makes supplier proximity more valuable) but dampens local centralization (forces a trade-off between attester proximity and signal proximity that points in different geographic directions). This is a notable paradigm-sensitive protocol result in the paper, not a claim that the same sign-flip holds across every setup.',
         cite: { paperSection: '§4.6.1', experiment: 'SE4a' },
       },
     ],

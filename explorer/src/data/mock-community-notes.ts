@@ -93,14 +93,14 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-4': {
     sectionTitle: 'SE4a: Attestation Threshold',
-    sectionNumber: 'App. E.3',
+    sectionNumber: '§4.6.1',
     quotedPassage:
       'Raising the attestation threshold makes external block building centralize more because the supplier path becomes more timing-sensitive. The proposer gains more by clustering tightly around the supplier geography that minimizes end-to-end delay.',
     replies: [
       {
         id: 'reply-4a',
         author: 'Ethan Z.',
-        body: 'This is the strongest result in the paper. Gamma is the one parameter governance can actually change, and its effect is *opposite* across paradigms. Any EIP that touches attestation thresholds needs a geographic impact assessment.',
+        body: 'This is one of the clearest paradigm-sensitive results in the paper. Gamma is unusually interpretable as a lever, but I would keep the claim scoped to SE4a\'s homogeneous setup rather than generalizing to every timing-related EIP.',
         createdAt: '2026-03-30T08:20:00Z',
         votes: 14,
       },
@@ -122,7 +122,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-5': {
     sectionTitle: 'SE1: Source Placement',
-    sectionNumber: '§4.4',
+    sectionNumber: '§4.3',
     quotedPassage:
       'The striking result in SE1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm.',
     replies: [
@@ -137,9 +137,9 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-6': {
     sectionTitle: 'Limitations',
-    sectionNumber: '§5',
+    sectionNumber: '§5.3',
     quotedPassage:
-      'Every simplification in the model trades realism for tractability: cloud-only latency, deterministic MEV, full information, fixed migration cost, and no strategic coalition behavior.',
+      'The framework relies on GCP latency data, a deterministic value function with additive and fungible information sources, a full-information benchmark, and instantaneous constant-cost migration. These choices keep the analysis tractable and reproducible, but they also bound the quantitative claims.',
     replies: [
       {
         id: 'reply-6a',
@@ -159,28 +159,28 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-7': {
     sectionTitle: 'Discussion',
-    sectionNumber: '§5',
+    sectionNumber: '§5.2',
     quotedPassage:
-      'The paper sketches mitigation directions such as rewarding underrepresented regions, decentralizing suppliers and sources, or compensating for latency at the protocol layer.',
+      'The paper sketches mitigation directions such as weakening proposer monopoly power through decentralized block building, dampening latency-sensitive rewards via MEV-burn, and encouraging geographic diversity among suppliers and major signal sources.',
     replies: [
       {
         id: 'reply-7a',
         author: 'Kira T.',
-        body: 'The "rewarding underrepresented regions" idea sounds like geographic affirmative action for validators. Curious how that would interact with MEV smoothing proposals.',
+        body: 'The mitigation list is narrower and more concrete than generic "geographic subsidies". It mostly points to proposer monopoly, reward sensitivity, and supplier diversity as distinct levers.',
         createdAt: '2026-03-25T15:00:00Z',
         votes: 3,
       },
       {
         id: 'reply-7b',
         author: 'Ethan Z.',
-        body: 'Geographic rewards would need to be funded from somewhere. The two options are: (1) tax optimal-region validators, which reduces total network security, or (2) inflate issuance, which dilutes all stakers. Neither is free. The paper should model the equilibrium under a geographic subsidy to see if the cure is worse than the disease.',
+        body: 'That makes the follow-up research agenda easier to scope. Each mitigation can be modeled on its own rather than being bundled into one generic decentralization incentive proposal.',
         createdAt: '2026-03-25T16:30:00Z',
         votes: 7,
       },
       {
         id: 'reply-7c',
         author: 'Jordan P.',
-        body: 'There\'s a third option: make supplier infrastructure more geographically distributed. That doesn\'t require protocol changes at all. The SE1 results show supplier placement has a first-order effect. Start there before inventing new incentive mechanisms.',
+        body: 'Supplier diversity still looks like the fastest infrastructure-side lever, but the paper is careful not to rank remedies or claim that one mitigation dominates the others.',
         createdAt: '2026-03-25T18:15:00Z',
         votes: 11,
       },
@@ -188,7 +188,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-8': {
     sectionTitle: 'SE2: Starting Distribution',
-    sectionNumber: '§4.5',
+    sectionNumber: '§4.4',
     quotedPassage:
       'Using a more realistic validator distribution shifts the interpretation of the results. Once the starting state is already concentrated in the US and Europe, both paradigms converge quickly because the system begins near the eventual attractor.',
     replies: [
@@ -311,7 +311,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   // ── FLAWED ARGUMENT 2 ──
   'mock-note-12': {
     sectionTitle: 'SE4a: Attestation Threshold',
-    sectionNumber: 'App. E.3',
+    sectionNumber: '§4.6.1',
     quotedPassage:
       'In local block building, a higher threshold forces a harder compromise between being close to attesters and being close to information sources. Those geographic objectives do not perfectly coincide, so stronger timing pressure can actually disperse the equilibrium rather than compress it.',
     replies: [
@@ -370,7 +370,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-14': {
     sectionTitle: 'SE4b: Shorter Slot Times',
-    sectionNumber: 'App. E.4',
+    sectionNumber: '§4.6.2',
     quotedPassage:
       'The paper finds that moving to 6-second slots leaves the broad geographic equilibrium largely intact. The same regions remain attractive, and the same concentration tendencies persist.',
     replies: [
@@ -392,7 +392,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-15': {
     sectionTitle: 'SE4b: Shorter Slot Times',
-    sectionNumber: 'App. E.4',
+    sectionNumber: '§4.6.2',
     quotedPassage:
       'When the slot is shorter, a fixed latency advantage consumes a bigger fraction of the available timing budget. That raises the penalty for being outside the favored corridors even if the final map does not change dramatically.',
     replies: [
@@ -429,14 +429,14 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-17': {
     sectionTitle: 'SE1: Source Placement',
-    sectionNumber: '§4.4',
+    sectionNumber: '§4.3',
     quotedPassage:
       'External block building behaves differently because badly placed suppliers create a stronger co-location premium. When the supplier path is the bottleneck, shaving proposer-supplier latency becomes disproportionately valuable, so misalignment can make concentration worse instead of better.',
     replies: [
       {
         id: 'reply-17a',
         author: 'Tomás G.',
-        body: 'This has direct implications for Flashbots\' relay infrastructure decisions. If they add a supplier in Asia-Pacific, the model predicts it would *reduce* external block building centralization by removing the co-location premium around EU/US suppliers.',
+        body: 'This has plausible implications for relay infrastructure decisions. Adding a supplier in Asia-Pacific could reduce some of the co-location premium around EU/US suppliers, though the paper itself stops at mechanism and does not validate a deployment plan.',
         createdAt: '2026-03-26T09:30:00Z',
         votes: 11,
       },
@@ -450,7 +450,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
       {
         id: 'reply-17c',
         author: 'Kira T.',
-        body: 'The policy takeaway is clear: supplier operators have more geographic influence than most EIPs. A Flashbots decision about where to host a supplier endpoint has first-order effects on validator geography that most governance discussions ignore.',
+        body: 'One takeaway is that supplier operators may have more geographic influence than governance discussions usually acknowledge. That still feels more like a hypothesis to pressure-test than a ranking the paper itself settles.',
         createdAt: '2026-03-26T14:00:00Z',
         votes: 14,
       },
@@ -458,14 +458,14 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-18': {
     sectionTitle: 'Discussion',
-    sectionNumber: '§5',
+    sectionNumber: '§5.1',
     quotedPassage:
       'That restraint matters. The contribution is to show that geographic concentration is endogenous to the timing structure of the system, not to claim the model has already solved how to counteract it.',
     replies: [
       {
         id: 'reply-18a',
         author: 'Marcus V.',
-        body: 'The word "endogenous" is doing important work here. It means the centralization comes from inside the system\'s own rules, not from external factors like regulation or economics of scale. You can\'t fix an endogenous problem with exogenous interventions alone.',
+        body: 'The word "endogenous" is doing important work here. It means the pressure comes from the system\'s own rules and infrastructure interaction, not that only protocol changes can matter.',
         createdAt: '2026-03-25T10:00:00Z',
         votes: 10,
       },
@@ -480,21 +480,21 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-19': {
     sectionTitle: 'Limitations',
-    sectionNumber: '§5',
+    sectionNumber: '§5.3',
     quotedPassage:
-      'The model omits home-staker latency profiles, strategic coalition behavior among large staking providers, and non-linear MEV functions. Each simplification trades realism for tractability, but together they define the confidence boundary of the quantitative results.',
+      'The framework assumes a full-information benchmark and instantaneous constant-cost migration. In practice, both information quality and migration frictions may be coarser, noisier, and more heterogeneous than the model allows.',
     replies: [
       {
         id: 'reply-19a',
         author: 'R. Chen',
-        body: 'The no-coalition assumption is probably the second biggest gap after cloud-only latency. In reality, large staking providers run correlated infrastructure across multiple validators. Their "migration" decision is a portfolio optimization, not 1,000 independent choices.',
+        body: 'The migration assumption may be the biggest missing real-world friction here. Large operators can pre-position infrastructure, but smaller validators may face much slower or costlier moves than the model assumes.',
         createdAt: '2026-03-25T14:00:00Z',
         votes: 12,
       },
       {
         id: 'reply-19b',
         author: 'Tomás G.',
-        body: 'Adding coalitions would likely *increase* centralization in the model since large operators can negotiate better colocation deals and amortize migration costs. The paper\'s results are probably a lower bound on real-world geographic concentration.',
+        body: 'Likewise, partial information could change the adjustment path materially. Slower learning and noisier expectations might delay convergence even if the underlying latency incentives remain present.',
         createdAt: '2026-03-25T16:00:00Z',
         votes: 9,
       },
@@ -548,7 +548,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
       {
         id: 'reply-21a',
         author: 'Kira T.',
-        body: 'If intentional supplier misalignment can temporarily reduce concentration, that\'s a policy lever. Imagine a "geographic diversity supplier" deliberately placed in an underserved region. The dip might be temporary in the model, but if you keep moving the supplier, you keep refreshing the disruption.',
+        body: 'If supplier misalignment can temporarily reduce concentration, that at least makes the result useful for scenario design. I would still treat it as a hypothesis about infrastructure shocks, not a deployable policy recipe.',
         createdAt: '2026-03-29T09:00:00Z',
         votes: 13,
       },
@@ -562,7 +562,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
       {
         id: 'reply-21c',
         author: 'Priya N.',
-        body: 'You don\'t need to *move* suppliers — you need to *add* them. The model shows the dip comes from misalignment between existing validators and supplier geography. Adding a supplier in Asia-Pacific creates that misalignment naturally without disrupting the existing EU/US infrastructure. It\'s additive, not destructive.',
+        body: 'You do not need to *move* suppliers to study this. Adding a supplier in another region could create the kind of misalignment the paper models, but whether that would improve decentralization in practice still needs direct testing.',
         createdAt: '2026-03-29T12:15:00Z',
         votes: 18,
       },
@@ -570,7 +570,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-22': {
     sectionTitle: 'SE4b: Shorter Slot Times',
-    sectionNumber: 'App. E.4',
+    sectionNumber: '§4.6.2',
     quotedPassage:
       'When the slot is shorter, a fixed latency advantage consumes a bigger fraction of the available timing budget. That raises the penalty for being outside the favored corridors even if the final map does not change dramatically.',
     replies: [
@@ -591,7 +591,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
       {
         id: 'reply-22c',
         author: 'Priya N.',
-        body: 'There\'s a middle ground nobody discusses: implement shorter slots WITH a geographic compensation mechanism. Use the throughput gains to fund a small subsidy for validators outside the top-5 regions. You get better UX and better geographic equity. The paper\'s framework makes it possible to model this tradeoff quantitatively.',
+        body: 'There is a middle ground worth modeling: pair shorter slots with a mitigation aimed at reducing latency-driven reward differences. The paper does not evaluate that design, but it gives a framework for testing it.',
         createdAt: '2026-03-28T11:00:00Z',
         votes: 11,
       },
@@ -606,14 +606,14 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-23': {
     sectionTitle: 'Discussion',
-    sectionNumber: '§5',
+    sectionNumber: '§5.2',
     quotedPassage:
-      'The paper sketches mitigation directions such as rewarding underrepresented regions, decentralizing suppliers and sources, or compensating for latency at the protocol layer.',
+      'The paper sketches mitigation directions such as weakening proposer monopoly power, dampening latency-sensitive rewards, and encouraging geographic diversity among suppliers and major signal sources.',
     replies: [
       {
         id: 'reply-23a',
         author: 'Tomás G.',
-        body: 'The SE1 results show supplier placement has 0.08 Gini impact. That\'s achievable by convincing 2-3 supplier operators to add endpoints in Asia and South America. No protocol change needed, no governance vote, no hard fork. This is the 80/20 solution.',
+        body: 'Supplier diversity looks operationally tractable because it can be pursued without a hard fork. That said, the paper does not claim it is the 80/20 solution or rank it above the other mitigation directions.',
         createdAt: '2026-03-28T14:00:00Z',
         votes: 16,
       },
@@ -627,7 +627,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
       {
         id: 'reply-23c',
         author: 'Kira T.',
-        body: 'The Ethereum Foundation could fund a "geographic diversity supplier program" — trivial cost compared to the protocol development budget. Flashbots already runs relays as a public good; this would just extend that mission geographically. The incentive alignment is there if someone organizes it.',
+        body: 'An ecosystem-funded supplier-diversity program is one plausible extension, but that is already a step beyond the paper. The safest claim is just that infrastructure geography deserves to be part of the mitigation conversation.',
         createdAt: '2026-03-28T17:00:00Z',
         votes: 12,
       },
@@ -664,14 +664,14 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-25': {
     sectionTitle: 'Limitations',
-    sectionNumber: '§5',
+    sectionNumber: '§5.3',
     quotedPassage:
-      'The model omits home-staker latency profiles, strategic coalition behavior among large staking providers, and non-linear MEV functions. Each simplification trades realism for tractability, but together they define the confidence boundary of the quantitative results.',
+      'The framework relies on simplified assumptions about latency data, block value, information quality, and migration frictions. Those assumptions keep the model interpretable, but they also bound what can be claimed from the simulations.',
     replies: [
       {
         id: 'reply-25a',
         author: 'Livia M.',
-        body: 'Every omitted factor points in the same direction: more centralization. Coalition behavior means large stakers coordinate infrastructure. Home stakers face worse latency than cloud. Non-linear MEV likely has winner-take-all dynamics. The paper is an *optimistic* baseline.',
+        body: 'Several omitted factors could strengthen the concentration pressure, which is why the limitations section matters so much. I would still avoid claiming that every missing effect points in the same direction.',
         createdAt: '2026-03-27T09:00:00Z',
         votes: 14,
       },
@@ -685,7 +685,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
       {
         id: 'reply-25c',
         author: 'R. Chen',
-        body: 'Ethan has a point about Lido\'s geographic requirements, but that\'s a governance overlay on top of economic incentives. The paper models the raw economic pressure without governance interventions. If you need governance rules to counteract the natural equilibrium, that itself proves the paper\'s point — the endogenous pressure is toward concentration.',
+        body: 'Ethan has a point about governance overlays. The paper models baseline economic pressure; once governance or operator policies enter, you are already studying a richer system than the current framework.',
         createdAt: '2026-03-27T12:00:00Z',
         votes: 12,
       },
@@ -693,14 +693,14 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-26': {
     sectionTitle: 'SE4a: Attestation Threshold',
-    sectionNumber: 'App. E.3',
+    sectionNumber: '§4.6.1',
     quotedPassage:
       'In local block building, a higher threshold forces a harder compromise between being close to attesters and being close to information sources. Those geographic objectives do not perfectly coincide, so stronger timing pressure can actually disperse the equilibrium rather than compress it.',
     replies: [
       {
         id: 'reply-26a',
         author: 'Priya N.',
-        body: 'This is the paper\'s most underrated finding. Gamma has a bigger effect on geographic outcomes than the choice between external and local block building. In the sim lab, varying gamma from 0.33 to 0.8 moves the Gini by 0.15-0.20 points. Switching paradigms at fixed gamma moves it by ~0.10. Gamma is the bigger lever.',
+        body: 'This is one of the more interesting extensions to SE4a. In a separate sim-lab comparison, varying gamma moved the Gini more than switching paradigms at a fixed gamma, but I would still keep that comparison scoped to those runs rather than upgrading it into the paper\'s headline claim.',
         createdAt: '2026-03-29T07:00:00Z',
         votes: 19,
       },
@@ -721,7 +721,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
       {
         id: 'reply-26d',
         author: 'Ethan Z.',
-        body: 'The meta-lesson: protocol parameters have geographic externalities that aren\'t visible from the security analysis alone. This paper proves we need a "geographic impact" section in every EIP that touches timing. That\'s a governance process change, not a protocol change, and it costs nothing to implement.',
+        body: 'The meta-lesson is that protocol parameters have geographic externalities that are easy to miss in a pure security analysis. A geographic-impact review could be useful for timing-related proposals, but that is a governance recommendation layered on top of the paper rather than something the paper itself proves.',
         createdAt: '2026-03-29T12:00:00Z',
         votes: 16,
       },
@@ -875,12 +875,12 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'The gamma paradox: same knob, opposite outcomes',
-      takeaway: 'This is the paper\'s most surprising finding. A single protocol parameter — attestation threshold — pushes external block building toward more concentration but disperses local block building. It proves that timing rules are paradigm-dependent, which means any protocol change needs to be evaluated per-paradigm, not in the abstract.',
+      title: 'SE4a is a clear paradigm-sensitive result',
+      takeaway: 'In SE4a\'s homogeneous setup, a single protocol parameter — attestation threshold — pushes external block building toward more concentration but local block building toward less. That is a strong reminder that timing rules need to be evaluated per paradigm and per setup, rather than being treated as universally geography-improving or geography-worsening.',
       author: 'Sam K.',
       publishedAt: daysAgo(1),
       featured: true,
-      editorNote: 'The key counterintuitive result.',
+      editorNote: 'Scope: homogeneous SE4a parameter study.',
     },
   },
   {
@@ -929,7 +929,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     surface: 'reading',
     anchor: {
       sectionId: 'limitations',
-      excerpt: 'Every simplification in the model trades realism for tractability: cloud-only latency, deterministic MEV, full information, fixed migration cost.',
+      excerpt: 'The framework relies on GCP latency data, a deterministic value function, a full-information benchmark, and instantaneous constant-cost migration.',
     },
     publication: {
       published: true,
@@ -944,7 +944,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
   {
     id: 'mock-note-7',
     query: 'Discussion',
-    summary: 'Selected text: "rewarding underrepresented regions"',
+    summary: 'Selected text: "weakening proposer monopoly power"',
     blocks: [],
     followUps: [],
     model: '',
@@ -958,7 +958,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     surface: 'reading',
     anchor: {
       sectionId: 'discussion',
-      excerpt: 'rewarding underrepresented regions, decentralizing suppliers and sources, or compensating for latency at the protocol layer.',
+      excerpt: 'weakening proposer monopoly power, dampening latency-driven payoffs, and encouraging geographic diversity among suppliers and signal sources.',
     },
     publication: {
       published: true,
@@ -991,8 +991,8 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'Initial conditions dominate paradigm choice',
-      takeaway: 'SE2 is the humility check. If validators already cluster in US-East and EU-West (which they do on mainnet), the paradigm mostly determines how the existing imbalance amplifies, not whether it exists. This means real-world decentralization efforts need to address geography directly, not just tinker with block-building rules.',
+      title: 'In SE2, starting geography can outweigh paradigm differences',
+      takeaway: 'SE2 is the humility check. If validators already cluster in US-East and EU-West under the Chainbound-based initialization, the paradigms mainly change how an existing imbalance evolves rather than whether one appears at all. That keeps the result scoped to the heterogeneous start instead of turning it into a general theorem.',
       author: 'Alex W.',
       publishedAt: daysAgo(2),
       featured: false,
@@ -1114,8 +1114,8 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'Flashbots Protect already solves the local block building centralization problem',
-      takeaway: 'The paper\'s local block building model assumes information sources are geographically fixed, but Flashbots Protect and private transaction pools have already democratized MEV access regardless of validator location. Since any validator can receive private order flow through encrypted mempools, the "proximity to information sources" leg of the model is obsolete. This makes the gamma paradox largely irrelevant for real-world local block building — the geographic pressure the paper identifies has already been solved by the MEV supply chain evolution.',
+      title: 'Private order flow might weaken one leg of the local incentive model',
+      takeaway: 'If private order flow reduces the importance of geographic proximity to information sources in practice, it could moderate part of the local-block-building incentive story. But it would not remove attestation-side latency pressure, so the paper\'s result is better read as a bounded mechanism comparison than as a claim that real-world local block building is already solved.',
       author: 'R. Chen',
       publishedAt: daysAgo(3),
       featured: false,
@@ -1173,12 +1173,12 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'EIP-7782 won\'t change the map but will tax the periphery',
-      takeaway: 'The slot-time experiment is directly relevant to the EIP-7782 debate. Shorter slots don\'t redistribute validator geography — the same regions win. But the reward variance increase means solo stakers outside the favored corridors earn proportionally even less. This is a hidden centralization tax that the EIP-7782 discussion has largely ignored.',
+      title: 'SE4b links slot time to reward inequality more than location',
+      takeaway: 'The slot-time experiment suggests shorter slots may matter more for relative reward access than for final geography. That makes SE4b relevant to EIP-7782 discussions, but it does not by itself resolve the broader UX-versus-decentralization tradeoff.',
       author: 'Nadia S.',
       publishedAt: daysAgo(2),
       featured: true,
-      editorNote: 'Connects the paper directly to an active EIP discussion.',
+      editorNote: 'Relevant to slot-time debates, but not dispositive.',
     },
   },
   {
@@ -1202,8 +1202,8 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'Timing compression is regressive by construction',
-      takeaway: 'A 10ms advantage in a 12s slot is 0.08% of the window. In a 6s slot it\'s 0.17% — same absolute edge, double the relative impact. This is mathematically guaranteed for any fixed latency difference, which means every slot time reduction is regressive for geographically disadvantaged validators. The paper\'s finding here is actually a theorem, not just a simulation result.',
+      title: 'Shorter slots magnify fixed latency edges',
+      takeaway: 'A fixed latency edge takes up a larger share of a shorter slot window, which helps explain the higher CV_g results. That mechanism is intuitive, but the broader policy conclusions still depend on how those reward differences feed back into migration outside the model.',
       author: 'Marcus V.',
       publishedAt: daysAgo(5),
       featured: false,
@@ -1260,12 +1260,12 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'Supplier operators have more geographic influence than most EIPs',
-      takeaway: 'SE1 implies that a Flashbots decision about where to host supplier endpoints has first-order effects on validator geography that most governance discussions ignore. Adding a supplier in Asia-Pacific would reduce the external block building co-location premium around EU/US suppliers. Ran it in the sim lab with a hypothetical supplier in asia-southeast1: external block building Gini drops ~0.08. Not huge but measurable and achievable without protocol changes.',
+      title: 'Supplier placement may be a fast-moving infrastructure lever',
+      takeaway: 'SE1 suggests supplier placement can materially change external block-building concentration pressure. That makes supplier geography an operational lever worth studying alongside protocol changes, though the paper does not rank it above protocol-level interventions or validate a specific deployment plan.',
       author: 'Kira T.',
       publishedAt: daysAgo(5),
       featured: true,
-      editorNote: 'Actionable policy implication backed by simulation.',
+      editorNote: 'Infrastructure interpretation layered on top of SE1.',
     },
   },
   {
@@ -1289,8 +1289,8 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: '"Endogenous" means you can\'t fix this from outside the protocol',
-      takeaway: 'The word "endogenous" is load-bearing. It means centralization emerges from the system\'s own rules, not from external factors like regulation or cloud provider pricing. You can\'t solve an endogenous problem with exogenous interventions alone — you need to change the timing structure itself. This is why the paper is more important than studies that just measure geographic distribution at one point in time.',
+      title: '"Endogenous" means the pressure is inside the design, not outside the world',
+      takeaway: 'The paper\'s use of "endogenous" means geographic concentration is produced by protocol and infrastructure incentives, not merely observed after the fact. That does not imply only protocol-level fixes matter, but it does imply infrastructure and governance responses should be evaluated against the incentive structure the paper identifies.',
       author: 'Marcus V.',
       publishedAt: daysAgo(6),
       featured: false,
@@ -1300,7 +1300,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
   {
     id: 'mock-note-19',
     query: 'Limitations',
-    summary: 'Selected text: "no strategic coalition behavior"',
+    summary: 'Selected text: "full-information benchmark and instantaneous migration"',
     blocks: [],
     followUps: [],
     model: '',
@@ -1314,12 +1314,12 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     surface: 'reading',
     anchor: {
       sectionId: 'limitations',
-      excerpt: 'no strategic coalition behavior.',
+      excerpt: 'a full-information benchmark and instantaneous constant-cost migration.',
     },
     publication: {
       published: true,
-      title: 'Coalitions would make the centralization *worse*, not better',
-      takeaway: 'The paper models validators as independent agents, but large staking providers (Lido, Coinbase, etc.) run correlated infrastructure across hundreds of validators. Their "migration" is a portfolio optimization, not 1,000 independent decisions. Since large operators can negotiate better colocation deals and amortize migration costs, adding coalitions would likely increase centralization. The paper\'s results are probably a lower bound on real-world geographic concentration.',
+      title: 'Migration and information assumptions matter for the path, not just the endpoint',
+      takeaway: 'The full-information and instant-migration assumptions are especially important for how quickly validators relocate in the model. Relaxing them could slow convergence or change the path of adjustment, even if the paper is right that latency- and value-driven incentives remain in the background.',
       author: 'Tomás G.',
       publishedAt: daysAgo(4),
       featured: false,
@@ -1379,8 +1379,8 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'Intentional supplier misalignment is a deployable decentralization tool',
-      takeaway: 'The SE3 dip isn\'t a curiosity — it\'s a policy lever. If deliberately adding suppliers in underserved regions creates temporary decentralization pressure, you can maintain that pressure by continuing to expand supplier infrastructure. The dip is "temporary" only if supplier geography is static. Make it dynamic and the effect persists.',
+      title: 'The transient dip is a hypothesis about infrastructure shocks',
+      takeaway: 'SE3\'s temporary dip is best read as a bounded hypothesis: when supplier geography is misaligned with an already concentrated validator map, some validators may briefly move away from incumbent hubs before concentration returns. That makes the result interesting for scenario design, but not a deployable decentralization recipe.',
       author: 'Priya N.',
       publishedAt: daysAgo(2),
       featured: false,
@@ -1408,8 +1408,8 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'EIP-7782 is still worth it despite the geographic penalty',
-      takeaway: 'The paper proves shorter slots are regressive for geographically disadvantaged validators, but the magnitude is small — a few basis points per slot. Meanwhile, halving confirmation time from 12s to 6s is a concrete UX improvement for every user and application on the network. The geographic cost is real but the UX gain is larger. The right response is to pair EIP-7782 with geographic mitigation, not to block it.',
+      title: 'SE4b informs the slot-time debate without settling it',
+      takeaway: 'SE4b suggests shorter slots can increase relative reward inequality even when the final geography barely moves. That matters for EIP-7782 discussions, but the paper does not attempt to weigh that cost against throughput or UX gains, so any policy judgment has to come from outside this model.',
       author: 'Nadia S.',
       publishedAt: daysAgo(3),
       featured: false,
@@ -1437,12 +1437,12 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'Supplier decentralization is the lowest-hanging fruit by far',
-      takeaway: 'Combine SE1 (supplier placement moves Gini by ~0.08) with the discussion\'s mitigation list, and the answer is obvious: geographic supplier expansion requires no protocol changes, no governance votes, and no hard forks. The Ethereum Foundation could fund a "geographic diversity supplier program" for less than the cost of a single Devcon. This is the 80/20 solution the paper points to without explicitly recommending.',
+      title: 'Supplier diversity looks operationally tractable, but the paper does not rank remedies',
+      takeaway: 'The discussion section makes supplier and signal-source diversity look like a comparatively concrete mitigation direction because it can be pursued at the infrastructure layer. But the paper stops short of calling it the best or cheapest fix, so any prioritization here is reader interpretation rather than paper conclusion.',
       author: 'Kira T.',
       publishedAt: daysAgo(2),
       featured: true,
-      editorNote: 'Most actionable takeaway from the paper.',
+      editorNote: 'Reader prioritization, not a paper-endorsed ranking.',
     },
   },
   {
@@ -1477,7 +1477,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
   {
     id: 'mock-note-25',
     query: 'Limitations',
-    summary: 'Selected text: "strategic coalition behavior among large staking providers"',
+    summary: 'Selected text: "simplified assumptions about latency, value, information, and migration"',
     blocks: [],
     followUps: [],
     model: '',
@@ -1491,12 +1491,12 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     surface: 'reading',
     anchor: {
       sectionId: 'limitations',
-      excerpt: 'strategic coalition behavior among large staking providers, and non-linear MEV functions.',
+      excerpt: 'simplified assumptions about latency data, block value, information quality, and migration frictions.',
     },
     publication: {
       published: true,
-      title: 'The model\'s simplifications are conservative — reality is worse',
-      takeaway: 'Every factor the paper omits (coalitions, home staker latency, non-linear MEV) points in the same direction: more centralization. Large stakers coordinate infrastructure. Home stakers face worse latency. Real MEV has winner-take-all dynamics. The paper\'s independent-agent, cloud-only, linear-MEV model is an optimistic baseline. If anything, the geographic concentration pressures on the real network are stronger than what the simulations show.',
+      title: 'Some omitted factors could strengthen the pressure, but the sign is not settled',
+      takeaway: 'Several omitted real-world factors could intensify concentration pressure, but the paper does not establish that every missing effect points in the same direction. The safest reading is that the model provides a bounded baseline and that richer assumptions could either sharpen or partially offset particular mechanisms.',
       author: 'Livia M.',
       publishedAt: daysAgo(3),
       featured: false,
@@ -1524,12 +1524,12 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'Gamma is the single most important protocol parameter for geography',
-      takeaway: 'In the sim lab, varying gamma from 0.33 to 0.80 swings the Gini by 0.15–0.20 points under both paradigms (in opposite directions). Switching paradigms at a fixed gamma moves it by ~0.10. This means the attestation threshold has a *larger* geographic effect than the choice between external and local block building. Every EIP that touches timing or attestation thresholds needs a geographic impact assessment.',
+      title: 'In SE4a, gamma looks like a major geography lever',
+      takeaway: 'Within SE4a, changing gamma produces a large geographic effect in opposite directions across the two paradigms. That makes attestation threshold a serious geography lever to study, but claims that it is more important than paradigm choice overall should stay scoped to this experiment and any external simulation runs used to extend it.',
       author: 'Priya N.',
       publishedAt: daysAgo(1),
       featured: true,
-      editorNote: 'Quantitative comparison of gamma vs. paradigm geographic impact.',
+      editorNote: 'Simulation-lab comparison layered on top of SE4a.',
     },
   },
   {

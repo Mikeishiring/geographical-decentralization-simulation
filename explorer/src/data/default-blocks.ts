@@ -63,8 +63,8 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
   {
     type: 'insight',
     emphasis: 'surprising',
-    title: 'Attestation threshold has opposite effects',
-    text: 'Higher γ (attestation threshold) → external block building centralizes **MORE** but local block building centralizes **LESS**. In external block building, tighter timing amplifies latency sensitivity — reducing proposer-supplier latency yields larger marginal MEV. In local block building, a higher threshold forces proposers to balance attester proximity (quorum) vs signal proximity (value), and these point in **different geographic directions**, dispersing rather than concentrating validators. This is the only protocol parameter with opposite effects across paradigms.',
+    title: 'SE4a shows a paradigm-sensitive attestation effect',
+    text: 'In SE4a\'s homogeneous parameter study, higher γ (attestation threshold) pushes external block building toward **more** concentration but local block building toward **less**. In external block building, tighter timing amplifies proposer-supplier latency sensitivity. In local block building, a higher threshold forces proposers to balance attester proximity (quorum) against signal proximity (value), and those objectives can point in different geographic directions. This is a standout contrast in the paper, not a universal sign-flip claim across all setups.',
   },
 
   // Row 5: Validator distribution across the 40 GCP regions used in the paper
@@ -129,13 +129,13 @@ export interface TopicCard {
 
 export const OVERVIEW_CARD: TopicCard = {
   id: 'overview',
-  title: 'Start with the sharpest questions',
-  description: "A curated entry point to the paper's stakes, paradoxes, and caveats.",
+  title: "Start with the paper's main questions",
+  description: "A curated entry point to the paper's mechanisms, contrasts, and caveats.",
   theme: 'finding',
   prompts: [
     'Why is Ethereum geography not neutral in these models?',
     'Why does gamma push external and local block building in opposite directions in SE4a?',
-    'Does starting geography matter more than paradigm choice?',
+    'In SE2, when can starting geography outweigh paradigm choice?',
     'What does this imply for protocol design and infrastructure policy?',
     'What changes under shorter slots: geography or fairness?',
     'Where should confidence stop in this model?',
@@ -149,10 +149,11 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
     title: 'Why does local block building centralize faster than external?',
     description: 'The baseline head-to-head, plus the mechanism that makes local block building harsher.',
     theme: 'ssp',
-    prompts: [
-      'Why does local block building centralize faster than external?',
-      'How does external block building compare to local?',
-      'What is the baseline External vs Local result?',
+      prompts: [
+        'How does SSP compare to MSP?',
+        'Why does local block building centralize faster than external?',
+        'How does external block building compare to local?',
+        'What is the baseline External vs Local result?',
       'What mechanism makes local block building more aggressive?',
       'Compare external and local block building under the same baseline.',
     ],
@@ -293,8 +294,8 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
       {
         type: 'insight',
         emphasis: 'key-finding',
-        title: 'Starting geography dominates the first-order outcome',
-        text: 'When starting from the real Ethereum distribution, metrics are already elevated and both paradigms converge rapidly. **The starting distribution matters more than the paradigm label** when validators begin concentrated.',
+        title: 'Starting geography can outweigh paradigm differences',
+        text: 'When starting from the real Ethereum distribution, metrics are already elevated and both paradigms converge rapidly. In SE2, **the starting distribution can outweigh paradigm differences for the first-order result** when validators begin concentrated.',
       },
       {
         type: 'insight',
@@ -305,7 +306,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
   {
     id: 'attestation-threshold',
     title: 'Why does gamma flip direction across paradigms?',
-    description: 'SE4a is the paper\'s clearest paradigm contrast: in the homogeneous setup, one protocol lever moves the paradigms in opposite directions.',
+    description: 'SE4a is a clear paradigm contrast: in the homogeneous setup, one protocol lever moves the paradigms in opposite directions.',
     theme: 'msp',
     prompts: [
       'Why does gamma flip direction across paradigms?',
@@ -412,7 +413,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
       {
         type: 'source',
         refs: [
-          { label: 'Section 7 — Limitations', section: 'Full discussion of assumptions' },
+          { label: '§5.3 — Limitations', section: 'Full discussion of assumptions' },
           { label: 'arXiv:2509.21475', url: 'https://arxiv.org/abs/2509.21475' },
         ],
       },

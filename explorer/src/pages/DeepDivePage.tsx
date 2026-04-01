@@ -7,7 +7,7 @@ import { PAPER_SECTIONS, type PaperSection } from '../data/paper-sections'
 
 function summarizeSection(section: PaperSection): string[] {
   const tags: string[] = []
-  if (section.id === 'se4a-attestation') tags.push('best paradox')
+  if (section.id === 'se4a-attestation') tags.push('paradigm-sensitive result')
   if (section.id === 'se2-distribution') tags.push('starting-state effect')
   if (section.id === 'limitations') tags.push('confidence boundary')
   if (section.id === 'discussion') tags.push('design implications')
@@ -16,7 +16,7 @@ function summarizeSection(section: PaperSection): string[] {
   if (blockTypes.has('table')) tags.push('tables')
   if (blockTypes.has('comparison')) tags.push('comparisons')
   if (section.blocks.some(block => block.type === 'insight' && block.emphasis === 'surprising')) {
-    tags.push('surprising result')
+    tags.push('counterintuitive result')
   }
   if (section.blocks.some(block => block.type === 'caveat')) tags.push('caveat')
   return tags.slice(0, 3)
@@ -33,7 +33,7 @@ function sectionEntryLine(section: PaperSection): string {
     case 'se1-source-placement':
       return 'Start here for the infrastructure-placement flip that helps one paradigm while hurting the other.'
     case 'se2-distribution':
-      return 'Start here if you want to ask whether starting geography matters more than paradigm choice.'
+      return 'Start here if you want to ask when starting geography can outweigh paradigm differences in SE2.'
     case 'se3-joint':
       return 'Start here for the transient dip and the warning against overreading it as mitigation.'
     case 'se4a-attestation':
@@ -79,7 +79,7 @@ export function DeepDivePage() {
           <div>
             <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Paper deep dive</span>
             <h1 className="mt-1 text-lg font-semibold text-text-primary text-balance">
-              Argument, paradoxes, and caveats
+              Arguments, contrasts, and caveats
             </h1>
             <p className="mt-1 text-13 text-muted">
               Ten sections from model design through limitations — expand any to see the evidence blocks.

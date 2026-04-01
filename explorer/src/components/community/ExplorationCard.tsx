@@ -76,20 +76,6 @@ export function ExplorationCard({
               {surfaceLabel(exploration)}
             </span>
 
-            {exploration.publication.featured && (
-              <span className="inline-flex items-center gap-1.5 text-muted">
-                <span className="h-1.5 w-1.5 rounded-full bg-warning" />
-                Editor&apos;s pick
-              </span>
-            )}
-
-            {exploration.verified && (
-              <span className="inline-flex items-center gap-1.5 text-muted">
-                <span className="h-1.5 w-1.5 rounded-full bg-success" />
-                Researcher verified
-              </span>
-            )}
-
             {replyCount > 0 && (
               <span className="inline-flex items-center gap-1 text-muted">
                 <MessageSquare className="h-3 w-3" />
@@ -169,13 +155,13 @@ export function ExplorationCard({
               <div role="note" aria-label="Truth boundary" className="mb-4 rounded-lg border border-rule bg-surface-active px-3 py-2.5 text-xs text-muted">
                 <span className="font-medium text-text-primary">Truth boundary:</span>{' '}
                 {exploration.publication.published
-                  ? 'This is a published human-authored note layered on top of a reading or exact-run artifact.'
+                  ? 'This is a published human-authored community note layered on top of the paper or an exact-run artifact.'
                   : 'This is saved secondary context. It can be useful, but it is not a canonical paper or published-results artifact.'}
               </div>
 
               {exploration.publication.editorNote && (
                 <div className="mb-4 rounded-lg border border-warning/30 bg-warning/6 px-3 py-2 text-xs text-muted">
-                  <span className="font-medium text-text-primary">Editor note:</span> {exploration.publication.editorNote}
+                  <span className="font-medium text-text-primary">Context note:</span> {exploration.publication.editorNote}
                 </div>
               )}
 

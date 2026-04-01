@@ -14,9 +14,9 @@ interface CommunityPreviewProps {
 }
 
 function communityPreviewLabel(exploration: Exploration): string {
-  if (exploration.publication.featured) return 'Editor featured'
-  if (exploration.verified) return 'Researcher verified'
-  return exploration.surface === 'simulation' ? 'Exact-run note' : 'Paper reading'
+  return exploration.surface === 'simulation'
+    ? 'Community note on exact-run output'
+    : 'Community interpretation'
 }
 
 export function CommunityPreview({
@@ -77,6 +77,9 @@ export function CommunityPreview({
             <span className="lab-section-title">Public responses</span>
           </div>
           <div className="mt-1.5 text-13 font-medium text-text-primary">How other readers annotated the evidence</div>
+          <div className="mt-1 text-[11px] leading-relaxed text-text-faint">
+            Published community notes layered on top of the paper, not author claims.
+          </div>
         </div>
         {onTabChange && (
           <button
