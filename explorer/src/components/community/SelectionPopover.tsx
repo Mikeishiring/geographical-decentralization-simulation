@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Smile, Link2, Check, Users, Loader2 } from 'lucide-react'
+import { cn } from '../../lib/cn'
 import { SPRING_POPUP, SPRING_SNAPPY, SPRING_CRISP } from '../../lib/theme'
 import type { TextAnchor } from '../../types/anchors'
 
@@ -38,20 +39,39 @@ function EmojiPicker({ onSelect }: { readonly onSelect: (emoji: string) => void 
   )
 }
 
-/* ── Positioning (agentation pattern: fixed, centered on selection) ────── */
+/* ── Positioning (margin-first: right side like Word comments, centered fallback) */
 
-const POPUP_WIDTH = 280
+const POPUP_WIDTH = 264
 const POPUP_HEIGHT_ESTIMATE = 260
 const EDGE_PADDING = 12
+const MARGIN_GAP = 16
 
-function computePosition(rect: DOMRect) {
+function computePosition(rect: DOMRect, containerRef?: React.RefObject<HTMLElement | null>) {
+  // Try right-margin placement (Word-style comments)
+  const container = containerRef?.current
+  if (container) {
+    const containerRect = container.getBoundingClientRect()
+    // Find the prose column's right edge (xl:col-span-7 within the grid)
+    const proseRight = containerRect.right
+    const marginAvailable = window.innerWidth - proseRight
+    if (marginAvailable > POPUP_WIDTH + MARGIN_GAP * 2) {
+      return {
+        top: rect.top,
+        left: proseRight + MARGIN_GAP,
+        placeBelow: false,
+        marginMode: true as const,
+      }
+    }
+  }
+
+  // Fallback: centered on selection (original behavior)
   const left = Math.max(
     POPUP_WIDTH / 2 + EDGE_PADDING,
     Math.min(rect.left + rect.width / 2, window.innerWidth - POPUP_WIDTH / 2 - EDGE_PADDING),
   )
   const placeBelow = rect.top < POPUP_HEIGHT_ESTIMATE + EDGE_PADDING
   const top = placeBelow ? rect.bottom + 10 : rect.top - 10
-  return { top, left, placeBelow }
+  return { top, left, placeBelow, marginMode: false as const }
 }
 
 /* ── Submission states ─────────────────────────────────────────────────── */
@@ -68,6 +88,8 @@ interface SelectionPopoverProps {
   readonly onAddNote: (anchor: TextAnchor, comment: string) => Promise<boolean>
   readonly onDismiss: () => void
   readonly sectionNoteCount?: number
+  /** Container ref for margin-mode positioning (right side of prose column) */
+  readonly containerRef?: React.RefObject<HTMLElement | null>
 }
 
 /* ── Component ──────────────────────────────────────────────────────────── */
@@ -78,10 +100,11 @@ export function SelectionPopover({
   onAddNote,
   onDismiss,
   sectionNoteCount = 0,
+  containerRef,
 }: SelectionPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [position, setPosition] = useState<{ top: number; left: number; placeBelow: boolean } | null>(null)
+  const [position, setPosition] = useState<{ top: number; left: number; placeBelow: boolean; marginMode: boolean } | null>(null)
   const [comment, setComment] = useState('')
   const [isShaking, setIsShaking] = useState(false)
   const [showEmoji, setShowEmoji] = useState(false)
@@ -99,8 +122,8 @@ export function SelectionPopover({
   // Compute position from selection rect
   useEffect(() => {
     if (!rect) { setPosition(null); return }
-    setPosition(computePosition(rect))
-  }, [rect])
+    setPosition(computePosition(rect, containerRef))
+  }, [rect, containerRef])
 
   // Auto-focus textarea after popup mounts (agentation: 50ms delay)
   useEffect(() => {
@@ -206,15 +229,28 @@ export function SelectionPopover({
       {isVisible && (
         <motion.div
           ref={popoverRef}
-          initial={{ opacity: 0, y: position.placeBelow ? -6 : 6, scale: 0.95 }}
+          initial={position.marginMode
+            ? { opacity: 0, x: 12, scale: 0.97 }
+            : { opacity: 0, y: position.placeBelow ? -6 : 6, scale: 0.95 }
+          }
           animate={{
-            opacity: 1, y: 0, scale: 1,
+            opacity: 1,
+            y: 0,
             x: isShaking ? [0, -3, 3, -2, 2, 0] : 0,
+            scale: 1,
           }}
-          exit={{ opacity: 0, y: position.placeBelow ? -4 : 4, scale: 0.97 }}
+          exit={position.marginMode
+            ? { opacity: 0, x: 8, scale: 0.97 }
+            : { opacity: 0, y: position.placeBelow ? -4 : 4, scale: 0.97 }
+          }
           transition={SPRING_POPUP}
           data-annotation-popover
-          className={`fixed z-[100001] -translate-x-1/2 pointer-events-auto rounded-2xl bg-white/[0.97] backdrop-blur-sm shadow-[0_4px_24px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] px-4 py-3 pb-3.5 ${position.placeBelow ? '' : '-translate-y-full'}`}
+          className={cn(
+            'fixed z-[100001] pointer-events-auto rounded-2xl bg-white/[0.97] backdrop-blur-sm shadow-[0_4px_24px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] px-4 py-3 pb-3.5',
+            position.marginMode
+              ? ''
+              : `-translate-x-1/2 ${position.placeBelow ? '' : '-translate-y-full'}`,
+          )}
           style={{
             top: position.top,
             left: position.left,
@@ -223,6 +259,15 @@ export function SelectionPopover({
           onMouseDown={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
         >
+          {/* Connecting line for margin mode */}
+          {position.marginMode && (
+            <span
+              className="absolute top-4 right-full h-px w-4 bg-accent/25"
+              aria-hidden="true"
+            >
+              <span className="absolute right-full top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-accent/40" />
+            </span>
+          )}
           <AnimatePresence mode="wait">
             {phase === 'success' ? (
               /* ── Success confirmation overlay ─────────────────────────── */

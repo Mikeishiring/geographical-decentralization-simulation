@@ -1,18 +1,9 @@
 import { motion } from 'framer-motion'
 import { STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
-import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
-import { BEST_FIRST_STOP_IDS } from './paper-helpers'
+import { PAPER_METADATA } from '../../data/paper-sections'
 import { GlobeNetwork } from '../decorative/GlobeNetwork'
 
-const bestStops = PAPER_SECTIONS.filter(section =>
-  BEST_FIRST_STOP_IDS.includes(section.id as (typeof BEST_FIRST_STOP_IDS)[number]),
-)
-
-interface PaperHeroProps {
-  readonly onSectionClick?: (id: string) => void
-}
-
-export function PaperHero({ onSectionClick }: PaperHeroProps) {
+export function PaperHero() {
   return (
     <motion.section
       className="relative overflow-hidden rounded-xl border border-rule px-5 py-6 sm:px-8 sm:py-8"
@@ -46,23 +37,6 @@ export function PaperHero({ onSectionClick }: PaperHeroProps) {
           ))}
         </motion.div>
 
-        {/* Best first stops — inline links */}
-        {onSectionClick && (
-          <motion.div variants={STAGGER_ITEM} className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-            <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Start here</span>
-            {bestStops.map((section, i) => (
-              <a
-                key={section.id}
-                href={`#${section.id}`}
-                onClick={() => onSectionClick(section.id)}
-                className="text-xs text-muted hover:text-accent hover:underline underline-offset-2 transition-colors"
-              >
-                <span className="text-accent mr-0.5">{i + 1}.</span>
-                {section.title}
-              </a>
-            ))}
-          </motion.div>
-        )}
       </div>
     </motion.section>
   )

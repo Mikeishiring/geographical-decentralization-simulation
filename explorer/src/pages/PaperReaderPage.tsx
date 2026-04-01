@@ -218,6 +218,7 @@ export function PaperReaderPage({
       onAddNote={handleAddNote}
       onDismiss={clearSelection}
       sectionNoteCount={selectionSectionNoteCount}
+      containerRef={containerRef}
     />
 
     {noteError && (
