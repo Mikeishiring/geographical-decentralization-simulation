@@ -20,7 +20,7 @@ export const GCP_REGION_MAP = new Map(GCP_REGIONS.map(r => [r.id, r]))
 
 export type OverlayMode = 'validators' | 'sources' | 'latency'
 
-/** Flat blue ramp for light-surface map nodes */
+/** Flat blue ramp for concentration encoding */
 export const NODE_BLUE = {
   low: LIGHT_SURFACE.blue100,
   mid: LIGHT_SURFACE.blue400,
@@ -30,14 +30,21 @@ export const NODE_BLUE = {
   source: '#0D9488',
 } as const
 
-/** @deprecated — use NODE_BLUE instead. Kept for sidebar legend compat */
-export const PASTEL = {
-  lavender: NODE_BLUE.mid,
-  sky: NODE_BLUE.low,
-  peach: NODE_BLUE.top,
-  mint: NODE_BLUE.source,
-  rose: NODE_BLUE.high,
+/** Macro-region color palette — geography drives the visual, not concentration */
+export const REGION_COLORS: Record<MacroRegion, string> = {
+  'Europe': '#2563EB',
+  'North America': '#C2553A',
+  'Asia Pacific': '#16A34A',
+  'Middle East': '#D97706',
+  'South America': '#7C3AED',
+  'Africa': '#0F766E',
+  'Oceania': '#DC2626',
 } as const
+
+/** Get node color by macro-region — primary color encoding for map nodes */
+export function regionColor(macroRegion: MacroRegion): string {
+  return REGION_COLORS[macroRegion] ?? '#94A3B8'
+}
 
 // ── Projection — Natural Earth I (Šavrič et al. 2011) ──────────────────────
 // Must match generate-map-data.mjs and MapBlock.tsx

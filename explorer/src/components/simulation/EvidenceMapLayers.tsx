@@ -12,8 +12,8 @@ import {
   MAP_VISIBLE_H,
   latLonToMercator,
   nodeRadius,
-  nodeColor,
   NODE_BLUE,
+  regionColor,
   type RegionNode,
   type OverlayMode,
   type LabelPlacement,
@@ -88,7 +88,7 @@ export const MapNodeLayer = memo(function MapNodeLayer({
     <>
       {/* Ambient glow behind top 5 regions */}
       {sorted.slice(0, 5).map((node, i) => {
-        const color = i === 0 ? NODE_BLUE.top : NODE_BLUE.high
+        const color = regionColor(node.macroRegion)
         const intensity = i < 3 ? 0.08 : 0.05
         return (
           <circle
@@ -108,7 +108,7 @@ export const MapNodeLayer = memo(function MapNodeLayer({
       {displayNodes.map((node, index) => {
         const rank = sorted.findIndex(n => n.id === node.id)
         const r = nodeRadius(node.count, maxCount)
-        const color = overlay === 'sources' ? NODE_BLUE.source : nodeColor(node.count, maxCount)
+        const color = overlay === 'sources' ? NODE_BLUE.source : regionColor(node.macroRegion)
         const isTop = rank < 6
         const isTop3 = rank < 3
         const isHovered = hoveredRegion === node.id
