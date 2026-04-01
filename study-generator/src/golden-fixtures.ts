@@ -323,6 +323,7 @@ const THEORY_FIXTURE = buildStudyFrame({
   artifacts: [
     { id: 'theory-paper', label: 'Theory paper', kind: 'paper-pdf', url: 'https://example.com/theory-paper.pdf' },
     { id: 'theory-figure', label: 'Mechanism figure', kind: 'figure', path: 'fixtures/theory-figure.png' },
+    { id: 'theory-table', label: 'Assumption table', kind: 'table', path: 'fixtures/theory-table.csv' },
     { id: 'theory-appendix', label: 'Proof appendix', kind: 'appendix', url: 'https://example.com/theory-appendix' },
   ],
   claims: [
@@ -357,7 +358,7 @@ const THEORY_FIXTURE = buildStudyFrame({
       questionAnswered: 'Which assumptions support the main mechanism result?',
       summary: 'Pins the theorem statement, intuition, and proof boundary to their sources.',
       metricIds: ['assumption-count'],
-      sourceArtifactIds: ['theory-figure', 'theory-appendix'],
+      sourceArtifactIds: ['theory-figure', 'theory-table', 'theory-appendix'],
       claimIds: ['theory-core', 'theory-limit'],
       isFigureReplay: false,
     },
