@@ -1,12 +1,9 @@
 import { useMemo } from 'react'
-import { ArrowLeft, ExternalLink, FileText, FlaskConical, ScrollText } from 'lucide-react'
+import { ArrowLeft, ExternalLink, FlaskConical, ScrollText } from 'lucide-react'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { PaperChartBlock } from '../components/blocks/PaperChartBlock'
 import {
   getStudyHtmlUrl,
-  getStudyPdfUrl,
-  sectionToHtmlUrl,
-  sectionToPage,
 } from '../components/paper/paper-helpers'
 import { cn } from '../lib/cn'
 import { buildPublishedEvidenceUrl, type PublishedEvidenceSelection } from '../lib/published-evidence-url'
@@ -31,7 +28,6 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
   const study = getActiveStudy()
   const backHref = withoutPreviewParam()
   const htmlUrl = getStudyHtmlUrl()
-  const pdfUrl = getStudyPdfUrl()
 
   const uniqueReferences = useMemo(() => {
     const seen = new Set<string>()
@@ -292,8 +288,6 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
             <div className="mt-8 space-y-8">
               {study.sections.map(section => {
                 const narrative = study.narratives[section.id]
-                const htmlSectionUrl = sectionToHtmlUrl(section.id)
-                const pdfPage = sectionToPage(section.number)
                 const paperCharts = section.blocks.filter(block => block.type === 'paperChart')
                 const supportingBlocks = section.blocks.filter(block => block.type !== 'paperChart')
 
@@ -314,30 +308,6 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
                         <p className="mt-3 text-base leading-7 text-muted">
                           {section.description}
                         </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {htmlSectionUrl && (
-                          <a
-                            href={htmlSectionUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-active"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            Original HTML
-                          </a>
-                        )}
-                        {pdfPage != null && (
-                          <a
-                            href={`${pdfUrl}#page=${pdfPage}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-active"
-                          >
-                            <FileText className="h-3 w-3" />
-                            PDF page {pdfPage}
-                          </a>
-                        )}
                       </div>
                     </div>
 

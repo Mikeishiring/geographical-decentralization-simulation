@@ -9,7 +9,6 @@ import { SPRING, SPRING_SNAPPY, SPRING_POPUP, SECTION_CATEGORY_STYLE } from '../
 import { getActiveStudy } from '../../studies'
 import type { PaperNarrative, PaperSection } from '../../studies/types'
 import type { Exploration } from '../../lib/api'
-import { sectionToHtmlUrl, sectionToPage } from './paper-helpers'
 
 interface NoteHighlight {
   readonly excerpt: string
@@ -370,9 +369,6 @@ function SectionCard({
   const supportingBlocks = section.blocks.filter(block => block.type !== 'paperChart')
   const hasFeaturedChart = featuredChartBlocks.length > 0
   const hasSupportingBlocks = supportingBlocks.length > 0
-  const htmlSectionUrl = sectionToHtmlUrl(section.id)
-  const pdfPage = sectionToPage(section.number)
-  const pdfUrl = getActiveStudy().navigation.pdfUrl
 
   const handleHighlightClick = () => {
     const sectionEl = document.getElementById(section.id)
@@ -410,26 +406,6 @@ function SectionCard({
             })()}
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            {htmlSectionUrl && (
-              <a
-                href={htmlSectionUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-active"
-              >
-                Source HTML
-              </a>
-            )}
-            {pdfPage != null && (
-              <a
-                href={`${pdfUrl}#page=${pdfPage}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-active"
-              >
-                PDF page {pdfPage}
-              </a>
-            )}
             <button
               onClick={() => onCopyLink(section.id)}
               className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-[11px] font-medium text-muted transition-colors hover:bg-surface-active hover:text-text-primary"
