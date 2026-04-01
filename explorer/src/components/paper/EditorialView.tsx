@@ -1,10 +1,8 @@
 import { useState, useCallback } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SPRING, SPRING_CRISP, PAGE_TRANSITION, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
-import { PAPER_METADATA, PAPER_SECTIONS } from '../../data/paper-sections'
+import { PAPER_SECTIONS } from '../../data/paper-sections'
 import { type TopicCard } from '../../data/default-blocks'
-import { createExploration, publishExploration } from '../../lib/api'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { PaperHero } from './PaperHero'
 import { TopicCardGrid } from './TopicCardGrid'
@@ -38,39 +36,7 @@ export function EditorialView({
   notesVisible = false,
   notesBySection,
 }: EditorialViewProps) {
-  const queryClient = useQueryClient()
   const [activeTopic, setActiveTopic] = useState<TopicCard | null>(null)
-  const publishMutation = useMutation({
-    mutationFn: async (input: {
-      sectionId: string
-      title: string
-      takeaway: string
-      author: string
-    }) => {
-      const section = PAPER_SECTIONS.find(s => s.id === input.sectionId)
-      if (!section) throw new Error('Section not found')
-
-      const created = await createExploration({
-        query: section.title,
-        summary: section.description,
-        blocks: [...section.blocks],
-        followUps: [],
-        model: '',
-        cached: false,
-        surface: 'reading',
-        anchor: { sectionId: input.sectionId, excerpt: '' },
-      })
-
-      return await publishExploration(created.id, {
-        title: input.title,
-        takeaway: input.takeaway,
-        author: input.author || undefined,
-      })
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['explorations'] })
-    },
-  })
 
   const handleTopicClick = (card: TopicCard) => {
     setActiveTopic(prev => (prev?.id === card.id ? null : card))
@@ -80,10 +46,6 @@ export function EditorialView({
     setActiveTopic(null)
   }
 
-  const handleSectionPublish = useCallback((sectionId: string, payload: { title: string; takeaway: string; author: string }) => {
-    publishMutation.mutate({ sectionId, ...payload })
-  }, [publishMutation])
-
   const openCommunityNote = useCallback((explorationId: string) => {
     onOpenCommunityExploration?.(explorationId)
   }, [onOpenCommunityExploration])
@@ -92,7 +54,7 @@ export function EditorialView({
 
   return (
     <motion.div key="editorial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={PAGE_TRANSITION}>
-      <PaperHero onSectionClick={onSectionClick} />
+      <PaperHero />
 
       <div className="mt-6">
         <TopicCardGrid
@@ -151,9 +113,6 @@ export function EditorialView({
         <PaperSectionView
           activeSectionId={activeSectionId}
           onSectionClick={onSectionClick}
-          onPublish={handleSectionPublish}
-          isPublishing={publishMutation.isPending}
-          publishError={(publishMutation.error as Error | null)?.message ?? null}
           notesVisible={notesVisible}
           notesBySection={notesBySection}
           onOpenNote={openCommunityNote}
@@ -207,32 +166,6 @@ export function EditorialView({
         />
       </div>
 
-      {/* References footer */}
-      <motion.section
-        className="mt-8 rounded-xl border border-rule bg-white p-5 sm:p-6 geo-accent-bar"
-        initial={{ opacity: 0, y: 10 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={SPRING}
-      >
-        <div className="lab-section-title">References and intent</div>
-        <p className="mt-3 max-w-2xl text-13 leading-[1.65] text-text-body font-serif">
-          This reader view makes the paper easier to absorb without replacing the canonical study. The best first stops are the gamma paradox, the starting-geography section, and the limitations — they define the paper's surprise, realism, and confidence boundary.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
-          {[...PAPER_METADATA.references, { label: 'Original published demo', url: 'https://geo-decentralization.github.io/' }].map(ref => (
-            <a
-              key={ref.label}
-              href={ref.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="arrow-link"
-            >
-              {ref.label}
-            </a>
-          ))}
-        </div>
-      </motion.section>
     </motion.div>
   )
 }

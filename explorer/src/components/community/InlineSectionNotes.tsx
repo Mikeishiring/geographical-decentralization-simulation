@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Users,
   ExternalLink,
+  MousePointerClick,
 } from 'lucide-react'
 import { SPRING_SNAPPY, SPRING_POPUP } from '../../lib/theme'
 import { MOCK_NOTE_EXTRAS } from '../../data/mock-community-notes'
@@ -17,9 +18,11 @@ import { ReplyThread } from './ReplyThread'
 interface InlineSectionNotesProps {
   readonly notes: readonly Exploration[]
   readonly onOpenNote?: (explorationId: string) => void
+  /** Show "Select text to annotate" hint inside the card */
+  readonly showAnnotationHint?: boolean
 }
 
-export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProps) {
+export function InlineSectionNotes({ notes, onOpenNote, showAnnotationHint = false }: InlineSectionNotesProps) {
   const [expanded, setExpanded] = useState(false)
   const published = notes.filter(n => n.publication.published)
 
@@ -80,6 +83,13 @@ export function InlineSectionNotes({ notes, onOpenNote }: InlineSectionNotesProp
         >
           Show {remaining} more &darr;
         </button>
+      )}
+
+      {showAnnotationHint && (
+        <div className="mt-2 flex items-center gap-1.5 pt-2 border-t border-rule/50 text-2xs text-text-faint">
+          <MousePointerClick className="h-2.5 w-2.5 shrink-0" />
+          <span>Select text to add your annotation</span>
+        </div>
       )}
     </div>
   )
