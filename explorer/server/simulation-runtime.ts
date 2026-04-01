@@ -8,6 +8,7 @@ import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { brotliCompress as brotliCompressCallback, constants as zlibConstants } from 'node:zlib'
+import { getActiveStudy } from '../src/studies/index.ts'
 
 const SERVER_DIR = path.dirname(fileURLToPath(import.meta.url))
 const EXPLORER_ROOT = path.resolve(SERVER_DIR, '..')
@@ -38,118 +39,10 @@ const DEFAULT_WORKER_POOL_SIZE = Math.max(
 )
 const DEFAULT_QUEUED_JOB_TTL_MS = Math.max(60_000, Number(process.env.SIMULATION_QUEUE_TTL_MS ?? 10 * 60_000))
 const ENABLE_CANONICAL_PREWARM = !/^false$/i.test(process.env.SIMULATION_PREWARM ?? 'true')
-const CANONICAL_PREWARM_CONFIGS: ReadonlyArray<SimulationRequest> = [
-  {
-    paradigm: 'SSP',
-    validators: 1000,
-    slots: 1000,
-    distribution: 'homogeneous',
-    sourcePlacement: 'homogeneous',
-    migrationCost: 0.0001,
-    attestationThreshold: roundTo(2 / 3, 6),
-    slotTime: 12,
-    seed: 25873,
-  },
-  {
-    paradigm: 'MSP',
-    validators: 1000,
-    slots: 1000,
-    distribution: 'homogeneous',
-    sourcePlacement: 'homogeneous',
-    migrationCost: 0.0001,
-    attestationThreshold: roundTo(2 / 3, 6),
-    slotTime: 12,
-    seed: 25873,
-  },
-  {
-    paradigm: 'SSP',
-    validators: 1000,
-    slots: 1000,
-    distribution: 'homogeneous',
-    sourcePlacement: 'latency-aligned',
-    migrationCost: 0.0001,
-    attestationThreshold: roundTo(2 / 3, 6),
-    slotTime: 12,
-    seed: 25873,
-  },
-  {
-    paradigm: 'MSP',
-    validators: 1000,
-    slots: 1000,
-    distribution: 'homogeneous',
-    sourcePlacement: 'latency-aligned',
-    migrationCost: 0.0001,
-    attestationThreshold: roundTo(2 / 3, 6),
-    slotTime: 12,
-    seed: 25873,
-  },
-  {
-    paradigm: 'SSP',
-    validators: 1000,
-    slots: 1000,
-    distribution: 'homogeneous',
-    sourcePlacement: 'latency-misaligned',
-    migrationCost: 0.0001,
-    attestationThreshold: roundTo(2 / 3, 6),
-    slotTime: 12,
-    seed: 25873,
-  },
-  {
-    paradigm: 'MSP',
-    validators: 1000,
-    slots: 1000,
-    distribution: 'homogeneous',
-    sourcePlacement: 'latency-misaligned',
-    migrationCost: 0.0001,
-    attestationThreshold: roundTo(2 / 3, 6),
-    slotTime: 12,
-    seed: 25873,
-  },
-  {
-    paradigm: 'SSP',
-    validators: 1000,
-    slots: 1000,
-    distribution: 'heterogeneous',
-    sourcePlacement: 'homogeneous',
-    migrationCost: 0.0001,
-    attestationThreshold: roundTo(2 / 3, 6),
-    slotTime: 12,
-    seed: 25873,
-  },
-  {
-    paradigm: 'MSP',
-    validators: 1000,
-    slots: 1000,
-    distribution: 'heterogeneous',
-    sourcePlacement: 'homogeneous',
-    migrationCost: 0.0001,
-    attestationThreshold: roundTo(2 / 3, 6),
-    slotTime: 12,
-    seed: 25873,
-  },
-  {
-    paradigm: 'SSP',
-    validators: 1000,
-    slots: 1000,
-    distribution: 'homogeneous',
-    sourcePlacement: 'homogeneous',
-    migrationCost: 0.0001,
-    attestationThreshold: roundTo(2 / 3, 6),
-    slotTime: 6,
-    seed: 25873,
-  },
-  {
-    paradigm: 'MSP',
-    validators: 1000,
-    slots: 1000,
-    distribution: 'homogeneous',
-    sourcePlacement: 'homogeneous',
-    migrationCost: 0.0001,
-    attestationThreshold: roundTo(2 / 3, 6),
-    slotTime: 6,
-    seed: 25873,
-  },
-] as const
+const CANONICAL_PREWARM_CONFIGS: ReadonlyArray<SimulationRequest> = getActiveStudy()
+  .runtime
+  .canonicalPrewarmConfigs
+  .map(config => ({ ...config }))
 const brotliCompress = promisify(brotliCompressCallback)
 const DEFAULT_COMPLETED_JOB_RETENTION_MS = Math.max(10 * 60_000, Number(process.env.SIMULATION_COMPLETED_RETENTION_MS ?? 6 * 60 * 60_000))
 const DEFAULT_MAX_STORED_JOBS = Math.max(100, Number(process.env.SIMULATION_MAX_STORED_JOBS ?? 500))

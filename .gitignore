@@ -230,11 +230,15 @@ tests/__pycache__/
 tests/performance_results.json
 
 # Explorer build and local dev state
+node_modules/
 .claude/
 explorer/node_modules/
 explorer/dist/
 explorer/.claude/
 explorer/%USERPROFILE%/
+explorer/playwright-report/
+explorer/test-results/
+explorer/tmp-*.png
 explorer/server/__pycache__/
 explorer/server/data/
 
@@ -242,12 +246,17 @@ explorer/server/data/
 !explorer/src/lib/
 
 # Explorer source config files intentionally committed despite the global *.json rule
+!package.json
 !explorer/package.json
 !explorer/package-lock.json
 !explorer/tsconfig.json
 !explorer/tsconfig.app.json
 !explorer/tsconfig.node.json
 !explorer/server/tsconfig.json
+!packages/study-schema/package.json
+!packages/study-schema/tsconfig.json
+!study-generator/package.json
+!study-generator/tsconfig.json
 
 # Railway deployment config
 !railway.json

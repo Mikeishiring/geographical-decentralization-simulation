@@ -1,11 +1,14 @@
 import { useId, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ExternalLink } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import { buildPublishedEvidenceUrl } from '../../lib/published-evidence-url'
 import { SPRING_CRISP, CHART } from '../../lib/theme'
 import { crosshairFadeNearLive } from '../../lib/chart-animations'
+import { getActiveStudy } from '../../studies'
 import type { PaperChartBlock as PaperChartBlockType } from '../../types/blocks'
 import { CiteBadge } from './CiteBadge'
-import { PAPER_CHART_DATA, type PaperChartPoint, type PaperChartDataset } from '../../data/paper-chart-data'
+import type { PaperChartPoint, PaperChartDataset } from '../../data/paper-chart-data'
 
 interface PaperChartBlockProps {
   block: PaperChartBlockType
@@ -20,46 +23,6 @@ const METRICS: readonly { key: MetricKey; label: string; yLabel: string }[] = [
   { key: 'liveness', label: 'LC_g', yLabel: 'LC_g' },
   { key: 'cv', label: 'CV_g', yLabel: 'CV_g' },
 ]
-
-const CHART_DESCRIPTIONS: Record<string, string> = {
-  'baseline-results': 'Paper Figure 3 replay over 10,000 slots. One composite figure, four metrics, shared slot axis.',
-  'se4a-attestation': 'Paper Figure 7 replay across four attestation-threshold settings. One composite figure, four metrics, shared slot axis.',
-}
-
-const CHART_TAKEAWAYS: Record<string, string> = {
-  'baseline-results': 'Local block building pulls concentration upward faster and farther than external block building in the baseline setup.',
-  'se4a-attestation': 'Raising gamma increases external centralization pressure while reducing local centralization pressure.',
-}
-
-const CHART_METADATA: Record<string, readonly string[]> = {
-  'baseline-results': ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', 'gamma = 2/3'],
-  'se4a-attestation': ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', 'gamma in {1/3, 1/2, 2/3, 4/5}'],
-}
-
-const CHART_PROVENANCE: Record<string, {
-  readonly figureHref: string
-  readonly figureLabel: string
-  readonly datasetSummary: string
-  readonly repoPaths: readonly string[]
-}> = {
-  'baseline-results': {
-    figureHref: '/paper-figures/fig3-baseline.png',
-    figureLabel: 'Open original paper figure',
-    datasetSummary: 'Derived directly from the full raw slot series in the checked-in baseline simulation outputs.',
-    repoPaths: [
-      'dashboard/simulations/baseline/SSP/cost_0.002/data.json',
-      'dashboard/simulations/baseline/MSP/cost_0.002/data.json',
-    ],
-  },
-  'se4a-attestation': {
-    figureHref: '/paper-figures/fig7-se4a-gamma.png',
-    figureLabel: 'Open original paper figure',
-    datasetSummary: 'Derived directly from the full raw slot series in the checked-in attestation-threshold simulation outputs.',
-    repoPaths: [
-      'dashboard/simulations/different_gammas/{SSP,MSP}/cost_0.002_gamma_{0.3333,0.5,0.6667,0.8}/data.json',
-    ],
-  },
-}
 
 function formatNum(value: number): string {
   if (!Number.isFinite(value)) return '0'
@@ -465,7 +428,8 @@ function MiniChart({
 }
 
 export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
-  const chartData = PAPER_CHART_DATA[block.dataKey]
+  const chart = getActiveStudy().paperCharts[block.dataKey]
+  const chartData = chart?.data
   const [hoverSlot, setHoverSlot] = useState<number | null>(null)
   const gradientPrefix = useId().replace(/:/g, '')
 
@@ -479,10 +443,16 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
   }
 
   const { datasets } = chartData
-  const description = CHART_DESCRIPTIONS[block.dataKey]
-  const takeaway = CHART_TAKEAWAYS[block.dataKey]
-  const metadata = CHART_METADATA[block.dataKey] ?? []
-  const provenance = CHART_PROVENANCE[block.dataKey]
+  const description = chart.description
+  const takeaway = chart.takeaway
+  const metadata = chart.metadata
+  const provenance = {
+    figureHref: chart.figureHref,
+    figureLabel: chart.figureLabel,
+    datasetSummary: chart.datasetSummary,
+    repoPaths: chart.repoPaths,
+    publishedScenarioLinks: chart.publishedScenarioLinks ?? [],
+  }
   const { minSlot, maxSlot } = getSlotBounds(datasets)
   const inspectedSlot = hoverSlot ?? maxSlot
   const isDenseFigure = datasets.length > 4
@@ -541,6 +511,20 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
                   >
                     {item}
                   </span>
+                ))}
+              </div>
+            )}
+            {provenance.publishedScenarioLinks.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {provenance.publishedScenarioLinks.map(link => (
+                  <a
+                    key={`${link.evaluation}-${link.paradigm}-${link.result}`}
+                    href={buildPublishedEvidenceUrl(link)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.05] px-3 py-1.5 text-[11px] font-medium text-accent transition-colors hover:bg-accent/[0.1]"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    {link.label}
+                  </a>
                 ))}
               </div>
             )}
@@ -674,7 +658,7 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
               Slot inspector
             </p>
             <p className="mt-1 text-sm font-medium tabular-nums text-text-primary">
-              {hoverSlot != null ? `Showing nearest raw values at slot ${hoverSlot.toLocaleString()}` : `Showing latest raw values at slot ${maxSlot.toLocaleString()}`}
+              {hoverSlot != null ? `Showing nearest available values at slot ${hoverSlot.toLocaleString()}` : `Showing latest available values at slot ${maxSlot.toLocaleString()}`}
             </p>
             {isDenseFigure && (
               <p className="mt-1 text-[11px] leading-5 text-text-faint">
@@ -766,8 +750,9 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
                 href={provenance.figureHref}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-flex text-[12px] font-medium text-accent hover:text-accent/80"
+                className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-accent hover:text-accent/80"
               >
+                <ExternalLink className="h-3 w-3" />
                 {provenance.figureLabel}
               </a>
               <div className="mt-2 space-y-1.5">

@@ -1,0 +1,16 @@
+{
+  "name": "geographical-decentralization-workspace",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "explorer",
+    "study-generator",
+    "packages/study-schema"
+  ],
+  "scripts": {
+    "build:explorer": "npm --workspace explorer run build",
+    "build:generator": "npm --workspace study-generator run build",
+    "build:schema": "npm --workspace @geo-dec/study-schema run build",
+    "build": "npm run build:explorer"
+  }
+}

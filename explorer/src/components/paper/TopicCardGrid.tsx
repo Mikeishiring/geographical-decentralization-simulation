@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM, TOPIC_THEME_STYLE } from '../../lib/theme'
-import { TOPIC_CARDS, type TopicCard } from '../../data/default-blocks'
+import { getActiveStudy } from '../../studies'
+import type { TopicCard } from '../../studies/types'
 
 const INITIAL_VISIBLE = 4
 
@@ -19,12 +20,13 @@ export function TopicCardGrid({
   onTopicClick,
   onBackToOverview,
 }: TopicCardGridProps) {
+  const topicCards = getActiveStudy().topicCards
   const [expanded, setExpanded] = useState(false)
   const visibleCards = useMemo(
-    () => expanded ? TOPIC_CARDS : TOPIC_CARDS.slice(0, INITIAL_VISIBLE),
-    [expanded],
+    () => expanded ? topicCards : topicCards.slice(0, INITIAL_VISIBLE),
+    [expanded, topicCards],
   )
-  const hasMore = TOPIC_CARDS.length > INITIAL_VISIBLE
+  const hasMore = topicCards.length > INITIAL_VISIBLE
 
   return (
     <motion.div
@@ -52,7 +54,7 @@ Paper topics
               onClick={() => setExpanded(prev => !prev)}
               className="text-xs text-muted hover:text-accent transition-colors"
             >
-              {expanded ? 'Show less' : `+${TOPIC_CARDS.length - INITIAL_VISIBLE} more`}
+              {expanded ? 'Show less' : `+${topicCards.length - INITIAL_VISIBLE} more`}
             </button>
           )}
         </div>

@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion'
 import { STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
-import { PAPER_METADATA } from '../../data/paper-sections'
+import { getActiveStudy } from '../../studies'
 import { GlobeNetwork } from '../decorative/GlobeNetwork'
 
 export function PaperHero() {
+  const study = getActiveStudy()
+
   return (
     <motion.section
       className="relative overflow-hidden rounded-xl border border-rule px-5 py-6 sm:px-8 sm:py-8"
@@ -24,13 +26,13 @@ export function PaperHero() {
           variants={STAGGER_ITEM}
           className="text-2xl font-medium leading-snug text-text-primary font-serif sm:text-3xl text-balance"
         >
-          {PAPER_METADATA.title}
+          {study.metadata.title}
         </motion.h1>
-        <motion.p variants={STAGGER_ITEM} className="mt-1.5 text-sm text-muted">{PAPER_METADATA.citation}</motion.p>
+        <motion.p variants={STAGGER_ITEM} className="mt-1.5 text-sm text-muted">{study.metadata.citation}</motion.p>
 
         {/* Key claims as inline chips */}
         <motion.div variants={STAGGER_ITEM} className="mt-3 flex flex-wrap gap-1.5">
-          {PAPER_METADATA.keyClaims.map(claim => (
+          {study.metadata.keyClaims.map(claim => (
             <span key={claim} className="lab-chip">
               {claim}
             </span>
