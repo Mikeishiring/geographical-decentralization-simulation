@@ -18,6 +18,7 @@ import {
   type PublishedReplayNoteStatus,
 } from '../../lib/published-replay-notes-api'
 import type { PublishedViewerSnapshot } from './PublishedDatasetViewer'
+import { paradigmLabel } from './simulation-constants'
 
 interface DatasetRef {
   readonly evaluation: string
@@ -58,7 +59,7 @@ type ThreadFilterId =
 
 function datasetLabel(dataset: DatasetRef | null): string {
   if (!dataset) return 'No published replay selected'
-  return `${dataset.evaluation} / ${dataset.paradigm} / ${dataset.result}`
+  return `${dataset.evaluation} / ${paradigmLabel(dataset.paradigm)} / ${dataset.result}`
 }
 
 function snapshotContext(snapshot: PublishedViewerSnapshot | null): string | null {

@@ -12,7 +12,7 @@ import { listPublishedReplayNotes } from '../../lib/published-replay-notes-api'
 import type { PublishedReplayCopilotResponse } from '../../lib/published-replay-api'
 import { downloadBlobFile } from '../../lib/simulation-export'
 import type { Block, SourceBlock } from '../../types/blocks'
-import { formatNumber } from './simulation-constants'
+import { formatNumber, paradigmLabel } from './simulation-constants'
 import { PublishedReplayCompanionPanel } from './PublishedReplayCompanionPanel'
 import { PublishedReplayNotesPanel } from './PublishedReplayNotesPanel'
 import { PublishedDatasetViewer, type PublishedViewerSnapshot } from './PublishedDatasetViewer'
@@ -637,7 +637,7 @@ export function ResearchDemoSurface({
       label: 'Evidence',
       eyebrow: 'What the replay shows',
       title: selectedDataset
-        ? `${selectedDataset.evaluation} under ${selectedDataset.paradigm} block building`
+        ? `${selectedDataset.evaluation} under ${paradigmLabel(selectedDataset.paradigm)} block building`
         : 'Published replay evidence',
       body: selectedDataset
         ? `This surface treats ${selectedDataset.result} as the authoritative published output and keeps it visible while the reader moves through the paper.`
@@ -682,7 +682,7 @@ export function ResearchDemoSurface({
     return [
       {
         label: 'Explain the replay',
-        prompt: `Summarize what the ${selectedDataset.evaluation} / ${selectedDataset.paradigm} published replay is showing and which charts I should read first.`,
+        prompt: `Summarize what the ${selectedDataset.evaluation} / ${paradigmLabel(selectedDataset.paradigm)} published replay is showing and which charts I should read first.`,
       },
       {
         label: 'Trace slot changes',
@@ -742,7 +742,7 @@ export function ResearchDemoSurface({
         ? `Use slot ${viewerSnapshot.slotNumber.toLocaleString()} to explain how ${selectedPaperSection.number} ${selectedPaperSection.title} should be read.`
         : `Turn ${selectedPaperSection.number} ${selectedPaperSection.title} into concrete expectations for this published replay.`,
       comparisonDataset
-        ? `Using ${selectedPaperSection.number} ${selectedPaperSection.title}, what changes materially between the active replay and ${comparisonDataset.paradigm}?`
+        ? `Using ${selectedPaperSection.number} ${selectedPaperSection.title}, what changes materially between the active replay and ${paradigmLabel(comparisonDataset.paradigm)}?`
         : null,
       paperLens === 'methods'
         ? `Which assumptions in ${selectedPaperSection.number} ${selectedPaperSection.title} matter most for interpreting this published replay?`
@@ -845,7 +845,7 @@ export function ResearchDemoSurface({
       : ''
 
     return statements.length > 0
-      ? `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm} serves as a foil. ${statements.join(' ')}${replayComparison}`
+      ? `${comparisonDataset.evaluation} / ${paradigmLabel(comparisonDataset.paradigm)} serves as a foil. ${statements.join(' ')}${replayComparison}`
       : `Compare ${selectedDataset.result} against ${comparisonDataset.result} with the map, timeline, and current paper lens.${replayComparison}`
   }, [comparisonDataset, comparisonViewerSnapshot, selectedDataset, selectedMetadata, viewerSnapshot])
 
@@ -1339,13 +1339,13 @@ export function ResearchDemoSurface({
     const prompts = [
       {
         label: 'Read this query',
-        prompt: `Using the ${metricLabel.toLowerCase()} query in the ${viewLabel.toLowerCase()} desk for ${selectedDataset.evaluation} / ${selectedDataset.paradigm}, explain what the evidence shows at ${currentSlotLabel} and at the final slot. Start with exact metrics before interpretation.`,
+        prompt: `Using the ${metricLabel.toLowerCase()} query in the ${viewLabel.toLowerCase()} desk for ${selectedDataset.evaluation} / ${paradigmLabel(selectedDataset.paradigm)}, explain what the evidence shows at ${currentSlotLabel} and at the final slot. Start with exact metrics before interpretation.`,
         detail: 'Replay evidence first',
       },
       comparisonDataset
         ? {
             label: 'Compare this query',
-            prompt: `Using the ${metricLabel.toLowerCase()} query in ${compareModeLabel} mode, compare ${selectedDataset.evaluation} / ${selectedDataset.paradigm} against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm}. Start with the exact metric differences, then explain what changes materially.`,
+            prompt: `Using the ${metricLabel.toLowerCase()} query in ${compareModeLabel} mode, compare ${selectedDataset.evaluation} / ${paradigmLabel(selectedDataset.paradigm)} against ${comparisonDataset.evaluation} / ${paradigmLabel(comparisonDataset.paradigm)}. Start with the exact metric differences, then explain what changes materially.`,
             detail: `${activeCompareMode?.label ?? 'Compare'} read`,
           }
         : null,
@@ -1424,17 +1424,17 @@ export function ResearchDemoSurface({
   const replayPublicationQuery = selectedDataset
     ? lastReplayAnswer?.question.trim()
       || assistantDraft.trim()
-      || `What stands out in the ${selectedDataset.paradigm} published replay?`
+      || `What stands out in the ${paradigmLabel(selectedDataset.paradigm)} published replay?`
     : ''
   const replayPublicationSummary = selectedDataset
     ? lastReplayAnswer?.response.summary
-      || `${selectedDataset.evaluation} / ${selectedDataset.paradigm} published replay anchored to ${selectedPaperSection?.number ?? 'the selected paper section'} ${selectedPaperSection?.title ?? ''}${viewerSnapshot ? ` at slot ${viewerSnapshot.slotNumber.toLocaleString()}` : ''}.`
+      || `${selectedDataset.evaluation} / ${paradigmLabel(selectedDataset.paradigm)} published replay anchored to ${selectedPaperSection?.number ?? 'the selected paper section'} ${selectedPaperSection?.title ?? ''}${viewerSnapshot ? ` at slot ${viewerSnapshot.slotNumber.toLocaleString()}` : ''}.`
     : ''
   const replayContributionBlocks: readonly Block[] = (() => {
     if (!selectedDataset) return []
 
     const baseBlocks = (lastReplayAnswer?.response.blocks ?? []).slice(0, 3)
-    const comparisonLabel = comparisonDataset ? `${comparisonDataset.evaluation} / ${comparisonDataset.paradigm}` : null
+    const comparisonLabel = comparisonDataset ? `${comparisonDataset.evaluation} / ${paradigmLabel(comparisonDataset.paradigm)}` : null
     const replayAnchorBlock: Block = {
       type: 'stat',
       value: viewerSnapshot ? `Slot ${viewerSnapshot.slotNumber.toLocaleString()}` : 'Replay-wide',
@@ -1490,7 +1490,7 @@ export function ResearchDemoSurface({
     ]
   })()
   const replayPublishTitle = selectedDataset
-    ? `${selectedDataset.evaluation} ${selectedDataset.paradigm} replay${viewerSnapshot ? ` slot ${viewerSnapshot.slotNumber.toLocaleString()}` : ''}`
+    ? `${selectedDataset.evaluation} ${paradigmLabel(selectedDataset.paradigm)} replay${viewerSnapshot ? ` slot ${viewerSnapshot.slotNumber.toLocaleString()}` : ''}`
     : 'Published replay note'
   const replayPublishTakeaway = replayPublicationSummary
     ? `${replayPublicationSummary}${lastReplayAnswer ? ` ${lastReplayAnswer.answeredContext}` : ''}`
@@ -1683,7 +1683,7 @@ export function ResearchDemoSurface({
   const currentViewSummary = useMemo(() => {
     const playbackLabel = autoplay ? 'autoplay on' : 'manual scrub'
     const compareLabel = comparisonDataset
-      ? `comparison loaded against ${comparisonDataset.evaluation} / ${comparisonDataset.paradigm}`
+      ? `comparison loaded against ${comparisonDataset.evaluation} / ${paradigmLabel(comparisonDataset.paradigm)}`
       : 'single-scenario focus'
 
     const chapterLabel = activeChapterRoute ? ` ${activeChapterRoute.label}.` : ''
@@ -1789,7 +1789,7 @@ export function ResearchDemoSurface({
       {
         label: splitCompareActive && comparisonDataset ? 'Comparison' : 'Liveness',
         value: splitCompareActive && comparisonDataset
-          ? comparisonViewerSnapshot ? `Slot ${comparisonViewerSnapshot.slotNumber.toLocaleString()}` : comparisonDataset.paradigm
+          ? comparisonViewerSnapshot ? `Slot ${comparisonViewerSnapshot.slotNumber.toLocaleString()}` : paradigmLabel(comparisonDataset.paradigm)
           : viewerSnapshot?.currentLiveness != null ? formatPercentValue(viewerSnapshot.currentLiveness) : '--',
         detail: splitCompareActive && comparisonDataset
           ? comparisonDataset.result
@@ -1817,7 +1817,7 @@ export function ResearchDemoSurface({
       {
         label: splitCompareActive && comparisonDataset ? 'Comparison' : 'Paper section',
         value: splitCompareActive && comparisonDataset
-          ? `${comparisonDataset.paradigm}`
+          ? `${paradigmLabel(comparisonDataset.paradigm)}`
           : selectedPaperSection ? selectedPaperSection.number : '--',
         detail: splitCompareActive && comparisonDataset
           ? comparisonDataset.result
@@ -2069,7 +2069,7 @@ export function ResearchDemoSurface({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <h2 className="text-lg font-semibold tracking-tight text-text-primary">
-                {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'Published scenarios'}
+                {selectedDataset ? `${selectedDataset.evaluation} · ${paradigmLabel(selectedDataset.paradigm)}` : 'Published scenarios'}
               </h2>
               {selectedDataset && (
                 <div className="mt-1 text-sm text-muted">{selectedDataset.result}</div>
@@ -2093,8 +2093,8 @@ export function ResearchDemoSurface({
                   if (comparisonDataset) {
                     handlePrimeReplayQuestion(
                       viewerSnapshot
-                        ? `Compare the active replay at slot ${viewerSnapshot.slotNumber.toLocaleString()} against ${comparisonDataset.paradigm} and tell me what changes materially.`
-                        : `What is materially different between the active replay and ${comparisonDataset.paradigm}?`,
+                        ? `Compare the active replay at slot ${viewerSnapshot.slotNumber.toLocaleString()} against ${paradigmLabel(comparisonDataset.paradigm)} and tell me what changes materially.`
+                        : `What is materially different between the active replay and ${paradigmLabel(comparisonDataset.paradigm)}?`,
                       true,
                     )
                   }
@@ -2154,7 +2154,7 @@ export function ResearchDemoSurface({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
                     <span className="lab-chip">{activeViewer.dataset.evaluation}</span>
-                    <span className="lab-chip">{activeViewer.dataset.paradigm}</span>
+                    <span className="lab-chip">{paradigmLabel(activeViewer.dataset.paradigm)}</span>
                     <span className="lab-chip">{activeViewer.dataset.result}</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
@@ -2171,7 +2171,7 @@ export function ResearchDemoSurface({
                     <div className="rounded-xl border border-accent bg-white px-4 py-4">
                       <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Primary published replay</div>
                       <div className="mt-2 text-sm font-medium text-text-primary">
-                        {activeViewer.dataset.evaluation} · {activeViewer.dataset.paradigm}
+                        {activeViewer.dataset.evaluation} · {paradigmLabel(activeViewer.dataset.paradigm)}
                       </div>
                       <div className="mt-1 text-xs text-muted">{activeViewer.dataset.result}</div>
                     </div>
@@ -2191,7 +2191,7 @@ export function ResearchDemoSurface({
                     <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
                       <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Comparison published replay</div>
                       <div className="mt-2 text-sm font-medium text-text-primary">
-                        {comparisonDataset.evaluation} · {comparisonDataset.paradigm}
+                        {comparisonDataset.evaluation} · {paradigmLabel(comparisonDataset.paradigm)}
                       </div>
                       <div className="mt-1 text-xs text-muted">{comparisonDataset.result}</div>
                     </div>
@@ -2279,7 +2279,7 @@ export function ResearchDemoSurface({
                             : 'border-rule bg-surface-active hover:border-border-hover hover:bg-white',
                         )}
                       >
-                        <div className="text-xs font-medium text-text-primary">{entry.evaluation} · {entry.paradigm}</div>
+                        <div className="text-xs font-medium text-text-primary">{entry.evaluation} · {paradigmLabel(entry.paradigm)}</div>
                         <div className="mt-0.5 text-11 text-muted">{entry.result}</div>
                       </button>
                     )
@@ -2414,7 +2414,7 @@ export function ResearchDemoSurface({
                           : 'border-rule bg-white text-text-primary hover:border-border-hover',
                       )}
                     >
-                      {option}
+                      {paradigmLabel(option)}
                     </button>
                   ))}
                 </div>
@@ -2561,7 +2561,7 @@ export function ResearchDemoSurface({
               <span className="lab-chip">{themeLabel(theme)}</span>
               <span className="lab-chip">step {step}</span>
               <span className="lab-chip">{paperLens}</span>
-              {comparisonDataset && <span className="lab-chip">vs {comparisonDataset.paradigm}</span>}
+              {comparisonDataset && <span className="lab-chip">vs {paradigmLabel(comparisonDataset.paradigm)}</span>}
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -2959,7 +2959,7 @@ export function ResearchDemoSurface({
                     >
                       {comparisonCandidates.map(entry => (
                         <option key={entry.path} value={entry.path}>
-                          {entry.evaluation} · {entry.paradigm} · {entry.result}
+                          {entry.evaluation} · {paradigmLabel(entry.paradigm)} · {entry.result}
                         </option>
                       ))}
                     </select>
@@ -2971,7 +2971,7 @@ export function ResearchDemoSurface({
                         <div className="rounded-xl border border-accent bg-white px-4 py-4">
                           <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Active scenario</div>
                           <div className="mt-2 text-sm font-medium text-text-primary">
-                            {selectedDataset ? `${selectedDataset.evaluation} · ${selectedDataset.paradigm}` : 'No scenario'}
+                            {selectedDataset ? `${selectedDataset.evaluation} · ${paradigmLabel(selectedDataset.paradigm)}` : 'No scenario'}
                           </div>
                           <div className="mt-1 text-xs text-muted">{selectedDataset?.result ?? 'N/A'}</div>
                           <div className="mt-3 text-xs leading-5 text-muted">
@@ -2982,7 +2982,7 @@ export function ResearchDemoSurface({
                         <div className="rounded-xl border border-rule bg-surface-active px-4 py-4">
                           <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Comparison scenario</div>
                           <div className="mt-2 text-sm font-medium text-text-primary">
-                            {comparisonDataset ? `${comparisonDataset.evaluation} · ${comparisonDataset.paradigm}` : 'No comparison'}
+                            {comparisonDataset ? `${comparisonDataset.evaluation} · ${paradigmLabel(comparisonDataset.paradigm)}` : 'No comparison'}
                           </div>
                           <div className="mt-1 text-xs text-muted">{comparisonDataset?.result ?? 'N/A'}</div>
                           <div className="mt-3 text-xs leading-5 text-muted">

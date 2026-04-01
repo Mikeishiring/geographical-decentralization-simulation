@@ -13,6 +13,7 @@ import type {
   SurfaceMode,
 } from './simulation-lab-types'
 import type { SimulationConfig } from '../../lib/simulation-api'
+import { paradigmLabel } from './simulation-constants'
 
 export async function fetchResearchCatalog(catalogScriptUrl: string): Promise<ResearchCatalog> {
   const response = await fetch(catalogScriptUrl, { cache: 'default' })
@@ -81,7 +82,7 @@ function resolvePublishedParadigm(paradigm: SimulationConfig['paradigm']): Resea
 }
 
 export function formatPublishedDatasetLabel(dataset: ResearchDatasetEntry): string {
-  return `${dataset.evaluation} · ${dataset.paradigm} · ${dataset.result}`
+  return `${dataset.evaluation} · ${paradigmLabel(dataset.paradigm)} · ${dataset.result}`
 }
 
 export function recommendPublishedComparisonDataset(

@@ -5,7 +5,7 @@ import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import type { SimulationConfig, SimulationJob } from '../../lib/simulation-api'
 import type { RunnerStatus } from './simulation-lab-types'
 import { formatEthValue } from './pending-run-helpers'
-import { estimateRuntimeSeconds } from './simulation-constants'
+import { estimateRuntimeSeconds, paradigmLabel } from './simulation-constants'
 import { useElapsedSeconds, formatElapsed, estimateRunProgress } from './useRunProgress'
 
 function describeRunStage(status: RunnerStatus, queuePosition: number | null, elapsedLabel: string): {
@@ -135,7 +135,7 @@ export function PendingRunSurface({
           >
             <span className="lab-chip bg-white/90">
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              {config.paradigm}
+              {paradigmLabel(config.paradigm)}
             </span>
             <span className="lab-chip bg-white/90">
               <span className="h-1.5 w-1.5 rounded-full bg-warning" />

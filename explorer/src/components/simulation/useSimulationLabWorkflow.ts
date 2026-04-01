@@ -13,7 +13,7 @@ import {
 import type { Block } from '../../types/blocks'
 import type { RunnerStatus } from './simulation-lab-types'
 import { defaultSimulationContributionBlocks, defaultSimulationSummary } from './pending-run-helpers'
-import { paperScenarioLabels } from './simulation-constants'
+import { paperScenarioLabels, paradigmLabel } from './simulation-constants'
 
 interface UseSimulationLabWorkflowOptions {
   readonly clientId: string
@@ -87,7 +87,7 @@ export function useSimulationLabWorkflow({
       }
 
       const created = await createExploration({
-        query: copilotQuestion.trim() || `What stands out in this exact ${manifest.config.paradigm} run?`,
+        query: copilotQuestion.trim() || `What stands out in this exact ${paradigmLabel(manifest.config.paradigm)} run?`,
         summary: copilotResponse?.summary ?? defaultSimulationSummary(manifest),
         blocks: defaultSimulationContributionBlocks(
           manifest,
@@ -158,7 +158,7 @@ export function useSimulationLabWorkflow({
 
   const simulationPublishContextKey = manifest ? `simulation:${currentJobId ?? manifest.jobId}` : null
   const simulationPublishTitle = manifest
-    ? `${manifest.config.paradigm} exact run: ${paperScenarioLabels(manifest.config)[0] ?? 'custom scenario'}`
+    ? `${paradigmLabel(manifest.config.paradigm)} exact run: ${paperScenarioLabels(manifest.config)[0] ?? 'custom scenario'}`
     : ''
   const simulationPublishTakeaway = manifest
     ? copilotResponse?.summary ?? defaultSimulationSummary(manifest)

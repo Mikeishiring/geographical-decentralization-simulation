@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
-import { formatNumber } from './simulation-constants'
+import { formatNumber, paradigmLabel } from './simulation-constants'
 import {
   totalSlotsFromPayload,
   topRegionsForSlot,
@@ -287,7 +287,7 @@ export function EvidenceConfigSnapshot({ metadata, description, paradigm, totalS
       <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium mb-2">Configuration snapshot</div>
 
       <div className="flex flex-wrap gap-1.5 mb-3">
-        <span className="rounded-md border border-black/[0.06] bg-[#FAFAF8] px-2 py-0.5 text-[10px] text-stone-600 font-medium" title="Block-building paradigm used in this simulation">{paradigm}</span>
+        <span className="rounded-md border border-black/[0.06] bg-[#FAFAF8] px-2 py-0.5 text-[10px] text-stone-600 font-medium" title="Block-building paradigm used in this simulation">{paradigmLabel(paradigm)}</span>
         <span className="rounded-md border border-black/[0.06] bg-[#FAFAF8] px-2 py-0.5 text-[10px] text-stone-600 font-medium tabular-nums" title="Total number of consensus slots simulated">{totalSlots.toLocaleString()} slots</span>
         {metadata && PARAM_DEFS.map(({ key, label, title, format }) => {
           const val = metadata[key]

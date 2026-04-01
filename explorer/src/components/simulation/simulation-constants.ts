@@ -156,6 +156,10 @@ export function describeParadigm(paradigm: SimulationConfig['paradigm']): string
   return paradigm === 'SSP' ? 'External' : 'Local'
 }
 
+export function paradigmLabel(value: string): string {
+  return value === 'SSP' ? 'External' : value === 'MSP' ? 'Local' : value
+}
+
 export function describeParadigmWithAlias(paradigm: SimulationConfig['paradigm']): string {
   return `${describeParadigm(paradigm)} (${paradigm})`
 }
