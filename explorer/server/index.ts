@@ -1266,7 +1266,7 @@ function paperScenarioLabels(config: SimulationRequest): string[] {
     labels.push('Reference: SE4a gamma variation')
   }
 
-  labels.push(config.paradigm === 'SSP' ? 'SSP exact mode' : 'MSP exact mode')
+  labels.push(config.paradigm === 'SSP' ? 'External exact mode' : 'Local exact mode')
   return labels
 }
 
@@ -1374,8 +1374,8 @@ function formatMetricNumber(value: number, digits = 2): string {
 function defaultSimulationPrompts(manifest: { config: SimulationRequest } | null): string[] {
   if (!manifest) {
     return [
-      'Set up the paper baseline SSP run (10,000 slots, 0.002 ETH).',
-      'Mirror that paper baseline for MSP so I can compare paradigms.',
+      'Set up the paper baseline external run (10,000 slots, 0.002 ETH).',
+      'Mirror that paper baseline for local block building so I can compare paradigms.',
       'Hold the paradigm fixed and switch from latency-aligned to latency-misaligned sources.',
       'Load the real Ethereum validator start and explain what should change.',
     ]
@@ -2107,7 +2107,7 @@ function buildPublishedReplayFollowUps(
   return [
     `How does slot ${focusSnapshot.slotNumber} compare with the final equilibrium in both replays?`,
     `Why is ${dominantRegion} leading here while the comparison replay concentrates differently?`,
-    'Which metric separates SSP and MSP fastest after this slot: Gini, dominant share, or liveness?',
+    'Which metric separates external and local block building fastest after this slot: Gini, dominant share, or liveness?',
   ]
 }
 
@@ -3442,16 +3442,16 @@ app.get('/llm.txt', (_req, res) => {
 ## What this site is
 An editorial reading layer and simulation lab built over a peer-reviewed paper
 studying how geography shapes validator concentration in Ethereum under two
-block-building paradigms: SSP (external, relay-based) and MSP (local, direct).
+block-building paradigms: external block building (PBS/ePBS, supplier-based) and local block building (direct signal aggregation).
 
 The site presents the same paper at four fidelity levels:
   Editorial (LLM narrative) → Focus (clean reading) → Argument Map (extracted claims) → Original PDF (source)
 Each editorial element carries a provenance tag linking it to the paper source or marking it as interpretation.
 
 ## Key findings (5 claims)
-1. Both SSP and MSP centralize validators toward low-latency cloud regions.
+1. Both external and local block building centralize validators toward low-latency cloud regions.
 2. The attestation threshold (gamma) has OPPOSITE effects: higher gamma
-   increases SSP centralization but can decrease MSP centralization.
+   increases external centralization but can decrease local centralization.
 3. Starting validator distribution dominates paradigm choice for first-order outcomes.
 4. Shorter slot times (EIP-7782) amplify reward inequality without changing geography.
 5. Transient decentralization under joint heterogeneity is fragile, not a mitigation.
@@ -3462,11 +3462,11 @@ Each editorial element carries a provenance tag linking it to the paper source o
 | #system-model         | §3        | Two-layer geographic game                  |
 | #simulation-design    | §4.1      | 40 regions, 1000 validators, 10000 slots   |
 | #baseline-results     | §4.2      | Convergence under homogeneous start        |
-| #se1-source-placement | §4.4      | Infrastructure alignment effects           |
-| #se2-distribution     | §4.5      | Realistic validator distribution           |
-| #se3-joint            | §4.5+     | Transient decentralization (fragile)       |
-| #se4a-attestation     | App E.3   | Gamma paradox (signature result)           |
-| #se4b-slots           | App E.4   | Shorter slot times (EIP-7782)              |
+| #se1-source-placement | §4.3      | Infrastructure alignment effects           |
+| #se2-distribution     | §4.4      | Realistic validator distribution           |
+| #se3-joint            | §4.5      | Transient decentralization (fragile)       |
+| #se4a-attestation     | §4.6.1    | Gamma paradox (signature result)           |
+| #se4b-slots           | §4.6.2    | Shorter slot times (EIP-7782)              |
 | #discussion           | §5        | Mitigation directions (diagnostic)         |
 | #limitations          | §5        | Model assumptions and confidence boundary  |
 
@@ -3487,7 +3487,7 @@ GET  /api/health               — Server health check
 ## Simulation parameters
 | Parameter            | Type    | Default       | Range/Options                               |
 |----------------------|---------|---------------|---------------------------------------------|
-| paradigm             | string  | SSP           | SSP, MSP                                    |
+| paradigm             | string  | SSP           | SSP (External), MSP (Local)                 |
 | validators           | number  | 1000          | 10–10000                                    |
 | slots                | number  | 1000          | 100–50000                                   |
 | distribution         | string  | homogeneous   | homogeneous, heterogeneous                  |

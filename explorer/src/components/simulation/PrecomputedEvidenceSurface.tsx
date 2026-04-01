@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SlidersHorizontal, ChevronDown } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { SlidersHorizontal, ChevronDown, Map as MapIcon, LayoutGrid, BarChart3 } from 'lucide-react'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
 import type { Block } from '../../types/blocks'
-import { formatNumber } from './simulation-constants'
+import { formatNumber, paradigmLabel } from './simulation-constants'
 import { CHART_COLORS } from './simulation-evidence-constants'
 import {
   totalSlotsFromPayload,
@@ -25,7 +25,7 @@ import {
   type PlotCategory,
   type TaggedChartBlock,
 } from './EvidenceSurfacePanels'
-import { EvidenceMapSurface } from './EvidenceMapSurface'
+import { EvidenceMapSurface, type MapLayout } from './EvidenceMapSurface'
 
 // ── Catalog loader ──────────────────────────────────────────────────────────
 
@@ -195,9 +195,9 @@ interface ScenarioSelectorProps {
   readonly onSelect: (entry: ResearchDatasetEntry) => void
 }
 
-const chipBase = 'lab-option-card rounded-full px-2.5 py-0.5 text-2xs font-medium cursor-pointer transition-colors'
-const chipActive = 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
-const chipInactive = 'text-muted hover:text-text-secondary'
+const chipBase = 'rounded-md border px-2.5 py-0.5 text-[10px] font-medium cursor-pointer transition-all duration-150'
+const chipActive = 'border-black/[0.06] bg-white text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+const chipInactive = 'border-transparent text-stone-400 hover:text-stone-600 hover:bg-stone-50'
 const filterLabel = 'text-2xs font-medium uppercase tracking-wider text-text-faint shrink-0'
 const filterDivider = 'hidden sm:block w-px h-5 bg-rule/60 shrink-0'
 
@@ -242,20 +242,16 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
   }, [allResults])
 
   const hasCostDimension = costResults.length > 1
-  const hasSecondaryFilters = paradigms.length > 1 || hasCostDimension || otherResults.length > 1
+  // Cost is always visible; only paradigm/variant go into collapsible
+  const hasSecondaryFilters = paradigms.length > 1 || otherResults.length > 1
 
-  // Build summary of current secondary selections
-  const selectedCostEntry = costResults.find(c => c.result === selectedResult)
+  // Build summary of current secondary selections (cost excluded — always shown)
   const filterSummary = useMemo(() => {
     const parts: Array<{ label: string; value: string }> = []
     if (paradigms.length > 1) parts.push({ label: 'Source', value: selectedParadigm })
-    if (hasCostDimension && selectedCostEntry) {
-      const hint = selectedCostEntry.cost === 0.002 ? ' (paper)' : selectedCostEntry.cost === 0 ? ' (none)' : ''
-      parts.push({ label: 'Cost', value: `${formatCostLabel(selectedCostEntry.cost)}${hint}` })
-    }
     if (otherResults.length > 1) parts.push({ label: 'Variant', value: selectedResult })
     return parts
-  }, [paradigms, selectedParadigm, hasCostDimension, selectedCostEntry, otherResults, selectedResult])
+  }, [paradigms, selectedParadigm, otherResults, selectedResult])
 
   const findAndSelect = useCallback((evaluation: string, paradigm: string, result?: string) => {
     const match = result
@@ -274,7 +270,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
           <select
             value={selectedEvaluation}
             onChange={e => findAndSelect(e.target.value, selectedParadigm)}
-            className="appearance-none rounded-lg border border-rule bg-white pl-2.5 pr-7 py-1 text-xs font-medium text-text-primary cursor-pointer hover:border-accent/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-colors"
+            className="appearance-none rounded-lg border border-black/[0.06] bg-white pl-2.5 pr-7 py-1 text-[11px] font-medium text-stone-800 cursor-pointer hover:border-stone-300 focus:border-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-200 transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
           >
             {evaluations.map(evaluation => (
               <option key={evaluation} value={evaluation}>{evaluation}</option>
@@ -282,6 +278,35 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
           </select>
           <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted" />
         </div>
+
+        {/* Cost chips — always visible when cost dimension exists */}
+        {hasCostDimension && (
+          <div className="flex items-center gap-1.5">
+            <div className="w-px h-4 bg-rule/60" />
+            <span className={filterLabel} title="ETH migration cost charged when a validator relocates between regions. Higher cost = stronger geographic lock-in.">Cost</span>
+            <div className="flex gap-1">
+              {costResults.map(({ result, cost }) => {
+                const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
+                const costTooltips: Record<string, string> = {
+                  '0': 'Zero migration cost — validators can move freely between regions with no penalty',
+                  '0.001': 'Low migration cost — minimal friction for geographic relocation',
+                  '0.002': 'Paper baseline — the migration cost used in the published research paper',
+                  '0.003': 'High migration cost — significant penalty discourages validator movement',
+                }
+                return (
+                  <button
+                    key={result}
+                    onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
+                    title={costTooltips[formatCostLabel(cost)] ?? `Migration cost: ${formatCostLabel(cost)} ETH per relocation`}
+                    className={cn(chipBase, 'tabular-nums', selectedResult === result ? chipActive : chipInactive)}
+                  >
+                    {formatCostLabel(cost)}{hint ? ` (${hint})` : ''}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Active filter summary pills — collapsed view */}
         {hasSecondaryFilters && !filtersOpen && filterSummary.length > 0 && (
@@ -293,7 +318,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
           </div>
         )}
 
-        {/* Customize toggle */}
+        {/* Customize toggle — only for paradigm/variant (cost is always shown) */}
         {hasSecondaryFilters && (
           <button
             onClick={() => setFiltersOpen(prev => !prev)}
@@ -324,7 +349,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
               {/* Source paradigm */}
               {paradigms.length > 1 && (
                 <>
-                  <span className={filterLabel} title="Block-building paradigm: SSP or MSP">Source</span>
+                  <span className={filterLabel} title="Block-building paradigm: External or Local">Paradigm</span>
                   <div className="flex gap-1">
                     {paradigms.map(paradigm => (
                       <button
@@ -332,31 +357,9 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
                         onClick={() => findAndSelect(selectedEvaluation, paradigm)}
                         className={cn(chipBase, selectedParadigm === paradigm ? chipActive : chipInactive)}
                       >
-                        {paradigm}
+                        {paradigmLabel(paradigm)}
                       </button>
                     ))}
-                  </div>
-                </>
-              )}
-
-              {/* Migration cost */}
-              {hasCostDimension && (
-                <>
-                  {paradigms.length > 1 && <div className={filterDivider} />}
-                  <span className={filterLabel} title="ETH migration cost between regions">Cost</span>
-                  <div className="flex gap-1">
-                    {costResults.map(({ result, cost }) => {
-                      const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
-                      return (
-                        <button
-                          key={result}
-                          onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
-                          className={cn(chipBase, 'tabular-nums', selectedResult === result ? chipActive : chipInactive)}
-                        >
-                          {formatCostLabel(cost)}{hint ? ` (${hint})` : ''}
-                        </button>
-                      )
-                    })}
                   </div>
                 </>
               )}
@@ -364,7 +367,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
               {/* Non-cost result variants */}
               {otherResults.length > 1 && (
                 <>
-                  {(paradigms.length > 1 || hasCostDimension) && <div className={filterDivider} />}
+                  {paradigms.length > 1 && <div className={filterDivider} />}
                   <span className={filterLabel}>Variant</span>
                   <div className="flex gap-1">
                     {otherResults.map(result => (
@@ -428,6 +431,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
   const { catalog, error: catalogError } = useResearchCatalog(catalogScriptUrl)
   const [selectedEntry, setSelectedEntry] = useState<ResearchDatasetEntry | null>(null)
   const [activeCategory, setActiveCategory] = useState<PlotCategory>('all')
+  const [mapLayout, setMapLayout] = useState<MapLayout>('split')
   const chartGridRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -449,6 +453,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
     queryFn: () => fetchPayload(viewerBaseUrl, selectedEntry!.path),
     enabled: Boolean(selectedEntry?.path),
     staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
   })
 
   const taggedBlocks = useMemo<readonly TaggedChartBlock[]>(
@@ -498,7 +503,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
             <h2 className="text-xs font-semibold tracking-tight text-text-primary">
               Geographical Decentralization Atlas
             </h2>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <span className="lab-chip bg-white/90 text-2xs">
                 {catalog.datasets.length} scenario{catalog.datasets.length !== 1 ? 's' : ''}
               </span>
@@ -507,6 +512,28 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
                   {totalSlots.toLocaleString()} slots
                 </span>
               )}
+              {/* Layout mode toggle */}
+              <div className="flex items-center rounded-[10px] border border-black/[0.06] bg-[#F6F5F4] p-[2px] gap-[2px]" style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}>
+                {([
+                  { mode: 'full' as MapLayout, icon: MapIcon, tip: 'Full map view' },
+                  { mode: 'split' as MapLayout, icon: LayoutGrid, tip: 'Map + charts side by side' },
+                  { mode: 'charts' as MapLayout, icon: BarChart3, tip: 'Charts focused' },
+                ] as const).map(({ mode, icon: Icon, tip }) => (
+                  <button
+                    key={mode}
+                    onClick={() => setMapLayout(mode)}
+                    title={tip}
+                    className={cn(
+                      'flex items-center justify-center h-6 w-6 rounded-[8px] transition-all duration-150',
+                      mapLayout === mode
+                        ? 'bg-white text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                        : 'text-stone-400 hover:text-stone-600',
+                    )}
+                  >
+                    <Icon className="h-3 w-3" />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -523,7 +550,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
         </div>
       </motion.section>
 
-      {/* ── Loading skeleton ── */}
+      {/* ── Loading skeleton — matches KPI → Map hero order ── */}
       {payloadQuery.isLoading && (
         <div className="mt-3 space-y-3">
           {/* KPI shimmer row */}
@@ -535,19 +562,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
               </div>
             ))}
           </div>
-          {/* Config + narrative shimmer */}
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="lab-stage-soft px-4 py-3 animate-pulse">
-                <div className="h-2.5 w-24 rounded bg-meridian/40 mb-3" />
-                <div className="space-y-2">
-                  <div className="h-2 w-full rounded bg-meridian/20" />
-                  <div className="h-2 w-3/4 rounded bg-meridian/20" />
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Map shimmer */}
+          {/* Map shimmer — hero position */}
           <div className="lab-stage overflow-hidden animate-pulse">
             <div className="border-b border-rule px-5 py-3">
               <div className="h-3 w-32 rounded bg-meridian/40" />
@@ -562,50 +577,68 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
         </div>
       )}
 
-      {/* ── Loaded surface ── */}
+      {/* ── Loaded surface: Filter → KPI → Map (hero) → Lens → Charts ── */}
       {payloadQuery.data && (
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SPRING_CRISP}>
-          {/* KPI analytics strip */}
-          <div className="mt-3">
+          {/* KPI analytics strip — first thing after filters */}
+          <div className="mt-2.5">
             <EvidenceKpiStrip payload={payloadQuery.data} activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
           </div>
 
-          {/* Sticky analytical lens category bar */}
-          <div className="mt-2">
-            <EvidenceCategoryBar
-              activeCategory={activeCategory}
-              onCategoryChange={setActiveCategory}
-              counts={categoryCounts}
-              chartGridRef={chartGridRef}
-            />
-          </div>
-
-          {/* Config snapshot + slot narrative — side by side on desktop */}
-          <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {selectedEntry && (
-              <EvidenceConfigSnapshot
-                metadata={selectedEntry.metadata}
-                description={payloadQuery.data.description}
-                paradigm={selectedEntry.paradigm}
-                totalSlots={totalSlots}
+          {/* Map hero — the primary visual */}
+          {mapLayout !== 'charts' && (
+            <div className="mt-3">
+              <EvidenceMapSurface
+                payload={payloadQuery.data}
+                scenarioLabel={selectedEntry ? `${selectedEntry.evaluation}-${selectedEntry.paradigm}-${selectedEntry.result}` : undefined}
               />
-            )}
-            <SlotMetricsGrid payload={payloadQuery.data} />
-          </div>
+            </div>
+          )}
 
-          {/* Interactive map with latency, playback, and overlays */}
-          <div className="mt-6">
-            <EvidenceMapSurface payload={payloadQuery.data} />
-          </div>
+          {/* Analytical lens — directly above the charts it filters */}
+          {mapLayout !== 'full' && (
+            <div className="mt-3">
+              <EvidenceCategoryBar
+                activeCategory={activeCategory}
+                onCategoryChange={setActiveCategory}
+                counts={categoryCounts}
+                chartGridRef={chartGridRef}
+              />
+            </div>
+          )}
 
-          {/* Section divider */}
-          <div className="section-divider my-6" />
+          {/* Config snapshot + slot narrative — collapsible detail below lens */}
+          {mapLayout !== 'full' && (
+            <details className="mt-3 group/details">
+              <summary className="lab-stage-soft px-4 py-2.5 cursor-pointer select-none flex items-center gap-2 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors">
+                <ChevronDown className="h-3 w-3 transition-transform duration-150 group-open/details:rotate-180" />
+                Scenario details
+                {selectedEntry && (
+                  <span className="text-2xs text-text-faint font-normal ml-1">
+                    {selectedEntry.paradigm} · {totalSlots.toLocaleString()} slots
+                  </span>
+                )}
+              </summary>
+              <div className="mt-1 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
+                {selectedEntry && (
+                  <EvidenceConfigSnapshot
+                    metadata={selectedEntry.metadata}
+                    description={payloadQuery.data.description}
+                    paradigm={selectedEntry.paradigm}
+                    totalSlots={totalSlots}
+                  />
+                )}
+                <SlotMetricsGrid payload={payloadQuery.data} />
+              </div>
+            </details>
+          )}
 
-          {/* Chart panels — 2-col grid on desktop */}
-          <div ref={chartGridRef}>
+          {/* Chart panels — layout-aware grid */}
+          {mapLayout !== 'full' && (
+          <div ref={chartGridRef} className={mapLayout === 'charts' ? 'mt-1' : ''}>
             {taggedBlocks.length > 0 && (
-              <div className="lab-stage px-5 py-4">
-                <div className="flex items-center gap-2 mb-3">
+              <div className="lab-stage px-5 py-3.5">
+                <div className="flex items-center gap-2 mb-2.5">
                   <div className="lab-section-title">Charts</div>
                   {activeCategory !== 'all' && (
                     <span className="lab-chip bg-accent/8 text-accent text-2xs">{activeCategory}</span>
@@ -673,6 +706,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
               </div>
             )}
           </div>
+          )}
         </motion.div>
       )}
     </div>

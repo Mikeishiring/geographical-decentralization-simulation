@@ -11,11 +11,11 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   'system-model': {
     lede: 'The paper starts from a simple but consequential premise: geography is part of the protocol once latency affects value capture and consensus.',
     paragraphs: [
-      'SSP and MSP expose different latency-critical paths, but both transform regional network position into economic advantage. In SSP, a proposer wants fast access to the best relay while also keeping relay-to-attester propagation tight enough to satisfy the attestation threshold. In MSP, the proposer wants to sit where value from many sources accumulates while still remaining close enough to attesters to finalize in time.',
+      'External and local block building expose different latency-critical paths, but both transform regional network position into economic advantage. In external block building, a proposer wants fast access to the best supplier while also keeping supplier-to-attester propagation tight enough to satisfy the attestation threshold. In local block building, the proposer wants to sit where value from many sources accumulates while still remaining close enough to attesters to finalize in time.',
       'That turns validator placement into a geographic game. The paper frames this as a tension between value capture and quorum reachability, and that framing matters because it explains why the same infrastructure change can help one paradigm and hurt the other.',
     ],
     pullQuote: 'The mechanism differs, but the pressure is the same: latency becomes an allocation rule for where validators want to live.',
-    figureCaption: 'The core comparison is the latency path itself: SSP optimizes a best relay path, while MSP optimizes over many direct information inputs.',
+    figureCaption: 'The core comparison is the latency path itself: external block building optimizes a best supplier path, while local block building optimizes over many direct information inputs.',
     keyClaim: 'both transform regional network position into economic advantage',
   },
   'simulation-design': {
@@ -31,18 +31,18 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   'baseline-results': {
     lede: 'Under the homogeneous starting baseline, both paradigms centralize. The interesting part is how differently they get there.',
     paragraphs: [
-      'MSP moves faster and ends more concentrated in the baseline runs. The paper attributes that to the additive nature of local block building: value can accumulate from many distributed sources, so the optimization landscape rewards locations that sit at the overlap between source proximity and attester reachability.',
-      'SSP still centralizes, but the locus is shaped by relay geography and the proposer-relay-attester chain. That makes the final map look different even when the underlying force is still latency-driven concentration.',
+      'Local block building moves faster and ends more concentrated in the baseline runs. The paper attributes that to the additive nature of local block building: value can accumulate from many distributed sources, so the optimization landscape rewards locations that sit at the overlap between source proximity and attester reachability.',
+      'External block building still centralizes, but the locus is shaped by supplier geography and the proposer-supplier-attester chain. That makes the final map look different even when the underlying force is still latency-driven concentration.',
     ],
     pullQuote: 'Baseline results matter here because they show centralization without needing exotic assumptions.',
-    figureCaption: 'The baseline comparison sets the tone for the rest of the paper: MSP is more aggressive in the default geography, SSP is more path-dependent.',
-    keyClaim: 'MSP moves faster and ends more concentrated in the baseline runs',
+    figureCaption: 'The baseline comparison sets the tone for the rest of the paper: local block building is more aggressive in the default geography, external block building is more path-dependent.',
+    keyClaim: 'Local block building moves faster and ends more concentrated in the baseline runs',
   },
   'se1-source-placement': {
     lede: 'Infrastructure placement is not a neutral background condition. It changes the shape of the optimization problem itself.',
     paragraphs: [
-      'The striking result in SE1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm. MSP benefits from aligned source placement because value capture and consensus pressure pull in the same direction.',
-      'SSP behaves differently because badly placed relays create a stronger co-location premium. When the relay path is the bottleneck, shaving proposer-relay latency becomes disproportionately valuable, so misalignment can make concentration worse instead of better.',
+      'The striking result in SE1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm. Local block building benefits from aligned source placement because value capture and consensus pressure pull in the same direction.',
+      'External block building behaves differently because badly placed suppliers create a stronger co-location premium. When the supplier path is the bottleneck, shaving proposer-supplier latency becomes disproportionately valuable, so misalignment can make concentration worse instead of better.',
     ],
     pullQuote: 'The same geography can be stabilizing in one paradigm and destabilizing in the other.',
     figureCaption: 'SE1 is the cleanest demonstration that the paper is not merely comparing two labels; it is comparing two different latency geometries.',
@@ -61,7 +61,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   'se3-joint': {
     lede: 'Joint heterogeneity is where the paper briefly finds something that looks like relief, then carefully refuses to overclaim it.',
     paragraphs: [
-      'In the combined heterogeneous case, the temporary dip in concentration appears when SSP starts from today\'s concentrated validator geography and relay placement is poorly connected to that start. That makes the trajectory visually unusual because it is one of the only times the model briefly moves away from concentration rather than further into it.',
+      'In the combined heterogeneous case, the temporary dip in concentration appears under external block building when suppliers are placed in poorly connected regions relative to the already-concentrated validator geography. That makes the trajectory visually unusual because it is one of the only times the model briefly moves away from concentration rather than further into it.',
       'But the paper treats that as a temporary artifact of competing geographic pulls, not a recipe for decentralization. That caution is a good editorial anchor for the whole reader experience: the goal is to diagnose pressures, not to manufacture optimistic takeaways.',
     ],
     pullQuote: 'A temporary dip in Gini is not the same thing as a decentralization mechanism.',
@@ -71,11 +71,11 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   'se4a-attestation': {
     lede: 'SE4a is the paper\'s signature result because it shows the same protocol parameter producing opposite geographic effects across paradigms.',
     paragraphs: [
-      'Raising the attestation threshold makes SSP centralize more because the relay path becomes more timing-sensitive. The proposer gains more by clustering tightly around the relay geography that minimizes end-to-end delay.',
-      'In MSP, a higher threshold forces a harder compromise between being close to attesters and being close to information sources. Those geographic objectives do not perfectly coincide, so stronger timing pressure can actually disperse the equilibrium rather than compress it.',
+      'Raising the attestation threshold makes external block building centralize more because the supplier path becomes more timing-sensitive. The proposer gains more by clustering tightly around the supplier geography that minimizes end-to-end delay.',
+      'In local block building, a higher threshold forces a harder compromise between being close to attesters and being close to information sources. Those geographic objectives do not perfectly coincide, so stronger timing pressure can actually disperse the equilibrium rather than compress it.',
     ],
     pullQuote: 'The most surprising result in the paper is also the most revealing: timing rules are not paradigm-neutral.',
-    figureCaption: 'Attestation threshold is where the paper most clearly shows that "faster consensus" and "more centralization" do not move identically in SSP and MSP.',
+    figureCaption: 'Attestation threshold is where the paper most clearly shows that "faster consensus" and "more centralization" do not move identically across external and local block building.',
     keyClaim: 'same protocol parameter producing opposite geographic effects across paradigms',
   },
   'se4b-slots': {
@@ -91,7 +91,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   discussion: {
     lede: 'The discussion section is diagnostic rather than prescriptive, and that is the right tone to preserve in the UI.',
     paragraphs: [
-      'The paper sketches mitigation directions such as rewarding underrepresented regions, decentralizing relays and sources, or compensating for latency at the protocol layer. But none of these are presented as settled policy recommendations.',
+      'The paper sketches mitigation directions: weakening proposer monopoly power through decentralized block building (BuilderNet, MCP), dampening latency sensitivity via MEV-burn, and encouraging geographic diversity among suppliers and signal sources. None of these are presented as settled policy recommendations.',
       'That restraint matters. The contribution is to show that geographic concentration is endogenous to the timing structure of the system, not to claim the model has already solved how to counteract it.',
     ],
     pullQuote: 'The strongest claim here is about diagnosis: the protocol and infrastructure together create concentration pressure.',

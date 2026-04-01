@@ -7,7 +7,7 @@ import { SPRING } from '../../lib/theme'
 const EXAMPLE_GROUPS = [
   {
     label: 'Mechanism',
-    prompt: 'Why does a higher gamma centralize SSP more but MSP less?',
+    prompt: 'Why does a higher gamma centralize external block building more but disperse local?',
   },
   {
     label: 'Comparison',

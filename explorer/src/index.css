@@ -16,8 +16,8 @@
   --color-text-faint: rgba(0, 0, 0, 0.42);
 
   /* Geo-themed accent palette */
-  --color-accent: #2563EB;          /* ocean blue — SSP, centralized flows */
-  --color-accent-warm: #C2553A;     /* terracotta — MSP, local/grounded */
+  --color-accent: #2563EB;          /* ocean blue — external block building */
+  --color-accent-warm: #C2553A;     /* terracotta — local block building */
   --color-success: #16A34A;         /* meridian green — verified, surveyor marks */
   --color-warning: #D97706;         /* amber — caveats, caution */
   --color-danger: #DC2626;          /* signal red — surprising findings */
@@ -59,9 +59,11 @@ body {
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 16px rgba(0, 0, 0, 0.04);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }

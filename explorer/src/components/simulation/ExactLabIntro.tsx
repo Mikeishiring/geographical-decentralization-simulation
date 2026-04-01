@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { PRESETS, paperScenarioLabels } from './simulation-constants'
+import { PRESETS, paperScenarioLabels, paradigmLabel } from './simulation-constants'
 import type { SimulationConfig } from '../../lib/simulation-api'
 import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 
@@ -27,7 +27,7 @@ export function ExactLabIntro({
         initial="hidden"
         animate="visible"
       >
-        <motion.span variants={STAGGER_ITEM} className="lab-chip bg-white/90">{config.paradigm}</motion.span>
+        <motion.span variants={STAGGER_ITEM} className="lab-chip bg-white/90">{paradigmLabel(config.paradigm)}</motion.span>
         <motion.span variants={STAGGER_ITEM} className="lab-chip bg-white/90">{config.validators.toLocaleString()} validators</motion.span>
         <motion.span variants={STAGGER_ITEM} className="lab-chip bg-white/90">{config.slots.toLocaleString()} slots</motion.span>
         <motion.span variants={STAGGER_ITEM} className="lab-chip bg-white/90">{comparabilityTitle}</motion.span>

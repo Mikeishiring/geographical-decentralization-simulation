@@ -201,7 +201,7 @@ function buildArtifactFigureNote(artifact: SimulationArtifact): {
     case 'proposal_time_avg.json':
       return {
         title: 'Latency pressure trace',
-        detail: 'Read this as the timing cost of the current geography and source placement, especially when comparing SSP against MSP.',
+        detail: 'Read this as the timing cost of the current geography and source placement, especially when comparing external against local block building.',
       }
     default:
       switch (artifact.kind) {

@@ -7,6 +7,7 @@ import { PaperViewModeBar, type ReaderMode } from '../components/paper/PaperView
 import { EditorialView } from '../components/paper/EditorialView'
 import { ArgumentsView } from '../components/paper/ArgumentsView'
 import { FullTextView } from '../components/paper/FullTextView'
+import { PaperNavProvider } from '../components/paper/PaperNavContext'
 import { SelectionPopover } from '../components/community/SelectionPopover'
 import { useTextSelection } from '../hooks/useTextSelection'
 import type { TextAnchor } from '../types/anchors'
@@ -43,6 +44,14 @@ export function PaperReaderPage({
 
   const [guideOpen, setGuideOpen] = useState(false)
   const [notesVisible, setNotesVisible] = useState(true)
+  const [pdfTargetPage, setPdfTargetPage] = useState<number | undefined>(undefined)
+
+  const goToPdfPage = useCallback((page: number) => {
+    setPdfTargetPage(page)
+    setReaderMode('paper')
+  }, [])
+
+  const paperNavValue = useMemo(() => ({ goToPdfPage }), [goToPdfPage])
 
   // Text selection for community notes
   const { containerRef, selection, selectionRect, clearSelection } = useTextSelection(readerMode)
@@ -56,11 +65,11 @@ export function PaperReaderPage({
     refetchInterval: isActive ? 60_000 : false,
   })
 
-  // Use real notes when available, fall back to mock data for demo
-  // Only use real notes if they have section anchors (usable for inline display)
+  // Merge real API notes with mock seed data, dedup by ID
   const resolvedNotes = useMemo(() => {
     const real = (notesQuery.data ?? []).filter(n => n.anchor?.sectionId)
-    return real.length > 0 ? real : [...MOCK_COMMUNITY_NOTES]
+    const realIds = new Set(real.map(n => n.id))
+    return [...real, ...MOCK_COMMUNITY_NOTES.filter(m => !realIds.has(m.id))]
   }, [notesQuery.data])
 
   // Group notes by sectionId
@@ -81,7 +90,7 @@ export function PaperReaderPage({
     ? (notesBySection.get(selection.sectionId)?.length ?? 0)
     : 0
 
-  const handleAddNote = useCallback(async (anchor: TextAnchor, comment: string) => {
+  const handleAddNote = useCallback(async (anchor: TextAnchor, comment: string): Promise<boolean> => {
     try {
       const section = anchor.sectionId
         ? PAPER_SECTIONS.find(s => s.id === anchor.sectionId)
@@ -123,16 +132,20 @@ export function PaperReaderPage({
         },
       )
 
-      clearSelection()
+      // Don't clearSelection here — let the popover show its
+      // confirmation animation, then dismiss via onDismiss callback
       window.getSelection()?.removeAllRanges()
 
-      // Reconcile with server data
-      await queryClient.invalidateQueries({ queryKey: ['explorations'] })
+      // Reconcile with server data in background
+      queryClient.invalidateQueries({ queryKey: ['explorations'] })
+
+      return true
     } catch {
       setNoteError('Failed to publish note. Please try again.')
       window.setTimeout(() => setNoteError(null), 4000)
+      return false
     }
-  }, [clearSelection, queryClient])
+  }, [queryClient])
 
   // Persist mode to localStorage
   useEffect(() => {
@@ -196,7 +209,7 @@ export function PaperReaderPage({
   )
 
   return (
-    <>
+    <PaperNavProvider value={paperNavValue}>
     {/* Popover lives OUTSIDE the container so mousedown on it
         never triggers the container's selection-clear handler */}
     <SelectionPopover
@@ -205,6 +218,7 @@ export function PaperReaderPage({
       onAddNote={handleAddNote}
       onDismiss={clearSelection}
       sectionNoteCount={selectionSectionNoteCount}
+      containerRef={containerRef}
     />
 
     {noteError && (
@@ -238,7 +252,7 @@ export function PaperReaderPage({
 
       {/* Active view */}
       {readerMode === 'paper' ? (
-        <FullTextView />
+        <FullTextView initialPage={pdfTargetPage} />
       ) : readerMode === 'arguments' ? (
         <ArgumentsView
           activeSectionId={activeSectionId}
@@ -260,6 +274,6 @@ export function PaperReaderPage({
         />
       )}
     </div>
-    </>
+    </PaperNavProvider>
   )
 }

@@ -227,7 +227,7 @@ function parseExploration(raw: RawExploration): Exploration {
 }
 
 export async function listExplorations(options?: {
-  sort?: 'recent' | 'top'
+  sort?: 'recent' | 'top' | 'discussed' | 'controversial'
   limit?: number
   search?: string
   publishedOnly?: boolean

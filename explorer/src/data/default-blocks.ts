@@ -11,7 +11,7 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
     type: 'stat',
     value: '2',
     label: 'Paradigms Compared',
-    sublabel: 'SSP (external) vs MSP (local) block building',
+    sublabel: 'External vs Local block building',
   },
   {
     type: 'stat',
@@ -31,32 +31,32 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
     type: 'insight',
     emphasis: 'key-finding',
     title: 'Both paradigms centralize, but differently',
-    text: 'Both SSP and MSP push toward geographic concentration through different latency-critical paths. SSP is shaped more directly by relay placement, while MSP adds value from many sources and consensus pressure at the same time. Under baseline homogeneous conditions, **MSP centralizes faster and more severely** than SSP.',
+    text: 'Both external and local block building push toward geographic concentration through different latency-critical paths. External block building is shaped more directly by supplier placement, while local block building adds value from many sources and consensus pressure at the same time. Under baseline homogeneous conditions, **local block building centralizes faster and more severely** than external.',
   },
 
   // Row 3: Head-to-head comparison
   {
     type: 'comparison',
-    title: 'SSP vs MSP: Baseline Centralization',
+    title: 'External vs Local: Baseline Centralization',
         left: {
-          label: 'SSP (External)',
+          label: 'External Block Building',
           items: [
             { key: 'Convergence speed', value: 'Slower baseline rise' },
             { key: 'Migration cost', value: 'More sensitive to friction' },
-            { key: 'Reward variance', value: 'Lower than MSP' },
-            { key: 'Dominant pull', value: 'Relay geography' },
+            { key: 'Reward variance', value: 'Lower than Local' },
+            { key: 'Dominant pull', value: 'Supplier geography' },
           ],
         },
         right: {
-          label: 'MSP (Local)',
+          label: 'Local Block Building',
           items: [
             { key: 'Convergence speed', value: 'Faster baseline rise' },
-            { key: 'Migration cost', value: 'Less sensitive than SSP' },
-            { key: 'Reward variance', value: 'Higher than SSP' },
+            { key: 'Migration cost', value: 'Less sensitive than External' },
+            { key: 'Reward variance', value: 'Higher than External' },
             { key: 'Dominant pull', value: 'Source plus attester overlap' },
           ],
         },
-        verdict: 'MSP centralizes faster in the neutral baseline family, while SSP remains more path-dependent to infrastructure placement and migration cost.',
+        verdict: 'Local block building centralizes faster in the neutral baseline family, while external block building remains more path-dependent to infrastructure placement and migration cost.',
       },
 
   // Row 4: Surprising finding
@@ -64,7 +64,7 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
     type: 'insight',
     emphasis: 'surprising',
     title: 'Attestation threshold has opposite effects',
-    text: 'Higher γ (attestation threshold) → SSP centralizes **MORE** but MSP centralizes **LESS**. In SSP, tighter timing amplifies latency sensitivity — reducing proposer-relay latency yields larger marginal MEV. In MSP, a higher threshold forces proposers to balance attester proximity (quorum) vs signal proximity (value), and these point in **different geographic directions**, dispersing rather than concentrating validators. This is the only protocol parameter with opposite effects across paradigms.',
+    text: 'Higher γ (attestation threshold) → external block building centralizes **MORE** but local block building centralizes **LESS**. In external block building, tighter timing amplifies latency sensitivity — reducing proposer-supplier latency yields larger marginal MEV. In local block building, a higher threshold forces proposers to balance attester proximity (quorum) vs signal proximity (value), and these point in **different geographic directions**, dispersing rather than concentrating validators. This is the only protocol parameter with opposite effects across paradigms.',
   },
 
   // Row 5: Validator distribution across the 40 GCP regions used in the paper
@@ -134,7 +134,7 @@ export const OVERVIEW_CARD: TopicCard = {
   theme: 'finding',
   prompts: [
     'Why is Ethereum geography not neutral in these models?',
-    'Why does gamma push SSP and MSP in opposite directions?',
+    'Why does gamma push external and local block building in opposite directions?',
     'Does starting geography matter more than paradigm choice?',
     'What does this imply for protocol design and infrastructure policy?',
     'What changes under shorter slots: geography or fairness?',
@@ -146,31 +146,31 @@ export const OVERVIEW_CARD: TopicCard = {
 export const TOPIC_CARDS: readonly TopicCard[] = [
   {
     id: 'ssp-vs-msp',
-    title: 'Why does MSP centralize faster than SSP?',
-    description: 'The baseline head-to-head, plus the mechanism that makes MSP harsher.',
+    title: 'Why does local block building centralize faster than external?',
+    description: 'The baseline head-to-head, plus the mechanism that makes local block building harsher.',
     theme: 'ssp',
     prompts: [
-      'Why does MSP centralize faster than SSP?',
-      'How does SSP compare to MSP?',
-      'What is the baseline SSP vs MSP result?',
-      'What mechanism makes MSP more aggressive?',
+      'Why does local block building centralize faster than external?',
+      'How does external block building compare to local?',
+      'What is the baseline External vs Local result?',
+      'What mechanism makes local block building more aggressive?',
       'Compare external and local block building under the same baseline.',
     ],
     blocks: [
       {
         type: 'comparison',
-        title: 'SSP vs MSP: Baseline Centralization Metrics',
+        title: 'External vs Local: Baseline Centralization Metrics',
         left: {
-          label: 'SSP (External)',
+          label: 'External Block Building',
           items: [
-            { key: 'Mechanism', value: 'Co-locate with relay' },
-            { key: 'Path', value: 'Proposer→Relay→Attesters (2 hops)' },
-            { key: 'Centralizing force', value: 'Relay latency dominates' },
-            { key: 'Baseline tendency', value: 'Centralizes, but usually less than MSP' },
+            { key: 'Mechanism', value: 'Co-locate with supplier' },
+            { key: 'Path', value: 'Proposer→Supplier→Attesters (2 hops)' },
+            { key: 'Centralizing force', value: 'Supplier latency dominates' },
+            { key: 'Baseline tendency', value: 'Centralizes, but usually less than Local' },
           ],
         },
         right: {
-          label: 'MSP (Local)',
+          label: 'Local Block Building',
           items: [
             { key: 'Mechanism', value: 'Optimize signal+attester proximity' },
             { key: 'Path', value: 'Proposer→Attesters (1 hop)' },
@@ -178,13 +178,13 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
             { key: 'Baseline tendency', value: 'Centralizes faster and more strongly' },
           ],
         },
-        verdict: 'Both centralize, but MSP is faster and more severe under baseline homogeneous conditions.',
+        verdict: 'Both centralize, but local block building is faster and more severe under baseline homogeneous conditions.',
       },
       {
         type: 'insight',
         emphasis: 'key-finding',
         title: 'Key mechanical difference',
-        text: 'SSP evaluates all (region, relay) pairs and picks the single best. MSP sums all signal offers per region — the value function is additive over sources, creating a fundamentally different optimization landscape.',
+        text: 'External block building evaluates all (region, supplier) pairs and picks the single best. Local block building sums all signal offers per region — the value function is additive over sources, creating a fundamentally different optimization landscape.',
       },
     ],
   },
@@ -206,9 +206,9 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
         headers: ['Lever', 'Paper-backed reading', 'Why restraint matters'],
         rows: [
           ['Shorter slots', 'Raises payoff inequality more clearly than it changes the geographic map', 'Not evidence that slot reduction solves or reverses centralization'],
-          ['Attestation threshold', 'Can tighten SSP concentration while loosening MSP concentration', 'The same protocol lever does not generalize across paradigms'],
-          ['Relay / source placement', 'Infrastructure geography changes concentration pressure directly', 'This is partly an ecosystem and operator-coordination problem, not just a core-protocol one'],
-          ['Diversity incentives', 'Could counteract concentration pressure in principle', 'The paper does not validate a production-ready incentive design'],
+          ['Attestation threshold', 'Can tighten external block building concentration while loosening local block building concentration', 'The same protocol lever does not generalize across paradigms'],
+          ['Supplier / source placement', 'Infrastructure geography changes concentration pressure directly', 'This is partly an ecosystem and operator-coordination problem, not just a core-protocol one'],
+          ['MEV-burn / reward dampening', 'Reduces latency-driven payoff differences, weakening migration incentives', 'Primarily motivated by fairness; geographic effect is indirect and untested by this model'],
         ],
       },
       {
@@ -238,13 +238,13 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
       {
         type: 'table',
         title: 'Convergence Loci by Paradigm and Experiment',
-        headers: ['Experiment', 'SSP Convergence', 'MSP Convergence'],
+        headers: ['Experiment', 'External Convergence', 'Local Convergence'],
         rows: [
           ['Baseline (migration-free)', 'North America becomes a focal hub', 'North America becomes a focal hub faster'],
           ['Baseline (with migration cost)', 'More persistence away from the tightest hubs', 'Still concentrates strongly toward North America'],
-          ['SE1: Aligned sources', 'Usually softer than misaligned SSP', 'Reinforces centralization pressure'],
-          ['SE1: Misaligned sources', 'Poorly connected relay sharpens co-location pull', 'Source vs attester trade-off becomes more visible'],
-          ['SE2 / SE3: Real ETH start', 'Existing US+EU hubs dominate; remote relays can cause a brief dip first', 'Existing US+EU hubs dominate; source placement matters less'],
+          ['SE1: Aligned sources', 'Usually softer than misaligned External', 'Reinforces centralization pressure'],
+          ['SE1: Misaligned sources', 'Poorly connected supplier sharpens co-location pull', 'Source vs attester trade-off becomes more visible'],
+          ['SE2 / SE3: Real ETH start', 'Existing US+EU hubs dominate; remote suppliers can cause a brief dip first', 'Existing US+EU hubs dominate; source placement matters less'],
         ],
         highlight: [4],
       },
@@ -257,11 +257,11 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
   {
     id: 'source-placement',
     title: 'Why can moving sources help one paradigm and hurt the other?',
-    description: 'SE1 shows the same infrastructure change pushing SSP and MSP in opposite directions.',
+    description: 'SE1 shows the same infrastructure change pushing external and local block building in opposite directions.',
     theme: 'msp',
     prompts: [
       'Why can moving sources help one paradigm and hurt the other?',
-      'Why are aligned sources worse for MSP but misaligned sources worse for SSP?',
+      'Why are aligned sources worse for local block building but misaligned sources worse for external?',
       'What does source placement change in the model?',
       'How do source locations change centralization?',
     ],
@@ -270,11 +270,11 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
         type: 'insight',
         emphasis: 'key-finding',
         title: 'Opposite paradigm sensitivities to source placement',
-        text: 'MSP: latency-**aligned** sources centralize MORE (low-latency regions benefit both value capture and propagation). SSP: latency-**misaligned** sources centralize MORE (poorly connected relays create a large proposer-relay gap, making co-location extremely valuable). The same infrastructure change has **opposite effects** depending on the paradigm.',
+        text: 'Local block building: latency-**aligned** sources centralize MORE (low-latency regions benefit both value capture and propagation). External block building: latency-**misaligned** sources centralize MORE (poorly connected suppliers create a large proposer-supplier gap, making co-location extremely valuable). The same infrastructure change has **opposite effects** depending on the paradigm.',
       },
       {
         type: 'caveat',
-        text: 'Exception: MSP + misaligned sources produces LOWER CV_g (reward variance) than baseline — the trade-off between signal proximity and attester proximity creates more balanced rewards even as geographic concentration increases.',
+        text: 'Exception: local block building + misaligned sources produces LOWER CV_g (reward variance) than baseline — the trade-off between signal proximity and attester proximity creates more balanced rewards even as geographic concentration increases.',
       },
     ],
   },
@@ -298,7 +298,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
       },
       {
         type: 'insight',
-        text: 'Once attester geography is already concentrated, MSP becomes less responsive to source placement. SSP can still deviate transiently when relay placement is remote from the starting hubs, but that is not a stable decentralization effect.',
+        text: 'Once attester geography is already concentrated, local block building becomes less responsive to source placement. External block building can still deviate transiently when supplier placement is remote from the starting hubs, but that is not a stable decentralization effect.',
       },
     ],
   },
@@ -309,17 +309,17 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
     theme: 'msp',
     prompts: [
       'Why does gamma flip direction across paradigms?',
-      'Why does a higher attestation threshold centralize SSP more but MSP less?',
+      'Why does a higher attestation threshold centralize external block building more but local block building less?',
       "What is the paper's sharpest paradox?",
-      'How does higher gamma affect SSP and MSP?',
+      'How does higher gamma affect external and local block building?',
     ],
     blocks: [
       {
         type: 'table',
         title: 'Directional Effect of Attestation Threshold',
-        headers: ['Gamma move', 'SSP', 'MSP'],
+        headers: ['Gamma move', 'External Block Building', 'Local Block Building'],
         rows: [
-          ['Lower γ', 'Looser timing reduces relay-latency pressure', 'Weaker incentive to balance sources against attesters'],
+          ['Lower γ', 'Looser timing reduces supplier-latency pressure', 'Weaker incentive to balance sources against attesters'],
           ['Higher γ', 'Tighter timing raises centralization pressure', 'Tighter timing can disperse equilibrium by sharpening competing pulls'],
         ],
       },
@@ -327,7 +327,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
         type: 'insight',
         emphasis: 'surprising',
         title: 'Opposite protocol lever',
-        text: 'In SSP, tighter timing (higher γ) amplifies latency sensitivity — reducing proposer-relay latency yields **larger marginal MEV gains**. In MSP, higher γ forces proposers to balance attester proximity (quorum) vs signal proximity (value). These point in **different geographic directions**, so tightening threshold disperses rather than concentrates. This is the paper\'s most surprising finding.',
+        text: 'In external block building, tighter timing (higher γ) amplifies latency sensitivity — reducing proposer-supplier latency yields **larger marginal MEV gains**. In local block building, higher γ forces proposers to balance attester proximity (quorum) vs signal proximity (value). These point in **different geographic directions**, so tightening threshold disperses rather than concentrates. This is the paper\'s most surprising finding.',
       },
     ],
   },

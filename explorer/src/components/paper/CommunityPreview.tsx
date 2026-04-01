@@ -106,16 +106,7 @@ export function CommunityPreview({
               whileTap={{ scale: 0.98 }}
               transition={SPRING_POPUP}
               onClick={() => onOpenNote(exploration.id)}
-              className="group/card rounded-xl border border-black/[0.06] bg-white px-4 py-4 text-left transition-shadow duration-150"
-              style={{
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'
-              }}
+              className="group/card rounded-xl border border-black/[0.06] bg-white px-4 py-4 text-left shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-shadow focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
             >
               {/* Label */}
               <div className="text-2xs font-medium uppercase tracking-[0.1em] text-black/40">

@@ -14,6 +14,7 @@ import {
 } from '../../lib/published-replay-api'
 import type { Block, SourceBlock as SourceBlockData } from '../../types/blocks'
 import type { PublishedViewerSnapshot } from './PublishedDatasetViewer'
+import { paradigmLabel } from './simulation-constants'
 
 interface DatasetRef {
   readonly evaluation: string
@@ -65,7 +66,7 @@ interface PublishedReplayCompanionPanelProps {
 
 function datasetLabel(dataset: DatasetRef | null): string {
   if (!dataset) return 'No published replay selected'
-  return `${dataset.evaluation} / ${dataset.paradigm} / ${dataset.result}`
+  return `${dataset.evaluation} / ${paradigmLabel(dataset.paradigm)} / ${dataset.result}`
 }
 
 function sourceRoleLabel(sourceRole: string | undefined): string {
@@ -204,7 +205,7 @@ export function PublishedReplayCompanionPanel({
       prompts.push(
         comparisonSlot != null
           ? `Compare the active replay at slot ${primarySlot.toLocaleString()} against the comparison replay at slot ${comparisonSlot.toLocaleString()}.`
-          : `What is materially different between the active replay and ${comparisonDataset.paradigm}?`,
+          : `What is materially different between the active replay and ${paradigmLabel(comparisonDataset.paradigm)}?`,
       )
     }
 
@@ -500,7 +501,7 @@ export function PublishedReplayCompanionPanel({
           ) : null}
           {viewerSnapshot?.currentGini != null ? <span className="lab-chip">gini {formatMetric(viewerSnapshot.currentGini, 3)}</span> : null}
           {viewerSnapshot?.currentLiveness != null ? <span className="lab-chip">liveness {formatMetric(viewerSnapshot.currentLiveness, 1)}%</span> : null}
-          {comparisonDataset ? <span className="lab-chip">compare {comparisonDataset.paradigm}</span> : null}
+          {comparisonDataset ? <span className="lab-chip">compare {paradigmLabel(comparisonDataset.paradigm)}</span> : null}
           {comparisonViewerSnapshot ? <motion.span variants={STAGGER_ITEM} className="lab-chip">compare slot {comparisonViewerSnapshot.slotNumber}</motion.span> : null}
         </motion.div>
         <div className="mt-3 text-xs leading-5 text-muted">{currentViewSummary}</div>
