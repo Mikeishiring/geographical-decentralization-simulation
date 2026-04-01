@@ -69,14 +69,14 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     keyClaim: 'temporary artifact of competing geographic pulls, not a recipe for decentralization',
   },
   'se4a-attestation': {
-    lede: 'SE4a is the paper\'s signature result because it shows the same protocol parameter producing opposite geographic effects across paradigms.',
+    lede: 'SE4a is the paper\'s signature result because, in its homogeneous setup, the same protocol parameter moves the two paradigms in opposite directions.',
     paragraphs: [
-      'Raising the attestation threshold makes external block building centralize more because the supplier path becomes more timing-sensitive. The proposer gains more by clustering tightly around the supplier geography that minimizes end-to-end delay.',
-      'In local block building, a higher threshold forces a harder compromise between being close to attesters and being close to information sources. Those geographic objectives do not perfectly coincide, so stronger timing pressure can actually disperse the equilibrium rather than compress it.',
+      'Within the attestation-threshold experiment, raising the threshold makes external block building centralize more because the supplier path becomes more timing-sensitive. The proposer gains more by clustering tightly around the supplier geography that minimizes end-to-end delay.',
+      'In that same experiment, a higher threshold forces local block building into a harder compromise between being close to attesters and being close to information sources. Those geographic objectives do not perfectly coincide, so stronger timing pressure can disperse the equilibrium rather than compress it.',
     ],
     pullQuote: 'The most surprising result in the paper is also the most revealing: timing rules are not paradigm-neutral.',
     figureCaption: 'Attestation threshold is where the paper most clearly shows that "faster consensus" and "more centralization" do not move identically across external and local block building.',
-    keyClaim: 'same protocol parameter producing opposite geographic effects across paradigms',
+    keyClaim: 'in its homogeneous setup, the same protocol parameter moves the two paradigms in opposite directions',
   },
   'se4b-slots': {
     lede: 'Shorter slots do less to change where validators end up than to change how unevenly rewards are distributed on the way there.',
@@ -101,7 +101,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   limitations: {
     lede: 'The limitations section is one of the most important parts of the paper because it defines where confidence should stop.',
     paragraphs: [
-      'Every simplification in the model trades realism for tractability: cloud-only latency, deterministic MEV, full information, fixed migration cost, and no strategic coalition behavior. Those assumptions make the simulations readable and comparable, but they also bound what can be claimed.',
+      'Every simplification in the model trades realism for tractability: GCP-based latency data, a deterministic value function, additive and fungible information sources, a full-information benchmark, and instantaneous constant-cost migration. Those assumptions make the simulations readable and comparable, but they also bound what can be claimed.',
       'For the website, this section should remain close to the end of the reading flow rather than hidden behind a footnote. It keeps the project aligned with the researchers\' intent: truth first, then interpretation.',
     ],
     pullQuote: 'A good research interface should make the caveats feel structural, not optional.',

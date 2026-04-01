@@ -134,7 +134,7 @@ export const OVERVIEW_CARD: TopicCard = {
   theme: 'finding',
   prompts: [
     'Why is Ethereum geography not neutral in these models?',
-    'Why does gamma push external and local block building in opposite directions?',
+    'Why does gamma push external and local block building in opposite directions in SE4a?',
     'Does starting geography matter more than paradigm choice?',
     'What does this imply for protocol design and infrastructure policy?',
     'What changes under shorter slots: geography or fairness?',
@@ -206,7 +206,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
         headers: ['Lever', 'Paper-backed reading', 'Why restraint matters'],
         rows: [
           ['Shorter slots', 'Raises payoff inequality more clearly than it changes the geographic map', 'Not evidence that slot reduction solves or reverses centralization'],
-          ['Attestation threshold', 'Can tighten external block building concentration while loosening local block building concentration', 'The same protocol lever does not generalize across paradigms'],
+          ['Attestation threshold', 'In SE4a, can tighten external block building concentration while loosening local block building concentration', 'The same protocol lever does not generalize across paradigms or setups'],
           ['Supplier / source placement', 'Infrastructure geography changes concentration pressure directly', 'This is partly an ecosystem and operator-coordination problem, not just a core-protocol one'],
           ['MEV-burn / reward dampening', 'Reduces latency-driven payoff differences, weakening migration incentives', 'Primarily motivated by fairness; geographic effect is indirect and untested by this model'],
         ],
@@ -305,12 +305,12 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
   {
     id: 'attestation-threshold',
     title: 'Why does gamma flip direction across paradigms?',
-    description: 'The sharpest paradox in the paper: one protocol lever, opposite geographic effects.',
+    description: 'SE4a is the paper\'s clearest paradigm contrast: in the homogeneous setup, one protocol lever moves the paradigms in opposite directions.',
     theme: 'msp',
     prompts: [
       'Why does gamma flip direction across paradigms?',
       'Why does a higher attestation threshold centralize external block building more but local block building less?',
-      "What is the paper's sharpest paradox?",
+      'What does SE4a show about attestation thresholds?',
       'How does higher gamma affect external and local block building?',
     ],
     blocks: [
@@ -326,8 +326,8 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
       {
         type: 'insight',
         emphasis: 'surprising',
-        title: 'Opposite protocol lever',
-        text: 'In external block building, tighter timing (higher γ) amplifies latency sensitivity — reducing proposer-supplier latency yields **larger marginal MEV gains**. In local block building, higher γ forces proposers to balance attester proximity (quorum) vs signal proximity (value). These point in **different geographic directions**, so tightening threshold disperses rather than concentrates. This is the paper\'s most surprising finding.',
+        title: 'Opposite protocol lever in SE4a',
+        text: 'In SE4a\'s homogeneous setup, tighter timing (higher γ) amplifies external latency sensitivity, so reducing proposer-supplier latency yields **larger marginal gains**. In local block building, higher γ forces proposers to balance attester proximity (quorum) against signal proximity (value). These point in **different geographic directions**, so tightening the threshold disperses rather than concentrates.',
       },
     ],
   },

@@ -19,7 +19,7 @@ export interface Author {
 }
 
 export const PAPER_METADATA = {
-  title: 'Geography Drives Blockchain Centralization',
+  title: "Geographical Centralization Resilience in Ethereum's Block-Building Paradigms",
   subtitle: 'An editorial reading layer over Yang, Oz, Wu, and Zhang (2025).',
   citation: 'Yang, Oz, Wu, Zhang (2025) · arXiv:2509.21475',
   authors: [
@@ -31,7 +31,7 @@ export const PAPER_METADATA = {
   abstract: 'The paper models validators as geographically mobile agents who optimize for MEV capture and consensus latency. Even under simplified assumptions, both external and local block building push validators toward a small set of low-latency regions, with different mechanisms and sensitivities.',
   keyClaims: [
     'Both external and local block building make geography part of block-building economics, not just network background.',
-    'The same attestation-threshold change pushes external block building toward more concentration and local block building toward less.',
+    'In SE4a\'s homogeneous setup, higher attestation thresholds strengthen external centralization but dampen local migration incentives.',
     'Starting validator geography can matter as much as, or more than, paradigm choice.',
   ],
   references: [
@@ -193,8 +193,8 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
       {
         type: 'insight',
         emphasis: 'surprising',
-        title: 'The only protocol parameter with opposite effects',
-        text: 'Higher gamma amplifies external centralization (tighter timing makes supplier proximity more valuable) but dampens local centralization (forces a trade-off between attester proximity and signal proximity that points in different geographic directions). This makes the attestation threshold the most paradigm-sensitive protocol parameter.',
+        title: 'SE4a moves the paradigms in opposite directions',
+        text: 'Within SE4a\'s homogeneous validator-and-source setup, higher gamma amplifies external centralization (tighter timing makes supplier proximity more valuable) but dampens local centralization (forces a trade-off between attester proximity and signal proximity that points in different geographic directions). This makes the attestation threshold the paper\'s clearest paradigm-sensitive protocol lever.',
         cite: { paperSection: '§4.6.1', experiment: 'SE4a' },
       },
     ],
@@ -217,9 +217,9 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
   },
   {
     id: 'discussion',
-    number: '§5',
-    title: 'Discussion & Mitigations',
-    description: 'Policy implications and potential mitigation strategies.',
+    number: '§5.1-§5.2',
+    title: 'Discussion: Implications & Mitigations',
+    description: 'Implications plus mitigation directions from the discussion section.',
     category: 'discussion',
     blocks: [
       {
@@ -241,7 +241,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
   },
   {
     id: 'limitations',
-    number: '§5',
+    number: '§5.3',
     title: 'Limitations',
     description: 'Acknowledged assumptions and their potential impact.',
     category: 'caveat',
@@ -251,15 +251,13 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
         title: 'Paper Limitations',
         headers: ['Assumption', 'Impact', 'Extension'],
         rows: [
-          ['GCP-only latency', 'Other providers may differ', 'Multi-cloud dataset'],
-          ['Deterministic linear MEV', 'Real MEV is stochastic', 'Stochastic model'],
-          ['Fungible sources', 'Real suppliers differ', 'Heterogeneous values'],
-          ['Full information', 'Proposers may not know all latencies', 'Partial info model'],
-          ['Constant migration cost', 'Real costs vary', 'Time-varying costs'],
-          ['No strategic behavior', 'Coalitions may form', 'Game-theoretic model'],
-          ['No multi-paradigm coexistence', 'Local and external may coexist', 'Hybrid model'],
+          ['GCP latency data', 'Other providers may shift the quantitative results', 'Validate against additional provider datasets'],
+          ['Deterministic value function', 'Omits stochastic MEV, transaction arrivals, and builder bidding dynamics', 'Stochastic or bidder-specific value model'],
+          ['Additive, fungible information sources', 'Ignores source overlap and supplier heterogeneity', 'Model overlapping and heterogeneous sources'],
+          ['Full-information benchmark', 'Validators may only observe coarse latency and value estimates', 'Partial-information or noisy-belief model'],
+          ['Instant, constant-cost migration', 'Abstracts away heterogeneous costs and adjustment delays', 'Time-varying and heterogeneous migration model'],
         ],
-        cite: { paperSection: '§5' },
+        cite: { paperSection: '§5.3' },
       },
     ],
   },

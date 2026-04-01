@@ -25,7 +25,7 @@ export function sectionEntryLine(section: PaperSection): string {
     'se1-source-placement': 'Start here for the infrastructure-placement flip that helps one paradigm while hurting the other.',
     'se2-distribution': 'Start here if you want to ask whether starting geography matters more than paradigm choice.',
     'se3-joint': 'Start here for the transient dip and the warning against overreading it as mitigation.',
-    'se4a-attestation': 'Start here for the paper\'s sharpest paradox: the same gamma change pushes external and local block building in opposite directions.',
+    'se4a-attestation': 'Start here for SE4a\'s key contrast: in the homogeneous parameter study, gamma pushes external and local block building in opposite directions.',
     'se4b-slots': 'Start here for the fairness-versus-geography distinction under shorter slots.',
     discussion: 'Start here for design implications without overstating what the model has solved.',
     limitations: 'Start here for the confidence boundary of the model.',
@@ -40,9 +40,9 @@ export const ARXIV_PDF_URL = 'https://arxiv.org/pdf/2509.21475'
 /** Maps paper section labels to arXiv PDF page numbers. */
 export const SECTION_PAGE_MAP: Record<string, number> = {
   '§3': 4, '§3.1': 5, '§3.2': 5, '§3.1–3.2': 5,
-  '§4': 6, '§4.1': 6, '§4.2': 7, '§4.4': 8, '§4.5': 9,
+  '§4': 6, '§4.1': 6, '§4.2': 7, '§4.3': 8, '§4.4': 8, '§4.5': 9, '§4.6.1': 10, '§4.6.2': 10,
   '§4.5 + App. E': 9,
-  '§5': 11,
+  '§5': 11, '§5.1': 11, '§5.2': 11, '§5.3': 11, '§5.1-§5.2': 11,
   'App. E': 13, 'App. E.3': 14, 'App. E.4': 15,
 }
 
