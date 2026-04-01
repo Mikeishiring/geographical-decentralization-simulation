@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SPRING, SPRING_CRISP, PAGE_TRANSITION, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
-import { PAPER_SECTIONS } from '../../data/paper-sections'
 import { type TopicCard } from '../../data/default-blocks'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { PaperHero } from './PaperHero'
