@@ -11,6 +11,6 @@
     "build:explorer": "npm --workspace explorer run build",
     "build:generator": "npm --workspace study-generator run build",
     "build:schema": "npm --workspace @geo-dec/study-schema run build",
-    "build": "npm run build:explorer"
+    "build": "npm run build:schema && npm run build:generator && npm run build:explorer"
   }
 }

@@ -1,3 +1,11 @@
+import {
+  getDashboardPatternDescriptor,
+  getSurfaceDescriptor,
+} from '../../packages/study-schema/src/index.ts'
+import { GOLDEN_FIXTURES } from './golden-fixtures.ts'
+import { buildEditorialScorecard } from './scorecard.ts'
+import { validateStudyPackage } from './validators/index.ts'
+
 declare const process: {
   readonly argv: readonly string[]
   readonly stdout: { write(message: string): void }
@@ -5,26 +13,91 @@ declare const process: {
   exit(code?: number): never
 }
 
-const command = process.argv[2] ?? 'help'
+function formatJson(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`
+}
 
-const messages: Record<string, string> = {
-  classify: 'Study generator classify pipeline is scaffolded but not implemented yet.',
-  generate: 'Study generator generate pipeline is scaffolded but not implemented yet.',
-  validate: 'Study generator validate pipeline is scaffolded but not implemented yet.',
-  help: [
+function runClassify(): void {
+  const output = GOLDEN_FIXTURES.map(fixture => ({
+    id: fixture.id,
+    name: fixture.name,
+    classification: fixture.study.classification,
+    runtimeAdapter: fixture.expectation.runtimeAdapter,
+    includedSurfaces: fixture.expectation.includedSurfaces.map(surfaceId => ({
+      id: surfaceId,
+      title: getSurfaceDescriptor(surfaceId).title,
+    })),
+    dashboardPatterns: fixture.expectation.dashboardPatterns.map(pattern => ({
+      pattern,
+      title: getDashboardPatternDescriptor(pattern).title,
+    })),
+  }))
+
+  process.stdout.write(formatJson(output))
+}
+
+function runGenerate(): void {
+  const output = GOLDEN_FIXTURES.map(fixture => {
+    const report = validateStudyPackage(fixture.study)
+    const scorecard = buildEditorialScorecard(fixture.study, report)
+    return {
+      id: fixture.id,
+      studyPackage: fixture.study,
+      validationReport: report,
+      editorialScorecard: scorecard,
+    }
+  })
+
+  process.stdout.write(formatJson(output))
+}
+
+function runValidate(): void {
+  const output = GOLDEN_FIXTURES.map(fixture => {
+    const report = validateStudyPackage(fixture.study)
+    const scorecard = buildEditorialScorecard(fixture.study, report)
+    return {
+      id: fixture.id,
+      passed: report.gates.every(gate => gate.passed),
+      gateSummary: report.gates.map(gate => ({
+        id: gate.id,
+        passed: gate.passed,
+        findingCount: gate.findings.length,
+      })),
+      overallScore: scorecard.overallScore,
+    }
+  })
+
+  process.stdout.write(formatJson(output))
+}
+
+function printHelp(): void {
+  process.stdout.write([
     'Usage: tsx src/cli.ts <command>',
     '',
     'Commands:',
-    '  classify   Classify a paper and recommend a site shape',
-    '  generate   Produce study-package, validation-report, and editorial-scorecard',
-    '  validate   Validate an existing study package',
-  ].join('\n'),
+    '  classify   Show golden archetypes and their expected site shapes',
+    '  generate   Emit fixture study-package, validation-report, and editorial-scorecard bundles',
+    '  validate   Run validation gates across the golden fixture studies',
+  ].join('\n'))
+  process.stdout.write('\n')
 }
 
-if (command in messages) {
-  process.stdout.write(`${messages[command]}\n`)
-  process.exit(0)
-}
+const command = process.argv[2] ?? 'help'
 
-process.stderr.write(`Unknown command: ${command}\n`)
-process.exit(1)
+switch (command) {
+  case 'classify':
+    runClassify()
+    process.exit(0)
+  case 'generate':
+    runGenerate()
+    process.exit(0)
+  case 'validate':
+    runValidate()
+    process.exit(0)
+  case 'help':
+    printHelp()
+    process.exit(0)
+  default:
+    process.stderr.write(`Unknown command: ${command}\n`)
+    process.exit(1)
+}
