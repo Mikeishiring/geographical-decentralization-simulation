@@ -40,23 +40,23 @@ export const PRESETS: ReadonlyArray<{
   readonly config: Partial<SimulationConfig>
 }> = [
   {
-    label: 'Quick SSP',
-    description: 'Fast iteration SSP run (~7 seconds).',
+    label: 'Quick External',
+    description: 'Fast iteration external block building run (~7 seconds).',
     config: { ...QUICK_ITERATION_PRESET, paradigm: 'SSP' },
   },
   {
-    label: 'Quick MSP',
-    description: 'Fast iteration MSP run (~7 seconds).',
+    label: 'Quick Local',
+    description: 'Fast iteration local block building run (~7 seconds).',
     config: { ...QUICK_ITERATION_PRESET, paradigm: 'MSP' },
   },
   {
-    label: 'Paper SSP',
-    description: 'SSP with the paper-style 10,000-slot and 0.002 ETH reference setup.',
+    label: 'Paper External',
+    description: 'External block building with the paper-style 10,000-slot and 0.002 ETH reference setup.',
     config: { ...PAPER_BASELINE_PRESET, paradigm: 'SSP' },
   },
   {
-    label: 'Paper MSP',
-    description: 'MSP with the same paper-style reference setup for direct comparison.',
+    label: 'Paper Local',
+    description: 'Local block building with the same paper-style reference setup for direct comparison.',
     config: { ...PAPER_BASELINE_PRESET, paradigm: 'MSP' },
   },
   {
@@ -148,7 +148,7 @@ export function paperScenarioLabels(config: SimulationConfig): string[] {
     labels.push('Reference: SE4a gamma variation')
   }
 
-  labels.push(config.paradigm === 'SSP' ? 'SSP exact mode' : 'MSP exact mode')
+  labels.push(config.paradigm === 'SSP' ? 'External exact mode' : 'Local exact mode')
   return labels
 }
 

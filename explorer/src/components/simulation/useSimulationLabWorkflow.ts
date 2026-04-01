@@ -148,8 +148,8 @@ export function useSimulationLabWorkflow({
             'What is the nearest paper-backed follow-up to run next?',
           ]
         : [
-            'Set up the paper baseline SSP run (10,000 slots, 0.002 ETH).',
-            'Mirror that paper baseline for MSP so I can compare the paradigms.',
+            'Set up the paper baseline external run (10,000 slots, 0.002 ETH).',
+            'Mirror that paper baseline for local block building so I can compare the paradigms.',
             'Hold the paradigm fixed and switch from latency-aligned to latency-misaligned sources.',
             'Load the real Ethereum validator start and explain what should change.',
           ],

@@ -36,14 +36,14 @@ import { ContributionComposer } from '../components/community/ContributionCompos
 type AgentMode = 'ask' | 'experiment'
 
 const SUGGESTED_QUESTIONS = [
-  { label: 'Mechanism', prompt: 'Why does a higher gamma centralize SSP more but MSP less?' },
+  { label: 'Mechanism', prompt: 'Why does a higher gamma centralize external block building more but disperse local?' },
   { label: 'Comparison', prompt: 'Does starting geography matter more than paradigm choice?' },
   { label: 'Geography', prompt: 'Why do the same low-latency regions keep winning?' },
-  { label: 'Design', prompt: 'What does this imply for protocol design and relay policy?' },
+  { label: 'Design', prompt: 'What does this imply for protocol design and supplier policy?' },
   { label: 'Timing', prompt: 'What changes under shorter slots: geography or fairness?' },
-  { label: 'Experiment', prompt: 'What happens to centralization if we double gamma under MSP?' },
-  { label: 'Experiment', prompt: 'How does slot time affect geographic fairness under SSP?' },
-  { label: 'Realism', prompt: 'Does the simplified MEV model bias the results toward SSP?' },
+  { label: 'Experiment', prompt: 'What happens to centralization if we double gamma under local block building?' },
+  { label: 'Experiment', prompt: 'How does slot time affect geographic fairness under external block building?' },
+  { label: 'Realism', prompt: 'Does the simplified MEV model bias the results toward external block building?' },
 ]
 
 interface AgentLabPageProps {
@@ -393,7 +393,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
               <textarea
                 value={questionDraft}
                 onChange={e => setQuestionDraft(e.target.value)}
-                placeholder="What happens to centralization if we increase gamma from 0.5 to 2.0 under MSP?"
+                placeholder="What happens to centralization if we increase gamma from 0.5 to 2.0 under local block building?"
                 className="mt-3 min-h-[100px] w-full resize-none rounded-xl border border-rule bg-surface-active px-4 py-3 text-sm leading-6 text-text-primary placeholder:text-muted/70 outline-none focus:border-accent/30 focus:ring-2 focus:ring-accent/10"
                 maxLength={500}
               />
