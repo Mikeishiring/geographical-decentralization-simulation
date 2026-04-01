@@ -397,6 +397,7 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
   const chartData = chart?.data
   const [hoverSlot, setHoverSlot] = useState<number | null>(null)
   const [focusedGroup, setFocusedGroup] = useState<string | null>(null)
+  const [showAllGroups, setShowAllGroups] = useState(false)
   const gradientPrefix = useId().replace(/:/g, '')
   const hoverRafRef = useRef<number | null>(null)
   const pendingHoverSlotRef = useRef<number | null>(null)
@@ -431,8 +432,9 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
   const inspectedSlot = hoverSlot ?? maxSlot
   const isDenseFigure = datasets.length > 4
   const seriesGroups = Array.from(new Set(datasets.map(dataset => getSeriesGroupLabel(dataset.label))))
+  const defaultFocusedGroup = seriesGroups.includes('γ=2/3') ? 'γ=2/3' : (seriesGroups[0] ?? null)
   const resolvedFocusedGroup = isDenseFigure
-    ? (focusedGroup ?? (seriesGroups.includes('γ=2/3') ? 'γ=2/3' : (seriesGroups[0] ?? null)))
+    ? (showAllGroups ? null : (focusedGroup ?? defaultFocusedGroup))
     : null
 
   const legendStats = datasets.map(dataset => {
@@ -519,7 +521,10 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
                 <button
                   key={group}
                   type="button"
-                  onClick={() => setFocusedGroup(group)}
+                  onClick={() => {
+                    setShowAllGroups(false)
+                    setFocusedGroup(group)
+                  }}
                   className={cn(
                     'rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors',
                     resolvedFocusedGroup === group
@@ -532,10 +537,13 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
               ))}
               <button
                 type="button"
-                onClick={() => setFocusedGroup(null)}
+                onClick={() => {
+                  setShowAllGroups(true)
+                  setFocusedGroup(null)
+                }}
                 className={cn(
                   'rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors',
-                  focusedGroup == null
+                  showAllGroups
                     ? 'border-accent/40 bg-accent/[0.08] text-text-primary'
                     : 'border-rule/60 bg-white/80 text-text-faint hover:text-text-primary',
                 )}

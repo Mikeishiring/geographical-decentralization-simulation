@@ -1,5 +1,33 @@
 import { expect, test, type Page } from '@playwright/test'
 
+async function mockCuratedExplore(page: Page) {
+  await page.route('**/api/explore', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        summary: 'SSP adds an external supplier hop while MSP keeps block building local to the proposer.',
+        blocks: [
+          {
+            type: 'insight',
+            title: 'Latency-critical path',
+            text: 'SSP inserts an external builder-supplier path, while MSP keeps the proposer on the local path.',
+          },
+        ],
+        followUps: ['How does this change concentration pressure?'],
+        model: 'playwright-curated',
+        cached: true,
+        provenance: {
+          source: 'curated',
+          label: 'Curated paper answer',
+          detail: 'Stubbed for deterministic UI coverage.',
+          canonical: true,
+        },
+      }),
+    })
+  })
+}
+
 async function askCuratedQuestion(page: Page) {
   const askButton = page.getByRole('button', { name: 'Ask', exact: true })
   const queryInput = page.getByPlaceholder('Ask about a mechanism, paradox, comparison, or implication...')
@@ -33,6 +61,7 @@ test('tab keyboard navigation keeps focus and exposes hints', async ({ page }) =
 })
 
 test('agent ask CTA stays visible and publish can proceed as-is', async ({ page }) => {
+  await mockCuratedExplore(page)
   await page.goto('/?tab=agent')
   await askCuratedQuestion(page)
 
@@ -55,6 +84,7 @@ test('community replies preserve author and persist after reload', async ({ page
   const uniqueTitle = `Playwright reply note ${Date.now()}`
   const replyBody = `Reply authored through Playwright ${Date.now()}`
 
+  await mockCuratedExplore(page)
   await page.goto('/?tab=agent')
   await askCuratedQuestion(page)
 
