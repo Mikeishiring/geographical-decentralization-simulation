@@ -16,11 +16,27 @@ import {
   THRESHOLDS,
   sentimentLower,
   sentimentHigher,
+  type MetricSentiment,
 } from './simulation-evidence-constants'
 
 // ── Inline sparkline ────────────────────────────────────────────────────────
 
-function Sparkline({ data, color, width = 48, height = 16 }: {
+function withAlpha(color: string, alpha: number): string {
+  if (color.startsWith('#')) {
+    const hex = color.slice(1)
+    const normalized = hex.length === 3 ? hex.split('').map(char => `${char}${char}`).join('') : hex
+    if (normalized.length === 6) {
+      const r = Number.parseInt(normalized.slice(0, 2), 16)
+      const g = Number.parseInt(normalized.slice(2, 4), 16)
+      const b = Number.parseInt(normalized.slice(4, 6), 16)
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`
+    }
+  }
+  if (color.startsWith('rgb(')) return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`)
+  return color
+}
+
+function Sparkline({ data, color, width = 72, height = 24 }: {
   readonly data: readonly number[]; readonly color: string; readonly width?: number; readonly height?: number
 }) {
   if (data.length < 2) return null
@@ -28,10 +44,20 @@ function Sparkline({ data, color, width = 48, height = 16 }: {
   const max = Math.max(...data)
   const range = max - min || 1
   const step = width / (data.length - 1)
-  const points = data.map((v, i) => `${(i * step).toFixed(1)},${(height - ((v - min) / range) * height).toFixed(1)}`).join(' ')
+  const coords = data.map((value, index) => ({
+    x: Number((index * step).toFixed(1)),
+    y: Number((height - 1 - ((value - min) / range) * (height - 4)).toFixed(1)),
+  }))
+  const points = coords.map(coord => `${coord.x},${coord.y}`).join(' ')
+  const last = coords[coords.length - 1]!
+  const baselineY = height - 1
+  const areaD = `${coords.map((coord, index) => `${index === 0 ? 'M' : 'L'} ${coord.x} ${coord.y}`).join(' ')} L ${last.x} ${baselineY} L ${coords[0]!.x} ${baselineY} Z`
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0" aria-hidden>
-      <polyline points={points} fill="none" stroke={color} strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" />
+      <line x1={0} y1={baselineY} x2={width} y2={baselineY} stroke={withAlpha(color, 0.16)} strokeWidth={1} />
+      <path d={areaD} fill={withAlpha(color, 0.11)} />
+      <polyline points={points} fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={last.x} cy={last.y} r={2.4} fill="white" stroke={color} strokeWidth={1.5} />
     </svg>
   )
 }
@@ -48,14 +74,18 @@ function sampleForSpark(raw: readonly number[] | undefined, maxPoints = 20): num
 
 // ── KPI card builder ────────────────────────────────────────────────────────
 
+type DeltaDirection = 'up' | 'down' | 'flat'
+
 interface KpiCard {
   readonly label: string
   readonly value: string
   readonly delta: string | null
-  readonly direction: 'up' | 'down' | 'flat'
+  readonly direction: DeltaDirection
+  readonly deltaSentiment: MetricSentiment
   readonly note: string
+  readonly insight: string
   readonly detail: string
-  readonly sentiment: 'positive' | 'neutral' | 'negative'
+  readonly sentiment: MetricSentiment
   readonly sparkData: readonly number[]
   readonly sparkColor: string
   readonly linkedCategory: PlotCategory
@@ -64,12 +94,18 @@ interface KpiCard {
 function computeDelta(
   start: number | undefined,
   end: number | undefined,
-): { formatted: string; direction: 'up' | 'down' | 'flat' } | null {
+): { raw: number; formatted: string; direction: DeltaDirection } | null {
   if (start == null || end == null || !Number.isFinite(start) || !Number.isFinite(end)) return null
   const diff = end - start
-  if (Math.abs(diff) < 0.0001) return { formatted: '0', direction: 'flat' }
+  if (Math.abs(diff) < 0.0001) return { raw: diff, formatted: '0', direction: 'flat' }
   const sign = diff > 0 ? '+' : ''
-  return { formatted: `${sign}${formatNumber(diff, 4)}`, direction: diff > 0 ? 'up' : 'down' }
+  return { raw: diff, formatted: `${sign}${formatNumber(diff, 4)}`, direction: diff > 0 ? 'up' : 'down' }
+}
+
+function deltaTone(direction: DeltaDirection, preferredDirection: 'higher' | 'lower' | 'neutral'): MetricSentiment {
+  if (direction === 'flat' || preferredDirection === 'neutral') return 'neutral'
+  if (preferredDirection === 'higher') return direction === 'up' ? 'positive' : 'negative'
+  return direction === 'down' ? 'positive' : 'negative'
 }
 
 function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
@@ -88,7 +124,13 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       value: formatNumber(giniEnd, 3),
       delta: giniDelta?.formatted ?? null,
       direction: giniDelta?.direction ?? 'flat',
-      note: giniSentiment === 'positive' ? 'Relatively equal' : giniSentiment === 'neutral' ? 'Moderate inequality' : 'Highly unequal',
+      deltaSentiment: deltaTone(giniDelta?.direction ?? 'flat', 'lower'),
+      note: giniSentiment === 'positive' ? 'Relatively balanced finish.' : giniSentiment === 'neutral' ? 'Some geographic skew remains.' : 'Stake ends in a narrow footprint.',
+      insight: giniDelta?.direction === 'up'
+        ? 'Stake concentrated as the run progressed.'
+        : giniDelta?.direction === 'down'
+          ? 'Stake diffused across regions over time.'
+          : 'Stake balance stayed broadly steady.',
       detail: 'Gini coefficient (0 = perfectly equal, 1 = maximally concentrated). Measures geographic validator distribution.',
       sentiment: giniSentiment,
       sparkData: sampleForSpark(metrics.gini),
@@ -107,7 +149,13 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       value: formatNumber(hhiEnd, 4),
       delta: hhiDelta?.formatted ?? null,
       direction: hhiDelta?.direction ?? 'flat',
-      note: hhiSentiment === 'positive' ? 'Unconcentrated market' : hhiSentiment === 'neutral' ? 'Moderate concentration' : 'Highly concentrated',
+      deltaSentiment: deltaTone(hhiDelta?.direction ?? 'flat', 'lower'),
+      note: hhiSentiment === 'positive' ? 'Market power stays diffuse.' : hhiSentiment === 'neutral' ? 'Moderate concentration persists.' : 'A few regions dominate the run.',
+      insight: hhiDelta?.direction === 'up'
+        ? 'Market power consolidated into fewer regions.'
+        : hhiDelta?.direction === 'down'
+          ? 'Market power dispersed over the run.'
+          : 'Concentration finished near its starting point.',
       detail: 'Herfindahl-Hirschman Index — sum of squared shares. Higher values indicate more concentrated markets.',
       sentiment: hhiSentiment,
       sparkData: sampleForSpark(metrics.hhi),
@@ -121,14 +169,21 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   const livenessDelta = computeDelta(metrics.liveness?.[0], livenessEnd)
   const topRegion = topRegionsForSlot(payload, finalSlot, 1)[0]
   if (livenessEnd != null) {
+    const livenessSentiment = sentimentHigher(livenessEnd, THRESHOLDS.liveness)
     cards.push({
       label: 'Coverage',
       value: `${formatNumber(livenessEnd, 1)}%`,
       delta: livenessDelta ? `${livenessDelta.formatted}%` : null,
       direction: livenessDelta?.direction ?? 'flat',
-      note: topRegion ? `Led by ${topRegion.label}` : 'Network liveness rate',
+      deltaSentiment: deltaTone(livenessDelta?.direction ?? 'flat', 'higher'),
+      note: topRegion ? `${topRegion.label} anchors the strongest final footprint.` : 'Regional participation at the finish.',
+      insight: livenessDelta?.direction === 'up'
+        ? 'More regions stayed active into the close.'
+        : livenessDelta?.direction === 'down'
+          ? 'Regional participation narrowed by the finish.'
+          : 'Coverage stayed steady across the run.',
       detail: 'Percentage of GCP regions with active validators. Higher means broader geographic spread.',
-      sentiment: sentimentHigher(livenessEnd, THRESHOLDS.liveness),
+      sentiment: livenessSentiment,
       sparkData: sampleForSpark(metrics.liveness),
       sparkColor: CHART_COLORS.liveness,
       linkedCategory: 'coverage',
@@ -139,14 +194,21 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   const attestEnd = metrics.attestations?.[finalSlot]
   const attestDelta = computeDelta(metrics.attestations?.[0], attestEnd)
   if (attestEnd != null) {
+    const attestationSentiment: MetricSentiment = attestEnd >= 85 ? 'positive' : attestEnd >= 70 ? 'neutral' : 'negative'
     cards.push({
       label: 'Attestation',
       value: formatNumber(attestEnd, 1),
       delta: attestDelta?.formatted ?? null,
       direction: attestDelta?.direction ?? 'flat',
-      note: 'Coordination health',
+      deltaSentiment: deltaTone(attestDelta?.direction ?? 'flat', 'higher'),
+      note: attestationSentiment === 'positive' ? 'Consensus closes from a healthy base.' : attestationSentiment === 'neutral' ? 'Coordination lands in a mixed zone.' : 'Coordination closes under pressure.',
+      insight: attestDelta?.direction === 'up'
+        ? 'Coordination improved into the final slots.'
+        : attestDelta?.direction === 'down'
+          ? 'Coordination softened by the finish.'
+          : 'Consensus health stayed stable through the run.',
       detail: 'Average attestation count per slot. Measures validator coordination and network health.',
-      sentiment: 'neutral',
+      sentiment: attestationSentiment,
       sparkData: sampleForSpark(metrics.attestations),
       sparkColor: CHART_COLORS.attestation,
       linkedCategory: 'economics',
@@ -157,14 +219,21 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   const proposalEnd = metrics.proposal_times?.[finalSlot]
   const proposalDelta = computeDelta(metrics.proposal_times?.[0], proposalEnd)
   if (proposalEnd != null) {
+    const proposalSentiment = sentimentLower(proposalEnd, THRESHOLDS.proposalTime)
     cards.push({
       label: 'Proposal latency',
       value: `${formatNumber(proposalEnd, 1)} ms`,
       delta: proposalDelta ? `${proposalDelta.formatted} ms` : null,
       direction: proposalDelta?.direction ?? 'flat',
-      note: 'Pipeline responsiveness',
+      deltaSentiment: deltaTone(proposalDelta?.direction ?? 'flat', 'lower'),
+      note: proposalSentiment === 'positive' ? 'Pipeline closes in a responsive range.' : proposalSentiment === 'neutral' ? 'Pipeline lands in a watch zone.' : 'Propagation ends materially slowed.',
+      insight: proposalDelta?.direction === 'up'
+        ? 'Proposal delivery slowed as the run matured.'
+        : proposalDelta?.direction === 'down'
+          ? 'Proposal delivery tightened into the close.'
+          : 'Pipeline latency stayed mostly unchanged.',
       detail: 'Average time in milliseconds for block proposals to propagate. Lower = faster consensus.',
-      sentiment: sentimentLower(proposalEnd, THRESHOLDS.proposalTime),
+      sentiment: proposalSentiment,
       sparkData: sampleForSpark(metrics.proposal_times),
       sparkColor: CHART_COLORS.proposalTime,
       linkedCategory: 'latency',
@@ -180,7 +249,13 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       value: String(activeEnd),
       delta: null,
       direction: 'flat',
-      note: regionSentiment === 'positive' ? 'Well-distributed' : regionSentiment === 'neutral' ? 'Moderate spread' : 'Geographically narrow',
+      deltaSentiment: 'neutral',
+      note: regionSentiment === 'positive' ? 'Final stake footprint stays broad.' : regionSentiment === 'neutral' ? 'Final stake footprint stays mixed.' : 'Final stake footprint narrows sharply.',
+      insight: regionSentiment === 'positive'
+        ? `${activeEnd} regions still carry stake at the finish.`
+        : regionSentiment === 'neutral'
+          ? `${activeEnd} regions stay active, but concentration remains visible.`
+          : `Only ${activeEnd} regions still carry stake at the finish.`,
       detail: 'Number of distinct GCP regions with at least one active validator in the final slot.',
       sentiment: regionSentiment,
       sparkData: [],
@@ -201,8 +276,10 @@ const SENTIMENT_DOT: Record<string, string> = {
 }
 
 const DELTA_ARROW: Record<string, string> = { up: '↑', down: '↓', flat: '→' }
-const DELTA_COLOR: Record<string, string> = {
-  up: 'text-emerald-600', down: 'text-rose-500', flat: 'text-text-faint',
+const DELTA_COLOR: Record<MetricSentiment, string> = {
+  positive: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/15',
+  neutral: 'bg-stone-100 text-stone-600 ring-1 ring-black/[0.05]',
+  negative: 'bg-rose-50 text-rose-600 ring-1 ring-rose-500/15',
 }
 
 interface KpiStripProps {
@@ -229,29 +306,50 @@ export function EvidenceKpiStrip({ payload, activeCategory, onCategoryChange }: 
             key={card.label}
             variants={STAGGER_ITEM}
             onClick={() => onCategoryChange(isActive ? 'all' : card.linkedCategory)}
-            title={card.detail}
+            title={`${card.detail} Click to filter ${card.linkedCategory} charts.`}
+            aria-pressed={isActive}
             className={cn(
-              'rounded-lg border border-black/[0.06] bg-white px-3 py-2.5 text-left transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]',
-              isActive && 'ring-2 ring-stone-900/10 border-stone-300',
+              'group relative overflow-hidden rounded-[18px] border border-black/[0.06] bg-white px-3.5 py-3 text-left transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(15,23,42,0.07)]',
+              isActive && 'border-stone-300 shadow-[0_10px_22px_rgba(15,23,42,0.08)]',
             )}
+            style={{
+              backgroundImage: `linear-gradient(180deg, ${withAlpha(card.sparkColor, isActive ? 0.12 : 0.08)} 0%, rgba(255,255,255,0) 52%)`,
+            }}
           >
-            <div className="flex items-center justify-between gap-1 mb-1">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
-                <span className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium truncate">{card.label}</span>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
+                  <span className="text-[9px] uppercase tracking-[0.1em] text-stone-500 font-semibold truncate">{card.label}</span>
+                </div>
+                <div className="mt-2 flex flex-wrap items-end gap-x-2 gap-y-1">
+                  <div className="text-[18px] font-semibold text-stone-900 tabular-nums leading-none tracking-tight">{card.value}</div>
+                  {card.delta && (
+                    <div className={cn('inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums', DELTA_COLOR[card.deltaSentiment])}>
+                      <span>{DELTA_ARROW[card.direction]}</span>
+                      <span>{card.delta}</span>
+                    </div>
+                  )}
+                </div>
               </div>
               {card.sparkData.length > 1 && (
-                <Sparkline data={card.sparkData} color={card.sparkColor} />
+                <div className="rounded-[14px] border border-white/70 bg-white/80 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                  <Sparkline data={card.sparkData} color={card.sparkColor} />
+                </div>
               )}
             </div>
-            <div className="text-[15px] font-semibold text-stone-800 tabular-nums leading-tight">{card.value}</div>
-            {card.delta && (
-              <div className={cn('mt-0.5 text-[10px] tabular-nums flex items-center gap-0.5', DELTA_COLOR[card.direction])}>
-                <span>{DELTA_ARROW[card.direction]}</span>
-                <span>{card.delta}</span>
-              </div>
-            )}
-            <div className="mt-1 text-[10px] text-stone-400 leading-snug">{card.note}</div>
+            <div className="mt-2 text-[11px] font-medium leading-[1.45] text-stone-700 line-clamp-2">
+              {card.insight}
+            </div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <div className="min-w-0 text-[10px] text-stone-400 leading-snug line-clamp-2">{card.note}</div>
+              <span className={cn(
+                'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em]',
+                isActive ? 'bg-stone-900 text-white' : 'bg-white/80 text-stone-500 ring-1 ring-black/[0.05]',
+              )}>
+                {isActive ? 'Filtered' : 'Filter'}
+              </span>
+            </div>
           </motion.button>
         )
       })}
@@ -408,51 +506,77 @@ export function EvidenceCategoryBar({ activeCategory, onCategoryChange, counts, 
       <div ref={sentinelRef} className="h-0" aria-hidden />
       <div
         className={cn(
-          'sticky top-0 z-20 -mx-px px-px py-3 transition-shadow duration-200',
+          'sticky top-[4.85rem] z-20 -mx-px px-px py-2.5 transition-shadow duration-200',
           isStuck
-            ? 'bg-white/92 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-b border-rule/50'
+            ? 'bg-white/92 backdrop-blur-md'
             : 'bg-transparent',
         )}
       >
-        <div className="flex items-center gap-2 mb-1.5">
-          <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium">Analytical lens</div>
-          <span className="text-[10px] text-stone-400 tabular-nums">
-            {counts[activeCategory]} panel{counts[activeCategory] !== 1 ? 's' : ''}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {PLOT_CATEGORIES.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => handleCategoryChange(cat.id)}
-              title={CATEGORY_DESCRIPTIONS[cat.id] ?? `Show ${cat.label.toLowerCase()} charts`}
-              className={cn(
-                'rounded-md border px-2.5 py-1 text-[11px] font-medium transition-all duration-150',
-                activeCategory === cat.id
-                  ? 'border-black/[0.06] bg-white text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
-                  : 'border-transparent text-stone-400 hover:text-stone-600 hover:bg-stone-50',
-                counts[cat.id] === 0 && cat.id !== 'all' && 'opacity-30 pointer-events-none',
-              )}
+        <div className={cn(
+          'rounded-[18px] border border-black/[0.06] px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-200',
+          isStuck ? 'bg-white/92 shadow-[0_10px_24px_rgba(15,23,42,0.08)]' : 'bg-[#FBFAF9]/92',
+        )}>
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-[9px] uppercase tracking-[0.1em] text-stone-400 font-semibold">Chart lens</div>
+                <span className="rounded-full border border-black/[0.06] bg-white px-2 py-0.5 text-[10px] font-medium tabular-nums text-stone-500">
+                  {counts[activeCategory]} panel{counts[activeCategory] !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={`${activeCategory}-desktop`}
+                  className="mt-1 hidden text-[11px] leading-relaxed text-stone-500 lg:block"
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={SPRING_CRISP}
+                >
+                  {CATEGORY_DESCRIPTIONS[activeCategory] ?? ''}
+                </motion.p>
+              </AnimatePresence>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {PLOT_CATEGORIES.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryChange(cat.id)}
+                  title={CATEGORY_DESCRIPTIONS[cat.id] ?? `Show ${cat.label.toLowerCase()} charts`}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all duration-150',
+                    activeCategory === cat.id
+                      ? 'border-stone-900 bg-stone-900 text-white shadow-[0_4px_12px_rgba(15,23,42,0.12)]'
+                      : 'border-black/[0.06] bg-white text-stone-500 hover:text-stone-800 hover:border-stone-300',
+                    counts[cat.id] === 0 && cat.id !== 'all' && 'opacity-30 pointer-events-none',
+                  )}
+                >
+                  <span>{cat.label}</span>
+                  {cat.id !== 'all' && counts[cat.id] > 0 && (
+                    <span className={cn(
+                      'rounded-full px-1 py-0 text-[9px] tabular-nums',
+                      activeCategory === cat.id ? 'bg-white/15 text-white' : 'bg-stone-100 text-stone-400',
+                    )}>
+                      {counts[cat.id]}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={`${activeCategory}-mobile`}
+              className="mt-2 text-[11px] leading-relaxed text-stone-500 lg:hidden"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={SPRING_CRISP}
             >
-              {cat.label}
-              {cat.id !== 'all' && counts[cat.id] > 0 && (
-                <span className="ml-1 text-stone-300">({counts[cat.id]})</span>
-              )}
-            </button>
-          ))}
+              {CATEGORY_DESCRIPTIONS[activeCategory] ?? ''}
+            </motion.p>
+          </AnimatePresence>
         </div>
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={activeCategory}
-            className="mt-1.5 text-[11px] text-stone-500 leading-relaxed"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={SPRING_CRISP}
-          >
-            {CATEGORY_DESCRIPTIONS[activeCategory] ?? ''}
-          </motion.p>
-        </AnimatePresence>
       </div>
     </>
   )

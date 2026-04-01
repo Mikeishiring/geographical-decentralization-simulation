@@ -106,7 +106,7 @@ export function PaperViewModeBar({
   )
 
   return (
-    <div className="sticky top-[4.5rem] z-30 -mx-4 border-b border-rule bg-white/95 px-4 py-2 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-sm sm:-mx-6 sm:px-6">
+    <div className="sticky top-[4.85rem] z-40 -mx-4 border-b border-rule bg-white/95 px-4 py-2.5 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-sm sm:-mx-6 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap sm:gap-x-3">
         {/* Mode switcher */}
         <div className="flex items-center gap-3 min-w-0">

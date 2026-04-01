@@ -193,7 +193,7 @@ function SectionNav({ activeSectionId, onSectionClick, compact = false }: Sectio
   return (
     <>
       <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/60">Sections</div>
-      <nav className={cn('space-y-0.5', compact && 'max-h-[calc(100vh-11rem)] overflow-auto pr-1')}>
+      <nav className={cn('space-y-0.5', compact && 'max-h-[calc(100vh-12.5rem)] overflow-auto pr-1')}>
         {sections.map(section => (
           <a
             key={section.id}
@@ -255,8 +255,8 @@ export function PaperSectionView({
 
   return (
     <>
-      <div className="grid gap-8 xl:grid-cols-[208px_minmax(0,1fr)] 2xl:grid-cols-[220px_minmax(0,1fr)]">
-        <aside className="hidden xl:block xl:sticky xl:top-[7.75rem] xl:self-start xl:pr-2">
+      <div className="grid gap-10 xl:grid-cols-[216px_minmax(0,1fr)] 2xl:grid-cols-[228px_minmax(0,1fr)]">
+        <aside className="hidden xl:block xl:sticky xl:top-[9.4rem] xl:self-start xl:pr-3">
           <div className="rounded-xl border border-rule/60 bg-white/95 p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
             <SectionNav activeSectionId={activeSectionId} onSectionClick={onSectionClick} compact />
           </div>
@@ -347,7 +347,7 @@ function SectionCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.15 }}
       transition={SPRING}
-      className="group scroll-mt-[8.75rem] overflow-hidden rounded-2xl border border-rule bg-white p-6 card-hover geo-accent-bar sm:p-7 lg:p-8"
+      className="group scroll-mt-[9.8rem] overflow-hidden rounded-2xl border border-rule bg-white p-6 card-hover geo-accent-bar sm:p-7 lg:p-8"
     >
       <div className="mb-6 border-b border-rule pb-5">
         <div className="flex flex-wrap items-start gap-3">
@@ -397,7 +397,7 @@ function SectionCard({
         </div>
       )}
 
-      <div className={cn('grid min-w-0 gap-7 xl:items-start', hasSupportingBlocks && 'xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]')}>
+      <div className={cn('grid min-w-0 gap-8 xl:items-start', hasSupportingBlocks && 'xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]')}>
         <div className="min-w-0 max-w-4xl space-y-6">
           <p className="max-w-3xl text-xl leading-relaxed text-text-primary font-serif">
             {narrative.lede}
@@ -421,7 +421,7 @@ function SectionCard({
         </div>
 
         {hasSupportingBlocks && (
-          <aside className="min-w-0 xl:sticky xl:top-[8.75rem]">
+          <aside className="min-w-0 xl:sticky xl:top-[9.8rem]">
             <div className="rounded-2xl border border-rule/80 bg-surface-active/45 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
