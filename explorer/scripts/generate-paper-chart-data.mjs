@@ -1,5 +1,5 @@
 /**
- * Reads published simulation data.json files and generates a downsampled
+ * Reads published simulation data.json files and generates a full-resolution
  * TypeScript module for the paper chart blocks in the editorial view.
  *
  * Usage: node scripts/generate-paper-chart-data.mjs
@@ -12,8 +12,6 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DASHBOARD = join(__dirname, '..', '..', 'dashboard', 'simulations')
 const OUT = join(__dirname, '..', 'src', 'data', 'paper-chart-data.ts')
-const STEP = 200 // downsample: every 200th slot → 50 points from 10K
-
 // Colors matching the app theme
 const EXTERNAL_COLOR = '#2563EB'  // accent blue
 const LOCAL_COLOR = '#C2553A'     // terracotta warm
@@ -27,16 +25,8 @@ function round(v, d = 6) {
   return Math.round(v * 10 ** d) / 10 ** d
 }
 
-function downsample(arr, step = STEP) {
-  const out = []
-  for (let i = 0; i < arr.length; i += step) {
-    out.push({ x: i, y: round(arr[i]) })
-  }
-  // Always include last point
-  if ((arr.length - 1) % step !== 0) {
-    out.push({ x: arr.length - 1, y: round(arr[arr.length - 1]) })
-  }
-  return out
+function toSeries(arr) {
+  return arr.map((value, index) => ({ x: index, y: round(value) }))
 }
 
 function makeDataset(label, color, metrics, dashed = false) {
@@ -44,10 +34,10 @@ function makeDataset(label, color, metrics, dashed = false) {
     label,
     color,
     dashed,
-    gini: downsample(metrics.gini),
-    hhi: downsample(metrics.hhi),
-    liveness: downsample(metrics.liveness),
-    cv: downsample(metrics.profit_variance),
+    gini: toSeries(metrics.gini),
+    hhi: toSeries(metrics.hhi),
+    liveness: toSeries(metrics.liveness),
+    cv: toSeries(metrics.profit_variance),
   }
 }
 
