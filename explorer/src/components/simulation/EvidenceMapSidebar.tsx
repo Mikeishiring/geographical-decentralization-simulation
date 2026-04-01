@@ -39,48 +39,48 @@ export function EvidenceMapSidebar({
   hoveredRegion, onHover,
 }: EvidenceMapSidebarProps) {
   return (
-    <div className="border-t border-rule p-3.5 lg:border-l lg:border-t-0 space-y-3.5 max-h-[360px] overflow-y-auto overscroll-contain lg:max-h-none lg:overflow-y-visible">
+    <div className="border-t border-black/[0.06] p-3.5 lg:border-l lg:border-t-0 space-y-4 max-h-[360px] overflow-y-auto overscroll-contain lg:max-h-none lg:overflow-y-visible bg-[#FAFAF8]">
       {/* Live metrics — sentiment-colored */}
       <div>
-        <div className="lab-section-title flex items-baseline gap-1.5">
-          <span>Metrics</span>
-          <span className="text-[0.5625rem] font-mono text-text-faint tabular-nums">slot {(slot + 1).toLocaleString()}</span>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium">Metrics</span>
+          <span className="text-[9px] font-mono text-stone-400 tabular-nums">slot {(slot + 1).toLocaleString()}</span>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           {gini != null && (
-            <div className="lab-option-card p-2" title="Gini coefficient (0 = perfectly equal, 1 = maximally concentrated). Measures geographic validator distribution.">
-              <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Gini</div>
-              <div className={cn('text-sm font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(gini, THRESHOLDS.gini)])}>
+            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]" title="Gini coefficient (0 = perfectly equal, 1 = maximally concentrated). Measures geographic validator distribution.">
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Gini</div>
+              <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(gini, THRESHOLDS.gini)])}>
                 {formatNumber(gini, 3)}
               </div>
             </div>
           )}
           {hhi != null && (
-            <div className="lab-option-card p-2" title="Herfindahl-Hirschman Index — sum of squared market shares. Higher = more concentrated.">
-              <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">HHI</div>
-              <div className={cn('text-sm font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(hhi, THRESHOLDS.hhi)])}>
+            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]" title="Herfindahl-Hirschman Index — sum of squared market shares. Higher = more concentrated.">
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">HHI</div>
+              <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(hhi, THRESHOLDS.hhi)])}>
                 {formatNumber(hhi, 4)}
               </div>
             </div>
           )}
           {liveness != null && (
-            <div className="lab-option-card p-2" title="Percentage of GCP regions with active validators. Higher = broader geographic spread.">
-              <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Liveness</div>
-              <div className={cn('text-sm font-semibold tabular-nums', SENTIMENT_TEXT[sentimentHigher(liveness, THRESHOLDS.liveness)])}>
+            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]" title="Percentage of GCP regions with active validators. Higher = broader geographic spread.">
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Liveness</div>
+              <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentHigher(liveness, THRESHOLDS.liveness)])}>
                 {formatNumber(liveness, 1)}%
               </div>
             </div>
           )}
           {clusters != null && (
-            <div className="lab-option-card p-2" title="Number of distinct geographic clusters identified by nearest-neighbor analysis.">
-              <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Clusters</div>
-              <div className="text-sm font-semibold tabular-nums text-text-primary">{clusters}</div>
+            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]" title="Number of distinct geographic clusters identified by nearest-neighbor analysis.">
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Clusters</div>
+              <div className="text-[13px] font-semibold tabular-nums text-stone-800">{clusters}</div>
             </div>
           )}
           {distance != null && (
-            <div className="lab-option-card p-2" title="Sum of pairwise distances between all active regions. Higher = more geographically spread out.">
-              <div className="text-[0.5625rem] uppercase tracking-wider text-text-faint">Distance</div>
-              <div className="text-sm font-semibold tabular-nums text-text-primary">{distance.toLocaleString()}</div>
+            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]" title="Sum of pairwise distances between all active regions. Higher = more geographically spread out.">
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Distance</div>
+              <div className="text-[13px] font-semibold tabular-nums text-stone-800">{distance.toLocaleString()}</div>
             </div>
           )}
         </div>
@@ -89,29 +89,34 @@ export function EvidenceMapSidebar({
       {/* Macro-region breakdown */}
       {macroBreakdown.length > 0 && (
         <div>
-          <div className="lab-section-title">Continents</div>
-          <div className="space-y-1">
-            {macroBreakdown.map(({ region, share }, i) => (
-              <div key={region} className="flex items-center gap-2">
-                <span className="text-2xs text-text-faint w-[72px] truncate">{region}</span>
-                <div className="flex-1 h-[4px] rounded-full bg-surface-active overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full bg-accent/50"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(share, 100)}%` }}
-                    transition={{ ...SPRING_SOFT, delay: 0.05 + i * 0.03 }}
-                  />
+          <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium">Continents</div>
+          <div className="space-y-1.5">
+            {macroBreakdown.map(({ region, share }, i) => {
+              const barColor = REGION_COLORS[region as keyof typeof REGION_COLORS] ?? '#94A3B8'
+              return (
+                <div key={region} className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: barColor }} />
+                  <span className="text-[10px] text-stone-500 w-[60px] truncate">{region}</span>
+                  <div className="flex-1 h-[3px] rounded-full bg-stone-100 overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ backgroundColor: barColor, opacity: 0.7 }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(share, 100)}%` }}
+                      transition={{ ...SPRING_SOFT, delay: 0.05 + i * 0.03 }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-stone-400 tabular-nums w-8 text-right font-medium">{formatNumber(share, 0)}%</span>
                 </div>
-                <span className="text-2xs text-muted tabular-nums w-8 text-right">{formatNumber(share, 0)}%</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
 
       {/* Top regions list */}
       <div>
-        <div className="lab-section-title">Top regions</div>
+        <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium">Top regions</div>
         <motion.div
           className="space-y-0.5"
           variants={STAGGER_CONTAINER}
@@ -127,7 +132,10 @@ export function EvidenceMapSidebar({
               <motion.div
                 key={node.id}
                 variants={STAGGER_ITEM}
-                className={cn('group rounded-md px-1.5 py-1 transition-colors', isHovered && 'bg-surface-active')}
+                className={cn(
+                  'group rounded-lg px-2 py-1.5 transition-all duration-150 cursor-default',
+                  isHovered ? 'bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] border border-black/[0.06]' : 'border border-transparent',
+                )}
                 onMouseEnter={() => onHover({
                   x: node.x, y: node.y,
                   city: node.city, id: node.id,
@@ -138,16 +146,16 @@ export function EvidenceMapSidebar({
                 onMouseLeave={() => onHover(null)}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                    <span className="text-xs text-text-primary truncate">{node.city.split(',')[0]}</span>
+                    <span className="text-[11px] text-stone-700 font-medium truncate">{node.city.split(',')[0]}</span>
                   </div>
                   <div className="flex items-baseline gap-1 shrink-0">
-                    <span className="text-xs font-semibold tabular-nums text-text-primary">{node.count.toLocaleString()}</span>
-                    <span className="text-[0.5625rem] text-muted">{sharePct}%</span>
+                    <span className="text-[11px] font-semibold tabular-nums text-stone-800">{node.count.toLocaleString()}</span>
+                    <span className="text-[9px] text-stone-400 font-medium">{sharePct}%</span>
                   </div>
                 </div>
-                <div className="h-[3px] rounded-full bg-surface-active mx-0.5 mt-1">
+                <div className="h-[2px] rounded-full bg-stone-100 mx-0.5 mt-1.5">
                   <motion.div
                     className="h-full rounded-full"
                     style={{ backgroundColor: color }}
@@ -164,39 +172,39 @@ export function EvidenceMapSidebar({
 
       {/* Latency legend */}
       {overlay === 'latency' && (
-        <div className="lab-option-card p-2.5 text-xs text-muted">
-          <div className="lab-section-title !mb-1.5">Latency scale</div>
-          <div className="h-2 rounded-full" style={{ background: 'linear-gradient(to right, #10B981, #FBBF24, #F97316, #EF4444)' }} />
-          <div className="flex justify-between mt-1 text-[0.5625rem] font-mono text-text-faint">
-            <span>{LATENCY_MIN.toFixed(0)} ms</span><span>{LATENCY_MAX.toFixed(0)} ms</span>
+        <div className="rounded-lg border border-black/[0.06] bg-white p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium mb-2">Latency scale</div>
+          <div className="h-1.5 rounded-full" style={{ background: 'linear-gradient(to right, #10B981, #FBBF24, #F97316, #EF4444)' }} title="Green = low latency, Red = high latency between GCP regions" />
+          <div className="flex justify-between mt-1 text-[9px] font-mono text-stone-400">
+            <span title="Minimum pairwise GCP latency">{LATENCY_MIN.toFixed(0)} ms</span><span title="Maximum pairwise GCP latency">{LATENCY_MAX.toFixed(0)} ms</span>
           </div>
         </div>
       )}
 
       {/* Density / region legend */}
       {overlay !== 'latency' && (
-        <div className="lab-option-card p-2.5 text-xs text-muted">
-          <div className="lab-section-title !mb-1.5">{overlay === 'sources' ? 'Source density' : 'Regions'}</div>
+        <div className="rounded-lg border border-black/[0.06] bg-white p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium mb-2">{overlay === 'sources' ? 'Source density' : 'Regions'}</div>
           {overlay === 'sources' ? (
             <div className="flex items-center gap-3">
               {([
-                { size: 'h-1.5 w-1.5', label: 'Low', color: NODE_BLUE.source },
-                { size: 'h-2 w-2', label: 'Med', color: NODE_BLUE.source },
-                { size: 'h-2 w-2', label: 'High', color: NODE_BLUE.source },
-                { size: 'h-2.5 w-2.5', label: 'Top', color: NODE_BLUE.source },
-              ] as const).map(({ size, label, color }) => (
-                <span key={label} className="flex items-center gap-1">
+                { size: 'h-1.5 w-1.5', label: 'Low', color: NODE_BLUE.source, tip: 'Few block sources in this region' },
+                { size: 'h-2 w-2', label: 'Med', color: NODE_BLUE.source, tip: 'Moderate block source concentration' },
+                { size: 'h-2 w-2', label: 'High', color: NODE_BLUE.source, tip: 'High block source concentration' },
+                { size: 'h-2.5 w-2.5', label: 'Top', color: NODE_BLUE.source, tip: 'Maximum block source concentration' },
+              ] as const).map(({ size, label, color, tip }) => (
+                <span key={label} className="flex items-center gap-1" title={tip}>
                   <span className={cn('rounded-full', size)} style={{ backgroundColor: color }} />
-                  <span className="text-2xs">{label}</span>
+                  <span className="text-[10px] text-stone-500">{label}</span>
                 </span>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
               {Object.entries(REGION_COLORS).map(([region, color]) => (
-                <span key={region} className="flex items-center gap-1.5 min-w-0">
+                <span key={region} className="flex items-center gap-1.5 min-w-0" title={`Validators in ${region}`}>
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                  <span className="text-2xs truncate">{region}</span>
+                  <span className="text-[10px] text-stone-500 truncate">{region}</span>
                 </span>
               ))}
             </div>

@@ -132,7 +132,8 @@ export function SimulationLabPage({
     <div>
       {/* ── Page header with mode switcher ── */}
       <motion.div
-        className="relative mb-6 overflow-hidden rounded-3xl border border-rule bg-white/92 p-5 shadow-[0_12px_32px_rgba(15,23,42,0.05)] sm:p-6"
+        className="relative mb-5 overflow-hidden rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6"
+        style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)' }}
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={SPRING}
@@ -153,14 +154,14 @@ export function SimulationLabPage({
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center rounded-full border border-rule bg-surface-active p-0.5">
+          <div className="flex shrink-0 items-center rounded-[14px] border border-black/[0.06] bg-[#F6F5F4] p-[3px] gap-[3px]" style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}>
             <button
               onClick={() => setResultsMode('evidence')}
               className={cn(
-                'rounded-full px-3.5 py-1.5 text-xs font-medium transition-all',
+                'rounded-[11px] px-3.5 py-1.5 text-[11px] font-medium transition-all duration-150',
                 resultsMode === 'evidence'
-                  ? 'bg-white text-accent shadow-sm'
-                  : 'text-muted hover:text-text-primary',
+                  ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
+                  : 'text-stone-400 hover:text-stone-600',
               )}
             >
               Evidence
@@ -168,10 +169,10 @@ export function SimulationLabPage({
             <button
               onClick={() => setResultsMode('engine')}
               className={cn(
-                'rounded-full px-3.5 py-1.5 text-xs font-medium transition-all',
+                'rounded-[11px] px-3.5 py-1.5 text-[11px] font-medium transition-all duration-150',
                 resultsMode === 'engine'
-                  ? 'bg-white text-accent shadow-sm'
-                  : 'text-muted hover:text-text-primary',
+                  ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
+                  : 'text-stone-400 hover:text-stone-600',
               )}
             >
               Engine
@@ -192,7 +193,8 @@ export function SimulationLabPage({
       {resultsMode === 'engine' && (
         <>
           <motion.section
-            className="mb-6 overflow-hidden rounded-3xl border border-rule bg-gradient-to-b from-surface-active/60 to-white/95"
+            className="mb-5 overflow-hidden rounded-2xl border border-black/[0.06] bg-gradient-to-b from-[#F6F5F4]/60 to-white"
+            style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)' }}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...SPRING, delay: 0.06 }}
