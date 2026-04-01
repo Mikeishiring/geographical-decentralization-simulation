@@ -358,7 +358,7 @@ const THEORY_FIXTURE = buildStudyFrame({
       questionAnswered: 'Which assumptions support the main mechanism result?',
       summary: 'Pins the theorem statement, intuition, and proof boundary to their sources.',
       metricIds: ['assumption-count'],
-      sourceArtifactIds: ['theory-figure', 'theory-table', 'theory-appendix'],
+      sourceArtifactIds: ['theory-figure', 'theory-table'],
       claimIds: ['theory-core', 'theory-limit'],
       isFigureReplay: false,
     },
