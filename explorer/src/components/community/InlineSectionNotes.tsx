@@ -29,9 +29,6 @@ export function InlineSectionNotes({ notes, onOpenNote, showAnnotationHint = fal
 
   if (published.length === 0) return null
 
-  const hasMore = published.length > 2
-  const remaining = published.length - 2
-
   return (
     <div className="rounded-2xl border border-rule/70 bg-gradient-to-b from-surface-active/30 to-surface-active/50 px-4 py-3.5">
       <button
@@ -60,44 +57,6 @@ export function InlineSectionNotes({ notes, onOpenNote, showAnnotationHint = fal
       <div className="mt-2 text-[11px] leading-relaxed text-text-faint">
         Reader interpretations layered on top of the paper. Useful context, not paper claims.
       </div>
-
-      {/* Preview row when collapsed — show first 2 note titles */}
-      {!expanded && published.length > 0 && (
-        <div className="mt-2.5 space-y-1">
-          {published.slice(0, 2).map(note => (
-            <button
-              key={note.id}
-              type="button"
-              onClick={() => setExpanded(true)}
-              className="flex items-center gap-2 w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/60"
-            >
-              {note.anchor?.excerpt && (
-                <span className="shrink-0 w-1 h-4 rounded-full bg-accent/20" />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-text-faint">
-                  Community interpretation
-                </div>
-                <div className="text-xs font-medium text-text-primary truncate">
-                  {note.publication.title}
-                </div>
-              </div>
-              <span className="ml-auto shrink-0 text-2xs text-text-faint">
-                {note.publication.author || 'Anon'}
-              </span>
-            </button>
-          ))}
-          {hasMore && (
-            <button
-              type="button"
-              onClick={() => setExpanded(true)}
-              className="ml-2 mt-0.5 text-[11px] font-medium text-accent/70 transition-colors hover:text-accent"
-            >
-              +{remaining} more
-            </button>
-          )}
-        </div>
-      )}
 
       <AnimatePresence>
         {expanded && (
