@@ -1180,11 +1180,6 @@ function PublishedGeoCard({
           <div className="relative self-start overflow-hidden rounded-2xl border border-[#1F2937] bg-[#0D1117]">
             <div className="border-b border-white/10 bg-[rgba(8,17,31,0.92)] px-4 py-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-xs text-white/88">
-                    {currentModeOption.label} · {currentViewportDetail}
-                  </div>
-                </div>
                 <div className="flex flex-wrap items-end gap-3">
                   <div>
                     <div className="mb-1 text-[0.6rem] font-medium uppercase tracking-[0.08em] text-white/45">Metric</div>
@@ -1233,7 +1228,6 @@ function PublishedGeoCard({
               <div className="absolute inset-x-4 top-20 z-10 flex max-w-xl flex-wrap gap-2">
                 <div className="rounded-full border border-white/12 bg-[#0F172A]/78 px-3 py-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-white/85 backdrop-blur-md">
                   {annotationNotes.length} paper note{annotationNotes.length === 1 ? '' : 's'} pinned to this slot
-                  {summarizeNoteCluster(annotationNotes) ? ` · ${summarizeNoteCluster(annotationNotes)}` : ''}
                 </div>
                 {selectedAnnotationNote ? (
                   <button
@@ -1484,8 +1478,8 @@ function PublishedGeoCard({
                       : 'Size = validators'}
                 </div>
               </div>
-              <div className="mt-1 text-[0.65rem] text-white/52">
-                {currentModeOption.detail}
+              <div className="mt-1 text-[0.625rem] uppercase tracking-[0.08em] text-white/46">
+                {currentViewportDetail}
               </div>
               <div className="mt-2 flex items-end gap-4">
                 <div className="flex items-end gap-2">

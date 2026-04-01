@@ -136,12 +136,6 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     category: 'finding',
     blocks: [
       {
-        type: 'paperChart',
-        title: 'SE1 Source Placement Effect Across Both Paradigms',
-        dataKey: 'se1-source-placement',
-        cite: { paperSection: '§4.3', experiment: 'SE1', figure: 'Figure 4' },
-      },
-      {
         type: 'insight',
         emphasis: 'surprising',
         title: 'Opposite paradigm sensitivities',
@@ -158,12 +152,6 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     category: 'finding',
     blocks: [
       {
-        type: 'paperChart',
-        title: 'SE2 Heterogeneous Validator Start: External vs Local',
-        dataKey: 'se2-distribution',
-        cite: { paperSection: '§4.4', experiment: 'SE2', figure: 'Figure 5' },
-      },
-      {
         type: 'insight',
         emphasis: 'key-finding',
         title: 'Concentrated starts compress paradigm differences',
@@ -179,12 +167,6 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     description: 'Combined source placement + distribution effects, including transient decentralization.',
     category: 'finding',
     blocks: [
-      {
-        type: 'paperChart',
-        title: 'SE3 Joint Heterogeneity Across Both Paradigms',
-        dataKey: 'se3-joint',
-        cite: { paperSection: '§4.5', experiment: 'SE3', figure: 'Figure 6' },
-      },
       {
         type: 'insight',
         emphasis: 'surprising',
@@ -227,12 +209,6 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     description: 'Impact of 6-second slots vs the current 12-second slots.',
     category: 'finding',
     blocks: [
-      {
-        type: 'paperChart',
-        title: 'SE4b Shorter Slots: 12s vs 6s',
-        dataKey: 'se4b-slots',
-        cite: { paperSection: '§4.6.2', experiment: 'SE4b', figure: 'Figure 8' },
-      },
       {
         type: 'insight',
         emphasis: 'key-finding',
