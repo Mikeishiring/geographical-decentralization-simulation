@@ -343,7 +343,7 @@ function regionValueRadius(value: number, maxValue: number): number {
 }
 
 type GeoMapMode = 'count' | 'share' | 'change' | 'macro'
-type GeoViewportMode = 'world' | 'footprint' | 'cluster'
+type GeoViewportMode = 'auto' | 'world' | 'focus'
 
 const GEO_MODE_OPTIONS: ReadonlyArray<{
   readonly id: GeoMapMode
@@ -360,9 +360,9 @@ const GEO_VIEWPORT_OPTIONS: ReadonlyArray<{
   readonly id: GeoViewportMode
   readonly label: string
 }> = [
+  { id: 'auto', label: 'Auto' },
   { id: 'world', label: 'World' },
-  { id: 'footprint', label: 'Focus active footprint' },
-  { id: 'cluster', label: 'Focus top cluster' },
+  { id: 'focus', label: 'Focus' },
 ]
 
 const MACRO_REGION_COLORS: Record<MacroRegion | 'Unknown', string> = {
@@ -831,7 +831,7 @@ function PublishedGeoCard({
   anchorScope: 'primary' | 'comparison'
 }) {
   const [mapMode, setMapMode] = useState<GeoMapMode>('count')
-  const [viewportMode, setViewportMode] = useState<GeoViewportMode>('world')
+  const [viewportMode, setViewportMode] = useState<GeoViewportMode>('auto')
   const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null)
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null)
   const sortedRegions = [...regions].sort((left, right) => right.count - left.count)
@@ -983,12 +983,26 @@ function PublishedGeoCard({
     }
     return next
   }, [hoveredRegionId, renderedRegionsById, selectedRegionId, topRegions])
+  const effectiveViewportMode = useMemo<'world' | 'footprint' | 'cluster'>(() => {
+    if (renderedRegions.length === 0 || viewportMode === 'world') return 'world'
+
+    const dominantShare = dominantRegionData?.share ?? 0
+    const activeRegionCount = renderedRegions.length
+
+    if (viewportMode === 'focus') {
+      return dominantShare >= 36 || activeRegionCount <= 6 ? 'cluster' : 'footprint'
+    }
+
+    if (dominantShare < 16 && activeRegionCount >= 18) return 'world'
+    if (dominantShare >= 36 || activeRegionCount <= 6) return 'cluster'
+    return 'footprint'
+  }, [dominantRegionData?.share, renderedRegions, viewportMode])
   const viewportViewBox = useMemo(() => {
-    if (viewportMode === 'world' || renderedRegions.length === 0) {
+    if (effectiveViewportMode === 'world' || renderedRegions.length === 0) {
       return { minX: 0, minY: 0, width: svgWidth, height: svgHeight }
     }
 
-    const points = viewportMode === 'cluster'
+    const points = effectiveViewportMode === 'cluster'
       ? renderedRegions.slice(0, Math.min(3, renderedRegions.length)).map(region => ({ x: region.x, y: region.y }))
       : renderedRegions.map(region => ({ x: region.x, y: region.y }))
 
@@ -996,11 +1010,11 @@ function PublishedGeoCard({
       points,
       width: svgWidth,
       height: svgHeight,
-      padding: viewportMode === 'cluster' ? 74 : 92,
-      minimumWidth: viewportMode === 'cluster' ? 260 : 420,
-      minimumHeight: viewportMode === 'cluster' ? 170 : 220,
+      padding: effectiveViewportMode === 'cluster' ? 74 : 92,
+      minimumWidth: effectiveViewportMode === 'cluster' ? 260 : 420,
+      minimumHeight: effectiveViewportMode === 'cluster' ? 170 : 220,
     })
-  }, [renderedRegions, svgHeight, svgWidth, viewportMode])
+  }, [effectiveViewportMode, renderedRegions, svgHeight, svgWidth])
   const tooltipRegion = hoveredRegion ?? selectedRegion
   const tooltipRect = useMemo(() => {
     if (!tooltipRegion) return null
@@ -1025,7 +1039,11 @@ function PublishedGeoCard({
     return annotationNotes.find(note => note.id === selectedNoteId) ?? annotationNotes[0] ?? null
   }, [annotationNotes, selectedNoteId])
   const currentModeOption = GEO_MODE_OPTIONS.find(option => option.id === mapMode) ?? GEO_MODE_OPTIONS[0]
-  const currentViewportOption = GEO_VIEWPORT_OPTIONS.find(option => option.id === viewportMode) ?? GEO_VIEWPORT_OPTIONS[0]
+  const currentViewportDetail = useMemo(() => {
+    if (effectiveViewportMode === 'cluster') return 'Top cluster'
+    if (effectiveViewportMode === 'footprint') return 'Active footprint'
+    return 'World'
+  }, [effectiveViewportMode])
   const legendSwatches = useMemo(() => {
     if (mapMode === 'macro') {
       return macroRegionCounts.map(entry => ({
@@ -1165,13 +1183,13 @@ function PublishedGeoCard({
                 <div className="min-w-0">
                   <div className="text-2xs font-medium uppercase tracking-[0.1em] text-white/58">Map view</div>
                   <div className="mt-1 text-xs text-white/88">
-                    {currentModeOption.label} · {currentViewportOption.label}
+                    {currentModeOption.label} · {currentViewportDetail}
                   </div>
                   <div className="mt-1 text-[0.68rem] text-white/58">
                     {currentModeOption.detail}
                   </div>
                 </div>
-                <div className="flex flex-wrap items-start gap-3">
+                <div className="flex flex-wrap items-end gap-3">
                   <div>
                     <div className="mb-1 text-[0.6rem] font-medium uppercase tracking-[0.08em] text-white/45">Metric</div>
                     <div className="flex flex-wrap gap-1 rounded-full border border-white/10 bg-white/6 p-1">
@@ -1194,24 +1212,22 @@ function PublishedGeoCard({
                     </div>
                   </div>
                   <div>
-                    <div className="mb-1 text-[0.6rem] font-medium uppercase tracking-[0.08em] text-white/45">Camera</div>
-                    <div className="flex flex-wrap gap-1 rounded-full border border-white/10 bg-white/6 p-1">
-                      {GEO_VIEWPORT_OPTIONS.map(option => (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => setViewportMode(option.id)}
-                          aria-pressed={viewportMode === option.id}
-                          className={cn(
-                            'rounded-full px-3 py-1.5 text-[0.625rem] font-medium uppercase tracking-[0.08em] transition-colors',
-                            viewportMode === option.id
-                              ? 'bg-[#2563EB] text-white'
-                              : 'text-white/72 hover:bg-white/10 hover:text-white',
-                          )}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
+                    <label className="mb-1 block text-[0.6rem] font-medium uppercase tracking-[0.08em] text-white/45" htmlFor={`geo-view-${gradientKey}`}>
+                      View
+                    </label>
+                    <div className="rounded-full border border-white/10 bg-white/6 px-3 py-2">
+                      <select
+                        id={`geo-view-${gradientKey}`}
+                        value={viewportMode}
+                        onChange={event => setViewportMode(event.target.value as GeoViewportMode)}
+                        className="bg-transparent pr-6 text-[0.7rem] font-medium uppercase tracking-[0.08em] text-white outline-none"
+                      >
+                        {GEO_VIEWPORT_OPTIONS.map(option => (
+                          <option key={option.id} value={option.id} className="text-slate-900">
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -1462,7 +1478,7 @@ function PublishedGeoCard({
 
             <div className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-[18rem] rounded-2xl border border-white/12 bg-[#0F172A]/82 px-3 py-3 text-white/88 backdrop-blur-md">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-2xs font-medium uppercase tracking-[0.1em] text-white/58">Legend</div>
+                <div className="text-2xs font-medium uppercase tracking-[0.1em] text-white/58">{currentModeOption.label}</div>
                 <div className="text-[0.625rem] uppercase tracking-[0.08em] text-white/52">
                   {mapMode === 'share'
                     ? 'Size = share'
@@ -1470,6 +1486,9 @@ function PublishedGeoCard({
                       ? 'Size = abs delta'
                       : 'Size = validators'}
                 </div>
+              </div>
+              <div className="mt-1 text-[0.65rem] text-white/52">
+                {currentModeOption.detail}
               </div>
               <div className="mt-2 flex items-end gap-4">
                 <div className="flex items-end gap-2">
