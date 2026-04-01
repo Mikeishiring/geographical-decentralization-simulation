@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SlidersHorizontal, ChevronDown, Map as MapIcon, LayoutGrid, BarChart3 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_CRISP } from '../../lib/theme'
@@ -453,6 +453,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
     queryFn: () => fetchPayload(viewerBaseUrl, selectedEntry!.path),
     enabled: Boolean(selectedEntry?.path),
     staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
   })
 
   const taggedBlocks = useMemo<readonly TaggedChartBlock[]>(
@@ -549,7 +550,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
         </div>
       </motion.section>
 
-      {/* ── Loading skeleton ── */}
+      {/* ── Loading skeleton — matches KPI → Map hero order ── */}
       {payloadQuery.isLoading && (
         <div className="mt-3 space-y-3">
           {/* KPI shimmer row */}
@@ -561,19 +562,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
               </div>
             ))}
           </div>
-          {/* Config + narrative shimmer */}
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="lab-stage-soft px-4 py-3 animate-pulse">
-                <div className="h-2.5 w-24 rounded bg-meridian/40 mb-3" />
-                <div className="space-y-2">
-                  <div className="h-2 w-full rounded bg-meridian/20" />
-                  <div className="h-2 w-3/4 rounded bg-meridian/20" />
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Map shimmer */}
+          {/* Map shimmer — hero position */}
           <div className="lab-stage overflow-hidden animate-pulse">
             <div className="border-b border-rule px-5 py-3">
               <div className="h-3 w-32 rounded bg-meridian/40" />
@@ -588,40 +577,17 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
         </div>
       )}
 
-      {/* ── Loaded surface ── */}
+      {/* ── Loaded surface: Filter → KPI → Map (hero) → Lens → Charts ── */}
       {payloadQuery.data && (
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SPRING_CRISP}>
-          {/* KPI analytics strip */}
+          {/* KPI analytics strip — first thing after filters */}
           <div className="mt-2.5">
             <EvidenceKpiStrip payload={payloadQuery.data} activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
           </div>
 
-          {/* Sticky analytical lens category bar */}
-          <div className="mt-1.5">
-            <EvidenceCategoryBar
-              activeCategory={activeCategory}
-              onCategoryChange={setActiveCategory}
-              counts={categoryCounts}
-              chartGridRef={chartGridRef}
-            />
-          </div>
-
-          {/* Config snapshot + slot narrative — side by side on desktop */}
-          <div className="mt-3 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
-            {selectedEntry && (
-              <EvidenceConfigSnapshot
-                metadata={selectedEntry.metadata}
-                description={payloadQuery.data.description}
-                paradigm={selectedEntry.paradigm}
-                totalSlots={totalSlots}
-              />
-            )}
-            <SlotMetricsGrid payload={payloadQuery.data} />
-          </div>
-
-          {/* Interactive map with latency, playback, and overlays */}
+          {/* Map hero — the primary visual */}
           {mapLayout !== 'charts' && (
-            <div className="mt-4">
+            <div className="mt-3">
               <EvidenceMapSurface
                 payload={payloadQuery.data}
                 scenarioLabel={selectedEntry ? `${selectedEntry.evaluation}-${selectedEntry.paradigm}-${selectedEntry.result}` : undefined}
@@ -629,12 +595,47 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
             </div>
           )}
 
-          {/* Section divider */}
-          {mapLayout === 'split' && <div className="section-divider my-4" />}
+          {/* Analytical lens — directly above the charts it filters */}
+          {mapLayout !== 'full' && (
+            <div className="mt-3">
+              <EvidenceCategoryBar
+                activeCategory={activeCategory}
+                onCategoryChange={setActiveCategory}
+                counts={categoryCounts}
+                chartGridRef={chartGridRef}
+              />
+            </div>
+          )}
+
+          {/* Config snapshot + slot narrative — collapsible detail below lens */}
+          {mapLayout !== 'full' && (
+            <details className="mt-3 group/details">
+              <summary className="lab-stage-soft px-4 py-2.5 cursor-pointer select-none flex items-center gap-2 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors">
+                <ChevronDown className="h-3 w-3 transition-transform duration-150 group-open/details:rotate-180" />
+                Scenario details
+                {selectedEntry && (
+                  <span className="text-2xs text-text-faint font-normal ml-1">
+                    {selectedEntry.paradigm} · {totalSlots.toLocaleString()} slots
+                  </span>
+                )}
+              </summary>
+              <div className="mt-1 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
+                {selectedEntry && (
+                  <EvidenceConfigSnapshot
+                    metadata={selectedEntry.metadata}
+                    description={payloadQuery.data.description}
+                    paradigm={selectedEntry.paradigm}
+                    totalSlots={totalSlots}
+                  />
+                )}
+                <SlotMetricsGrid payload={payloadQuery.data} />
+              </div>
+            </details>
+          )}
 
           {/* Chart panels — layout-aware grid */}
           {mapLayout !== 'full' && (
-          <div ref={chartGridRef} className={mapLayout === 'charts' ? 'mt-3' : ''}>
+          <div ref={chartGridRef} className={mapLayout === 'charts' ? 'mt-1' : ''}>
             {taggedBlocks.length > 0 && (
               <div className="lab-stage px-5 py-3.5">
                 <div className="flex items-center gap-2 mb-2.5">

@@ -31,6 +31,33 @@ function notePinColor(intent: 'observation' | 'question' | 'theory' | 'methods')
   return INTENT_COLORS.highlight
 }
 
+// ── Metric explanations — plain-English tooltips for chart titles ───────────
+
+const METRIC_EXPLANATIONS: Record<string, string> = {
+  gini: 'Gini coefficient measures how unevenly validator stake is distributed across regions. 0 means perfectly equal, 1 means one region controls everything.',
+  hhi: 'Herfindahl-Hirschman Index measures market concentration. Below 0.15 is unconcentrated (healthy), above 0.25 is highly concentrated.',
+  liveness: 'What percentage of available GCP regions have at least one active validator? Higher means the network is more geographically spread out.',
+  distance: 'The total physical distance between all validator pairs. Higher means validators are more geographically spread, lower means they cluster together.',
+  cluster: 'How many distinct geographic groupings of validators exist? More clusters generally means better decentralization.',
+  mev: 'Maximum Extractable Value — the extra profit block builders capture by reordering transactions. Affected by geographic position relative to information sources.',
+  attestation: 'How reliably do validators participate in consensus? Higher attestation rates mean the network is coordinating well despite geographic spread.',
+  'failed': 'Blocks that couldn\'t meet the attestation threshold in time. Often caused by excessive latency between the proposer and attesters.',
+  proposal: 'How quickly block proposals propagate through the network. Lower latency means faster consensus finality.',
+  'coefficient of variation': 'How fairly are profits distributed among validators? Lower CV means more equitable rewards regardless of geographic location.',
+  'nearest-neighbor': 'Are validators clustered or dispersed? Below 1 means clustered (validators bunch up), above 1 means regularly spaced.',
+  nni: 'Nearest Neighbor Index — a spatial statistics measure. Below 1 = validators cluster together, above 1 = evenly dispersed across regions.',
+  relay: 'Average distance from validators to information sources (relays/builders). Shorter distance = faster access to block-building opportunities.',
+  source: 'Where block-building information originates geographically. Concentrated sources create centralization pressure around those locations.',
+}
+
+function getMetricExplanation(title: string): string | null {
+  const t = title.toLowerCase()
+  for (const [keyword, explanation] of Object.entries(METRIC_EXPLANATIONS)) {
+    if (t.includes(keyword)) return explanation
+  }
+  return null
+}
+
 export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) {
   const [hover, setHover] = useState<{ x: number; svgX: number; svgY: number } | null>(null)
   const gradientBaseId = useId().replace(/:/g, '')
@@ -122,8 +149,14 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
     <div className="lab-panel overflow-hidden rounded-xl">
       <div className="border-b border-rule px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h3 className="text-sm font-medium text-text-primary">
+          <h3
+            className="text-sm font-medium text-text-primary group/title cursor-help"
+            title={getMetricExplanation(block.title ?? '') ?? undefined}
+          >
             {block.title}
+            {getMetricExplanation(block.title ?? '') && (
+              <span className="ml-1.5 inline-flex items-center justify-center h-3.5 w-3.5 rounded-full border border-stone-200 text-[8px] font-semibold text-stone-400 group-hover/title:border-stone-400 group-hover/title:text-stone-600 transition-colors align-text-top">?</span>
+            )}
           </h3>
 
           <div className="flex flex-wrap items-center gap-1.5">
@@ -513,7 +546,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
             })}
           </svg>
 
-          {/* ── Floating tooltip card — spring entrance with overshoot ── */}
+          {/* ── Floating tooltip card — Stripe-style bubble with overshoot ── */}
           <AnimatePresence>
             {hover && tooltipAnchor && hoverReadout.length > 0 && (
               <motion.div
@@ -528,22 +561,42 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 transition={CHART.tooltipSpring}
               >
                 <div
-                  className="rounded-lg border border-rule bg-white px-3 py-2.5"
-                  style={{ boxShadow: `${CHART.tooltipShadow}, 0 0 0 1px rgba(37,99,235,0.06)` }}
+                  className="rounded-xl border border-black/[0.06] bg-white px-3.5 py-3 min-w-[140px]"
+                  style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' }}
                 >
-                  <div className="text-2xs font-medium tabular-nums text-muted">
-                    Slot {hoverReadout[0].x}
+                  {/* Arrow pointer */}
+                  {!tooltipAnchor.flipX && (
+                    <div className="absolute left-0 top-1/2 -translate-x-[5px] -translate-y-1/2 h-2.5 w-2.5 rotate-45 border-l border-b border-black/[0.06] bg-white" />
+                  )}
+                  {tooltipAnchor.flipX && (
+                    <div className="absolute right-0 top-1/2 translate-x-[5px] -translate-y-1/2 h-2.5 w-2.5 rotate-45 border-r border-t border-black/[0.06] bg-white" />
+                  )}
+                  <div className="text-[10px] font-medium tabular-nums text-stone-500">
+                    Slot {hoverReadout[0].x.toLocaleString()}
+                    <span className="ml-1.5 text-stone-300">of {formatSeriesNumber(maxX)}</span>
                   </div>
-                  <div className="mt-1.5 space-y-1">
-                    {hoverReadout.map(point => (
-                      <div key={point.label} className="flex items-center gap-2">
-                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: point.color }} />
-                        <span className="text-11 text-muted">{point.label}</span>
-                        <span className="ml-auto text-13 font-semibold tabular-nums text-text-primary">
-                          {formatSeriesNumber(point.value)}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="mt-2 space-y-1.5">
+                    {hoverReadout.map(point => {
+                      const pctOfRange = rangeY > 0 ? ((point.value - minY) / rangeY) * 100 : 0
+                      return (
+                        <div key={point.label}>
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: point.color }} />
+                            <span className="text-[11px] text-stone-500">{point.label}</span>
+                            <span className="ml-auto text-[14px] font-semibold tabular-nums text-stone-900">
+                              {formatSeriesNumber(point.value)}
+                            </span>
+                          </div>
+                          {/* Mini progress bar showing value within range */}
+                          <div className="mt-1 ml-4 h-[2px] rounded-full bg-stone-100 overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-75"
+                              style={{ width: `${Math.min(Math.max(pctOfRange, 2), 100)}%`, backgroundColor: point.color }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               </motion.div>
