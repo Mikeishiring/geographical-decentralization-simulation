@@ -362,6 +362,10 @@ function SectionCard({
     () => collectNoteHighlights(sectionNotes),
     [sectionNotes],
   )
+  const featuredChartBlocks = section.blocks.filter(block => block.type === 'paperChart')
+  const supportingBlocks = section.blocks.filter(block => block.type !== 'paperChart')
+  const hasFeaturedChart = featuredChartBlocks.length > 0
+  const hasSupportingBlocks = supportingBlocks.length > 0
 
   const handleHighlightClick = () => {
     const sectionEl = document.getElementById(section.id)
@@ -416,10 +420,30 @@ function SectionCard({
         </p>
       </div>
 
+      {hasFeaturedChart && (
+        <div className="mb-8">
+          <div className="overflow-hidden rounded-[1.35rem] border border-rule/70 bg-[linear-gradient(180deg,rgba(249,250,251,0.95),rgba(255,255,255,1))] p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:p-4 lg:p-5">
+            <BlockCanvas blocks={featuredChartBlocks} showExport={false} />
+          </div>
+          <p className="mt-3 max-w-4xl px-1 text-sm leading-6 text-muted">
+            {narrative.figureCaption}
+          </p>
+        </div>
+      )}
+
       {/* Content grid — wider prose column */}
-      <div className="grid gap-8 xl:grid-cols-12">
-        {/* Prose column — 8 cols gives more breathing room */}
-        <div className={cn('xl:col-span-7 space-y-6', figuresFirst && 'xl:order-2')}>
+      <div className={cn('grid gap-8', hasSupportingBlocks && 'xl:grid-cols-12')}>
+        <div
+          className={cn(
+            'space-y-6',
+            hasSupportingBlocks
+              ? hasFeaturedChart
+                ? 'xl:col-span-8'
+                : 'xl:col-span-7'
+              : 'max-w-4xl',
+            !hasFeaturedChart && figuresFirst && hasSupportingBlocks && 'xl:order-2',
+          )}
+        >
           <p className="max-w-3xl text-xl leading-relaxed text-text-primary font-serif">
             {narrative.lede}
           </p>
@@ -441,14 +465,24 @@ function SectionCard({
           </div>
         </div>
 
-        <div className={cn('xl:col-span-5 space-y-4', figuresFirst && 'xl:order-1')}>
-          <div className="rounded-lg border border-rule bg-surface-active p-4">
-            <BlockCanvas blocks={section.blocks} showExport={false} />
+        {hasSupportingBlocks && (
+          <div
+            className={cn(
+              'space-y-4',
+              hasFeaturedChart ? 'xl:col-span-4' : 'xl:col-span-5',
+              !hasFeaturedChart && figuresFirst && 'xl:order-1',
+            )}
+          >
+            <div className="rounded-xl border border-rule/80 bg-surface-active/55 p-4">
+              <BlockCanvas blocks={supportingBlocks} showExport={false} />
+            </div>
+            {!hasFeaturedChart && (
+              <p className="px-1 text-xs leading-6 text-muted">
+                {narrative.figureCaption}
+              </p>
+            )}
           </div>
-          <p className="px-1 text-xs leading-6 text-muted">
-            {narrative.figureCaption}
-          </p>
-        </div>
+        )}
       </div>
 
       {/* Inline community notes + annotation hint (consolidated) */}
