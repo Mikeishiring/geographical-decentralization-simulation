@@ -76,6 +76,11 @@ function formatSlotTick(value: number): string {
   return Number.isInteger(compact) ? `${compact}k` : `${compact.toFixed(1)}k`
 }
 
+function getSeriesGroupLabel(label: string): string {
+  const match = label.match(/^(γ=[^ ]+)/)
+  return match?.[1] ?? label
+}
+
 function pointAtSlot(points: readonly PaperChartPoint[], slot: number): PaperChartPoint | null {
   if (points.length === 0) return null
 
@@ -130,6 +135,7 @@ function MiniChart({
   onHoverSlot,
   gradientPrefix,
   panelIndex,
+  activeGroup,
 }: {
   datasets: readonly PaperChartDataset[]
   metricKey: MetricKey
@@ -139,6 +145,7 @@ function MiniChart({
   onHoverSlot: (slot: number | null) => void
   gradientPrefix: string
   panelIndex: number
+  activeGroup: string | null
 }) {
   const padding = { top: 12, right: 16, bottom: 30, left: 48 }
   const svgW = 380
@@ -206,6 +213,8 @@ function MiniChart({
 
   const { minX, rangeX, yTicks, xTicks, latestSvgX, mapX, mapY, series } = chartGeometry
   const baseDelay = panelIndex * 0.05
+  const isDenseFigure = datasets.length > 4
+  const showAreaFill = !isDenseFigure
 
   const hoverSvgX = hoverSlot != null
     ? mapX(hoverSlot)
@@ -353,15 +362,22 @@ function MiniChart({
 
         {series.map(({ dataset, index, points, pathD, areaD, latest }) => {
           const seriesDelay = baseDelay + 0.1 + index * 0.04
+          const isFocusedSeries = activeGroup == null || getSeriesGroupLabel(dataset.label) === activeGroup
+          const showMarkers = !isDenseFigure || activeGroup !== null
+          const lineOpacity = isFocusedSeries ? 0.96 : 0.2
+          const latestOpacity = isFocusedSeries ? 1 : 0
+          const strokeWidth = isDenseFigure
+            ? dataset.dashed ? 1.45 : 1.7
+            : dataset.dashed ? 2 : 2.2
 
-          const hoveredPoint = hoverSlot != null ? pointAtSlot(points, hoverSlot) : null
+          const hoveredPoint = hoverSlot != null && showMarkers && isFocusedSeries ? pointAtSlot(points, hoverSlot) : null
           const hoveredCoord = hoveredPoint
             ? { sx: mapX(hoveredPoint.x), sy: mapY(hoveredPoint.y) }
             : null
 
           return (
             <g key={dataset.label}>
-              {areaD && (
+              {showAreaFill && areaD && isFocusedSeries && (
                 <motion.path
                   d={areaD}
                   fill={`url(#${gradientPrefix}-${metricKey}-${index})`}
@@ -375,16 +391,17 @@ function MiniChart({
                 d={pathD}
                 fill="none"
                 stroke={dataset.color}
-                strokeWidth={dataset.dashed ? 2 : 2.2}
+                strokeWidth={strokeWidth}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeDasharray={dataset.dashed ? '6 3' : undefined}
+                opacity={lineOpacity}
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
                 transition={{ ...SPRING_CRISP, delay: seriesDelay + 0.05 }}
               />
 
-              {latest && (
+              {latest && showMarkers && (
                 <g>
                   <circle
                     cx={latest.sx}
@@ -395,6 +412,7 @@ function MiniChart({
                     strokeWidth={1}
                     opacity={0.24}
                     className="live-dot-pulse"
+                    style={{ opacity: latestOpacity * 0.24 }}
                   />
                   <motion.circle
                     cx={latest.sx}
@@ -404,6 +422,7 @@ function MiniChart({
                     stroke={dataset.color}
                     strokeWidth={1.4}
                     filter={`drop-shadow(0 1px 2px ${dataset.color}25)`}
+                    opacity={latestOpacity}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ ...SPRING_CRISP, delay: seriesDelay + 0.3 }}
@@ -413,6 +432,7 @@ function MiniChart({
                     cy={latest.sy}
                     r={2.15}
                     fill={dataset.color}
+                    opacity={latestOpacity}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ ...SPRING_CRISP, delay: seriesDelay + 0.35 }}
@@ -465,7 +485,10 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
   const provenance = CHART_PROVENANCE[block.dataKey]
   const { minSlot, maxSlot } = getSlotBounds(datasets)
   const inspectedSlot = hoverSlot ?? maxSlot
-  const showLegendDelta = datasets.length <= 4
+  const isDenseFigure = datasets.length > 4
+  const seriesGroups = Array.from(new Set(datasets.map(dataset => getSeriesGroupLabel(dataset.label))))
+  const defaultFocusedGroup = seriesGroups.includes('γ=2/3') ? 'γ=2/3' : (seriesGroups[0] ?? null)
+  const [focusedGroup, setFocusedGroup] = useState<string | null>(defaultFocusedGroup)
 
   const legendStats = datasets.map(dataset => {
     const first = dataset.gini[0]?.y ?? 0
@@ -473,6 +496,14 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
     const delta = last - first
     return { label: dataset.label, color: dataset.color, dashed: dataset.dashed, first, last, delta }
   })
+  const activeGroup = isDenseFigure ? focusedGroup : null
+  const visibleLegendStats = activeGroup == null
+    ? legendStats
+    : legendStats.filter(series => getSeriesGroupLabel(series.label) === activeGroup)
+  const inspectorDatasets = activeGroup == null
+    ? datasets
+    : datasets.filter(dataset => getSeriesGroupLabel(dataset.label) === activeGroup)
+  const showLegendDelta = !isDenseFigure
 
   return (
     <motion.div
@@ -519,33 +550,96 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2.5">
-          {legendStats.map(series => (
-            <div
-              key={series.label}
-              className="inline-flex items-center gap-2 rounded-full border border-rule/60 bg-white/78 px-3 py-1.5"
-            >
-              <svg width="18" height="8" viewBox="0 0 18 8" className="shrink-0">
-                <line
-                  x1="0"
-                  y1="4"
-                  x2="18"
-                  y2="4"
-                  stroke={series.color}
-                  strokeWidth={2}
-                  strokeDasharray={series.dashed ? '4 2' : undefined}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span className="text-[12px] font-medium text-text-primary">{series.label}</span>
-              {showLegendDelta && (
-                <span className={cn('text-[11px] tabular-nums', series.delta > 0 ? 'text-danger' : 'text-success')}>
-                  {formatNum(series.first)} {'->'} {formatNum(series.last)}
-                </span>
-              )}
+        {isDenseFigure ? (
+          <div className="mt-3 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                Focus threshold
+              </span>
+              {seriesGroups.map(group => (
+                <button
+                  key={group}
+                  type="button"
+                  onClick={() => setFocusedGroup(group)}
+                  className={cn(
+                    'rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors',
+                    focusedGroup === group
+                      ? 'border-accent/40 bg-accent/[0.08] text-text-primary'
+                      : 'border-rule/60 bg-white/80 text-text-faint hover:text-text-primary',
+                  )}
+                >
+                  {group}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setFocusedGroup(null)}
+                className={cn(
+                  'rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors',
+                  focusedGroup == null
+                    ? 'border-accent/40 bg-accent/[0.08] text-text-primary'
+                    : 'border-rule/60 bg-white/80 text-text-faint hover:text-text-primary',
+                )}
+              >
+                Show all
+              </button>
             </div>
-          ))}
-        </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              {visibleLegendStats.map(series => (
+                <div
+                  key={series.label}
+                  className="inline-flex items-center gap-2 rounded-full border border-rule/60 bg-white/78 px-3 py-1.5"
+                >
+                  <svg width="18" height="8" viewBox="0 0 18 8" className="shrink-0">
+                    <line
+                      x1="0"
+                      y1="4"
+                      x2="18"
+                      y2="4"
+                      stroke={series.color}
+                      strokeWidth={2}
+                      strokeDasharray={series.dashed ? '4 2' : undefined}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="text-[12px] font-medium text-text-primary">{series.label}</span>
+                </div>
+              ))}
+              <span className="text-[11px] text-text-faint">
+                Solid = External, dashed = Local.
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 flex flex-wrap gap-2.5">
+            {visibleLegendStats.map(series => (
+              <div
+                key={series.label}
+                className="inline-flex items-center gap-2 rounded-full border border-rule/60 bg-white/78 px-3 py-1.5"
+              >
+                <svg width="18" height="8" viewBox="0 0 18 8" className="shrink-0">
+                  <line
+                    x1="0"
+                    y1="4"
+                    x2="18"
+                    y2="4"
+                    stroke={series.color}
+                    strokeWidth={2}
+                    strokeDasharray={series.dashed ? '4 2' : undefined}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="text-[12px] font-medium text-text-primary">{series.label}</span>
+                {showLegendDelta && (
+                  <span className={cn('text-[11px] tabular-nums', series.delta > 0 ? 'text-danger' : 'text-success')}>
+                    {formatNum(series.first)} {'->'} {formatNum(series.last)}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="px-4 py-4 sm:px-5">
@@ -565,6 +659,7 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
                   onHoverSlot={setHoverSlot}
                   gradientPrefix={gradientPrefix}
                   panelIndex={panelIndex}
+                  activeGroup={activeGroup}
                 />
               </div>
             ))}
@@ -581,6 +676,13 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
             <p className="mt-1 text-sm font-medium tabular-nums text-text-primary">
               {hoverSlot != null ? `Showing nearest raw values at slot ${hoverSlot.toLocaleString()}` : `Showing latest raw values at slot ${maxSlot.toLocaleString()}`}
             </p>
+            {isDenseFigure && (
+              <p className="mt-1 text-[11px] leading-5 text-text-faint">
+                {activeGroup == null
+                  ? 'Showing all gamma pairs. Use the focus pills above for a cleaner comparison.'
+                  : `Showing the ${activeGroup} external/local pair. Switch to Show all to compare every threshold at once.`}
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -607,8 +709,8 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
           <span className="text-[11px] font-medium tabular-nums text-text-faint">{maxSlot.toLocaleString()}</span>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {datasets.map(dataset => {
+        <div className={cn('mt-4 grid gap-2', isDenseFigure ? 'sm:grid-cols-2' : 'sm:grid-cols-2 xl:grid-cols-4')}>
+          {inspectorDatasets.map(dataset => {
             const values = METRICS.map(metric => ({
               label: metric.label,
               value: pointAtSlot(dataset[metric.key], inspectedSlot)?.y ?? 0,
