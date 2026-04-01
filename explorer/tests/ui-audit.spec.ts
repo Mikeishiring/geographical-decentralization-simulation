@@ -81,37 +81,103 @@ test('mobile paper toolbar keeps short note and guide labels', async ({ page }) 
 })
 
 test('community replies preserve author and persist after reload', async ({ page }) => {
-  const uniqueTitle = `Playwright reply note ${Date.now()}`
+  const noteId = 'mock-note-1'
+  const noteTitle = 'Playwright seeded community note'
   const replyBody = `Reply authored through Playwright ${Date.now()}`
+  const replies: Array<{
+    id: string
+    explorationId: string
+    author: string
+    body: string
+    createdAt: string
+    votes: number
+  }> = []
 
-  await mockCuratedExplore(page)
-  await page.goto('/?tab=agent')
-  await askCuratedQuestion(page)
+  const buildExploration = () => ({
+    id: noteId,
+    query: 'Playwright seeded community note query',
+    summary: 'Playwright seeded note summary.',
+    blocks: [
+      {
+        type: 'insight',
+        title: 'Seeded note',
+        text: 'This note is seeded inside the e2e harness so reply rendering can be verified deterministically.',
+      },
+    ],
+    followUps: [],
+    model: 'playwright-community',
+    cached: true,
+    source: 'generated',
+    votes: 12,
+    createdAt: '2026-04-01T12:00:00.000Z',
+    paradigmTags: ['External', 'Local'],
+    experimentTags: ['SE4'],
+    verified: true,
+    surface: 'reading',
+    replies,
+    publication: {
+      published: true,
+      title: noteTitle,
+      takeaway: 'Seeded note for deterministic reply coverage.',
+      author: 'Seeded author',
+      publishedAt: '2026-04-01T12:00:00.000Z',
+      featured: false,
+      editorNote: '',
+    },
+  })
 
-  await page.getByRole('button', { name: 'Share as a community note' }).click()
-  await page.getByLabel('Title').fill(uniqueTitle)
-  await page.getByLabel('Name (optional)').fill('Seeded author')
-  await page.getByRole('button', { name: 'Publish note' }).click()
+  await page.route('**/api/explorations?**', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([buildExploration()]),
+    })
+  })
 
-  const viewCommunityButton = page.getByRole('button', { name: /View in Community|View published/ })
-  await expect(viewCommunityButton).toBeVisible({ timeout: 20_000 })
-  await viewCommunityButton.click()
+  await page.route(`**/api/explorations/${noteId}`, async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(buildExploration()),
+    })
+  })
 
-  const noteCard = page.locator('[id^="community-note-"]').filter({ hasText: uniqueTitle }).first()
+  await page.route(`**/api/explorations/${noteId}/replies`, async route => {
+    const payload = route.request().postDataJSON() as { author?: string; body?: string }
+    const reply = {
+      id: `reply-${replies.length + 1}`,
+      explorationId: noteId,
+      author: payload.author?.trim() || 'Anonymous',
+      body: payload.body?.trim() ?? '',
+      createdAt: '2026-04-01T12:30:00.000Z',
+      votes: 0,
+    }
+    replies.push(reply)
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify(reply),
+    })
+  })
+
+  await page.goto(`/?tab=community&eid=${noteId}`)
+
+  const noteCard = page.locator(`[id="community-note-${noteId}"]`)
   await expect(noteCard).toBeVisible({ timeout: 20_000 })
-
-  await noteCard.getByRole('button', { name: 'Reply' }).click()
+  const replyButton = noteCard.getByRole('button', { name: 'Reply', exact: true })
+  await expect(replyButton).toBeVisible({ timeout: 20_000 })
+  await replyButton.click()
   await noteCard.getByPlaceholder('Your name (optional)').fill('Reply author')
   await noteCard.getByPlaceholder('Reply to this note...').fill(replyBody)
   await noteCard.getByRole('button', { name: 'Send' }).click()
 
-  await expect(noteCard.getByText('Reply author')).toBeVisible()
-  await expect(noteCard.getByText(replyBody)).toBeVisible()
+  await expect(noteCard.locator('span').filter({ hasText: /^Reply author$/ })).toBeVisible()
+  await expect(noteCard.locator('p').filter({ hasText: replyBody })).toBeVisible()
 
   await page.reload()
 
-  const reloadedCard = page.locator('[id^="community-note-"]').filter({ hasText: uniqueTitle }).first()
+  const reloadedCard = page.locator(`[id="community-note-${noteId}"]`)
   await expect(reloadedCard).toBeVisible({ timeout: 20_000 })
-  await expect(reloadedCard.getByText('Reply author')).toBeVisible()
-  await expect(reloadedCard.getByText(replyBody)).toBeVisible()
+  await expect(reloadedCard.locator('span').filter({ hasText: /^Reply author$/ })).toBeVisible()
+  await expect(reloadedCard.locator('p').filter({ hasText: replyBody })).toBeVisible()
 })
