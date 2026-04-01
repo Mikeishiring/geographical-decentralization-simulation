@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SlidersHorizontal, ChevronDown, BarChart3 } from 'lucide-react'
+import { SlidersHorizontal, ChevronDown } from 'lucide-react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { cn } from '../../lib/cn'
@@ -199,17 +199,17 @@ interface ScenarioSelectorProps {
   readonly onSelect: (entry: ResearchDatasetEntry) => void
 }
 
-const chipBase = 'rounded-md border px-2.5 py-0.5 text-[10px] font-medium cursor-pointer transition-all duration-150'
-const chipActive = 'border-black/[0.06] bg-white text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
-const chipInactive = 'border-transparent text-stone-400 hover:text-stone-600 hover:bg-stone-50'
-const filterLabel = 'text-2xs font-medium uppercase tracking-wider text-text-faint shrink-0'
-const filterDivider = 'hidden sm:block w-px h-5 bg-rule/60 shrink-0'
+const chipBase = 'rounded-full border px-2.5 py-1 text-[10px] font-medium cursor-pointer transition-all duration-150'
+const chipActive = 'border-black/[0.08] bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.05)]'
+const chipInactive = 'border-black/[0.04] bg-[#F6F5F4] text-stone-500 hover:border-stone-300 hover:bg-white hover:text-stone-700'
+const filterLabel = 'text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint shrink-0'
+const filterDivider = 'hidden sm:block w-px h-4 bg-rule/60 shrink-0'
 
 /** Compact summary pill showing active secondary filter value */
 function FilterPill({ label, value }: { readonly label: string; readonly value: string }) {
   return (
-    <span className="inline-flex items-center gap-1 text-2xs text-muted">
-      <span className="text-text-faint">{label}:</span>
+    <span className="inline-flex items-center gap-1 rounded-full border border-black/[0.06] bg-white px-2 py-0.5 text-[10px] text-muted shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <span className="text-text-faint">{label}</span>
       <span className="font-medium text-text-secondary">{value}</span>
     </span>
   )
@@ -266,15 +266,16 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
   }, [catalog, onSelect])
 
   return (
-    <div className="space-y-0">
+    <div className="space-y-1.5">
       {/* Primary row: scenario dropdown + filter summary + customize toggle */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className={filterLabel}>Scenario</span>
         {/* Scenario selector — styled native select for clean UX */}
         <div className="relative">
           <select
             value={selectedEvaluation}
             onChange={e => findAndSelect(e.target.value, selectedParadigm)}
-            className="appearance-none rounded-lg border border-black/[0.06] bg-white pl-2.5 pr-7 py-1 text-[11px] font-medium text-stone-800 cursor-pointer hover:border-stone-300 focus:border-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-200 transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+            className="appearance-none rounded-[12px] border border-black/[0.06] bg-white pl-3 pr-8 py-1.5 text-[11px] font-medium text-stone-800 cursor-pointer hover:border-stone-300 focus:border-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-200 transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
           >
             {evaluations.map(evaluation => (
               <option key={evaluation} value={evaluation}>{evaluation}</option>
@@ -285,8 +286,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
 
         {/* Cost chips — always visible when cost dimension exists */}
         {hasCostDimension && (
-          <div className="flex items-center gap-1.5">
-            <div className="w-px h-4 bg-rule/60" />
+          <div className="flex items-center gap-1.5 rounded-full border border-black/[0.05] bg-[#FBFAF9] px-2 py-1">
             <span className={filterLabel} title="ETH migration cost charged when a validator relocates between regions. Higher cost = stronger geographic lock-in.">Cost</span>
             <div className="flex gap-1">
               {costResults.map(({ result, cost }) => {
@@ -314,8 +314,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
 
         {/* Active filter summary pills — collapsed view */}
         {hasSecondaryFilters && !filtersOpen && filterSummary.length > 0 && (
-          <div className="flex items-center gap-2.5">
-            <div className="w-px h-4 bg-rule/60" />
+          <div className="flex items-center gap-1.5">
             {filterSummary.map(({ label, value }) => (
               <FilterPill key={label} label={label} value={value} />
             ))}
@@ -327,14 +326,14 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
           <button
             onClick={() => setFiltersOpen(prev => !prev)}
             className={cn(
-              'flex items-center gap-1.5 rounded-md px-2 py-1 text-2xs font-medium transition-colors',
+              'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors',
               filtersOpen
-                ? 'bg-accent/8 text-accent border border-accent/15'
-                : 'text-muted hover:text-text-secondary hover:bg-surface-active',
+                ? 'border-accent/15 bg-accent/8 text-accent'
+                : 'border-black/[0.05] bg-[#F6F5F4] text-muted hover:border-stone-300 hover:bg-white hover:text-text-secondary',
             )}
           >
             <SlidersHorizontal className="h-3 w-3" />
-            <span className="hidden sm:inline">{filtersOpen ? 'Less' : 'Customize'}</span>
+            <span className="hidden sm:inline">{filtersOpen ? 'Collapse' : 'Customize'}</span>
           </button>
         )}
       </div>
@@ -349,7 +348,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
             transition={{ type: 'spring', stiffness: 400, damping: 32 }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-2.5 flex-wrap pt-2.5">
+            <div className="mt-1.5 flex items-center gap-2.5 flex-wrap rounded-[16px] border border-black/[0.05] bg-[#FBFAF9] px-3 py-2.5">
               {/* Source paradigm */}
               {paradigms.length > 1 && (
                 <>
@@ -431,13 +430,10 @@ interface PrecomputedEvidenceSurfaceProps {
   readonly viewerBaseUrl: string
 }
 
-type EvidenceViewMode = 'atlas' | 'charts'
-
 export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: PrecomputedEvidenceSurfaceProps) {
   const { catalog, error: catalogError } = useResearchCatalog(catalogScriptUrl)
   const [selectedEntry, setSelectedEntry] = useState<ResearchDatasetEntry | null>(null)
   const [activeCategory, setActiveCategory] = useState<PlotCategory>('all')
-  const [viewMode, setViewMode] = useState<EvidenceViewMode>('atlas')
   const chartGridRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -525,9 +521,9 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
         animate={{ opacity: 1, y: 0 }}
         transition={SPRING}
       >
-        <div className="px-4 py-3 space-y-2.5">
+        <div className="px-4 py-3 space-y-2">
           {/* Title row with badges */}
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
             <h2 className="text-xs font-semibold tracking-tight text-text-primary">
               Geographical Decentralization Atlas
             </h2>
@@ -587,55 +583,20 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
       {payloadQuery.data && (
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SPRING_CRISP}>
           {/* KPI analytics strip — first thing after filters */}
-          <div className="mt-2.5">
+          <div className="mt-2">
             <EvidenceKpiStrip payload={payloadQuery.data} activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
           </div>
 
           {/* Map hero — the primary visual */}
-          {viewMode === 'atlas' && (
-            <div className="mt-3">
-              <EvidenceMapSurface
-                payload={payloadQuery.data}
-                scenarioLabel={selectedEntry ? `${selectedEntry.evaluation}-${selectedEntry.paradigm}-${selectedEntry.result}` : undefined}
-              />
-            </div>
-          )}
-
-          <div className="sticky top-[4.85rem] z-10 mt-3 rounded-[1.1rem] border border-rule/70 bg-white/90 px-4 py-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur-md">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
-                  Figure view
-                </div>
-                <div className="mt-1 text-xs text-muted">
-                  Atlas keeps the map visible. Charts tightens the page around the figure stack.
-                </div>
-              </div>
-              <div className="flex items-center rounded-[12px] border border-black/[0.06] bg-[#F6F5F4] p-[3px] gap-[3px] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]">
-                {([
-                  { id: 'atlas' as const, label: 'Atlas', icon: null },
-                  { id: 'charts' as const, label: 'Charts', icon: BarChart3 },
-                ] as const).map(option => (
-                  <button
-                    key={option.id}
-                    onClick={() => setViewMode(option.id)}
-                    className={cn(
-                      'flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
-                      viewMode === option.id
-                        ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
-                        : 'text-stone-400 hover:text-stone-600',
-                    )}
-                  >
-                    {option.icon ? <option.icon className="h-3 w-3" /> : null}
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="mt-2.5">
+            <EvidenceMapSurface
+              payload={payloadQuery.data}
+              scenarioLabel={selectedEntry ? `${selectedEntry.evaluation}-${selectedEntry.paradigm}-${selectedEntry.result}` : undefined}
+            />
           </div>
 
           {/* Analytical lens — directly above the charts it filters */}
-          <div className="mt-3">
+          <div className="mt-2.5">
             <EvidenceCategoryBar
               activeCategory={activeCategory}
               onCategoryChange={setActiveCategory}
@@ -669,7 +630,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
           </details>
 
           {/* Chart panels — layout-aware grid */}
-          <div ref={chartGridRef} className={viewMode === 'charts' ? 'mt-1' : ''}>
+          <div ref={chartGridRef}>
             {taggedBlocks.length > 0 && (
               <div className="lab-stage px-5 py-3.5">
                 <div className="flex items-center gap-2 mb-2.5">
