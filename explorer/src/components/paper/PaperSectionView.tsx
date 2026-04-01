@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link2, Quote, Check, Lightbulb, MousePointerClick, MessageSquare, Users } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
+import { PaperChartBlock } from '../blocks/PaperChartBlock'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SNAPPY, SPRING_POPUP, SECTION_CATEGORY_STYLE } from '../../lib/theme'
@@ -434,12 +435,15 @@ function SectionCard({
 
       {hasFeaturedChart && (
         <div className="mb-8">
-          <div className="overflow-hidden rounded-[1.35rem] border border-rule/70 bg-[linear-gradient(180deg,rgba(249,250,251,0.95),rgba(255,255,255,1))] p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:p-4 lg:p-5">
-            <BlockCanvas blocks={featuredChartBlocks} showExport={false} />
+          <div className="space-y-4">
+            {featuredChartBlocks.map(block => (
+              <PaperChartBlock
+                key={`${section.id}-${block.title}`}
+                block={block}
+                caption={narrative.figureCaption}
+              />
+            ))}
           </div>
-          <p className="mt-3 max-w-4xl px-1 text-sm leading-6 text-muted">
-            {narrative.figureCaption}
-          </p>
         </div>
       )}
 

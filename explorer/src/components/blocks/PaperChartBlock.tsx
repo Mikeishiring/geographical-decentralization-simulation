@@ -1,4 +1,4 @@
-import { useState, useId } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING_CRISP, CHART } from '../../lib/theme'
@@ -9,20 +9,56 @@ import { PAPER_CHART_DATA, type PaperChartPoint, type PaperChartDataset } from '
 
 interface PaperChartBlockProps {
   block: PaperChartBlockType
+  caption?: string
 }
 
 type MetricKey = 'gini' | 'hhi' | 'liveness' | 'cv'
 
 const METRICS: readonly { key: MetricKey; label: string; yLabel: string }[] = [
-  { key: 'gini', label: 'Gini_g', yLabel: 'Gini\u2097' },
-  { key: 'hhi', label: 'HHI_g', yLabel: 'HHI\u2097' },
-  { key: 'liveness', label: 'LC_g', yLabel: 'LC\u2097' },
-  { key: 'cv', label: 'CV_g', yLabel: 'CV\u2097' },
+  { key: 'gini', label: 'Gini_g', yLabel: 'Gini_g' },
+  { key: 'hhi', label: 'HHI_g', yLabel: 'HHI_g' },
+  { key: 'liveness', label: 'LC_g', yLabel: 'LC_g' },
+  { key: 'cv', label: 'CV_g', yLabel: 'CV_g' },
 ]
 
 const CHART_DESCRIPTIONS: Record<string, string> = {
-  'baseline-results': 'Published Figure 3 replay over 10,000 slots. Solid lines are External and dashed lines are Local.',
-  'se4a-attestation': 'Published Figure 7 replay across four gamma settings. Solid lines are External and dashed lines are Local.',
+  'baseline-results': 'Paper Figure 3 replay over 10,000 slots. One composite figure, four metrics, shared slot axis.',
+  'se4a-attestation': 'Paper Figure 7 replay across four attestation-threshold settings. One composite figure, four metrics, shared slot axis.',
+}
+
+const CHART_TAKEAWAYS: Record<string, string> = {
+  'baseline-results': 'Local block building pulls concentration upward faster and farther than external block building in the baseline setup.',
+  'se4a-attestation': 'Raising gamma increases external centralization pressure while reducing local centralization pressure.',
+}
+
+const CHART_METADATA: Record<string, readonly string[]> = {
+  'baseline-results': ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', 'gamma = 2/3'],
+  'se4a-attestation': ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', 'gamma in {1/3, 1/2, 2/3, 4/5}'],
+}
+
+const CHART_PROVENANCE: Record<string, {
+  readonly figureHref: string
+  readonly figureLabel: string
+  readonly datasetSummary: string
+  readonly repoPaths: readonly string[]
+}> = {
+  'baseline-results': {
+    figureHref: '/paper-figures/fig3-baseline.png',
+    figureLabel: 'Open original paper figure',
+    datasetSummary: 'Derived directly from the full raw slot series in the checked-in baseline simulation outputs.',
+    repoPaths: [
+      'dashboard/simulations/baseline/SSP/cost_0.002/data.json',
+      'dashboard/simulations/baseline/MSP/cost_0.002/data.json',
+    ],
+  },
+  'se4a-attestation': {
+    figureHref: '/paper-figures/fig7-se4a-gamma.png',
+    figureLabel: 'Open original paper figure',
+    datasetSummary: 'Derived directly from the full raw slot series in the checked-in attestation-threshold simulation outputs.',
+    repoPaths: [
+      'dashboard/simulations/different_gammas/{SSP,MSP}/cost_0.002_gamma_{0.3333,0.5,0.6667,0.8}/data.json',
+    ],
+  },
 }
 
 function formatNum(value: number): string {
@@ -33,9 +69,56 @@ function formatNum(value: number): string {
   return value.toFixed(4)
 }
 
-function nearestPoint(points: readonly PaperChartPoint[], slot: number): PaperChartPoint | null {
-  return points.reduce<PaperChartPoint | null>((best, p) =>
-    best === null || Math.abs(p.x - slot) < Math.abs(best.x - slot) ? p : best, null)
+function formatSlotTick(value: number): string {
+  if (value < 1000) return String(value)
+
+  const compact = Math.round((value / 1000) * 10) / 10
+  return Number.isInteger(compact) ? `${compact}k` : `${compact.toFixed(1)}k`
+}
+
+function pointAtSlot(points: readonly PaperChartPoint[], slot: number): PaperChartPoint | null {
+  if (points.length === 0) return null
+
+  let low = 0
+  let high = points.length - 1
+
+  if (slot <= points[low].x) return points[low]
+  if (slot >= points[high].x) return points[high]
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2)
+    const point = points[mid]
+
+    if (point.x === slot) return point
+    if (point.x < slot) low = mid + 1
+    else high = mid - 1
+  }
+
+  const before = points[Math.max(0, high)] ?? null
+  const after = points[Math.min(points.length - 1, low)] ?? null
+
+  if (!before) return after
+  if (!after) return before
+  return Math.abs(before.x - slot) <= Math.abs(after.x - slot) ? before : after
+}
+
+function getSlotBounds(datasets: readonly PaperChartDataset[]) {
+  let minSlot = Number.POSITIVE_INFINITY
+  let maxSlot = Number.NEGATIVE_INFINITY
+
+  for (const dataset of datasets) {
+    for (const metric of METRICS) {
+      const points = dataset[metric.key]
+      if (points.length === 0) continue
+      minSlot = Math.min(minSlot, points[0].x)
+      maxSlot = Math.max(maxSlot, points[points.length - 1].x)
+    }
+  }
+
+  return {
+    minSlot: Number.isFinite(minSlot) ? minSlot : 0,
+    maxSlot: Number.isFinite(maxSlot) ? maxSlot : 0,
+  }
 }
 
 function MiniChart({
@@ -57,40 +140,75 @@ function MiniChart({
   gradientPrefix: string
   panelIndex: number
 }) {
-  const padding = { top: 20, right: 18, bottom: 34, left: 56 }
+  const padding = { top: 12, right: 16, bottom: 30, left: 48 }
   const svgW = 380
-  const svgH = 220
+  const svgH = 224
   const chartW = svgW - padding.left - padding.right
   const chartH = svgH - padding.top - padding.bottom
 
-  const allSeries = datasets.map(d => d[metricKey])
-  const allPoints = allSeries.flat()
-  if (allPoints.length === 0) return null
+  const chartGeometry = useMemo(() => {
+    const allSeries = datasets.map(dataset => dataset[metricKey])
+    const allPoints = allSeries.flat()
+    if (allPoints.length === 0) return null
 
-  const minX = Math.min(...allPoints.map(p => p.x))
-  const maxX = Math.max(...allPoints.map(p => p.x))
-  const minY = Math.min(...allPoints.map(p => p.y))
-  const maxY = Math.max(...allPoints.map(p => p.y))
-  const rangeX = maxX - minX || 1
-  const padY = (maxY - minY) * 0.08 || 0.01
-  const yLo = minY - padY
-  const yHi = maxY + padY
-  const rangeY = yHi - yLo
+    const minX = allPoints[0].x
+    const maxX = allPoints[allPoints.length - 1].x
+    const minY = Math.min(...allPoints.map(point => point.y))
+    const maxY = Math.max(...allPoints.map(point => point.y))
+    const rangeX = maxX - minX || 1
+    const padY = (maxY - minY) * 0.08 || 0.01
+    const yLo = minY - padY
+    const yHi = maxY + padY
+    const rangeY = yHi - yLo
 
-  function toSvg(x: number, y: number) {
+    const mapX = (x: number) => padding.left + ((x - minX) / rangeX) * chartW
+    const mapY = (y: number) => padding.top + chartH - ((y - yLo) / rangeY) * chartH
+    const toSvg = (x: number, y: number) => ({ sx: mapX(x), sy: mapY(y) })
+
+    const yTicks = Array.from({ length: 4 }, (_, index) => yLo + (rangeY * index) / 3)
+    const xTicks = Array.from({ length: 5 }, (_, index) => Math.round(minX + (rangeX * index) / 4))
+      .filter((tick, index, ticks) => index === 0 || tick !== ticks[index - 1])
+
+    const series = datasets.map((dataset, index) => {
+      const points = dataset[metricKey]
+      const coords = points.map(point => toSvg(point.x, point.y))
+      const pathD = coords.map((coord, coordIndex) => `${coordIndex === 0 ? 'M' : 'L'} ${coord.sx} ${coord.sy}`).join(' ')
+      const baseY = padding.top + chartH
+      const areaD = coords.length > 0
+        ? `${pathD} L ${coords[coords.length - 1].sx} ${baseY} L ${coords[0].sx} ${baseY} Z`
+        : ''
+
+      return {
+        dataset,
+        index,
+        points,
+        pathD,
+        areaD,
+        latest: coords[coords.length - 1] ?? null,
+      }
+    })
+
     return {
-      sx: padding.left + ((x - minX) / rangeX) * chartW,
-      sy: padding.top + chartH - ((y - yLo) / rangeY) * chartH,
+      minX,
+      maxX,
+      rangeX,
+      yLo,
+      yTicks,
+      xTicks,
+      latestSvgX: mapX(maxX),
+      mapX,
+      mapY,
+      series,
     }
-  }
+  }, [chartH, chartW, datasets, metricKey, padding.bottom, padding.left, padding.right, padding.top])
 
-  const yTicks = Array.from({ length: 4 }, (_, i) => yLo + (rangeY * i) / 3)
-  const xTicks = [0, 2500, 5000, 7500, 10000].filter(t => t >= minX && t <= maxX)
-  const latestSvgX = toSvg(maxX, 0).sx
-  const baseDelay = panelIndex * 0.06
+  if (!chartGeometry) return null
+
+  const { minX, rangeX, yTicks, xTicks, latestSvgX, mapX, mapY, series } = chartGeometry
+  const baseDelay = panelIndex * 0.05
 
   const hoverSvgX = hoverSlot != null
-    ? padding.left + ((hoverSlot - minX) / rangeX) * chartW
+    ? mapX(hoverSlot)
     : null
   const crosshairOpacity = hoverSvgX != null
     ? CHART.crosshairOpacity * crosshairFadeNearLive(hoverSvgX, latestSvgX, CHART.crosshairFadeDistance)
@@ -106,14 +224,19 @@ function MiniChart({
   }
 
   return (
-    <div className="relative">
-      <div className="absolute left-2.5 top-2.5 z-10 inline-flex items-center gap-1 rounded-full border border-rule/60 bg-white/90 px-2 py-1 text-[10px] font-semibold tracking-wide text-muted/80 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-        <span className="text-text-primary">{metricLabel}</span>
-        <span className="text-text-faint">{yLabel}</span>
+    <div className="flex h-full flex-col">
+      <div className="mb-2 flex items-center justify-between gap-2 px-1">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">
+          {metricLabel}
+        </div>
+        <div className="text-[11px] text-muted">
+          {yLabel}
+        </div>
       </div>
+
       <svg
         viewBox={`0 0 ${svgW} ${svgH}`}
-        className="aspect-[19/11] w-full"
+        className="aspect-[15/10] w-full"
         preserveAspectRatio="xMidYMid meet"
         onPointerMove={event => {
           if (event.pointerType !== 'mouse') return
@@ -128,36 +251,45 @@ function MiniChart({
         style={{ touchAction: 'pan-y' }}
       >
         <defs>
-          {datasets.map((d, i) => (
+          {datasets.map((dataset, index) => (
             <linearGradient
-              key={d.label}
-              id={`${gradientPrefix}-${metricKey}-${i}`}
-              x1="0%" x2="0%" y1="0%" y2="100%"
+              key={dataset.label}
+              id={`${gradientPrefix}-${metricKey}-${index}`}
+              x1="0%"
+              x2="0%"
+              y1="0%"
+              y2="100%"
             >
-              <stop offset="0%" stopColor={d.color} stopOpacity={0.14} />
-              <stop offset="100%" stopColor={d.color} stopOpacity={0.01} />
+              <stop offset="0%" stopColor={dataset.color} stopOpacity={0.14} />
+              <stop offset="100%" stopColor={dataset.color} stopOpacity={0.01} />
             </linearGradient>
           ))}
         </defs>
 
-        {/* Grid lines — staggered entrance */}
-        {yTicks.map((tick, tickIdx) => {
-          const { sy } = toSvg(0, tick)
+        {yTicks.map((tick, tickIndex) => {
+          const sy = mapY(tick)
           return (
             <motion.g
               key={tick}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ ...SPRING_CRISP, delay: baseDelay + tickIdx * 0.03 }}
+              transition={{ ...SPRING_CRISP, delay: baseDelay + tickIndex * 0.03 }}
             >
               <line
-                x1={padding.left} y1={sy}
-                x2={svgW - padding.right} y2={sy}
-                stroke="currentColor" strokeWidth={0.5} opacity={0.08}
+                x1={padding.left}
+                y1={sy}
+                x2={svgW - padding.right}
+                y2={sy}
+                stroke="currentColor"
+                strokeWidth={0.5}
+                opacity={0.08}
               />
               <text
-                x={padding.left - 4} y={sy + 3}
-                textAnchor="end" className="fill-muted" style={{ fontSize: 10 }}
+                x={padding.left - 4}
+                y={sy + 3}
+                textAnchor="end"
+                className="fill-muted"
+                style={{ fontSize: 10 }}
               >
                 {formatNum(tick)}
               </text>
@@ -165,26 +297,31 @@ function MiniChart({
           )
         })}
 
-        {/* X-axis ticks — staggered */}
-        {xTicks.map((tick, idx) => {
-          const { sx } = toSvg(tick, yLo)
+        {xTicks.map((tick, index) => {
+          const sx = mapX(tick)
           return (
             <motion.text
-              key={tick} x={sx} y={svgH - 11}
-              textAnchor="middle" className="fill-muted" style={{ fontSize: 10 }}
+              key={tick}
+              x={sx}
+              y={svgH - 11}
+              textAnchor="middle"
+              className="fill-muted"
+              style={{ fontSize: 10 }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ ...SPRING_CRISP, delay: baseDelay + 0.15 + idx * 0.03 }}
+              transition={{ ...SPRING_CRISP, delay: baseDelay + 0.15 + index * 0.03 }}
             >
-              {tick >= 1000 ? `${tick / 1000}k` : tick}
+              {formatSlotTick(tick)}
             </motion.text>
           )
         })}
 
-        {/* X-axis label */}
         <motion.text
-          x={padding.left + chartW / 2} y={svgH - 1}
-          textAnchor="middle" className="fill-muted" style={{ fontSize: 9 }}
+          x={padding.left + chartW / 2}
+          y={svgH - 1}
+          textAnchor="middle"
+          className="fill-muted"
+          style={{ fontSize: 9 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.6 }}
           transition={{ ...SPRING_CRISP, delay: baseDelay + 0.3 }}
@@ -192,13 +329,16 @@ function MiniChart({
           Slot
         </motion.text>
 
-        {/* Crosshair + dim region */}
         {hoverSvgX != null && crosshairOpacity > 0.01 && (
           <>
             <line
-              x1={hoverSvgX} y1={padding.top}
-              x2={hoverSvgX} y2={padding.top + chartH}
-              stroke="currentColor" opacity={crosshairOpacity} strokeWidth={0.75}
+              x1={hoverSvgX}
+              y1={padding.top}
+              x2={hoverSvgX}
+              y2={padding.top + chartH}
+              stroke="currentColor"
+              opacity={crosshairOpacity}
+              strokeWidth={0.75}
             />
             <rect
               x={hoverSvgX}
@@ -211,72 +351,68 @@ function MiniChart({
           </>
         )}
 
-        {/* Series */}
-        {datasets.map((d, i) => {
-          const points = d[metricKey]
-          const coords = points.map(p => toSvg(p.x, p.y))
-          const pathD = coords.map((c, j) => `${j === 0 ? 'M' : 'L'} ${c.sx} ${c.sy}`).join(' ')
-          const baseY = padding.top + chartH
-          const areaD = coords.length > 0
-            ? `${pathD} L ${coords[coords.length - 1].sx} ${baseY} L ${coords[0].sx} ${baseY} Z`
-            : ''
-          const latest = coords[coords.length - 1]
-          const seriesDelay = baseDelay + 0.1 + i * 0.05
+        {series.map(({ dataset, index, points, pathD, areaD, latest }) => {
+          const seriesDelay = baseDelay + 0.1 + index * 0.04
 
-          const hoveredPt = hoverSlot != null ? nearestPoint(points, hoverSlot) : null
-          const hoveredCoord = hoveredPt ? toSvg(hoveredPt.x, hoveredPt.y) : null
+          const hoveredPoint = hoverSlot != null ? pointAtSlot(points, hoverSlot) : null
+          const hoveredCoord = hoveredPoint
+            ? { sx: mapX(hoveredPoint.x), sy: mapY(hoveredPoint.y) }
+            : null
 
           return (
-            <g key={d.label}>
-              {/* Area fill — fade in */}
+            <g key={dataset.label}>
               {areaD && (
                 <motion.path
                   d={areaD}
-                  fill={`url(#${gradientPrefix}-${metricKey}-${i})`}
+                  fill={`url(#${gradientPrefix}-${metricKey}-${index})`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ ...SPRING_CRISP, delay: seriesDelay }}
                 />
               )}
 
-              {/* Line path — draw animation */}
               <motion.path
                 d={pathD}
                 fill="none"
-                stroke={d.color}
-                strokeWidth={d.dashed ? 2 : 2.2}
+                stroke={dataset.color}
+                strokeWidth={dataset.dashed ? 2 : 2.2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeDasharray={d.dashed ? '6 3' : undefined}
+                strokeDasharray={dataset.dashed ? '6 3' : undefined}
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
                 transition={{ ...SPRING_CRISP, delay: seriesDelay + 0.05 }}
               />
 
-              {/* Liveline dot at latest point */}
               {latest && (
                 <g>
-                  {/* Pulse ring */}
                   <circle
-                    cx={latest.sx} cy={latest.sy}
+                    cx={latest.sx}
+                    cy={latest.sy}
                     r={CHART.liveDotRadius}
-                    fill="none" stroke={d.color}
-                    strokeWidth={1} opacity={0.3}
+                    fill="none"
+                    stroke={dataset.color}
+                    strokeWidth={1}
+                    opacity={0.24}
                     className="live-dot-pulse"
                   />
-                  {/* Outer ring */}
                   <motion.circle
-                    cx={latest.sx} cy={latest.sy} r={4.5}
-                    fill="white" stroke={d.color} strokeWidth={1.5}
-                    filter={`drop-shadow(0 1px 2px ${d.color}30)`}
+                    cx={latest.sx}
+                    cy={latest.sy}
+                    r={4.25}
+                    fill="white"
+                    stroke={dataset.color}
+                    strokeWidth={1.4}
+                    filter={`drop-shadow(0 1px 2px ${dataset.color}25)`}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ ...SPRING_CRISP, delay: seriesDelay + 0.3 }}
                   />
-                  {/* Inner dot */}
                   <motion.circle
-                    cx={latest.sx} cy={latest.sy} r={2.25}
-                    fill={d.color}
+                    cx={latest.sx}
+                    cy={latest.sy}
+                    r={2.15}
+                    fill={dataset.color}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ ...SPRING_CRISP, delay: seriesDelay + 0.35 }}
@@ -284,13 +420,15 @@ function MiniChart({
                 </g>
               )}
 
-              {/* Hover intersection dot — spring entrance */}
               <AnimatePresence>
                 {hoveredCoord && (
                   <motion.circle
-                    cx={hoveredCoord.sx} cy={hoveredCoord.sy}
-                    r={5}
-                    fill="white" stroke={d.color} strokeWidth={1.8}
+                    cx={hoveredCoord.sx}
+                    cy={hoveredCoord.sy}
+                    r={4.75}
+                    fill="white"
+                    stroke={dataset.color}
+                    strokeWidth={1.8}
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0, opacity: 0 }}
@@ -306,7 +444,7 @@ function MiniChart({
   )
 }
 
-export function PaperChartBlock({ block }: PaperChartBlockProps) {
+export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
   const chartData = PAPER_CHART_DATA[block.dataKey]
   const [hoverSlot, setHoverSlot] = useState<number | null>(null)
   const gradientPrefix = useId().replace(/:/g, '')
@@ -322,151 +460,225 @@ export function PaperChartBlock({ block }: PaperChartBlockProps) {
 
   const { datasets } = chartData
   const description = CHART_DESCRIPTIONS[block.dataKey]
+  const takeaway = CHART_TAKEAWAYS[block.dataKey]
+  const metadata = CHART_METADATA[block.dataKey] ?? []
+  const provenance = CHART_PROVENANCE[block.dataKey]
+  const { minSlot, maxSlot } = getSlotBounds(datasets)
+  const inspectedSlot = hoverSlot ?? maxSlot
+  const showLegendDelta = datasets.length <= 4
 
-  // Build snapshot for each series (first → last delta)
-  const snapshots = datasets.map(d => {
-    const first = d.gini[0]?.y ?? 0
-    const last = d.gini[d.gini.length - 1]?.y ?? 0
-    return { label: d.label, color: d.color, first, last, delta: last - first }
+  const legendStats = datasets.map(dataset => {
+    const first = dataset.gini[0]?.y ?? 0
+    const last = dataset.gini[dataset.gini.length - 1]?.y ?? 0
+    const delta = last - first
+    return { label: dataset.label, color: dataset.color, dashed: dataset.dashed, first, last, delta }
   })
 
   return (
     <motion.div
-      className="lab-panel overflow-hidden rounded-[1.25rem] border border-rule/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.92),rgba(255,255,255,0.98))] card-hover"
+      className="lab-panel overflow-hidden rounded-[1.3rem] border border-rule/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.94),rgba(255,255,255,0.99))] card-hover"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={SPRING_CRISP}
     >
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-rule/70 px-6 py-5">
-        <div className="max-w-3xl">
-          <h3 className="text-base font-medium text-text-primary">
-            {block.title}
-          </h3>
-          {description && (
-            <p className="mt-2 text-sm leading-6 text-muted">
-              {description}
-            </p>
-          )}
+      <div className="border-b border-rule/70 px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="max-w-4xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-base font-medium text-text-primary">
+                {block.title}
+              </h3>
+              {block.cite && <CiteBadge cite={block.cite} />}
+            </div>
+            {description && (
+              <p className="mt-1.5 text-sm leading-6 text-muted">
+                {description}
+              </p>
+            )}
+            {takeaway && (
+              <p className="mt-2 text-[13px] leading-6 text-text-body">
+                <span className="font-medium text-text-primary">What changes:</span>{' '}
+                {takeaway}
+              </p>
+            )}
+            {metadata.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {metadata.map(item => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center rounded-full border border-rule/60 bg-white/78 px-2.5 py-1 text-[11px] text-text-faint"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="inline-flex items-center rounded-full border border-rule/70 bg-white/85 px-3 py-1 text-[11px] font-medium text-text-faint">
+            {hoverSlot != null ? `Inspecting slot ${hoverSlot.toLocaleString()}` : `Latest slot ${maxSlot.toLocaleString()}`}
+          </div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <span className="inline-flex items-center rounded-full border border-rule/70 bg-white/80 px-3 py-1 text-[11px] font-medium text-text-faint">
-            {hoverSlot != null ? `Slot ${hoverSlot.toLocaleString()}` : 'Hover or tap to inspect values'}
-          </span>
-          {block.cite && <CiteBadge cite={block.cite} />}
-        </div>
-      </div>
 
-      <div className="grid gap-2 border-b border-rule/60 px-6 py-4 sm:grid-cols-2 xl:grid-cols-4">
-        {snapshots.map(s => (
-          <div
-            key={s.label}
-            className="rounded-xl border border-rule/60 bg-white/80 px-3.5 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
-          >
-            <div className="flex items-center gap-2">
-              <svg width="16" height="8" viewBox="0 0 16 8" className="shrink-0">
+        <div className="mt-3 flex flex-wrap gap-2.5">
+          {legendStats.map(series => (
+            <div
+              key={series.label}
+              className="inline-flex items-center gap-2 rounded-full border border-rule/60 bg-white/78 px-3 py-1.5"
+            >
+              <svg width="18" height="8" viewBox="0 0 18 8" className="shrink-0">
                 <line
                   x1="0"
                   y1="4"
-                  x2="16"
+                  x2="18"
                   y2="4"
-                  stroke={s.color}
+                  stroke={series.color}
                   strokeWidth={2}
-                  strokeDasharray={datasets.find(d => d.label === s.label)?.dashed ? '4 2' : undefined}
+                  strokeDasharray={series.dashed ? '4 2' : undefined}
                   strokeLinecap="round"
                 />
               </svg>
-              <span className="text-sm font-medium text-text-primary">{s.label}</span>
+              <span className="text-[12px] font-medium text-text-primary">{series.label}</span>
+              {showLegendDelta && (
+                <span className={cn('text-[11px] tabular-nums', series.delta > 0 ? 'text-danger' : 'text-success')}>
+                  {formatNum(series.first)} {'->'} {formatNum(series.last)}
+                </span>
+              )}
             </div>
-            <div className="mt-2 text-[11px] uppercase tracking-[0.08em] text-text-faint">
-              Gini start → end
-            </div>
-            <div className="mt-1 flex items-baseline gap-2 tabular-nums">
-              <span className="text-sm font-semibold text-text-primary">
-                {formatNum(s.first)} → {formatNum(s.last)}
-              </span>
-              <span className={cn('text-[11px] font-semibold', s.delta > 0 ? 'text-danger' : 'text-success')}>
-                {s.delta > 0 ? '+' : ''}{formatNum(s.delta)}
-              </span>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* 2x2 grid */}
-      <div className="grid grid-cols-1 gap-3 px-6 pb-4 pt-4 lg:grid-cols-2">
-        {METRICS.map(({ key, label, yLabel }, panelIdx) => (
-          <div
-            key={key}
-            className={cn(
-              'overflow-hidden rounded-[1.1rem] border border-rule/55 bg-white/92 px-3 py-2.5 shadow-[0_2px_12px_rgba(15,23,42,0.03)] transition-shadow duration-150',
-              hoverSlot != null && 'border-accent/10 shadow-[0_8px_20px_rgba(37,99,235,0.06)]',
-            )}
-          >
-            <MiniChart
-              datasets={datasets}
-              metricKey={key}
-              metricLabel={label}
-              yLabel={yLabel}
-              hoverSlot={hoverSlot}
-              onHoverSlot={setHoverSlot}
-              gradientPrefix={gradientPrefix}
-              panelIndex={panelIdx}
-            />
+      <div className="px-4 py-4 sm:px-5">
+        <div className="overflow-hidden rounded-[1.12rem] border border-rule/60 bg-surface-active/45">
+          <div className="grid gap-px bg-rule/55 lg:grid-cols-2">
+            {METRICS.map(({ key, label, yLabel }, panelIndex) => (
+              <div
+                key={key}
+                className="bg-white/90 px-3 py-3.5 sm:px-4"
+              >
+                <MiniChart
+                  datasets={datasets}
+                  metricKey={key}
+                  metricLabel={label}
+                  yLabel={yLabel}
+                  hoverSlot={hoverSlot}
+                  onHoverSlot={setHoverSlot}
+                  gradientPrefix={gradientPrefix}
+                  panelIndex={panelIndex}
+                />
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* Hover tooltip strip — animated entrance */}
-      <AnimatePresence>
-        {hoverSlot != null && (
-          <motion.div
-            className="border-t border-rule/70 bg-white/70 px-6 py-4"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ ...SPRING_CRISP, duration: 0.15 }}
+      <div className="border-t border-rule/70 bg-white/74 px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
+              Slot inspector
+            </p>
+            <p className="mt-1 text-sm font-medium tabular-nums text-text-primary">
+              {hoverSlot != null ? `Showing nearest raw values at slot ${hoverSlot.toLocaleString()}` : `Showing latest raw values at slot ${maxSlot.toLocaleString()}`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setHoverSlot(null)}
+            disabled={hoverSlot === null}
+            className="rounded-full border border-rule/70 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-text-faint transition-colors hover:text-text-primary disabled:cursor-default disabled:opacity-50"
           >
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[11px] uppercase tracking-[0.08em] text-text-faint">
-                Nearest sampled values
-              </p>
-              <p className="text-sm font-medium tabular-nums text-text-primary">
-                Slot {hoverSlot.toLocaleString()}
-              </p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-              {datasets.map(d => {
-                const vals = METRICS.map(({ key, label }) => ({
-                  label,
-                  value: nearestPoint(d[key], hoverSlot)?.y ?? 0,
-                }))
-                return (
-                  <div
-                    key={d.label}
-                    className="rounded-xl border border-rule/60 bg-white/85 px-3.5 py-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      <svg width="14" height="7" viewBox="0 0 14 7" className="shrink-0">
-                        <line x1="0" y1="3.5" x2="14" y2="3.5" stroke={d.color} strokeWidth={2} strokeDasharray={d.dashed ? '3 2' : undefined} strokeLinecap="round" />
-                      </svg>
-                      <span className="text-sm font-medium text-text-primary">{d.label}</span>
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] tabular-nums">
-                      {vals.map(v => (
-                        <span key={v.label} className="flex items-baseline justify-between gap-2 text-text-body">
-                          <span className="text-text-faint">{v.label}</span>
-                          <span className="font-semibold text-text-primary">{formatNum(v.value)}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </motion.div>
+            Reset to latest
+          </button>
+        </div>
+
+        <div className="mt-3 flex items-center gap-3">
+          <span className="text-[11px] font-medium tabular-nums text-text-faint">{minSlot}</span>
+          <input
+            type="range"
+            min={minSlot}
+            max={maxSlot}
+            step={1}
+            value={inspectedSlot}
+            onChange={event => setHoverSlot(Number(event.currentTarget.value))}
+            className="h-2 w-full cursor-pointer accent-[var(--color-accent)]"
+            aria-label="Inspect chart values by slot"
+          />
+          <span className="text-[11px] font-medium tabular-nums text-text-faint">{maxSlot.toLocaleString()}</span>
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {datasets.map(dataset => {
+            const values = METRICS.map(metric => ({
+              label: metric.label,
+              value: pointAtSlot(dataset[metric.key], inspectedSlot)?.y ?? 0,
+            }))
+
+            return (
+              <div
+                key={dataset.label}
+                className="rounded-xl border border-rule/60 bg-white/88 px-3.5 py-3"
+              >
+                <div className="flex items-center gap-2">
+                  <svg width="14" height="7" viewBox="0 0 14 7" className="shrink-0">
+                    <line
+                      x1="0"
+                      y1="3.5"
+                      x2="14"
+                      y2="3.5"
+                      stroke={dataset.color}
+                      strokeWidth={2}
+                      strokeDasharray={dataset.dashed ? '3 2' : undefined}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="text-sm font-medium text-text-primary">{dataset.label}</span>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] tabular-nums">
+                  {values.map(value => (
+                    <span key={value.label} className="flex items-baseline justify-between gap-2 text-text-body">
+                      <span className="text-text-faint">{value.label}</span>
+                      <span className="font-semibold text-text-primary">{formatNum(value.value)}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {caption && (
+          <p className="mt-4 text-xs leading-6 text-muted">
+            {caption}
+          </p>
         )}
-      </AnimatePresence>
+
+        {provenance && (
+          <details className="mt-4 overflow-hidden rounded-xl border border-rule/60 bg-white/72">
+            <summary className="cursor-pointer list-none px-3.5 py-2.5 text-[12px] font-medium text-text-primary marker:content-none">
+              Provenance
+            </summary>
+            <div className="border-t border-rule/60 px-3.5 py-3 text-xs leading-6 text-muted">
+              <p>{provenance.datasetSummary}</p>
+              <a
+                href={provenance.figureHref}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-flex text-[12px] font-medium text-accent hover:text-accent/80"
+              >
+                {provenance.figureLabel}
+              </a>
+              <div className="mt-2 space-y-1.5">
+                {provenance.repoPaths.map(path => (
+                  <p key={path} className="font-mono text-[11px] text-text-faint">
+                    {path}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </details>
+        )}
+      </div>
     </motion.div>
   )
 }
