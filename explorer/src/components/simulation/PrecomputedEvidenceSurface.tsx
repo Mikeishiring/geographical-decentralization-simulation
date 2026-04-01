@@ -195,9 +195,9 @@ interface ScenarioSelectorProps {
   readonly onSelect: (entry: ResearchDatasetEntry) => void
 }
 
-const chipBase = 'lab-option-card rounded-full px-2.5 py-0.5 text-2xs font-medium cursor-pointer transition-colors'
-const chipActive = 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
-const chipInactive = 'text-muted hover:text-text-secondary'
+const chipBase = 'rounded-md border px-2.5 py-0.5 text-[10px] font-medium cursor-pointer transition-all duration-150'
+const chipActive = 'border-black/[0.06] bg-white text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+const chipInactive = 'border-transparent text-stone-400 hover:text-stone-600 hover:bg-stone-50'
 const filterLabel = 'text-2xs font-medium uppercase tracking-wider text-text-faint shrink-0'
 const filterDivider = 'hidden sm:block w-px h-5 bg-rule/60 shrink-0'
 
@@ -274,7 +274,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
           <select
             value={selectedEvaluation}
             onChange={e => findAndSelect(e.target.value, selectedParadigm)}
-            className="appearance-none rounded-lg border border-rule bg-white pl-2.5 pr-7 py-1 text-xs font-medium text-text-primary cursor-pointer hover:border-accent/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-colors"
+            className="appearance-none rounded-lg border border-black/[0.06] bg-white pl-2.5 pr-7 py-1 text-[11px] font-medium text-stone-800 cursor-pointer hover:border-stone-300 focus:border-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-200 transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
           >
             {evaluations.map(evaluation => (
               <option key={evaluation} value={evaluation}>{evaluation}</option>
@@ -566,12 +566,12 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
       {payloadQuery.data && (
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SPRING_CRISP}>
           {/* KPI analytics strip */}
-          <div className="mt-3">
+          <div className="mt-2.5">
             <EvidenceKpiStrip payload={payloadQuery.data} activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
           </div>
 
           {/* Sticky analytical lens category bar */}
-          <div className="mt-2">
+          <div className="mt-1.5">
             <EvidenceCategoryBar
               activeCategory={activeCategory}
               onCategoryChange={setActiveCategory}
@@ -581,7 +581,7 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
           </div>
 
           {/* Config snapshot + slot narrative — side by side on desktop */}
-          <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
             {selectedEntry && (
               <EvidenceConfigSnapshot
                 metadata={selectedEntry.metadata}
@@ -594,18 +594,18 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
           </div>
 
           {/* Interactive map with latency, playback, and overlays */}
-          <div className="mt-6">
+          <div className="mt-4">
             <EvidenceMapSurface payload={payloadQuery.data} />
           </div>
 
           {/* Section divider */}
-          <div className="section-divider my-6" />
+          <div className="section-divider my-4" />
 
           {/* Chart panels — 2-col grid on desktop */}
           <div ref={chartGridRef}>
             {taggedBlocks.length > 0 && (
-              <div className="lab-stage px-5 py-4">
-                <div className="flex items-center gap-2 mb-3">
+              <div className="lab-stage px-5 py-3.5">
+                <div className="flex items-center gap-2 mb-2.5">
                   <div className="lab-section-title">Charts</div>
                   {activeCategory !== 'all' && (
                     <span className="lab-chip bg-accent/8 text-accent text-2xs">{activeCategory}</span>

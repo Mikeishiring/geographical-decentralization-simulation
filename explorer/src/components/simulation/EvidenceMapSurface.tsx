@@ -247,7 +247,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
   return (
     <div className={cn('lab-stage overflow-hidden', className)}>
       {/* ── Hero header ── */}
-      <div className="border-b border-rule px-5 py-4">
+      <div className="border-b border-black/[0.06] px-5 py-3.5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2.5">
@@ -265,10 +265,10 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             </p>
             {/* Stat badges — animated on slot change */}
             {overlay === 'validators' && (
-              <div className="mt-2 flex items-center gap-2 pl-[22px]">
+              <div className="mt-2 flex items-center gap-1.5 pl-[22px]">
                 <motion.span
                   key={`regions-${displayNodes.length}`}
-                  className="inline-flex items-center gap-1 rounded-full bg-accent/8 border border-accent/15 px-2 py-0.5 text-[0.625rem] font-medium text-accent tabular-nums"
+                  className="inline-flex items-center gap-1 rounded-md bg-stone-900 px-2 py-0.5 text-[10px] font-medium text-white tabular-nums"
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={SPRING_SNAPPY}
@@ -278,7 +278,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                 </motion.span>
                 <motion.span
                   key={`validators-${totalValidators}`}
-                  className="inline-flex items-center gap-1 rounded-full bg-surface-active border border-rule px-2 py-0.5 text-[0.625rem] font-medium text-text-secondary tabular-nums"
+                  className="inline-flex items-center gap-1 rounded-md border border-black/[0.06] bg-white px-2 py-0.5 text-[10px] font-medium text-stone-600 tabular-nums shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ ...SPRING_SNAPPY, delay: 0.05 }}
@@ -288,7 +288,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                 </motion.span>
                 <motion.span
                   key={`slot-${slot}`}
-                  className="inline-flex items-center gap-1 rounded-full bg-surface-active border border-rule px-2 py-0.5 text-[0.625rem] font-mono text-muted tabular-nums"
+                  className="inline-flex items-center gap-1 rounded-md border border-black/[0.06] bg-white px-2 py-0.5 text-[10px] font-mono text-stone-400 tabular-nums shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ ...SPRING_SNAPPY, delay: 0.1 }}
@@ -300,8 +300,8 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             )}
           </div>
 
-          {/* Overlay mode toggle */}
-          <div className="flex items-center rounded-full border border-rule bg-surface-active p-0.5 gap-0.5">
+          {/* Overlay mode toggle — Agentation-style segmented control */}
+          <div className="flex items-center rounded-[14px] border border-black/[0.06] bg-[#F6F5F4] p-[3px] gap-[3px]" style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}>
             {([
               { mode: 'validators' as const, icon: Radio, label: 'Validators', detail: 'Show validator stake distribution across regions' },
               { mode: 'latency' as const, icon: Zap, label: 'Latency', detail: 'Show inter-region network latency arcs' },
@@ -312,10 +312,10 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                 onClick={() => setOverlay(mode)}
                 title={detail}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all',
+                  'flex items-center gap-1.5 rounded-[11px] px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
                   overlay === mode
-                    ? 'bg-white text-accent shadow-sm'
-                    : 'text-muted hover:text-text-primary',
+                    ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
+                    : 'text-stone-400 hover:text-stone-600',
                 )}
               >
                 <Icon className="h-3 w-3" />
@@ -339,38 +339,40 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
         >
-          {/* Zoom controls — always visible */}
-          <div className="absolute top-2.5 right-2.5 z-10 flex flex-col gap-1">
+          {/* Zoom controls — Agentation-style floating controls */}
+          <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 rounded-[10px] border border-black/[0.06] bg-white/90 backdrop-blur-md p-1 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
             <button
               onClick={zoomIn}
-              className="flex items-center justify-center h-7 w-7 rounded-md bg-white/80 backdrop-blur-md border border-stone-200 text-stone-400 hover:text-stone-700 hover:bg-white transition-colors shadow-sm"
+              className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
               aria-label={`Zoom in (current: ${zoom.toFixed(1)}x)`}
               title="Zoom in"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-3 w-3" />
             </button>
+            <div className="h-px bg-black/[0.06] mx-0.5" />
             <button
               onClick={zoomOut}
-              className="flex items-center justify-center h-7 w-7 rounded-md bg-white/80 backdrop-blur-md border border-stone-200 text-stone-400 hover:text-stone-700 hover:bg-white transition-colors shadow-sm"
+              className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
               aria-label={`Zoom out (current: ${zoom.toFixed(1)}x)`}
               title="Zoom out"
             >
-              <Minus className="h-3.5 w-3.5" />
+              <Minus className="h-3 w-3" />
             </button>
             {zoom > 1.05 && (
-              <button
-                onClick={resetView}
-                className="flex items-center justify-center h-7 w-7 rounded-md bg-white/80 backdrop-blur-md border border-stone-200 text-stone-400 hover:text-stone-700 hover:bg-white transition-colors shadow-sm"
-                aria-label="Reset map zoom and pan to default view"
-                title="Reset zoom"
-              >
-                <Maximize2 className="h-3 w-3" />
-              </button>
-            )}
-            {zoom > 1.05 && (
-              <span className="text-center text-[0.5625rem] font-mono text-stone-400 tabular-nums mt-0.5">
-                {zoom.toFixed(1)}x
-              </span>
+              <>
+                <div className="h-px bg-black/[0.06] mx-0.5" />
+                <button
+                  onClick={resetView}
+                  className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+                  aria-label="Reset map zoom and pan to default view"
+                  title="Reset zoom"
+                >
+                  <Maximize2 className="h-3 w-3" />
+                </button>
+                <span className="text-center text-[9px] font-mono text-stone-400 tabular-nums">
+                  {zoom.toFixed(1)}x
+                </span>
+              </>
             )}
           </div>
           <svg
@@ -661,8 +663,8 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                 className="pointer-events-none absolute z-20"
                 style={tooltipStyle}
               >
-                <div className="relative rounded-lg border border-stone-200 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur-sm">
-                  <div className="absolute left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-b border-r border-stone-200 bg-white"
+                <div className="relative rounded-xl border border-black/[0.06] bg-white px-3.5 py-2.5 backdrop-blur-sm" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' }}>
+                  <div className="absolute left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-b border-r border-black/[0.06] bg-white"
                     style={{
                       bottom: (tooltip.y / MAP_VISIBLE_H) * 100 < 15 ? 'auto' : '-5px',
                       top: (tooltip.y / MAP_VISIBLE_H) * 100 < 15 ? '-5px' : 'auto',
@@ -701,8 +703,8 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
           </AnimatePresence>
 
           {/* ── Slot progress bar (bottom of map) ── */}
-          <div className="absolute bottom-0 left-0 right-0 h-[3px]">
-            <div className="h-full bg-accent/60 transition-all duration-100" style={{ width: `${progress}%` }} />
+          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-black/[0.04]">
+            <div className="h-full transition-all duration-100" style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #1c1917, #57534e)' }} />
           </div>
         </div>
 
@@ -725,20 +727,20 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
         />
       </div>
 
-      {/* ── Playback controls ── */}
-      <div className="border-t border-rule px-5 py-3 bg-surface-primary/50">
+      {/* ── Playback controls — Stripe-style transport bar ── */}
+      <div className="border-t border-black/[0.06] px-5 py-3 bg-[#FAFAF8]">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {playing ? (
-              <button onClick={onPause} aria-label="Pause simulation playback" className="flex items-center justify-center rounded-lg border border-rule bg-surface-active px-3 py-1.5 text-xs font-medium text-text-primary hover:border-border-hover transition-colors gap-1.5">
+              <button onClick={onPause} aria-label="Pause simulation playback" className="flex items-center justify-center rounded-[10px] border border-black/[0.06] bg-white px-3 py-1.5 text-[11px] font-medium text-stone-700 hover:bg-stone-50 transition-all duration-150 gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                 <Pause className="h-3 w-3" /> Pause
               </button>
             ) : (
-              <button onClick={onPlay} aria-label={slot >= lastSlot ? 'Replay simulation from start' : 'Play simulation timeline'} className="flex items-center justify-center rounded-lg border border-accent/30 bg-accent/5 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 transition-colors gap-1.5">
+              <button onClick={onPlay} aria-label={slot >= lastSlot ? 'Replay simulation from start' : 'Play simulation timeline'} className="flex items-center justify-center rounded-[10px] bg-stone-900 px-3.5 py-1.5 text-[11px] font-medium text-white hover:bg-stone-800 transition-all duration-150 gap-1.5 shadow-[0_1px_3px_rgba(0,0,0,0.12)]">
                 <Play className="h-3 w-3" /> {slot >= lastSlot ? 'Replay' : 'Play'}
               </button>
             )}
-            <button onClick={onReset} aria-label="Jump to final slot" className="flex items-center justify-center rounded-lg border border-rule bg-surface-active px-2 py-1.5 text-xs text-muted hover:text-text-primary hover:border-border-hover transition-colors" title="Jump to final slot">
+            <button onClick={onReset} aria-label="Jump to final slot" className="flex items-center justify-center rounded-[10px] border border-black/[0.06] bg-white h-[30px] w-[30px] text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.04)]" title="Jump to final slot">
               <RotateCcw className="h-3 w-3" />
             </button>
           </div>
@@ -746,7 +748,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
           {/* Scrubber with progress fill */}
           <div className="flex-1 min-w-[120px] relative">
             <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none" style={{ width: `${progress}%` }}>
-              <div className="h-[5px] w-full rounded-l-full bg-accent/20" />
+              <div className="h-[4px] w-full rounded-l-full bg-stone-900/15" />
             </div>
             <input
               type="range"
@@ -760,11 +762,11 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             />
           </div>
 
-          <div className="text-xs tabular-nums text-muted shrink-0 flex items-center gap-1.5">
-            <span className="font-semibold text-text-primary">{(slot + 1).toLocaleString()}</span>
-            <span className="text-text-faint text-2xs">/ {totalSlots.toLocaleString()}</span>
+          <div className="tabular-nums shrink-0 flex items-center gap-1 rounded-md border border-black/[0.06] bg-white px-2 py-1 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+            <span className="text-[11px] font-semibold text-stone-800">{(slot + 1).toLocaleString()}</span>
+            <span className="text-[10px] text-stone-300">/ {totalSlots.toLocaleString()}</span>
             {playing && (
-              <span className="text-2xs text-accent/70 font-medium ml-0.5">{'\u00D7'}{stepSize}</span>
+              <span className="text-[10px] text-stone-400 font-mono ml-0.5">{'\u00D7'}{stepSize}</span>
             )}
           </div>
         </div>

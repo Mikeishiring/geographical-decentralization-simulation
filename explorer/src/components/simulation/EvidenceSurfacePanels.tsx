@@ -231,27 +231,27 @@ export function EvidenceKpiStrip({ payload, activeCategory, onCategoryChange }: 
             onClick={() => onCategoryChange(isActive ? 'all' : card.linkedCategory)}
             title={card.detail}
             className={cn(
-              'lab-option-card px-3 py-2.5 text-left transition-all',
-              isActive && 'border-accent/40 ring-1 ring-accent/10',
+              'rounded-lg border border-black/[0.06] bg-white px-3 py-2.5 text-left transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]',
+              isActive && 'ring-2 ring-stone-900/10 border-stone-300',
             )}
           >
             <div className="flex items-center justify-between gap-1 mb-1">
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
-                <span className="text-2xs uppercase tracking-[0.08em] text-text-faint font-medium truncate">{card.label}</span>
+                <span className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium truncate">{card.label}</span>
               </div>
               {card.sparkData.length > 1 && (
                 <Sparkline data={card.sparkData} color={card.sparkColor} />
               )}
             </div>
-            <div className="text-[15px] font-semibold text-text-primary tabular-nums leading-tight">{card.value}</div>
+            <div className="text-[15px] font-semibold text-stone-800 tabular-nums leading-tight">{card.value}</div>
             {card.delta && (
-              <div className={cn('mt-0.5 text-2xs tabular-nums flex items-center gap-0.5', DELTA_COLOR[card.direction])}>
+              <div className={cn('mt-0.5 text-[10px] tabular-nums flex items-center gap-0.5', DELTA_COLOR[card.direction])}>
                 <span>{DELTA_ARROW[card.direction]}</span>
                 <span>{card.delta}</span>
               </div>
             )}
-            <div className="mt-1 text-2xs text-text-faint leading-snug">{card.note}</div>
+            <div className="mt-1 text-[10px] text-stone-400 leading-snug">{card.note}</div>
           </motion.button>
         )
       })}
@@ -283,26 +283,26 @@ const PARAM_DEFS: ReadonlyArray<{
 
 export function EvidenceConfigSnapshot({ metadata, description, paradigm, totalSlots }: ConfigSnapshotProps) {
   return (
-    <div className="lab-stage-soft px-4 py-3">
-      <div className="lab-section-title mb-2">Configuration snapshot</div>
+    <div className="rounded-lg border border-black/[0.06] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium mb-2">Configuration snapshot</div>
 
       <div className="flex flex-wrap gap-1.5 mb-3">
-        <span className="lab-chip bg-white/90 text-2xs">{paradigm}</span>
-        <span className="lab-chip bg-white/90 text-2xs">{totalSlots.toLocaleString()} slots</span>
+        <span className="rounded-md border border-black/[0.06] bg-[#FAFAF8] px-2 py-0.5 text-[10px] text-stone-600 font-medium" title="Block-building paradigm used in this simulation">{paradigm}</span>
+        <span className="rounded-md border border-black/[0.06] bg-[#FAFAF8] px-2 py-0.5 text-[10px] text-stone-600 font-medium tabular-nums" title="Total number of consensus slots simulated">{totalSlots.toLocaleString()} slots</span>
         {metadata && PARAM_DEFS.map(({ key, label, title, format }) => {
           const val = metadata[key]
           if (val == null || typeof val !== 'number') return null
           return (
-            <span key={key} title={title} className="lab-chip bg-white/90 text-2xs">
+            <span key={key} title={title} className="rounded-md border border-black/[0.06] bg-[#FAFAF8] px-2 py-0.5 text-[10px] text-stone-600 font-medium tabular-nums">
               {label}: {format(val)}
             </span>
           )
         })}
       </div>
 
-      <div className="border-t border-rule/50 pt-2">
-        <div className="text-2xs font-semibold text-text-faint uppercase tracking-[0.06em] mb-0.5">How to read this result</div>
-        <p className="text-xs leading-relaxed text-muted">
+      <div className="border-t border-black/[0.04] pt-2">
+        <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium mb-0.5">How to read this result</div>
+        <p className="text-[11px] leading-relaxed text-stone-500">
           {description ?? 'This surface presents the final-slot snapshot alongside time-series evolution. Each chart tracks a single metric across the full simulation run. The KPI strip above summarizes the headline numbers with deltas computed from the first to last slot.'}
         </p>
       </div>
@@ -342,24 +342,25 @@ export function PlotFilterToolbar({ activeCategory, onCategoryChange, counts }: 
   return (
     <div className="mb-3">
       <div className="flex items-center gap-2 mb-2">
-        <div className="lab-section-title">Analytical lens</div>
-        <span className="text-2xs text-muted tabular-nums">
+        <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium">Analytical lens</div>
+        <span className="text-[10px] text-stone-400 tabular-nums">
           {counts[activeCategory]} panel{counts[activeCategory] !== 1 ? 's' : ''}
         </span>
       </div>
-      <p className="text-xs text-muted leading-relaxed mb-2.5 max-w-xl">
+      <p className="text-[11px] text-stone-500 leading-relaxed mb-2.5 max-w-xl">
         Focus the dashboard by category for a cleaner analytical pass.
       </p>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1">
         {PLOT_CATEGORIES.map(cat => (
           <button
             key={cat.id}
             onClick={() => onCategoryChange(cat.id)}
+            title={CATEGORY_DESCRIPTIONS[cat.id] ?? `Show ${cat.label.toLowerCase()} charts`}
             className={cn(
-              'lab-option-card rounded-full px-3 py-1 text-xs font-medium',
+              'rounded-md border px-2.5 py-1 text-[11px] font-medium transition-all duration-150',
               activeCategory === cat.id
-                ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
-                : 'text-muted',
+                ? 'border-black/[0.06] bg-white text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+                : 'border-transparent text-stone-400 hover:text-stone-600 hover:bg-stone-50',
               counts[cat.id] === 0 && cat.id !== 'all' && 'opacity-30 pointer-events-none',
             )}
           >
@@ -414,27 +415,28 @@ export function EvidenceCategoryBar({ activeCategory, onCategoryChange, counts, 
         )}
       >
         <div className="flex items-center gap-2 mb-1.5">
-          <div className="lab-section-title">Analytical lens</div>
-          <span className="text-2xs text-muted tabular-nums">
+          <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium">Analytical lens</div>
+          <span className="text-[10px] text-stone-400 tabular-nums">
             {counts[activeCategory]} panel{counts[activeCategory] !== 1 ? 's' : ''}
           </span>
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {PLOT_CATEGORIES.map(cat => (
             <button
               key={cat.id}
               onClick={() => handleCategoryChange(cat.id)}
+              title={CATEGORY_DESCRIPTIONS[cat.id] ?? `Show ${cat.label.toLowerCase()} charts`}
               className={cn(
-                'lab-option-card rounded-full px-3 py-1 text-xs font-medium transition-all',
+                'rounded-md border px-2.5 py-1 text-[11px] font-medium transition-all duration-150',
                 activeCategory === cat.id
-                  ? 'border-accent bg-gradient-to-b from-accent/10 to-white/98 text-accent'
-                  : 'text-muted',
+                  ? 'border-black/[0.06] bg-white text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+                  : 'border-transparent text-stone-400 hover:text-stone-600 hover:bg-stone-50',
                 counts[cat.id] === 0 && cat.id !== 'all' && 'opacity-30 pointer-events-none',
               )}
             >
               {cat.label}
               {cat.id !== 'all' && counts[cat.id] > 0 && (
-                <span className="ml-1 opacity-50">({counts[cat.id]})</span>
+                <span className="ml-1 text-stone-300">({counts[cat.id]})</span>
               )}
             </button>
           ))}
@@ -442,7 +444,7 @@ export function EvidenceCategoryBar({ activeCategory, onCategoryChange, counts, 
         <AnimatePresence mode="wait">
           <motion.p
             key={activeCategory}
-            className="mt-1.5 text-xs text-muted leading-relaxed"
+            className="mt-1.5 text-[11px] text-stone-500 leading-relaxed"
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
@@ -496,6 +498,15 @@ interface SlotMetricsGridProps {
   readonly payload: PublishedAnalyticsPayload
 }
 
+const METRIC_TOOLTIPS: Record<string, string> = {
+  Clusters: 'Number of distinct geographic clusters identified by nearest-neighbor analysis',
+  'Total distance': 'Sum of pairwise distances between all active validator regions (km)',
+  MEV: 'Maximum extractable value captured in the final slot (ETH)',
+  'Failed proposals': 'Block proposals that failed to meet attestation threshold',
+  'Profit CV': 'Coefficient of variation for validator profits — lower means more equitable',
+  NNI: 'Nearest Neighbor Index — <1 = clustered, 1 = random, >1 = dispersed',
+}
+
 export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
   const metrics = payload.metrics ?? {}
   const totalSlots = totalSlotsFromPayload(payload)
@@ -519,40 +530,40 @@ export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
     items.push({ label: 'NNI', value: formatNumber(metrics.nni[finalSlot]!, 3) })
 
   return (
-    <div className="lab-stage-soft px-4 py-3">
+    <div className="rounded-lg border border-black/[0.06] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <div className="flex items-center justify-between mb-2">
-        <div className="lab-section-title">Slot narrative</div>
-        <span className="text-2xs text-muted">Final slot — what this snapshot says</span>
+        <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium">Slot narrative</div>
+        <span className="text-[10px] text-stone-400">Final slot — what this snapshot says</span>
       </div>
 
       {/* Auto-generated takeaway */}
-      <p className="text-xs leading-relaxed text-muted mb-2.5 italic">{takeaway}</p>
+      <p className="text-[11px] leading-relaxed text-stone-500 mb-2.5 italic">{takeaway}</p>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
         {items.map(item => (
-          <div key={item.label} className="py-0.5">
-            <div className="text-2xs text-text-faint">{item.label}</div>
-            <div className="text-sm font-semibold text-text-primary tabular-nums">{item.value}</div>
+          <div key={item.label} className="py-0.5" title={METRIC_TOOLTIPS[item.label]}>
+            <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">{item.label}</div>
+            <div className="text-[13px] font-semibold text-stone-800 tabular-nums">{item.value}</div>
           </div>
         ))}
       </div>
 
       {/* Top 3 regions with share bars */}
       {topRegions.length > 0 && (
-        <div className="mt-2.5 pt-2.5 border-t border-rule/50">
-          <div className="text-2xs text-text-faint mb-1.5">Top regions</div>
+        <div className="mt-2.5 pt-2.5 border-t border-black/[0.04]">
+          <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium mb-1.5">Top regions</div>
           <div className="space-y-1">
             {topRegions.map((region, i) => (
-              <div key={region.label} className="flex items-center gap-2">
-                <span className="text-2xs text-text-faint w-4 tabular-nums text-right">#{i + 1}</span>
-                <span className="text-xs text-text-primary min-w-[80px] truncate">{region.label}</span>
-                <div className="flex-1 h-[5px] rounded-full bg-rule/30 overflow-hidden">
+              <div key={region.label} className="flex items-center gap-2" title={`${region.label} — ${formatNumber(region.share, 1)}% of validators`}>
+                <span className="text-[10px] text-stone-400 w-4 tabular-nums text-right font-medium">#{i + 1}</span>
+                <span className="text-[11px] text-stone-700 min-w-[80px] truncate font-medium">{region.label}</span>
+                <div className="flex-1 h-[4px] rounded-full bg-stone-100 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-accent/60"
+                    className="h-full rounded-full bg-stone-400"
                     style={{ width: `${Math.min(region.share, 100)}%` }}
                   />
                 </div>
-                <span className="text-2xs text-muted tabular-nums w-10 text-right">{formatNumber(region.share, 1)}%</span>
+                <span className="text-[10px] text-stone-400 tabular-nums w-10 text-right font-medium">{formatNumber(region.share, 1)}%</span>
               </div>
             ))}
           </div>
