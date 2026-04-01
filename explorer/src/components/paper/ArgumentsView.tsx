@@ -5,7 +5,8 @@ import { cn } from '../../lib/cn'
 import { SPRING, SPRING_CRISP, SECTION_CATEGORY_STYLE, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { PAPER_SECTIONS, PAPER_METADATA, type PaperSection } from '../../data/paper-sections'
 import { PAPER_NARRATIVE } from '../../data/paper-narrative'
-import { summarizeSection, sectionEntryLine, ARXIV_PDF_URL, sectionToPage } from './paper-helpers'
+import { summarizeSection, sectionEntryLine, sectionToPage } from './paper-helpers'
+import { usePaperNav } from './PaperNavContext'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import type { Block, Cite } from '../../types/blocks'
@@ -23,6 +24,8 @@ function groupBlocksByRole(blocks: readonly Block[]) {
 /* ── Source pills row (deduped arXiv links) ──────────────────────────────── */
 
 function SectionSourcesRow({ section }: { readonly section: PaperSection }) {
+  const { goToPdfPage } = usePaperNav()
+
   const cites = section.blocks
     .map(b => ('cite' in b ? (b as { cite?: Cite }).cite : undefined))
     .filter((c): c is NonNullable<Cite> => !!c && !!c.paperSection)
@@ -42,17 +45,16 @@ function SectionSourcesRow({ section }: { readonly section: PaperSection }) {
       {unique.map(cite => {
         const page = sectionToPage(cite.paperSection)
         return page != null ? (
-          <a
+          <button
+            type="button"
             key={cite.paperSection}
-            href={`${ARXIV_PDF_URL}#page=${page}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-full border border-accent/15 bg-accent/5 px-2 py-0.5 text-2xs text-accent/60 transition-all duration-200 hover:bg-accent/12 hover:text-accent hover:border-accent/30 select-none"
+            onClick={() => goToPdfPage(page)}
+            className="inline-flex items-center gap-1 rounded-full border border-accent/15 bg-accent/5 px-2 py-0.5 text-2xs text-accent/60 transition-all duration-200 hover:bg-accent/12 hover:text-accent hover:border-accent/30 select-none cursor-pointer"
           >
             <FileText className="h-2.5 w-2.5" />
             {cite.paperSection}
             <span className="text-accent/40">p.{page}</span>
-          </a>
+          </button>
         ) : (
           <span
             key={cite.paperSection}
@@ -151,10 +153,12 @@ export function ArgumentsView({
             </motion.div>
           ))}
         </div>
-        <div className="mt-4 flex items-center gap-1.5 text-2xs text-text-faint">
-          <MousePointerClick className="h-3 w-3" />
-          Select any text to annotate it
-        </div>
+        {notesVisible && (
+          <div className="mt-4 flex items-center gap-1.5 text-2xs text-text-faint">
+            <MousePointerClick className="h-3 w-3" />
+            Select any text to annotate it
+          </div>
+        )}
       </motion.div>
 
       {/* Section accordion */}
@@ -286,6 +290,7 @@ export function ArgumentsView({
                           <InlineSectionNotes
                             notes={notesBySection.get(section.id) ?? []}
                             onOpenNote={onOpenNote}
+                            showAnnotationHint
                           />
                         )}
                       </div>

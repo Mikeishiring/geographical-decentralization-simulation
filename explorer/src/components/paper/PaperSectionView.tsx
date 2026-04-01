@@ -1,37 +1,123 @@
-import { useState, type ReactNode } from 'react'
+import { useState, useMemo, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
-import { Link2, Quote, Check, Lightbulb } from 'lucide-react'
+import { Link2, Quote, Check, Lightbulb, MousePointerClick, MessageSquare } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
-import { ContributionComposer } from '../community/ContributionComposer'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
+import { Tooltip } from '../ui/Tooltip'
 import { cn } from '../../lib/cn'
 import { SPRING, SECTION_CATEGORY_STYLE } from '../../lib/theme'
 import { PAPER_SECTIONS, type PaperSection } from '../../data/paper-sections'
 import { PAPER_NARRATIVE, type PaperNarrative } from '../../data/paper-narrative'
 import type { Exploration } from '../../lib/api'
 
-/** Renders paragraph text with an optional keyClaim substring highlighted */
-function renderWithKeyClaim(text: string, keyClaim?: string): ReactNode {
-  if (!keyClaim) return text
-  const idx = text.indexOf(keyClaim)
-  if (idx === -1) return text
-  return (
-    <>
-      {text.slice(0, idx)}
-      <span className="key-claim-highlight relative">
-        <Lightbulb className="inline-block h-3 w-3 text-accent/40 mr-0.5 -mt-0.5" />
-        {text.slice(idx, idx + keyClaim.length)}
-      </span>
-      {text.slice(idx + keyClaim.length)}
-    </>
-  )
+/* ── Highlight types ─────────────────────────────────────────────────────── */
+
+interface NoteHighlight {
+  readonly excerpt: string
+  readonly noteCount: number
+  readonly noteTitle: string
+}
+
+/** Collect unique note excerpts from exploration data */
+function collectNoteHighlights(notes: readonly Exploration[]): readonly NoteHighlight[] {
+  const seen = new Map<string, NoteHighlight>()
+  for (const note of notes) {
+    const excerpt = note.anchor?.excerpt
+    if (!excerpt || excerpt.length < 10) continue
+    const existing = seen.get(excerpt)
+    if (existing) {
+      seen.set(excerpt, { ...existing, noteCount: existing.noteCount + 1 })
+    } else {
+      seen.set(excerpt, { excerpt, noteCount: 1, noteTitle: note.publication.title })
+    }
+  }
+  return [...seen.values()]
+}
+
+/** Renders paragraph text with keyClaim highlight and note excerpt indicators */
+function renderParagraph(
+  text: string,
+  keyClaim: string | undefined,
+  highlights: readonly NoteHighlight[],
+  onHighlightClick?: () => void,
+  highlightsVisible = true,
+): ReactNode {
+  // First apply keyClaim highlight
+  if (keyClaim) {
+    const idx = text.indexOf(keyClaim)
+    if (idx !== -1) {
+      return (
+        <>
+          {renderWithNoteHighlights(text.slice(0, idx), highlights, onHighlightClick, highlightsVisible)}
+          <span className="key-claim-highlight relative">
+            <Lightbulb className="inline-block h-3 w-3 text-accent/40 mr-0.5 -mt-0.5" />
+            {text.slice(idx, idx + keyClaim.length)}
+          </span>
+          {renderWithNoteHighlights(text.slice(idx + keyClaim.length), highlights, onHighlightClick, highlightsVisible)}
+        </>
+      )
+    }
+  }
+  return renderWithNoteHighlights(text, highlights, onHighlightClick, highlightsVisible)
+}
+
+/** Renders text with note excerpt highlights as inline marks */
+function renderWithNoteHighlights(
+  text: string,
+  highlights: readonly NoteHighlight[],
+  onHighlightClick?: () => void,
+  visible = true,
+): ReactNode {
+  if (highlights.length === 0) return text
+
+  // Find the first matching highlight in this text
+  for (const highlight of highlights) {
+    // Use a shorter excerpt prefix for matching (first 40 chars) to handle minor variations
+    const searchTerm = highlight.excerpt.length > 50
+      ? highlight.excerpt.slice(0, 50)
+      : highlight.excerpt
+    const idx = text.indexOf(searchTerm)
+    if (idx === -1) continue
+
+    const matchEnd = Math.min(idx + highlight.excerpt.length, text.length)
+    const before = text.slice(0, idx)
+    const match = text.slice(idx, matchEnd)
+    const after = text.slice(matchEnd)
+
+    const noteLabel = `${highlight.noteCount} note${highlight.noteCount !== 1 ? 's' : ''}: ${highlight.noteTitle}`
+
+    return (
+      <>
+        {before}
+        <Tooltip label={noteLabel} placement="above" className="inline">
+          <mark
+            className={cn(
+              'relative rounded-sm px-px -mx-px transition-all duration-150',
+              visible
+                ? 'cursor-pointer bg-accent/[0.07] border-b border-accent/30 hover:bg-accent/[0.14] group/mark'
+                : 'bg-transparent border-b-transparent cursor-default',
+            )}
+            onClick={visible ? () => onHighlightClick?.() : undefined}
+          >
+            {match}
+            <span className={cn(
+              'absolute -top-1 -right-1 inline-flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-accent px-0.5 text-[8px] font-bold text-white transition-opacity pointer-events-none',
+              visible ? 'opacity-0 group-hover/mark:opacity-100' : 'opacity-0',
+            )}>
+              <MessageSquare className="h-2 w-2" />
+            </span>
+          </mark>
+        </Tooltip>
+        {after}
+      </>
+    )
+  }
+
+  return text
 }
 
 interface PaperSectionViewProps {
   readonly activeSectionId?: string
-  readonly onPublish?: (sectionId: string, payload: { title: string; takeaway: string; author: string }) => void
-  readonly isPublishing?: boolean
-  readonly publishError?: string | null
   readonly notesVisible?: boolean
   readonly notesBySection?: ReadonlyMap<string, Exploration[]>
   readonly onOpenNote?: (explorationId: string) => void
@@ -40,9 +126,6 @@ interface PaperSectionViewProps {
 
 export function PaperSectionView({
   activeSectionId: activeSectionIdProp,
-  onPublish,
-  isPublishing = false,
-  publishError = null,
   notesVisible = false,
   notesBySection,
   onOpenNote,
@@ -50,8 +133,6 @@ export function PaperSectionView({
 }: PaperSectionViewProps) {
   const activeSectionId = activeSectionIdProp ?? PAPER_SECTIONS[0].id
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
-  const [publishedSections, setPublishedSections] = useState<Set<string>>(new Set())
-
 
   const handleCopySectionLink = async (sectionId: string) => {
     const url = new URL(window.location.href)
@@ -61,11 +142,6 @@ export function PaperSectionView({
       setCopiedSectionId(sectionId)
       window.setTimeout(() => setCopiedSectionId(c => (c === sectionId ? null : c)), 1600)
     } catch { /* ignore */ }
-  }
-
-  const handleSectionPublish = (sectionId: string, payload: { title: string; takeaway: string; author: string }) => {
-    onPublish?.(sectionId, payload)
-    setPublishedSections(prev => new Set([...prev, sectionId]))
   }
 
   return (
@@ -118,7 +194,6 @@ export function PaperSectionView({
                 section={section}
                 narrative={narrative}
                 figuresFirst={figuresFirst}
-
                 previousSection={previousSection}
                 nextSection={nextSection}
                 copiedSectionId={copiedSectionId}
@@ -126,10 +201,6 @@ export function PaperSectionView({
                 onNavigate={(id: string) => {
                   document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
                 }}
-                onPublish={onPublish ? handleSectionPublish : undefined}
-                isPublishing={isPublishing}
-                publishError={publishError}
-                isPublished={publishedSections.has(section.id)}
                 notesVisible={notesVisible}
                 sectionNotes={notesBySection?.get(section.id) ?? []}
                 onOpenNote={onOpenNote}
@@ -152,10 +223,6 @@ function SectionCard({
   copiedSectionId,
   onCopyLink,
   onNavigate,
-  onPublish,
-  isPublishing,
-  publishError,
-  isPublished,
   notesVisible = false,
   sectionNotes = [],
   onOpenNote,
@@ -168,14 +235,30 @@ function SectionCard({
   copiedSectionId: string | null
   onCopyLink: (id: string) => void
   onNavigate: (id: string) => void
-  onPublish?: (sectionId: string, payload: { title: string; takeaway: string; author: string }) => void
-  isPublishing: boolean
-  publishError: string | null
-  isPublished: boolean
   notesVisible?: boolean
   sectionNotes?: readonly Exploration[]
   onOpenNote?: (explorationId: string) => void
 }) {
+  const noteHighlights = useMemo(
+    () => collectNoteHighlights(sectionNotes),
+    [sectionNotes],
+  )
+
+  const handleHighlightClick = () => {
+    const sectionEl = document.getElementById(section.id)
+    if (!sectionEl) return
+    // Find the notes card within this section using data attribute
+    const notesBtn = sectionEl.querySelector<HTMLButtonElement>('[data-notes-toggle]')
+    if (notesBtn) {
+      // Expand if collapsed
+      if (notesBtn.getAttribute('aria-expanded') === 'false') notesBtn.click()
+      // Scroll after a tick so the expanded content is rendered
+      requestAnimationFrame(() => {
+        notesBtn.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      })
+    }
+  }
+
   return (
     <motion.section
       id={section.id}
@@ -224,7 +307,7 @@ function SectionCard({
           <div className="space-y-4 text-base leading-8 text-text-body font-serif">
             {narrative.paragraphs.map(paragraph => (
               <p key={paragraph} className="max-w-2xl">
-                {renderWithKeyClaim(paragraph, narrative.keyClaim)}
+                {renderParagraph(paragraph, narrative.keyClaim, noteHighlights, handleHighlightClick, notesVisible)}
               </p>
             ))}
           </div>
@@ -249,40 +332,19 @@ function SectionCard({
         </div>
       </div>
 
-      {/* Inline community notes */}
-      {notesVisible && sectionNotes.length > 0 && (
+      {/* Inline community notes + annotation hint (consolidated) */}
+      {notesVisible && sectionNotes.length > 0 ? (
         <InlineSectionNotes
           notes={sectionNotes}
           onOpenNote={onOpenNote}
+          showAnnotationHint
         />
-      )}
-
-      {/* Community note composer per section */}
-      {onPublish && (
-        <div className="mt-6 border-t border-rule pt-4">
-          <ContributionComposer
-            key={section.id}
-            sourceLabel="Add a community note"
-            defaultTitle={section.title}
-            defaultTakeaway={section.description}
-            helperText="Share your take on this section's evidence."
-            publishLabel="Publish note"
-            successLabel="Published"
-            viewPublishedLabel="View in Community"
-            published={isPublished}
-            isPublishing={isPublishing}
-            error={publishError}
-            onPublish={payload => onPublish(section.id, payload)}
-            onViewPublished={onOpenNote ? () => {
-              // Navigate to the community tab — the note will be visible there
-              const url = new URL(window.location.href)
-              url.searchParams.set('tab', 'community')
-              window.history.pushState({}, '', url.toString())
-              window.dispatchEvent(new PopStateEvent('popstate'))
-            } : undefined}
-          />
+      ) : notesVisible ? (
+        <div className="mt-5 flex items-center gap-2 text-2xs text-text-faint">
+          <MousePointerClick className="h-3 w-3 shrink-0" />
+          <span>Select text to add your annotation</span>
         </div>
-      )}
+      ) : null}
 
       {/* Section navigation */}
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-5">

@@ -13,7 +13,7 @@ import {
 import type { Block } from '../../types/blocks'
 import type { RunnerStatus } from './simulation-lab-types'
 import { defaultSimulationContributionBlocks, defaultSimulationSummary } from './pending-run-helpers'
-import { paperScenarioLabels } from './simulation-constants'
+import { paperScenarioLabels, paradigmLabel } from './simulation-constants'
 
 interface UseSimulationLabWorkflowOptions {
   readonly clientId: string
@@ -87,7 +87,7 @@ export function useSimulationLabWorkflow({
       }
 
       const created = await createExploration({
-        query: copilotQuestion.trim() || `What stands out in this exact ${manifest.config.paradigm} run?`,
+        query: copilotQuestion.trim() || `What stands out in this exact ${paradigmLabel(manifest.config.paradigm)} run?`,
         summary: copilotResponse?.summary ?? defaultSimulationSummary(manifest),
         blocks: defaultSimulationContributionBlocks(
           manifest,
@@ -148,8 +148,8 @@ export function useSimulationLabWorkflow({
             'What is the nearest paper-backed follow-up to run next?',
           ]
         : [
-            'Set up the paper baseline SSP run (10,000 slots, 0.002 ETH).',
-            'Mirror that paper baseline for MSP so I can compare the paradigms.',
+            'Set up the paper baseline external run (10,000 slots, 0.002 ETH).',
+            'Mirror that paper baseline for local block building so I can compare the paradigms.',
             'Hold the paradigm fixed and switch from latency-aligned to latency-misaligned sources.',
             'Load the real Ethereum validator start and explain what should change.',
           ],
@@ -158,7 +158,7 @@ export function useSimulationLabWorkflow({
 
   const simulationPublishContextKey = manifest ? `simulation:${currentJobId ?? manifest.jobId}` : null
   const simulationPublishTitle = manifest
-    ? `${manifest.config.paradigm} exact run: ${paperScenarioLabels(manifest.config)[0] ?? 'custom scenario'}`
+    ? `${paradigmLabel(manifest.config.paradigm)} exact run: ${paperScenarioLabels(manifest.config)[0] ?? 'custom scenario'}`
     : ''
   const simulationPublishTakeaway = manifest
     ? copilotResponse?.summary ?? defaultSimulationSummary(manifest)

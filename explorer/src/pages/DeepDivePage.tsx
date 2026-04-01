@@ -37,7 +37,7 @@ function sectionEntryLine(section: PaperSection): string {
     case 'se3-joint':
       return 'Start here for the transient dip and the warning against overreading it as mitigation.'
     case 'se4a-attestation':
-      return 'Start here for the paper’s sharpest paradox: the same gamma change pushes SSP and MSP in opposite directions.'
+      return "Start here for the paper’s sharpest paradox: the same gamma change pushes external and local block building in opposite directions."
     case 'se4b-slots':
       return 'Start here for the fairness-versus-geography distinction under shorter slots.'
     case 'discussion':

@@ -25,6 +25,7 @@ import {
   sortComparisonCandidates,
 } from './simulation-lab-comparison'
 import { EXACT_ANALYTICS_ARTIFACT_NAME } from './pending-run-helpers'
+import { paradigmLabel } from './simulation-constants'
 import type { SurfaceMode } from './simulation-lab-types'
 import { getSimulationArtifact, type SimulationConfig, type SimulationManifest } from '../../lib/simulation-api'
 import type { SourceBlock } from '../../types/blocks'
@@ -161,7 +162,7 @@ export function useExactSimulationAnalytics({
     ? 100
     : (slot / Math.max(1, totalSlots - 1)) * 100
   const comparisonLabel = selectedComparisonDataset
-    ? `${selectedComparisonDataset.evaluation} / ${selectedComparisonDataset.paradigm}`
+    ? `${selectedComparisonDataset.evaluation} / ${paradigmLabel(selectedComparisonDataset.paradigm)}`
     : 'Published foil'
 
   const sourceRefs = useMemo<readonly SourceBlock['refs'][number][]>(() => {

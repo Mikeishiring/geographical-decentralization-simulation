@@ -1,7 +1,7 @@
 import type { SimulationArtifact, SimulationManifest } from '../../lib/simulation-api'
 import type { Block } from '../../types/blocks'
 import type { SimulationOverviewBundle } from '../../lib/simulation-api'
-import { OVERVIEW_BUNDLES } from './simulation-constants'
+import { OVERVIEW_BUNDLES, paradigmLabel } from './simulation-constants'
 
 export const EXACT_ANALYTICS_ARTIFACT_NAME = 'published_analytics_payload.json'
 
@@ -24,7 +24,7 @@ export function formatEthValue(value: number): string {
 }
 
 export function defaultSimulationSummary(manifest: SimulationManifest): string {
-  return `Exact ${manifest.config.paradigm} run over ${manifest.summary.slotsRecorded.toLocaleString()} recorded slots with ${formatEthValue(manifest.summary.finalAverageMev)} average MEV and ${manifest.summary.finalSupermajoritySuccess.toFixed(0)}% supermajority success.`
+  return `Exact ${paradigmLabel(manifest.config.paradigm)} run over ${manifest.summary.slotsRecorded.toLocaleString()} recorded slots with ${formatEthValue(manifest.summary.finalAverageMev)} average MEV and ${manifest.summary.finalSupermajoritySuccess.toFixed(0)}% supermajority success.`
 }
 
 export function defaultSimulationContributionBlocks(
@@ -38,7 +38,7 @@ export function defaultSimulationContributionBlocks(
       type: 'stat',
       value: formatEthValue(manifest.summary.finalAverageMev),
       label: 'Final average MEV',
-      sublabel: `${manifest.config.paradigm} exact run`,
+      sublabel: `${paradigmLabel(manifest.config.paradigm)} exact run`,
     },
     {
       type: 'stat',

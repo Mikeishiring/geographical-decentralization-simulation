@@ -42,10 +42,10 @@ export const TOPIC_THEME_STYLE: Record<string, { dot: string; activeBorder: stri
   methodology: { dot: '#6B7280', activeBorder: 'border-gray-400', activeBg: 'bg-gray-50/50' },
 } as const
 
-/** Block visualization palette — SSP ocean, MSP earth, plus supporting colors */
+/** Block visualization palette — external block building ocean, local block building earth, plus supporting colors */
 export const BLOCK_COLORS = [
-  '#2563EB', // ocean blue (SSP)
-  '#C2553A', // terracotta (MSP)
+  '#2563EB', // ocean blue (external block building)
+  '#C2553A', // terracotta (local block building)
   '#16A34A', // meridian green
   '#D97706', // amber
   '#DC2626', // signal red
@@ -82,6 +82,50 @@ export const DARK_SURFACE = {
   subtleText: '#B0C4D8',
   grayscaleFill: '#667788',
   grayscaleStroke: '#556677',
+} as const
+
+/** Light-mode map surface palette — warm paper aesthetic */
+export const LIGHT_SURFACE = {
+  bg: '#FAFAF7',
+  gradientCenter: '#F5F5F0',
+  gradientEdge: '#EEEEE8',
+  graticule: '#DDD9D0',
+  labelText: '#8C8578',
+  worldFill: '#ECEAE4',
+  worldStroke: '#D6D2C8',
+  /** Aliases used by MapBlock (country-prefixed naming) */
+  countryFill: '#ECEAE4',
+  countryStroke: '#D6D2C8',
+  edgeStroke: '#D6D3CE',
+  tooltipBg: '#FFFFFF',
+  tooltipBorder: '#E5E5E3',
+  tooltipText: '#1C1917',
+  subtleText: '#5C5650',
+  grayscaleFill: '#C4BFB6',
+  grayscaleStroke: '#B0AAA0',
+  /** Mono-accent blue ramp — used by MapBlock node coloring */
+  blue100: '#BFDBFE',
+  blue400: '#60A5FA',
+  blue600: '#2563EB',
+  blue700: '#1D4ED8',
+  /** Orb effects tuned for light bg — darker tints instead of white highlights */
+  orbHighlight: 'rgba(255,255,255,0.55)',
+  orbMid: 'rgba(255,255,255,0.18)',
+  rimLight: 'rgba(0,0,0,0.04)',
+  haloStroke: 'rgba(0,0,0,0.06)',
+  nodeShadow: 'rgba(0,0,0,0.10)',
+} as const
+
+/** Map node color ramp — aligned with page's BLOCK_COLORS semantic system */
+export const MAP_NODE_COLORS = {
+  /** 4-tier concentration scale using the page accent (blue) */
+  low: '#93C5FD',       // blue-300 — faint presence
+  mid: '#60A5FA',       // blue-400 — moderate
+  high: '#2563EB',      // blue-600 — matches accent / external block building
+  top: '#1E40AF',       // blue-800 — dominant
+  /** Overlay-specific */
+  sources: '#16A34A',   // meridian green — matches page success color
+  inactive: '#C4BFB6',  // warm gray — no validators
 } as const
 
 /** Shimmer loading placeholder color */

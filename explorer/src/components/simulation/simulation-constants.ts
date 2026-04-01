@@ -4,8 +4,8 @@ import type { SimulationArtifactBundle } from '../../types/simulation-view'
 
 export const DEFAULT_CONFIG: SimulationConfig = {
   paradigm: 'SSP',
-  validators: 1000,
-  slots: 1000,
+  validators: 250,
+  slots: 100,
   distribution: 'homogeneous',
   sourcePlacement: 'homogeneous',
   migrationCost: 0.0001,
@@ -24,19 +24,39 @@ const PAPER_BASELINE_PRESET: Partial<SimulationConfig> = {
   slotTime: 12,
 }
 
+const QUICK_ITERATION_PRESET: Partial<SimulationConfig> = {
+  validators: 100,
+  slots: 50,
+  distribution: 'homogeneous',
+  sourcePlacement: 'homogeneous',
+  migrationCost: 0.0001,
+  attestationThreshold: 2 / 3,
+  slotTime: 12,
+}
+
 export const PRESETS: ReadonlyArray<{
   readonly label: string
   readonly description: string
   readonly config: Partial<SimulationConfig>
 }> = [
   {
-    label: 'Paper SSP',
-    description: 'SSP with the paper-style 10,000-slot and 0.002 ETH reference setup.',
+    label: 'Quick External',
+    description: 'Fast iteration external block building run (~7 seconds).',
+    config: { ...QUICK_ITERATION_PRESET, paradigm: 'SSP' },
+  },
+  {
+    label: 'Quick Local',
+    description: 'Fast iteration local block building run (~7 seconds).',
+    config: { ...QUICK_ITERATION_PRESET, paradigm: 'MSP' },
+  },
+  {
+    label: 'Paper External',
+    description: 'External block building with the paper-style 10,000-slot and 0.002 ETH reference setup.',
     config: { ...PAPER_BASELINE_PRESET, paradigm: 'SSP' },
   },
   {
-    label: 'Paper MSP',
-    description: 'MSP with the same paper-style reference setup for direct comparison.',
+    label: 'Paper Local',
+    description: 'Local block building with the same paper-style reference setup for direct comparison.',
     config: { ...PAPER_BASELINE_PRESET, paradigm: 'MSP' },
   },
   {
@@ -128,12 +148,16 @@ export function paperScenarioLabels(config: SimulationConfig): string[] {
     labels.push('Reference: SE4a gamma variation')
   }
 
-  labels.push(config.paradigm === 'SSP' ? 'SSP exact mode' : 'MSP exact mode')
+  labels.push(config.paradigm === 'SSP' ? 'External exact mode' : 'Local exact mode')
   return labels
 }
 
 export function describeParadigm(paradigm: SimulationConfig['paradigm']): string {
   return paradigm === 'SSP' ? 'External' : 'Local'
+}
+
+export function paradigmLabel(value: string): string {
+  return value === 'SSP' ? 'External' : value === 'MSP' ? 'Local' : value
 }
 
 export function describeParadigmWithAlias(paradigm: SimulationConfig['paradigm']): string {
@@ -144,7 +168,7 @@ function approximatelyEqual(left: number, right: number, epsilon = 0.0002): bool
   return Math.abs(left - right) <= epsilon
 }
 
-function matchesPublishedResult(config: SimulationConfig): boolean {
+export function matchesPublishedResult(config: SimulationConfig): boolean {
   if (config.validators !== 1000 || config.slots !== 10000) {
     return false
   }
@@ -214,21 +238,27 @@ export interface RuntimeEstimate {
   readonly tier: RuntimeTier
 }
 
-export function estimateRuntime(validators: number, slots: number, slotTime = 12): RuntimeEstimate {
-  const stepsPerSlot = (slotTime * 1000) / 100
-  const estimatedSeconds = validators * slots * stepsPerSlot * 0.000028
-
-  if (estimatedSeconds < 10) return { label: 'Under 10 seconds', tier: 'quick' }
-  if (estimatedSeconds < 30) return { label: '~30 seconds', tier: 'moderate' }
-  if (estimatedSeconds < 90) return { label: '~1\u20132 minutes', tier: 'moderate' }
-  if (estimatedSeconds < 240) return { label: '~2\u20134 minutes', tier: 'long' }
-  if (estimatedSeconds < 600) return { label: '~5\u201310 minutes', tier: 'long' }
-  return { label: '10+ minutes', tier: 'very-long' }
-}
-
 export function estimateRuntimeSeconds(validators: number, slots: number, slotTime = 12): number {
   const stepsPerSlot = (slotTime * 1000) / 100
   return validators * slots * stepsPerSlot * 0.000028
+}
+
+function formatEstimateLabel(seconds: number): string {
+  if (seconds < 10) return `~${Math.ceil(seconds)}s`
+  if (seconds < 60) return `~${Math.round(seconds / 5) * 5}s`
+  if (seconds < 120) return '~1 min'
+  if (seconds < 600) return `~${Math.round(seconds / 60)} min`
+  return `~${Math.round(seconds / 60)} min`
+}
+
+export function estimateRuntime(validators: number, slots: number, slotTime = 12): RuntimeEstimate {
+  const seconds = estimateRuntimeSeconds(validators, slots, slotTime)
+
+  if (seconds < 10) return { label: formatEstimateLabel(seconds), tier: 'quick' }
+  if (seconds < 60) return { label: formatEstimateLabel(seconds), tier: 'moderate' }
+  if (seconds < 180) return { label: formatEstimateLabel(seconds), tier: 'moderate' }
+  if (seconds < 600) return { label: formatEstimateLabel(seconds), tier: 'long' }
+  return { label: formatEstimateLabel(seconds), tier: 'very-long' }
 }
 
 export function hasNonDefaultProtocol(config: SimulationConfig): boolean {

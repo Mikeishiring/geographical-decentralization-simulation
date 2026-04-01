@@ -5,7 +5,7 @@ import { ChartBlock } from '../blocks/ChartBlock'
 import { InsightBlock } from '../blocks/InsightBlock'
 import { StatBlock } from '../blocks/StatBlock'
 import { TimeSeriesBlock } from '../blocks/TimeSeriesBlock'
-import { formatNumber } from './simulation-constants'
+import { formatNumber, paradigmLabel } from './simulation-constants'
 import { CONTINENT_OUTLINES } from '../../data/world-outlines'
 import { GCP_REGIONS, type GcpRegion, type MacroRegion } from '../../data/gcp-regions'
 import { cn } from '../../lib/cn'
@@ -1300,7 +1300,7 @@ export function PublishedDatasetViewer({
           animate="visible"
         >
           <motion.span variants={STAGGER_ITEM} className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1 text-11 font-medium text-text-primary">
-            {dataset.evaluation} · {dataset.paradigm} · {dataset.result}
+            {dataset.evaluation} · {paradigmLabel(dataset.paradigm)} · {dataset.result}
           </motion.span>
           <motion.span variants={STAGGER_ITEM} className="lab-chip">{sourceRoleLabel(dataset.sourceRole)}</motion.span>
           <motion.span variants={STAGGER_ITEM} className="lab-chip">{countLabel(totalSlots)} slots</motion.span>
@@ -1388,7 +1388,7 @@ export function PublishedDatasetViewer({
         transition={{ ...SPRING, delay: 0.12 }}
       >
         <PublishedGeoCard
-          title={`${dataset.evaluation} · ${dataset.paradigm} · ${dataset.result}`}
+          title={`${dataset.evaluation} · ${paradigmLabel(dataset.paradigm)} · ${dataset.result}`}
           regions={currentRegions}
           annotationNotes={filteredAnnotationNotes}
           selectedNoteId={focusedNote?.id ?? null}

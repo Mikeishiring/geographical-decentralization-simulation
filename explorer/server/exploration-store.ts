@@ -95,7 +95,7 @@ export interface ListOptions {
   readonly sort?: SortOption
   readonly limit?: number
   readonly search?: string
-  readonly paradigm?: 'SSP' | 'MSP'
+  readonly paradigm?: 'External' | 'Local'
   readonly experiment?: string
   readonly verifiedOnly?: boolean
   readonly publishedOnly?: boolean
@@ -106,8 +106,8 @@ export interface ListOptions {
 function extractParadigmTags(blocks: unknown[]): string[] {
   const text = JSON.stringify(blocks)
   const tags: string[] = []
-  if (/\bSSP\b/.test(text)) tags.push('SSP')
-  if (/\bMSP\b/.test(text)) tags.push('MSP')
+  if (/\bSSP\b/.test(text) || /\b[Ee]xternal block building\b/.test(text)) tags.push('External')
+  if (/\bMSP\b/.test(text) || /\b[Ll]ocal block building\b/.test(text)) tags.push('Local')
   return tags
 }
 

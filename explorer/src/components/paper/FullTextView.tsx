@@ -60,13 +60,18 @@ const DEFAULT_ZOOM_INDEX = 3 // 1.0
 
 /* ── Component ────────────────────────────────── */
 
-export function FullTextView() {
+interface FullTextViewProps {
+  /** When set, scroll to this page once the PDF loads */
+  readonly initialPage?: number
+}
+
+export function FullTextView({ initialPage }: FullTextViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // PDF state
   const [numPages, setNumPages] = useState(0)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(initialPage ?? 1)
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX)
   const zoom = ZOOM_STEPS[zoomIndex]
 
@@ -101,6 +106,22 @@ export function FullTextView() {
   const handleDocumentLoadSuccess = useCallback(({ numPages: total }: { numPages: number }) => {
     setNumPages(total)
   }, [])
+
+  // Scroll to initialPage once the PDF renders
+  useEffect(() => {
+    if (!initialPage || numPages === 0) return
+    const scrollEl = scrollRef.current
+    if (!scrollEl) return
+    const target = scrollEl.querySelector(`[data-page="${initialPage}"]`)
+    if (!target) return
+    // Small delay to let react-pdf render the page element
+    const raf = window.requestAnimationFrame(() => {
+      target.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    })
+    return () => window.cancelAnimationFrame(raf)
+    // Only run when PDF first loads, not on every initialPage change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [numPages])
 
   const handleAddAnnotation = useCallback(() => {
     if (!newAnnotation.text.trim()) return

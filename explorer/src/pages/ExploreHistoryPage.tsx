@@ -1,7 +1,7 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ArrowUpDown, Tag, ChevronDown, ChevronUp, Users, FlaskConical, Award, LayoutList, LayoutGrid, Check } from 'lucide-react'
+import { Search, ArrowUpDown, Tag, ChevronDown, ChevronUp, LayoutList, LayoutGrid, Check } from 'lucide-react'
 import { NodeArc } from '../components/decorative/NodeArc'
 import { getExploration, listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { MOCK_COMMUNITY_NOTES } from '../data/mock-community-notes'
@@ -185,95 +185,87 @@ export function ExploreHistoryPage({
 
   return (
     <div className="space-y-5">
-      {/* ── Compact KPI strip + search ───────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex gap-4">
-          <KpiPill icon={<Users className="h-3.5 w-3.5 text-accent" />} value={publishedReadingNotes.length} label="reading" />
-          <KpiPill icon={<FlaskConical className="h-3.5 w-3.5 text-warning" />} value={publishedSimulationNotes.length} label="exact-run" />
-          <KpiPill icon={<Award className="h-3.5 w-3.5 text-accent-warm" />} value={featuredContributions.length} label="featured" />
+      {/* ── Single-row toolbar: KPIs · search · view · sort ────── */}
+      <div className="flex items-center gap-2">
+        {/* Inline KPI counts */}
+        <div className="hidden items-center gap-3 pr-2 sm:flex">
+          <span className="flex items-center gap-1 text-2xs text-muted tabular-nums">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            {publishedReadingNotes.length}
+          </span>
+          <span className="flex items-center gap-1 text-2xs text-muted tabular-nums">
+            <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+            {publishedSimulationNotes.length}
+          </span>
+          <span className="flex items-center gap-1 text-2xs text-muted tabular-nums">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-warm" />
+            {featuredContributions.length}
+          </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* View mode toggle */}
-          <div className="flex rounded-lg border border-rule bg-white p-0.5">
-            <button
-              onClick={() => setViewMode('cards')}
-              className={cn(
-                'rounded-md p-1.5 transition-colors',
-                viewMode === 'cards' ? 'bg-surface-active text-text-primary' : 'text-muted hover:text-text-primary',
-              )}
-              aria-label="Card view"
-              title="Card view"
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setViewMode('compact')}
-              className={cn(
-                'rounded-md p-1.5 transition-colors',
-                viewMode === 'compact' ? 'bg-surface-active text-text-primary' : 'text-muted hover:text-text-primary',
-              )}
-              aria-label="Compact view"
-              title="Compact view"
-            >
-              <LayoutList className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          {/* Sort dropdown */}
-          <div ref={sortMenuRef} className="relative">
-            <button
-              onClick={() => setSortMenuOpen(prev => !prev)}
-              className="flex items-center gap-1.5 rounded-lg border border-rule bg-white px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:text-text-primary hover:border-border-hover"
-            >
-              <ArrowUpDown className="h-3.5 w-3.5" />
-              {SORT_OPTIONS.find(o => o.value === sort)?.label}
-              <ChevronDown className={cn('h-3 w-3 transition-transform', sortMenuOpen && 'rotate-180')} />
-            </button>
-            <AnimatePresence>
-              {sortMenuOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                  transition={SPRING_CRISP}
-                  className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-xl border border-rule bg-white shadow-lg"
-                >
-                  {SORT_OPTIONS.map(option => (
-                    <button
-                      key={option.value}
-                      onClick={() => { setSort(option.value); setSortMenuOpen(false) }}
-                      className={cn(
-                        'flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-surface-active',
-                        sort === option.value && 'bg-accent/5',
-                      )}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs font-medium text-text-primary">{option.label}</div>
-                        <div className="text-2xs text-muted">{option.description}</div>
-                      </div>
-                      {sort === option.value && <Check className="h-3.5 w-3.5 shrink-0 text-accent" />}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+        {/* Search */}
+        <div className="relative min-w-0 flex-1">
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+          <input
+            type="text"
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+            placeholder="Search titles, takeaways, authors, paradigms..."
+            className={cn(
+              'w-full rounded-lg border border-rule bg-white py-1.5 pl-8 pr-3 text-xs',
+              'text-text-primary placeholder:text-muted/60 focus:outline-none focus:border-accent/30 focus:ring-1 focus:ring-accent/10',
+            )}
+          />
         </div>
-      </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-        <input
-          type="text"
-          value={search}
-          onChange={event => setSearch(event.target.value)}
-          placeholder="Search titles, takeaways, authors, paradigms, scenarios, or metrics..."
-          className={cn(
-            'w-full rounded-xl border border-rule bg-white py-2.5 pl-10 pr-4 text-13',
-            'text-text-primary placeholder:text-muted/70 focus:outline-none focus:border-accent/30 focus:ring-2 focus:ring-accent/10',
-          )}
-        />
+        {/* View toggle — ghost buttons, no border wrapper */}
+        <button
+          onClick={() => setViewMode(viewMode === 'cards' ? 'compact' : 'cards')}
+          className="shrink-0 rounded-md p-1.5 text-muted transition-colors hover:bg-surface-active hover:text-text-primary"
+          aria-label={viewMode === 'cards' ? 'Switch to compact view' : 'Switch to card view'}
+          title={viewMode === 'cards' ? 'Compact view' : 'Card view'}
+        >
+          {viewMode === 'cards' ? <LayoutList className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
+        </button>
+
+        {/* Sort — ghost trigger, no border */}
+        <div ref={sortMenuRef} className="relative shrink-0">
+          <button
+            onClick={() => setSortMenuOpen(prev => !prev)}
+            className="flex items-center gap-1 rounded-md px-1.5 py-1.5 text-2xs font-medium text-muted transition-colors hover:bg-surface-active hover:text-text-primary"
+          >
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{SORT_OPTIONS.find(o => o.value === sort)?.label}</span>
+          </button>
+          <AnimatePresence>
+            {sortMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                transition={SPRING_CRISP}
+                className="absolute right-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-lg border border-rule bg-white shadow-lg"
+              >
+                {SORT_OPTIONS.map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => { setSort(option.value); setSortMenuOpen(false) }}
+                    className={cn(
+                      'flex w-full items-center gap-2 px-2.5 py-2 text-left transition-colors hover:bg-surface-active',
+                      sort === option.value && 'bg-accent/5',
+                    )}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-2xs font-medium text-text-primary">{option.label}</div>
+                      <div className="text-[10px] text-muted">{option.description}</div>
+                    </div>
+                    {sort === option.value && <Check className="h-3 w-3 shrink-0 text-accent" />}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {hiddenDraftExploration && (
@@ -418,24 +410,6 @@ export function ExploreHistoryPage({
         </AnimatePresence>
       </div>
 
-    </div>
-  )
-}
-
-function KpiPill({
-  icon,
-  value,
-  label,
-}: {
-  readonly icon: ReactNode
-  readonly value: number
-  readonly label: string
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      {icon}
-      <span className="text-sm font-semibold tabular-nums text-text-primary">{value}</span>
-      <span className="text-xs text-muted">{label}</span>
     </div>
   )
 }

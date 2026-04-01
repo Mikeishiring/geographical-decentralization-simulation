@@ -121,8 +121,8 @@ export function ExplorationCard({
                 <span key={tag} className="lab-chip">
                   <span className={cn(
                     'h-1.5 w-1.5 rounded-full',
-                    tag === 'SSP' && 'bg-accent',
-                    tag === 'MSP' && 'bg-accent-warm',
+                    tag === 'External' && 'bg-accent',
+                    tag === 'Local' && 'bg-accent-warm',
                     tag.startsWith('SE') && 'bg-success',
                   )} />
                   {tag}

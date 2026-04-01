@@ -124,7 +124,7 @@ export function SimCopilotPanel({
                 rows={3}
                 placeholder={hasManifest
                   ? 'Example: Show avg_mev, then supermajority_success, then explain the top regions.'
-                  : 'Example: Set up the paper baseline SSP run, then tell me what to inspect first.'}
+                  : 'Example: Set up the paper baseline external run, then tell me what to inspect first.'}
                 disabled={isHealthLoading || !copilotAvailable}
                 className={inputClassName}
               />
