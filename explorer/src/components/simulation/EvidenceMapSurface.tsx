@@ -1,6 +1,6 @@
 import { useCallback, useId, useMemo, useRef, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Play, Pause, RotateCcw, Layers, Radio, Zap, Plus, Minus, Maximize2 } from 'lucide-react'
+import { Play, Pause, RotateCcw, Layers, Radio, Zap, Plus, Minus, Maximize2, Download, Link2 } from 'lucide-react'
 import { EvidenceMapSidebar } from './EvidenceMapSidebar'
 import { LIGHT_SURFACE, SPRING_SOFT, SPRING_SNAPPY, SPRING_POPUP } from '../../lib/theme'
 import { cn } from '../../lib/cn'
@@ -33,12 +33,15 @@ import { WORLD_PATHS } from '../../data/world-paths'
 
 // ── Main component ──────────────────────────────────────────────────────────
 
+export type MapLayout = 'full' | 'split' | 'charts'
+
 interface EvidenceMapSurfaceProps {
   readonly payload: PublishedAnalyticsPayload
   readonly className?: string
+  readonly scenarioLabel?: string
 }
 
-export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfaceProps) {
+export function EvidenceMapSurface({ payload, className, scenarioLabel }: EvidenceMapSurfaceProps) {
   const idPrefix = useId()
   const totalSlots = totalSlotsFromPayload(payload)
   const lastSlot = Math.max(0, totalSlots - 1)
@@ -49,6 +52,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
   const [overlay, setOverlay] = useState<OverlayMode>('validators')
   const [tooltip, setTooltip] = useState<TooltipData | null>(null)
   const [hoveredRegion, setHoveredRegion] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const rafRef = useRef<number | null>(null)
   const lastFrameRef = useRef(0)
 
@@ -135,6 +139,8 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
 
   const onPlay = useCallback(() => {
     if (slot >= lastSlot) setSlot(0)
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
     setPlaying(true)
   }, [slot, lastSlot])
 
@@ -242,6 +248,15 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
     setHoveredRegion(data?.id ?? null)
   }, [])
 
+  const handleNodeClick = useCallback((node: { x: number; y: number }) => {
+    if (playing) return
+    const targetZoom = 3
+    const panX = (node.x - SVG_W / 2) * (1 - 1 / targetZoom)
+    const panY = (node.y - MAP_VISIBLE_H / 2) * (1 - 1 / targetZoom)
+    setZoom(targetZoom)
+    setPan({ x: panX, y: panY })
+  }, [playing])
+
   const progress = lastSlot > 0 ? (slot / lastSlot) * 100 : 100
 
   return (
@@ -300,28 +315,69 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
             )}
           </div>
 
-          {/* Overlay mode toggle — Agentation-style segmented control */}
-          <div className="flex items-center rounded-[14px] border border-black/[0.06] bg-[#F6F5F4] p-[3px] gap-[3px]" style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}>
-            {([
-              { mode: 'validators' as const, icon: Radio, label: 'Validators', detail: 'Show validator stake distribution across regions' },
-              { mode: 'latency' as const, icon: Zap, label: 'Latency', detail: 'Show inter-region network latency arcs' },
-              { mode: 'sources' as const, icon: Layers, label: 'Sources', detail: 'Show information source placement' },
-            ]).map(({ mode, icon: Icon, label, detail }) => (
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Overlay mode toggle — Agentation-style segmented control */}
+            <div className="flex items-center rounded-[14px] border border-black/[0.06] bg-[#F6F5F4] p-[3px] gap-[3px]" style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}>
+              {([
+                { mode: 'validators' as const, icon: Radio, label: 'Validators', detail: 'Show validator stake distribution across regions' },
+                { mode: 'latency' as const, icon: Zap, label: 'Latency', detail: 'Show inter-region network latency arcs' },
+                { mode: 'sources' as const, icon: Layers, label: 'Sources', detail: 'Show information source placement' },
+              ]).map(({ mode, icon: Icon, label, detail }) => (
+                <button
+                  key={mode}
+                  onClick={() => setOverlay(mode)}
+                  title={detail}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-[11px] px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
+                    overlay === mode
+                      ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
+                      : 'text-stone-400 hover:text-stone-600',
+                  )}
+                >
+                  <Icon className="h-3 w-3" />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Export actions */}
+            <div className="flex items-center gap-1">
               <button
-                key={mode}
-                onClick={() => setOverlay(mode)}
-                title={detail}
-                className={cn(
-                  'flex items-center gap-1.5 rounded-[11px] px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
-                  overlay === mode
-                    ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
-                    : 'text-stone-400 hover:text-stone-600',
-                )}
+                onClick={() => {
+                  const params = new URLSearchParams(window.location.search)
+                  params.set('slot', String(slot + 1))
+                  params.set('overlay', overlay)
+                  if (scenarioLabel) params.set('scenario', scenarioLabel)
+                  const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`
+                  navigator.clipboard.writeText(url)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }}
+                className="flex items-center justify-center h-7 w-7 rounded-lg border border-black/[0.06] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                title={copied ? 'Copied!' : 'Copy share link with current slot and overlay'}
               >
-                <Icon className="h-3 w-3" />
-                {label}
+                <Link2 className={cn('h-3 w-3 transition-colors', copied && 'text-emerald-500')} />
               </button>
-            ))}
+              <button
+                onClick={() => {
+                  const data = {
+                    slot: slot + 1, totalSlots, overlay,
+                    metrics: { gini, hhi, liveness, clusters, distance },
+                    regions: sorted.slice(0, 10).map(n => ({ id: n.id, city: n.city, count: n.count, macroRegion: n.macroRegion })),
+                  }
+                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+                  const a = document.createElement('a')
+                  a.href = URL.createObjectURL(blob)
+                  a.download = `map-snapshot-slot-${slot + 1}.json`
+                  a.click()
+                  URL.revokeObjectURL(a.href)
+                }}
+                className="flex items-center justify-center h-7 w-7 rounded-lg border border-black/[0.06] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                title="Download snapshot data as JSON"
+              >
+                <Download className="h-3 w-3" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -331,8 +387,8 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
         {/* SVG Map */}
         <div
           ref={mapContainerRef}
-          className="relative overflow-hidden min-h-[420px]"
-          style={{ backgroundColor: LIGHT_SURFACE.bg, cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
+          className="relative overflow-hidden"
+          style={{ aspectRatio: `${SVG_W} / ${MAP_VISIBLE_H}`, backgroundColor: LIGHT_SURFACE.bg, cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -535,6 +591,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                   macroRegion: node.macroRegion,
                 }),
                 onMouseLeave: () => handleHover(null),
+                onClick: () => handleNodeClick(node),
               }
 
               return (
@@ -763,7 +820,30 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
           </div>
 
           <div className="tabular-nums shrink-0 flex items-center gap-1 rounded-md border border-black/[0.06] bg-white px-2 py-1 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-            <span className="text-[11px] font-semibold text-stone-800">{(slot + 1).toLocaleString()}</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={playing ? (slot + 1).toLocaleString() : undefined}
+              defaultValue={playing ? undefined : (slot + 1).toLocaleString()}
+              key={playing ? 'playing' : `paused-${slot}`}
+              readOnly={playing}
+              onFocus={e => { if (!playing) e.target.select() }}
+              onBlur={e => {
+                const v = parseInt(e.target.value.replace(/,/g, ''), 10)
+                if (!isNaN(v)) {
+                  const clamped = Math.max(0, Math.min(lastSlot, v - 1))
+                  setPlaying(false)
+                  setSlot(clamped)
+                }
+              }}
+              onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+              className={cn(
+                'text-[11px] font-semibold text-stone-800 tabular-nums bg-transparent outline-none text-right',
+                playing ? 'w-[3.5ch]' : 'w-[4.5ch] hover:bg-stone-50 focus:bg-stone-50 rounded px-0.5 -mx-0.5',
+              )}
+              aria-label="Jump to slot number"
+              title="Type a slot number to jump directly"
+            />
             <span className="text-[10px] text-stone-300">/ {totalSlots.toLocaleString()}</span>
             {playing && (
               <span className="text-[10px] text-stone-400 font-mono ml-0.5">{'\u00D7'}{stepSize}</span>
