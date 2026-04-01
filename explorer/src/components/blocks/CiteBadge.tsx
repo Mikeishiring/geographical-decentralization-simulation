@@ -1,6 +1,7 @@
 import { FileText, FlaskConical } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { ARXIV_PDF_URL, sectionToPage } from '../paper/paper-helpers'
+import { sectionToPage } from '../paper/paper-helpers'
+import { usePaperNav } from '../paper/PaperNavContext'
 import type { Cite } from '../../types/blocks'
 
 interface CiteBadgeProps {
@@ -12,6 +13,7 @@ interface CiteBadgeProps {
 export function CiteBadge({ cite, alwaysVisible = false }: CiteBadgeProps) {
   if (!cite) return null
 
+  const { goToPdfPage } = usePaperNav()
   const page = sectionToPage(cite.paperSection)
 
   // Build the section+figure+table label for the primary pill
@@ -33,21 +35,20 @@ export function CiteBadge({ cite, alwaysVisible = false }: CiteBadgeProps) {
     <span className="inline-flex items-center gap-1.5 flex-wrap">
       {hasPrimary && (
         page != null ? (
-          <a
-            href={`${ARXIV_PDF_URL}#page=${page}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => goToPdfPage(page)}
             className={cn(
               'inline-flex items-center gap-1 rounded-full border border-accent/15 bg-accent/5 px-2 py-0.5 text-2xs text-accent/60',
-              'transition-all duration-200 hover:bg-accent/12 hover:text-accent hover:border-accent/30 select-none',
+              'transition-all duration-200 hover:bg-accent/12 hover:text-accent hover:border-accent/30 select-none cursor-pointer',
               visibilityClass,
             )}
-            title={`${primaryParts.join(' · ')} — opens PDF page ${page}`}
+            title={`${primaryParts.join(' · ')} — view PDF page ${page}`}
           >
             <FileText className="h-2.5 w-2.5" />
             {primaryParts.join(' · ')}
             <span className="text-accent/40">p.{page}</span>
-          </a>
+          </button>
         ) : (
           <span
             className={cn(
