@@ -101,7 +101,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
       {
         type: 'insight',
         text: 'Each slot, validators compare expected rewards across all 40 regions and migrate if the net benefit exceeds migration cost. The paper-facing runs are typically shown at 10,000 slots with 1,000 validators and published dataset families centered on a 0.002 ETH migration cost. The MEV function is deterministic and linear in latency, which the paper treats as a modeling limitation rather than a claim about production Ethereum.',
-        cite: { paperSection: '§4.1', figure: 'Algorithm 1' },
+        cite: { paperSection: '§4.1', table: 'Table 2' },
       },
     ],
   },
