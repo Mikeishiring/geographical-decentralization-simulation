@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
 import { PAPER_METADATA, type Author } from '../../data/paper-sections'
 
-const HEADER_TITLE = 'Geographical Centralization Resilience in Ethereum Block Building'
+const HEADER_TITLE = PAPER_METADATA.title
 import { SPRING_SNAPPY, CONTENT_MAX_WIDTH } from '../../lib/theme'
 import { GlobeWireframe } from '../decorative/GlobeWireframe'
 
