@@ -234,7 +234,7 @@ export function PaperReaderPage({
       </div>
     )}
 
-    <div ref={containerRef} className="overflow-x-clip">
+    <div ref={containerRef} className="min-w-0 w-full max-w-full overflow-x-hidden">
 
       {/* Sticky reading-mode bar */}
       <PaperViewModeBar
