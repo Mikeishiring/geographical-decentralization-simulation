@@ -2,6 +2,7 @@
  * Sidebar panel for the evidence map — metrics, continents, top regions, legends.
  * Extracted from EvidenceMapSurface.tsx to keep it under the 800-line limit.
  */
+import type { CSSProperties } from 'react'
 import { motion } from 'framer-motion'
 import { SPRING_SOFT, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { cn } from '../../lib/cn'
@@ -17,6 +18,8 @@ interface MacroBreakdownEntry {
 }
 
 interface EvidenceMapSidebarProps {
+  readonly className?: string
+  readonly style?: CSSProperties
   readonly overlay: OverlayMode
   readonly slot: number
   readonly gini: number | undefined
@@ -34,12 +37,21 @@ interface EvidenceMapSidebarProps {
 }
 
 export function EvidenceMapSidebar({
+  className,
+  style,
   overlay, slot, gini, hhi, liveness, clusters, distance,
   macroBreakdown, sorted, maxCount, totalValidators, displayNodeCount,
   hoveredRegion, onHover,
 }: EvidenceMapSidebarProps) {
   return (
-    <div className="border-t border-black/[0.06] p-3.5 lg:border-l lg:border-t-0 space-y-4 max-h-[360px] overflow-y-auto overscroll-contain lg:max-h-none lg:overflow-y-visible bg-[#FAFAF8]">
+    <div
+      className={cn(
+        'border-t border-black/[0.06] bg-[#FAFAF8] p-3 lg:border-l lg:border-t-0',
+        'space-y-3 max-h-[360px] overflow-y-auto overscroll-contain lg:overflow-y-auto',
+        className,
+      )}
+      style={style}
+    >
       {/* Live metrics — sentiment-colored */}
       <div>
         <div className="flex items-baseline gap-1.5">
@@ -123,7 +135,7 @@ export function EvidenceMapSidebar({
           initial="hidden"
           animate="visible"
         >
-          {sorted.slice(0, 6).map((node, i) => {
+          {sorted.slice(0, 5).map((node, i) => {
             const color = overlay === 'sources' ? NODE_BLUE.source : regionColor(node.macroRegion)
             const pct = ((node.count / maxCount) * 100).toFixed(0)
             const sharePct = totalValidators > 0 ? ((node.count / totalValidators) * 100).toFixed(1) : '0'
