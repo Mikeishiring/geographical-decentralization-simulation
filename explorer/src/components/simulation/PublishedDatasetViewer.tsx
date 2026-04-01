@@ -337,17 +337,157 @@ function continentPaths(width: number, height: number): string[] {
   })
 }
 
-function regionValueColor(value: number, maxValue: number): string {
-  const normalized = Math.min(value / Math.max(maxValue, 1), 1)
-  if (normalized < 0.15) return '#64748B'
-  if (normalized < 0.4) return '#2563EB'
-  if (normalized < 0.7) return '#C2553A'
-  return '#F59E0B'
-}
-
 function regionValueRadius(value: number, maxValue: number): number {
   const normalized = Math.max(value / Math.max(maxValue, 1), 0.04)
   return 3 + normalized * 10
+}
+
+type GeoMapMode = 'count' | 'share' | 'change' | 'macro'
+type GeoViewportMode = 'world' | 'footprint' | 'cluster'
+
+const GEO_MODE_OPTIONS: ReadonlyArray<{
+  readonly id: GeoMapMode
+  readonly label: string
+  readonly detail: string
+}> = [
+  { id: 'count', label: 'Count', detail: 'Size = validators, color = share tier' },
+  { id: 'share', label: 'Share', detail: 'Size = regional share, color = share tier' },
+  { id: 'change', label: 'Change vs slot 1', detail: 'Size = validator change, color = direction' },
+  { id: 'macro', label: 'Macro region', detail: 'Size = validators, color = macro region' },
+]
+
+const GEO_VIEWPORT_OPTIONS: ReadonlyArray<{
+  readonly id: GeoViewportMode
+  readonly label: string
+}> = [
+  { id: 'world', label: 'World' },
+  { id: 'footprint', label: 'Focus active footprint' },
+  { id: 'cluster', label: 'Focus top cluster' },
+]
+
+const MACRO_REGION_COLORS: Record<MacroRegion | 'Unknown', string> = {
+  Europe: '#2563EB',
+  'North America': '#C2553A',
+  'Asia Pacific': '#0F766E',
+  'Middle East': '#D97706',
+  'South America': '#BE123C',
+  Africa: '#7C3AED',
+  Oceania: '#0EA5E9',
+  Unknown: '#64748B',
+}
+
+function regionSharePercent(region: RegionCount, totalValidators: number): number {
+  if (totalValidators <= 0) return 0
+  return (region.count / totalValidators) * 100
+}
+
+function shareTierColor(share: number): string {
+  if (share < 4) return '#64748B'
+  if (share < 10) return '#2563EB'
+  if (share < 18) return '#C2553A'
+  return '#F59E0B'
+}
+
+function shareTierLabel(share: number): string {
+  if (share < 4) return 'Minor presence'
+  if (share < 10) return 'Visible presence'
+  if (share < 18) return 'Major presence'
+  return 'Dominant footprint'
+}
+
+function macroRegionColor(region: MacroRegion | 'Unknown'): string {
+  return MACRO_REGION_COLORS[region] ?? MACRO_REGION_COLORS.Unknown
+}
+
+function changeColor(change: number): string {
+  if (change > 0) return '#16A34A'
+  if (change < 0) return '#BE123C'
+  return '#64748B'
+}
+
+function changeLabel(change: number): string {
+  if (change > 0) return 'Gained validators'
+  if (change < 0) return 'Lost validators'
+  return 'Unchanged vs slot 1'
+}
+
+function signedCountDeltaLabel(value: number): string {
+  if (value === 0) return '0'
+  return `${value > 0 ? '+' : '-'}${Math.abs(value).toLocaleString()}`
+}
+
+function clampCanvasRect(input: {
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+  readonly canvasWidth: number
+  readonly canvasHeight: number
+}): { x: number; y: number; width: number; height: number } {
+  const maxX = Math.max(0, input.canvasWidth - input.width)
+  const maxY = Math.max(0, input.canvasHeight - input.height)
+  return {
+    x: Math.max(0, Math.min(maxX, input.x)),
+    y: Math.max(0, Math.min(maxY, input.y)),
+    width: input.width,
+    height: input.height,
+  }
+}
+
+function fitViewBoxToPoints(input: {
+  readonly points: ReadonlyArray<{ x: number; y: number }>
+  readonly width: number
+  readonly height: number
+  readonly padding: number
+  readonly minimumWidth: number
+  readonly minimumHeight: number
+}): { minX: number; minY: number; width: number; height: number } {
+  if (input.points.length === 0) {
+    return { minX: 0, minY: 0, width: input.width, height: input.height }
+  }
+
+  let minX = Math.min(...input.points.map(point => point.x))
+  let maxX = Math.max(...input.points.map(point => point.x))
+  let minY = Math.min(...input.points.map(point => point.y))
+  let maxY = Math.max(...input.points.map(point => point.y))
+
+  minX -= input.padding
+  maxX += input.padding
+  minY -= input.padding
+  maxY += input.padding
+
+  let boxWidth = Math.max(input.minimumWidth, maxX - minX)
+  let boxHeight = Math.max(input.minimumHeight, maxY - minY)
+  const targetAspect = input.width / input.height
+  const currentAspect = boxWidth / Math.max(boxHeight, 1)
+
+  if (currentAspect > targetAspect) {
+    const nextHeight = boxWidth / targetAspect
+    const extra = nextHeight - boxHeight
+    minY -= extra / 2
+    boxHeight = nextHeight
+  } else {
+    const nextWidth = boxHeight * targetAspect
+    const extra = nextWidth - boxWidth
+    minX -= extra / 2
+    boxWidth = nextWidth
+  }
+
+  const clamped = clampCanvasRect({
+    x: minX,
+    y: minY,
+    width: Math.min(input.width, boxWidth),
+    height: Math.min(input.height, boxHeight),
+    canvasWidth: input.width,
+    canvasHeight: input.height,
+  })
+
+  return {
+    minX: clamped.x,
+    minY: clamped.y,
+    width: clamped.width,
+    height: clamped.height,
+  }
 }
 
 function noteIntentLabel(intent: PublishedViewerAnnotationNote['intent']): string {
@@ -660,6 +800,7 @@ export function dispatchPublishedReplayAnchorSelection(
 function PublishedGeoCard({
   title,
   regions,
+  initialRegions,
   summary,
   annotationNotes,
   selectedNoteId,
@@ -669,6 +810,7 @@ function PublishedGeoCard({
 }: {
   title: string
   regions: readonly RegionCount[]
+  initialRegions: readonly RegionCount[]
   summary: {
     readonly activeRegions: number
     readonly totalValidators: number
@@ -679,6 +821,8 @@ function PublishedGeoCard({
     readonly currentLiveness: number | null
     readonly currentClusters: number | null
     readonly currentTotalDistance: number | null
+    readonly currentMev: number | null
+    readonly currentProposalTime: number | null
   }
   annotationNotes?: readonly PublishedViewerAnnotationNote[]
   selectedNoteId?: string | null
@@ -686,15 +830,27 @@ function PublishedGeoCard({
   focusAreaActive?: boolean
   anchorScope: 'primary' | 'comparison'
 }) {
+  const [mapMode, setMapMode] = useState<GeoMapMode>('count')
+  const [viewportMode, setViewportMode] = useState<GeoViewportMode>('world')
+  const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null)
+  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null)
   const sortedRegions = [...regions].sort((left, right) => right.count - left.count)
-  const topRegions = sortedRegions.slice(0, 6)
   const macroRegionCounts = aggregateMacroRegions(regions)
   const totalValidators = sortedRegions.reduce((sum, region) => sum + region.count, 0)
-  const maxValue = Math.max(...sortedRegions.map(region => region.count), 1)
-  const dominantRegion = topRegions[0] ?? null
   const regionAnchoredNotes = useMemo(
     () => annotationNotes?.filter(note => isRegionAnchoredNote(note)) ?? [],
     [annotationNotes],
+  )
+  const initialRegionCounts = useMemo(() => {
+    const next = new Map<string, number>()
+    for (const region of initialRegions) {
+      next.set(region.regionId, region.count)
+    }
+    return next
+  }, [initialRegions])
+  const initialValidatorTotal = useMemo(
+    () => Math.max(1, initialRegions.reduce((sum, region) => sum + region.count, 0)),
+    [initialRegions],
   )
 
   const svgWidth = 820
@@ -703,9 +859,232 @@ function PublishedGeoCard({
   const gradientKey = title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
   const atmosphereId = `geo-atmosphere-${gradientKey}`
   const dominantGlowId = `geo-dominant-${gradientKey}`
-  const dominantRegionPoint = dominantRegion?.region
-    ? latLonToMercator(dominantRegion.region.lat, dominantRegion.region.lon, svgWidth, svgHeight)
-    : null
+  const renderedRegions = useMemo(() => {
+    return sortedRegions
+      .filter(region => region.region)
+      .map(region => {
+        const geoRegion = region.region!
+        const macroRegion = geoRegion.macroRegion ?? 'Unknown'
+        const { x, y } = latLonToMercator(geoRegion.lat, geoRegion.lon, svgWidth, svgHeight)
+        const share = regionSharePercent(region, totalValidators)
+        const initialCount = initialRegionCounts.get(region.regionId) ?? 0
+        const initialShare = initialValidatorTotal > 0 ? (initialCount / initialValidatorTotal) * 100 : 0
+        const change = region.count - initialCount
+        const noteMatches = regionAnchoredNotes.filter(note =>
+          noteMatchesRegion(note, region.regionId, geoRegion.city),
+        )
+
+        let encodedValue = region.count
+        if (mapMode === 'share') encodedValue = share
+        if (mapMode === 'change') encodedValue = Math.abs(change)
+
+        const maxEncodedValue = mapMode === 'share'
+          ? 100
+          : Math.max(...sortedRegions.map(entry => {
+              if (mapMode === 'change') {
+                return Math.abs(entry.count - (initialRegionCounts.get(entry.regionId) ?? 0))
+              }
+              return entry.count
+            }), 1)
+
+        const radius = regionValueRadius(encodedValue, maxEncodedValue)
+        const fill = mapMode === 'macro'
+          ? macroRegionColor(macroRegion)
+          : mapMode === 'change'
+            ? changeColor(change)
+            : shareTierColor(share)
+
+        return {
+          ...region,
+          geoRegion,
+          macroRegion,
+          x,
+          y,
+          share,
+          initialCount,
+          initialShare,
+          change,
+          fill,
+          radius,
+          noteCount: noteMatches.length,
+          noteSummary: summarizeNoteCluster(noteMatches),
+          encodedValue,
+          tierLabel: mapMode === 'change' ? changeLabel(change) : shareTierLabel(share),
+        }
+      })
+  }, [
+    initialRegionCounts,
+    initialValidatorTotal,
+    mapMode,
+    regionAnchoredNotes,
+    sortedRegions,
+    totalValidators,
+  ])
+  const renderedRegionsById = useMemo(
+    () => new Map(renderedRegions.map(region => [region.regionId, region] as const)),
+    [renderedRegions],
+  )
+  const topRegions = renderedRegions.slice(0, 6)
+  const dominantRegionData = renderedRegions[0] ?? null
+  const dominantRegionPoint = dominantRegionData ? { x: dominantRegionData.x, y: dominantRegionData.y } : null
+  const hoveredRegion = hoveredRegionId ? renderedRegionsById.get(hoveredRegionId) ?? null : null
+  const selectedRegion = selectedRegionId ? renderedRegionsById.get(selectedRegionId) ?? null : null
+
+  useEffect(() => {
+    if (selectedRegionId && !renderedRegionsById.has(selectedRegionId)) {
+      setSelectedRegionId(null)
+    }
+  }, [renderedRegionsById, selectedRegionId])
+
+  useEffect(() => {
+    if (hoveredRegionId && !renderedRegionsById.has(hoveredRegionId)) {
+      setHoveredRegionId(null)
+    }
+  }, [hoveredRegionId, renderedRegionsById])
+
+  const selectRegion = useCallback((regionId: string) => {
+    const region = renderedRegionsById.get(regionId)
+    if (!region) return
+    setSelectedRegionId(regionId)
+    dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, {
+      kind: 'region',
+      key: region.regionId,
+      label: `Region · ${region.geoRegion.city}`,
+    }))
+  }, [anchorScope, renderedRegionsById])
+
+  const labelRegionIds = useMemo(() => {
+    const next = new Set<string>()
+    if (dominantRegionData) next.add(dominantRegionData.regionId)
+    if (selectedRegionId) next.add(selectedRegionId)
+    if (hoveredRegionId) next.add(hoveredRegionId)
+    renderedRegions.slice(0, 3).forEach((region, index) => {
+      if (index === 0 || region.share >= 5) {
+        next.add(region.regionId)
+      }
+    })
+    return next
+  }, [dominantRegionData, hoveredRegionId, renderedRegions, selectedRegionId])
+  const displayedTopRegions = useMemo(() => {
+    const next: typeof renderedRegions = []
+    const seen = new Set<string>()
+    for (const regionId of [selectedRegionId, hoveredRegionId]) {
+      if (!regionId) continue
+      const region = renderedRegionsById.get(regionId)
+      if (!region || seen.has(region.regionId)) continue
+      next.push(region)
+      seen.add(region.regionId)
+    }
+    for (const region of topRegions) {
+      if (seen.has(region.regionId)) continue
+      next.push(region)
+      seen.add(region.regionId)
+      if (next.length >= 6) break
+    }
+    return next
+  }, [hoveredRegionId, renderedRegionsById, selectedRegionId, topRegions])
+  const viewportViewBox = useMemo(() => {
+    if (viewportMode === 'world' || renderedRegions.length === 0) {
+      return { minX: 0, minY: 0, width: svgWidth, height: svgHeight }
+    }
+
+    const points = viewportMode === 'cluster'
+      ? renderedRegions.slice(0, Math.min(3, renderedRegions.length)).map(region => ({ x: region.x, y: region.y }))
+      : renderedRegions.map(region => ({ x: region.x, y: region.y }))
+
+    return fitViewBoxToPoints({
+      points,
+      width: svgWidth,
+      height: svgHeight,
+      padding: viewportMode === 'cluster' ? 74 : 92,
+      minimumWidth: viewportMode === 'cluster' ? 260 : 420,
+      minimumHeight: viewportMode === 'cluster' ? 170 : 220,
+    })
+  }, [renderedRegions, svgHeight, svgWidth, viewportMode])
+  const tooltipRegion = hoveredRegion ?? selectedRegion
+  const tooltipRect = useMemo(() => {
+    if (!tooltipRegion) return null
+
+    const width = 206
+    const height = 96
+    const minX = viewportViewBox.minX + 10
+    const maxX = viewportViewBox.minX + viewportViewBox.width - width - 10
+    const minY = viewportViewBox.minY + 10
+    const maxY = viewportViewBox.minY + viewportViewBox.height - height - 10
+
+    return {
+      x: Math.max(minX, Math.min(maxX, tooltipRegion.x + 16)),
+      y: Math.max(minY, Math.min(maxY, tooltipRegion.y - 112)),
+      width,
+      height,
+    }
+  }, [tooltipRegion, viewportViewBox])
+  const focusedRegion = selectedRegion ?? hoveredRegion ?? dominantRegionData
+  const legendSwatches = useMemo(() => {
+    if (mapMode === 'macro') {
+      return macroRegionCounts.map(entry => ({
+        label: entry.region,
+        color: macroRegionColor(entry.region),
+      }))
+    }
+    if (mapMode === 'change') {
+      return [
+        { label: 'Gain', color: changeColor(1) },
+        { label: 'Flat', color: changeColor(0) },
+        { label: 'Loss', color: changeColor(-1) },
+      ]
+    }
+    return [
+      { label: 'Minor', color: shareTierColor(2) },
+      { label: 'Visible', color: shareTierColor(6) },
+      { label: 'Major', color: shareTierColor(13) },
+      { label: 'Leader', color: shareTierColor(24) },
+    ]
+  }, [macroRegionCounts, mapMode])
+  const maxLegendValue = useMemo(() => {
+    if (mapMode === 'share') return Math.max(...renderedRegions.map(region => region.share), 1)
+    if (mapMode === 'change') return Math.max(...renderedRegions.map(region => Math.abs(region.change)), 1)
+    return Math.max(...renderedRegions.map(region => region.count), 1)
+  }, [mapMode, renderedRegions])
+  const sizeLegendValues = useMemo(() => {
+    const values = [0.2, 0.55, 1].map(fraction => Math.max(1, maxLegendValue * fraction))
+    return values.map(value => {
+      const rounded = mapMode === 'share'
+        ? Number(value.toFixed(1))
+        : Math.max(1, Math.round(value))
+      return {
+        value: rounded,
+        radius: regionValueRadius(rounded, maxLegendValue),
+      }
+    })
+  }, [mapMode, maxLegendValue])
+  type RenderedGeoRegion = (typeof renderedRegions)[number]
+  const formatModeValue = useCallback((region: RenderedGeoRegion): string => {
+    if (mapMode === 'share') return `${percentage(region.share, 1)} share`
+    if (mapMode === 'change') return `${signedCountDeltaLabel(region.change)} validators`
+    if (mapMode === 'macro') return region.macroRegion
+    return `${countLabel(region.count)} validators`
+  }, [mapMode])
+  const formatRegionContext = useCallback((region: RenderedGeoRegion): string => {
+    const parts = [
+      `${percentage(region.share, 1)} share`,
+      region.macroRegion,
+    ]
+    if (region.change !== 0) {
+      parts.push(`${signedCountDeltaLabel(region.change)} vs slot 1`)
+    }
+    return parts.join(' · ')
+  }, [])
+  const topRegionBarWidth = useCallback((region: RenderedGeoRegion): number => {
+    if (mapMode === 'share') {
+      return Math.max(8, Math.min(100, maxLegendValue > 0 ? (region.share / maxLegendValue) * 100 : 0))
+    }
+    if (mapMode === 'change') {
+      return Math.max(8, Math.min(100, maxLegendValue > 0 ? (Math.abs(region.change) / maxLegendValue) * 100 : 0))
+    }
+    return Math.max(8, Math.min(100, maxLegendValue > 0 ? (region.count / maxLegendValue) * 100 : 0))
+  }, [mapMode, maxLegendValue])
+  const mapViewBox = `${viewportViewBox.minX} ${viewportViewBox.minY} ${viewportViewBox.width} ${viewportViewBox.height}`
   const liveReadoutCards: Array<{
     readonly label: string
     readonly value: string
@@ -713,9 +1092,11 @@ function PublishedGeoCard({
     readonly featured?: boolean
   }> = [
     {
-      label: 'Dominant region',
-      value: summary.dominantRegionLabel ?? 'No active leader',
-      detail: `${percentage(summary.dominantShare, 1)} share`,
+      label: selectedRegion ? 'Selected region' : hoveredRegion ? 'Hover region' : 'Dominant region',
+      value: focusedRegion?.geoRegion.city ?? summary.dominantRegionLabel ?? 'No active leader',
+      detail: focusedRegion
+        ? `${formatRegionContext(focusedRegion)}${focusedRegion.noteCount > 0 ? ` · ${focusedRegion.noteCount} note${focusedRegion.noteCount === 1 ? '' : 's'}` : ''}`
+        : `${percentage(summary.dominantShare, 1)} share`,
       featured: true,
     },
     {
@@ -729,14 +1110,19 @@ function PublishedGeoCard({
       detail: 'Geographic inequality',
     },
     {
-      label: 'HHI',
-      value: summary.currentHhi != null ? compactNumber(summary.currentHhi, 3) : 'N/A',
-      detail: 'Dominance concentration',
-    },
-    {
       label: 'Liveness',
       value: summary.currentLiveness != null ? percentage(summary.currentLiveness, 1) : 'N/A',
       detail: 'Completion posture',
+    },
+    {
+      label: 'Average MEV',
+      value: summary.currentMev != null ? `${compactNumber(summary.currentMev, 4)} ETH` : 'N/A',
+      detail: 'Reward surface',
+    },
+    {
+      label: 'Proposal time',
+      value: summary.currentProposalTime != null ? `${compactNumber(summary.currentProposalTime, 1)} ms` : 'N/A',
+      detail: 'Timing pressure',
     },
     {
       label: 'Clusters',
@@ -768,29 +1154,86 @@ function PublishedGeoCard({
       <div className="grid items-start gap-4 p-4 xl:grid-cols-[minmax(0,1.28fr)_minmax(260px,0.72fr)]">
         <div className="space-y-4">
           <div className="relative self-start overflow-hidden rounded-2xl border border-[#1F2937] bg-[#0D1117]">
+            <div className="border-b border-white/10 bg-[rgba(8,17,31,0.92)] px-4 py-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-2xs font-medium uppercase tracking-[0.1em] text-white/58">Map view</div>
+                  <div className="mt-1 text-xs text-white/88">
+                    {currentModeOption.label} · {currentViewportOption.label}
+                  </div>
+                  <div className="mt-1 text-[0.68rem] text-white/58">
+                    {currentModeOption.detail}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-start gap-3">
+                  <div>
+                    <div className="mb-1 text-[0.6rem] font-medium uppercase tracking-[0.08em] text-white/45">Metric</div>
+                    <div className="flex flex-wrap gap-1 rounded-full border border-white/10 bg-white/6 p-1">
+                      {GEO_MODE_OPTIONS.map(option => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setMapMode(option.id)}
+                          aria-pressed={mapMode === option.id}
+                          className={cn(
+                            'rounded-full px-3 py-1.5 text-[0.625rem] font-medium uppercase tracking-[0.08em] transition-colors',
+                            mapMode === option.id
+                              ? 'bg-white text-[#0F172A]'
+                              : 'text-white/72 hover:bg-white/10 hover:text-white',
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-1 text-[0.6rem] font-medium uppercase tracking-[0.08em] text-white/45">Camera</div>
+                    <div className="flex flex-wrap gap-1 rounded-full border border-white/10 bg-white/6 p-1">
+                      {GEO_VIEWPORT_OPTIONS.map(option => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setViewportMode(option.id)}
+                          aria-pressed={viewportMode === option.id}
+                          className={cn(
+                            'rounded-full px-3 py-1.5 text-[0.625rem] font-medium uppercase tracking-[0.08em] transition-colors',
+                            viewportMode === option.id
+                              ? 'bg-[#2563EB] text-white'
+                              : 'text-white/72 hover:bg-white/10 hover:text-white',
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
             {annotationNotes && annotationNotes.length > 0 ? (
-              <div className="absolute inset-x-4 top-4 z-10 flex max-w-xl flex-wrap gap-2">
+              <div className="absolute inset-x-4 top-20 z-10 flex max-w-xl flex-wrap gap-2">
                 <div className="rounded-full border border-white/12 bg-[#0F172A]/78 px-3 py-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-white/85 backdrop-blur-md">
                   {annotationNotes.length} paper note{annotationNotes.length === 1 ? '' : 's'} pinned to this slot
                 </div>
-                {annotationNotes.slice(0, 2).map(note => (
+                {selectedAnnotationNote ? (
                   <button
-                    key={note.id}
-                    onClick={() => onSelectNote?.(note.id)}
+                    key={selectedAnnotationNote.id}
+                    onClick={() => onSelectNote?.(selectedAnnotationNote.id)}
                     className={cn(
-                      'pointer-events-auto max-w-[18rem] rounded-full border px-3 py-1.5 text-left text-11 text-white/88 backdrop-blur-md transition-all',
-                      selectedNoteId === note.id
+                      'pointer-events-auto max-w-[20rem] rounded-full border px-3 py-1.5 text-left text-11 text-white/88 backdrop-blur-md transition-all',
+                      selectedNoteId === selectedAnnotationNote.id
                         ? 'border-white/45 bg-white/20 shadow-[0_16px_30px_rgba(15,23,42,0.22)]'
                         : 'border-white/12 bg-white/10 hover:border-white/30 hover:bg-white/14',
                     )}
                   >
-                    <span className="font-medium">{noteIntentLabel(note.intent)}{note.anchorLabel ? ` · ${note.anchorLabel}` : ''}:</span> {note.note}
+                    <span className="font-medium">{noteIntentLabel(selectedAnnotationNote.intent)}{selectedAnnotationNote.anchorLabel ? ` · ${selectedAnnotationNote.anchorLabel}` : ''}:</span> {selectedAnnotationNote.note}
                   </button>
-                ))}
+                ) : null}
               </div>
             ) : null}
             <svg
-              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+              viewBox={mapViewBox}
               className="block w-full"
               preserveAspectRatio="xMidYMid meet"
               role="img"
@@ -809,7 +1252,13 @@ function PublishedGeoCard({
                 </radialGradient>
               </defs>
 
-              <rect x={0} y={0} width={svgWidth} height={svgHeight} fill={`url(#${atmosphereId})`} />
+              <rect
+                x={0}
+                y={0}
+                width={svgWidth}
+                height={svgHeight}
+                fill={`url(#${atmosphereId})`}
+              />
 
               {dominantRegionPoint ? (
                 <circle
@@ -858,98 +1307,248 @@ function PublishedGeoCard({
                 />
               ))}
 
-              {sortedRegions
-                .filter(region => region.region)
-                .map(region => {
-                  const geoRegion = region.region!
-                  const { x, y } = latLonToMercator(geoRegion.lat, geoRegion.lon, svgWidth, svgHeight)
-                  const fill = regionValueColor(region.count, maxValue)
-                  const radius = regionValueRadius(region.count, maxValue)
-                  const share = totalValidators > 0 ? (region.count / totalValidators) * 100 : 0
+              {renderedRegions.map(region => {
+                const isSelected = selectedRegionId === region.regionId
+                const isHovered = hoveredRegionId === region.regionId
+                const isActive = isSelected || isHovered
 
-                  return (
-                    <g
-                      key={region.regionId}
-                      onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, {
-                        kind: 'region',
-                        key: region.regionId,
-                        label: `Region · ${geoRegion.city}`,
-                      }))}
-                      style={{ cursor: 'pointer' }}
-                    >
+                return (
+                  <g
+                    key={region.regionId}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${region.geoRegion.city}, ${countLabel(region.count)} validators, ${percentage(region.share, 1)} share`}
+                    onClick={() => selectRegion(region.regionId)}
+                    onMouseEnter={() => setHoveredRegionId(region.regionId)}
+                    onMouseLeave={() => setHoveredRegionId(previous => (previous === region.regionId ? null : previous))}
+                    onFocus={() => setHoveredRegionId(region.regionId)}
+                    onBlur={() => setHoveredRegionId(previous => (previous === region.regionId ? null : previous))}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        selectRegion(region.regionId)
+                      }
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <circle
+                      cx={region.x}
+                      cy={region.y}
+                      r={region.radius * (isSelected ? 2.3 : isActive ? 2.05 : 1.8)}
+                      fill={region.fill}
+                      opacity={isSelected ? 0.18 : isActive ? 0.14 : 0.08}
+                      style={{ transition: 'r 280ms ease, opacity 280ms ease, fill 280ms ease' }}
+                    />
+                    {isSelected ? (
                       <circle
-                        cx={x}
-                        cy={y}
-                        r={radius * 1.8}
-                        fill={fill}
-                        opacity={0.1}
-                        style={{ transition: 'r 360ms ease, opacity 360ms ease, fill 360ms ease' }}
+                        cx={region.x}
+                        cy={region.y}
+                        r={region.radius + 4.5}
+                        fill="none"
+                        stroke="rgba(255,255,255,0.95)"
+                        strokeWidth={1.8}
+                        opacity={0.95}
                       />
+                    ) : null}
+                    {isActive ? (
                       <circle
-                        cx={x}
-                        cy={y}
-                        r={radius}
-                        fill={fill}
-                        stroke="rgba(255,255,255,0.85)"
-                        strokeWidth={1}
-                        style={{ transition: 'r 360ms ease, opacity 360ms ease, fill 360ms ease, cx 360ms ease, cy 360ms ease' }}
-                      >
-                        <title>{`${geoRegion.city} (${region.regionId}) · ${countLabel(region.count)} validators · ${percentage(share, 1)}`}</title>
-                      </circle>
-                    </g>
-                  )
-                })}
+                        cx={region.x}
+                        cy={region.y}
+                        r={region.radius + 9}
+                        fill="none"
+                        stroke={region.fill}
+                        strokeWidth={1.4}
+                        opacity={0.65}
+                        strokeDasharray={isSelected ? undefined : '3 3'}
+                      />
+                    ) : null}
+                    <circle
+                      cx={region.x}
+                      cy={region.y}
+                      r={region.radius}
+                      fill={region.fill}
+                      stroke={isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.78)'}
+                      strokeWidth={isSelected ? 1.6 : 1}
+                      style={{ transition: 'r 280ms ease, stroke 280ms ease, fill 280ms ease' }}
+                    />
+                  </g>
+                )
+              })}
+
+              {[...labelRegionIds].map(regionId => {
+                const region = renderedRegionsById.get(regionId)
+                if (!region) return null
+
+                const isSelected = selectedRegionId === region.regionId
+                const isHovered = hoveredRegionId === region.regionId
+                const labelText = isSelected || isHovered
+                  ? `${region.geoRegion.city} · ${percentage(region.share, 1)}`
+                  : region.geoRegion.city
+                const labelWidth = Math.max(88, Math.min(156, labelText.length * 6.4 + 22))
+                const alignLeft = region.x > svgWidth * 0.64
+                const labelX = alignLeft ? region.x - labelWidth - 16 : region.x + 16
+                const labelY = Math.max(14, Math.min(svgHeight - 30, region.y - 15))
+
+                return (
+                  <g key={`label-${region.regionId}`} pointerEvents="none">
+                    <line
+                      x1={region.x}
+                      y1={region.y}
+                      x2={alignLeft ? labelX + labelWidth : labelX}
+                      y2={labelY + 10}
+                      stroke={isSelected ? '#FFFFFF' : region.fill}
+                      strokeWidth={1.2}
+                      opacity={0.82}
+                    />
+                    <rect
+                      x={labelX}
+                      y={labelY}
+                      width={labelWidth}
+                      height={20}
+                      rx={10}
+                      fill={isSelected ? '#FFFFFF' : 'rgba(15,23,42,0.84)'}
+                      stroke={isSelected ? region.fill : 'rgba(255,255,255,0.18)'}
+                      strokeWidth={1}
+                    />
+                    <text
+                      x={labelX + 10}
+                      y={labelY + 13}
+                      fontSize="10.5"
+                      fontWeight={600}
+                      fill={isSelected ? '#0F172A' : '#FFFFFF'}
+                    >
+                      {labelText}
+                    </text>
+                  </g>
+                )
+              })}
+
+              {tooltipRegion && tooltipRect ? (
+                <g pointerEvents="none">
+                  <rect
+                    x={tooltipRect.x}
+                    y={tooltipRect.y}
+                    width={tooltipRect.width}
+                    height={tooltipRect.height}
+                    rx={14}
+                    fill="rgba(15,23,42,0.94)"
+                    stroke="rgba(255,255,255,0.16)"
+                    strokeWidth={1}
+                  />
+                  <text x={tooltipRect.x + 14} y={tooltipRect.y + 18} fontSize="11" fontWeight={700} fill="#FFFFFF">
+                    {tooltipRegion.geoRegion.city}
+                  </text>
+                  <text x={tooltipRect.x + 14} y={tooltipRect.y + 33} fontSize="10" fill="rgba(255,255,255,0.72)">
+                    {tooltipRegion.macroRegion} · {tooltipRegion.regionId}
+                  </text>
+                  <text x={tooltipRect.x + 14} y={tooltipRect.y + 50} fontSize="10.5" fill="#FFFFFF">
+                    {countLabel(tooltipRegion.count)} validators · {percentage(tooltipRegion.share, 1)} share
+                  </text>
+                  <text x={tooltipRect.x + 14} y={tooltipRect.y + 66} fontSize="10.5" fill="#FFFFFF">
+                    Delta vs slot 1 {signedCountDeltaLabel(tooltipRegion.change)} validators
+                  </text>
+                  <text x={tooltipRect.x + 14} y={tooltipRect.y + 82} fontSize="10" fill="rgba(255,255,255,0.72)">
+                    {tooltipRegion.noteCount} note{tooltipRegion.noteCount === 1 ? '' : 's'} · {tooltipRegion.tierLabel}
+                  </text>
+                </g>
+              ) : null}
             </svg>
+
+            <div className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-[18rem] rounded-2xl border border-white/12 bg-[#0F172A]/82 px-3 py-3 text-white/88 backdrop-blur-md">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-2xs font-medium uppercase tracking-[0.1em] text-white/58">Legend</div>
+                <div className="text-[0.625rem] uppercase tracking-[0.08em] text-white/52">
+                  {mapMode === 'share'
+                    ? 'Size = share'
+                    : mapMode === 'change'
+                      ? 'Size = abs delta'
+                      : 'Size = validators'}
+                </div>
+              </div>
+              <div className="mt-2 flex items-end gap-4">
+                <div className="flex items-end gap-2">
+                  {sizeLegendValues.map(item => (
+                    <div key={`size-${item.value}`} className="flex flex-col items-center gap-1">
+                      <span
+                        className="block rounded-full border border-white/40 bg-white/14"
+                        style={{ width: item.radius * 2, height: item.radius * 2 }}
+                      />
+                      <span className="text-[0.625rem] text-white/66">
+                        {mapMode === 'share' ? `${item.value}%` : countLabel(Math.round(item.value))}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="h-8 w-px bg-white/12" />
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {legendSwatches.map(item => (
+                    <div key={`${mapMode}-${item.label}`} className="flex items-center gap-1.5 text-[0.625rem] text-white/72">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                      {item.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
             <div className="rounded-xl border border-rule bg-surface-active p-4">
               <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Top regions</div>
               <div className="mt-3 space-y-2.5">
-                {topRegions.map(region => {
-                  const regionLabel = region.region ? region.region.city : region.regionId
-                  const fill = regionValueColor(region.count, maxValue)
-                  const share = totalValidators > 0 ? (region.count / totalValidators) * 100 : 0
-                  const regionNotes = regionAnchoredNotes.filter(note => noteMatchesRegion(note, region.regionId, regionLabel))
-                  const regionNoteCount = regionNotes.length
-                  const regionNoteSummary = summarizeNoteCluster(regionNotes)
+                {displayedTopRegions.map(region => {
+                  const regionLabel = region.geoRegion.city
+                  const isSelected = selectedRegionId === region.regionId
+                  const isHovered = hoveredRegionId === region.regionId
                   return (
                     <button
                       key={region.regionId}
                       type="button"
-                      onClick={() => dispatchPublishedReplayAnchorSelection(buildPublishedReplayAnchorSelection(anchorScope, {
-                        kind: 'region',
-                        key: region.regionId,
-                        label: `Region · ${regionLabel}`,
-                      }))}
-                      className="block w-full rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/75"
+                      onClick={() => selectRegion(region.regionId)}
+                      onMouseEnter={() => setHoveredRegionId(region.regionId)}
+                      onMouseLeave={() => setHoveredRegionId(previous => (previous === region.regionId ? null : previous))}
+                      className={cn(
+                        'block w-full rounded-xl border px-2 py-2 text-left transition-all',
+                        isSelected
+                          ? 'border-accent bg-white shadow-[0_12px_24px_rgba(37,99,235,0.08)]'
+                          : isHovered
+                            ? 'border-border-hover bg-white/85'
+                            : 'border-transparent hover:bg-white/75',
+                      )}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
+                            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: region.fill }} />
                             <div className="truncate text-xs font-medium text-text-primary">{regionLabel}</div>
-                            {regionNoteCount > 0 ? (
+                            {region.noteCount > 0 ? (
                               <span className="rounded-full border border-[#DBE4F0] bg-[#F8FAFC] px-2 py-0.5 text-2xs font-medium text-text-primary">
-                                {regionNoteCount} note{regionNoteCount === 1 ? '' : 's'}
+                                {region.noteCount} note{region.noteCount === 1 ? '' : 's'}
+                              </span>
+                            ) : null}
+                            {isSelected ? (
+                              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-2xs font-medium text-accent">
+                                Selected
                               </span>
                             ) : null}
                           </div>
                           <div className="truncate text-11 text-muted">{region.regionId}</div>
-                          {regionNoteSummary ? (
+                          <div className="mt-1 truncate text-2xs text-muted">{formatRegionContext(region)}</div>
+                          {region.noteSummary ? (
                             <div className="mt-1 truncate text-2xs font-medium text-text-primary">
-                              {regionNoteSummary}
+                              {region.noteSummary}
                             </div>
                           ) : null}
                         </div>
                         <div className="shrink-0 text-right">
-                          <div className="text-xs font-medium tabular-nums text-text-primary">{countLabel(region.count)}</div>
-                          <div className="text-11 text-muted">{percentage(share, 1)}</div>
+                          <div className="text-xs font-medium tabular-nums text-text-primary">{formatModeValue(region)}</div>
+                          <div className="text-11 text-muted">{mapMode === 'count' ? percentage(region.share, 1) : countLabel(region.count)}</div>
                         </div>
                       </div>
                       <div className="mt-1.5 h-1.5 rounded-full bg-white/70">
                         <div
                           className="h-full rounded-full"
-                          style={{ width: `${share}%`, backgroundColor: fill, transition: 'width 420ms ease' }}
+                          style={{ width: `${topRegionBarWidth(region)}%`, backgroundColor: region.fill, transition: 'width 420ms ease' }}
                         />
                       </div>
                     </button>
@@ -971,8 +1570,8 @@ function PublishedGeoCard({
                       </div>
                       <div className="mt-1 h-1 rounded-full bg-surface-active">
                         <div
-                          className="h-full rounded-full bg-accent"
-                          style={{ width: `${share}%`, transition: 'width 420ms ease' }}
+                          className="h-full rounded-full"
+                          style={{ width: `${share}%`, backgroundColor: macroRegionColor(entry.region), transition: 'width 420ms ease' }}
                         />
                       </div>
                     </div>
@@ -1661,6 +2260,7 @@ export function PublishedDatasetViewer({
         <PublishedGeoCard
           title={`${dataset.evaluation} · ${paradigmLabel(dataset.paradigm)} · ${dataset.result}`}
           regions={currentRegions}
+          initialRegions={initialRegions}
           summary={{
             activeRegions: currentRegions.length,
             totalValidators,
@@ -1671,6 +2271,8 @@ export function PublishedDatasetViewer({
             currentLiveness,
             currentClusters,
             currentTotalDistance,
+            currentMev,
+            currentProposalTime,
           }}
           annotationNotes={filteredAnnotationNotes}
           selectedNoteId={focusedNote?.id ?? null}
