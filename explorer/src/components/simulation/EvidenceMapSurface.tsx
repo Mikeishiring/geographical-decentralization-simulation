@@ -2,7 +2,7 @@ import { useCallback, useId, useMemo, useRef, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Pause, RotateCcw, Layers, Radio, Zap, Plus, Minus, Maximize2 } from 'lucide-react'
 import { EvidenceMapSidebar } from './EvidenceMapSidebar'
-import { LIGHT_SURFACE, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
+import { LIGHT_SURFACE, SPRING_SOFT, SPRING_SNAPPY, SPRING_POPUP } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { LATENCY_MIN, LATENCY_MAX } from '../../data/gcp-latency'
 import {
@@ -16,10 +16,11 @@ import {
   MAP_VISIBLE_H,
   GCP_REGION_MAP,
   NODE_BLUE,
+  regionColor,
   latLonToMercator,
+  greatCircleArc,
   latencyColor,
   nodeRadius,
-  nodeColor,
   getSlotRegionNodes,
   getSourceNodes,
   buildLatencyArcs,
@@ -179,9 +180,9 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
 
   const edges = useMemo(() => {
     if (displayNodes.length < 2) return []
+    const seen = new Set<string>()
     const result: Array<{ path: string; va: number; vb: number; color: string }> = []
     const N = Math.min(3, displayNodes.length - 1)
-    const edgeColor = LIGHT_SURFACE.edgeStroke
     for (const p of displayNodes) {
       const distances = displayNodes
         .filter(q => q.id !== p.id)
@@ -189,23 +190,19 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
         .toSorted((a, b) => a.d - b.d)
         .slice(0, N)
       for (const { q } of distances) {
-        if (p.id < q.id) {
-          const mx = (p.x + q.x) / 2
-          const my = (p.y + q.y) / 2
-          const dist = Math.hypot(q.x - p.x, q.y - p.y)
-          const curvature = Math.min(dist * 0.15, 30)
-          const angle = Math.atan2(q.y - p.y, q.x - p.x) - Math.PI / 2
-          const cx = mx + Math.cos(angle) * curvature
-          const cy = my + Math.sin(angle) * curvature
+        const key = p.id < q.id ? `${p.id}-${q.id}` : `${q.id}-${p.id}`
+        if (!seen.has(key)) {
+          seen.add(key)
           result.push({
-            path: `M${p.x.toFixed(1)},${p.y.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${q.x.toFixed(1)},${q.y.toFixed(1)}`,
-            va: p.count, vb: q.count, color: edgeColor,
+            path: greatCircleArc(p.lat, p.lon, q.lat, q.lon, SVG_W, SVG_H),
+            va: p.count, vb: q.count,
+            color: regionColor(p.count >= q.count ? p.macroRegion : q.macroRegion),
           })
         }
       }
     }
     return result
-  }, [displayNodes, overlay])
+  }, [displayNodes])
 
   // ── Metrics at current slot ──
   const metrics = payload.metrics ?? {}
@@ -479,9 +476,11 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               )
             })}
 
-            {/* ── Nearest-neighbor edges (validators/sources mode) ── */}
+            {/* ── Network connections (validators/sources mode) — great-circle arcs ── */}
             {overlay !== 'latency' && edges.map((e, i) => {
-              const opacity = 0.15 + ((e.va + e.vb) / (2 * maxCount)) * 0.15
+              const strength = (e.va + e.vb) / (2 * maxCount)
+              const opacity = 0.18 + strength * 0.32
+              const sw = 0.5 + strength * 0.8
 
               return playing ? (
                 <path
@@ -489,30 +488,39 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                   d={e.path}
                   fill="none"
                   stroke={e.color}
-                  strokeWidth={0.4}
+                  strokeWidth={sw}
                   strokeLinecap="round"
                   opacity={opacity}
                 />
               ) : (
-                <motion.path
-                  key={`edge-${i}`}
-                  d={e.path}
-                  fill="none"
-                  stroke={e.color}
-                  strokeWidth={0.4}
-                  strokeLinecap="round"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity }}
-                  transition={{ ...SPRING_SOFT, delay: 0.3 + i * 0.005 }}
-                />
+                <g key={`edge-${i}`}>
+                  <motion.path
+                    d={e.path}
+                    fill="none"
+                    stroke={e.color}
+                    strokeWidth={sw}
+                    strokeLinecap="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity }}
+                    transition={{ ...SPRING_SOFT, delay: 0.3 + i * 0.005 }}
+                  />
+                  {/* Traveling ping dot — shows network activity on top connections */}
+                  {i < 8 && (
+                    <circle r={1.2 + strength * 1.2} fill={e.color} opacity={0}>
+                      <animateMotion dur={`${3.5 + i * 0.6}s`} repeatCount="indefinite" path={e.path} />
+                      <animate attributeName="opacity" values="0;0.6;0.6;0" dur={`${3.5 + i * 0.6}s`} repeatCount="indefinite" />
+                    </circle>
+                  )}
+                </g>
               )
             })}
 
-            {/* ── Region nodes — flat circles, no gradients/glows ── */}
+            {/* ── Region nodes — colored by macro-region ── */}
             {displayNodes.map((node, index) => {
               const r = nodeRadius(node.count, maxCount)
-              const color = overlay === 'sources' ? NODE_BLUE.source : nodeColor(node.count, maxCount)
+              const color = overlay === 'sources' ? NODE_BLUE.source : regionColor(node.macroRegion)
               const rank = sorted.findIndex(n => n.id === node.id)
+              const isTop3 = rank >= 0 && rank < 3
               const isHovered = hoveredRegion === node.id
 
               const hoverProps = {
@@ -527,29 +535,45 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                 onMouseLeave: () => handleHover(null),
               }
 
-              return playing ? (
-                <circle
-                  key={node.id}
-                  cx={node.x} cy={node.y}
-                  r={isHovered ? r * 1.15 : r}
-                  fill={color}
-                  stroke="white"
-                  strokeWidth={0.8}
-                  {...hoverProps}
-                />
-              ) : (
-                <motion.circle
-                  key={node.id}
-                  cx={node.x} cy={node.y}
-                  r={r}
-                  fill={color}
-                  stroke="white"
-                  strokeWidth={0.8}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: isHovered ? 1.15 : 1, opacity: 1 }}
-                  transition={{ ...SPRING_SNAPPY, delay: 0.1 + index * 0.008 }}
-                  {...hoverProps}
-                />
+              return (
+                <g key={node.id}>
+                  {/* Breathing halo for top 3 — subtle pulse on light canvas */}
+                  {isTop3 && !playing && (
+                    <circle cx={node.x} cy={node.y} r={r * 2.5} fill="none" stroke={color} strokeWidth={0.6} opacity={0.08}>
+                      <animate attributeName="r" values={`${(r * 2.2).toFixed(1)};${(r * 3.2).toFixed(1)};${(r * 2.2).toFixed(1)}`} dur="4s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.04;0.12;0.04" dur="4s" repeatCount="indefinite" />
+                    </circle>
+                  )}
+
+                  {/* Hover glow — soft radial highlight */}
+                  {isHovered && (
+                    <circle cx={node.x} cy={node.y} r={r * 2} fill={color} fillOpacity={0.12} />
+                  )}
+
+                  {/* Core node */}
+                  {playing ? (
+                    <circle
+                      cx={node.x} cy={node.y}
+                      r={isHovered ? r * 1.2 : r}
+                      fill={color}
+                      stroke="white"
+                      strokeWidth={isTop3 ? 1.2 : 0.8}
+                      {...hoverProps}
+                    />
+                  ) : (
+                    <motion.circle
+                      cx={node.x} cy={node.y}
+                      r={r}
+                      fill={color}
+                      stroke="white"
+                      strokeWidth={isTop3 ? 1.2 : 0.8}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: isHovered ? 1.2 : 1, opacity: 1 }}
+                      transition={{ ...SPRING_SNAPPY, delay: 0.1 + index * 0.008 }}
+                      {...hoverProps}
+                    />
+                  )}
+                </g>
               )
             })}
 
@@ -630,21 +654,24 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
               <motion.div
                 key="map-tooltip"
                 role="tooltip"
-                initial={{ opacity: 0, scale: 0.92 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, scale: 0.92, y: 4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                transition={SPRING_POPUP}
                 className="pointer-events-none absolute z-20"
                 style={tooltipStyle}
               >
-                <div className="relative rounded-lg border border-stone-200 bg-white px-3.5 py-2.5 shadow-lg">
+                <div className="relative rounded-lg border border-stone-200 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur-sm">
                   <div className="absolute left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-b border-r border-stone-200 bg-white"
                     style={{
                       bottom: (tooltip.y / MAP_VISIBLE_H) * 100 < 15 ? 'auto' : '-5px',
                       top: (tooltip.y / MAP_VISIBLE_H) * 100 < 15 ? '-5px' : 'auto',
                     }}
                   />
-                  <div className="text-11 font-medium text-stone-900">{tooltip.city}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: regionColor(tooltip.macroRegion) }} />
+                    <span className="text-11 font-medium text-stone-900">{tooltip.city}</span>
+                  </div>
                   <div className="mt-0.5 text-[0.5625rem] font-mono text-stone-400">{tooltip.id} · {tooltip.macroRegion}</div>
                   <div className="mt-1 flex items-baseline gap-1.5">
                     <span className="text-sm font-semibold tabular-nums text-stone-900">
@@ -658,7 +685,7 @@ export function EvidenceMapSurface({ payload, className }: EvidenceMapSurfacePro
                   {totalValidators > 0 && (
                     <div className="mt-1.5 flex items-center gap-1.5">
                       <div className="flex-1 h-[3px] rounded-full bg-stone-100 overflow-hidden min-w-[60px]">
-                        <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.min((tooltip.count / totalValidators) * 100, 100)}%` }} />
+                        <div className="h-full rounded-full" style={{ width: `${Math.min((tooltip.count / totalValidators) * 100, 100)}%`, backgroundColor: regionColor(tooltip.macroRegion) }} />
                       </div>
                       <span className="text-[0.5625rem] font-mono text-stone-500 tabular-nums">
                         {formatNumber((tooltip.count / totalValidators) * 100, 1)}%

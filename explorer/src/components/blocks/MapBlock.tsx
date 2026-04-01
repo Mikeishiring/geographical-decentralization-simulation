@@ -1,7 +1,7 @@
 import { useId, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
-import { LIGHT_SURFACE, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
+import { LIGHT_SURFACE, SPRING_SOFT, SPRING_SNAPPY, SPRING_POPUP } from '../../lib/theme'
 import { cn } from '../../lib/cn'
 import { WORLD_PATHS } from '../../data/world-paths'
 import type { MapBlock as MapBlockType } from '../../types/blocks'
@@ -18,6 +18,26 @@ const BLUE_RAMP = {
   top: LIGHT_SURFACE.blue700,
   source: '#0D9488',
 } as const
+
+/* ── Region color map — keyed by GCP region prefix ── */
+const REGION_PREFIX_COLORS: readonly [string, string][] = [
+  ['us-',            '#C2553A'], // terracotta
+  ['northamerica-',  '#C2553A'], // terracotta
+  ['europe-',        '#2563EB'], // blue
+  ['asia-',          '#16A34A'], // green
+  ['me-',            '#D97706'], // amber
+  ['southamerica-',  '#7C3AED'], // purple
+  ['africa-',        '#0F766E'], // teal
+  ['australia-',     '#DC2626'], // red
+]
+const REGION_COLOR_DEFAULT = '#94A3B8' // slate
+
+function getRegionColor(regionName: string): string {
+  for (const [prefix, color] of REGION_PREFIX_COLORS) {
+    if (regionName.startsWith(prefix)) return color
+  }
+  return REGION_COLOR_DEFAULT
+}
 
 /* ── Projection — Natural Earth I (must match generate-map-data.mjs) ── */
 const NE_A = [0.8707, -0.131979, -0.013791, 0.003971, -0.001529] as const
@@ -48,13 +68,15 @@ function getDotRadius(value: number, maxValue: number): number {
   return 3.5 + Math.sqrt(normalized) * 9
 }
 
-function getDotColor(value: number, maxValue: number, colorScale?: string): string {
+function getDotColor(value: number, maxValue: number, colorScale?: string, regionName?: string): string {
   if (colorScale === 'binary') return value > 0 ? BLUE_RAMP.source : '#D6D3D1'
   if (colorScale === 'change') {
     if (value > 0) return BLUE_RAMP.source
     if (value < 0) return '#EF4444'
     return '#D6D3D1'
   }
+  // Default: use region prefix color instead of blue ramp
+  if (regionName) return getRegionColor(regionName)
   const t = Math.min(value / Math.max(maxValue, 1), 1)
   if (t < 0.1) return '#94A3B8'
   if (t < 0.3) return BLUE_RAMP.low
@@ -115,6 +137,7 @@ export function MapBlock({ block }: MapBlockProps) {
     [regions],
   )
   const topRegions = sorted.slice(0, 6)
+  const top3Names = useMemo(() => new Set(sorted.slice(0, 3).map(r => r.name)), [sorted])
 
   const edges = useMemo(() => {
     const pts = regions.map(r => ({
@@ -275,13 +298,36 @@ export function MapBlock({ block }: MapBlockProps) {
                 const { x, y } = latLonToMercator(region.lat, region.lon, SVG_W, SVG_H)
                 const value = finiteValue(region.value)
                 const radius = getDotRadius(value, maxValue)
-                const color = getDotColor(value, maxValue, block.colorScale)
+                const color = getDotColor(value, maxValue, block.colorScale, region.name)
                 const isTop = topRegions.some(t => t.name === region.name)
+                const isTop3 = top3Names.has(region.name)
                 const rank = sorted.findIndex(r => r.name === region.name)
                 const isHovered = hoveredRegion === (region.label ?? region.name)
 
                 return (
                   <g key={region.name}>
+                    {/* Breathing halo for top 3 nodes — light canvas, region color at 8% opacity */}
+                    {isTop3 && (
+                      <motion.circle
+                        cx={x}
+                        cy={y}
+                        r={radius + 4}
+                        fill={color}
+                        fillOpacity={0.08}
+                        stroke="none"
+                        animate={{
+                          r: [radius + 4, radius + 9, radius + 4],
+                          fillOpacity: [0.08, 0.04, 0.08],
+                        }}
+                        transition={{
+                          duration: 4,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                          delay: index * 0.4,
+                        }}
+                      />
+                    )}
+
                     {/* Flat circle — solid fill, white stroke */}
                     <motion.circle
                       cx={x} cy={y}
@@ -349,24 +395,28 @@ export function MapBlock({ block }: MapBlockProps) {
                 initial={{ opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={SPRING_SNAPPY}
+                transition={SPRING_POPUP}
                 className="pointer-events-none absolute z-20"
                 style={tooltipStyle}
               >
-                <div className="relative rounded-lg border border-stone-200 bg-white px-3 py-2 shadow-lg">
+                <div className="relative rounded-lg border border-stone-200 backdrop-blur-sm bg-white/95 px-3 py-2 shadow-lg">
                   {/* Arrow */}
                   <div
-                    className="absolute left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-b border-r border-stone-200 bg-white"
+                    className="absolute left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-b border-r border-stone-200 bg-white/95"
                     style={{
                       bottom: (tooltip.y / SVG_H) * 100 < 18 ? 'auto' : '-5px',
                       top: (tooltip.y / SVG_H) * 100 < 18 ? '-5px' : 'auto',
                     }}
                   />
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: tooltip.color }} />
+                    {/* Region color dot */}
+                    <span
+                      className="h-2.5 w-2.5 rounded-full shrink-0 ring-2 ring-white shadow-sm"
+                      style={{ backgroundColor: tooltip.color }}
+                    />
                     <span className="text-11 font-medium text-stone-900">{tooltip.label}</span>
                   </div>
-                  <div className="mt-0.5 flex items-baseline gap-1.5 pl-4">
+                  <div className="mt-0.5 flex items-baseline gap-1.5 pl-[18px]">
                     <span className="text-sm font-semibold tabular-nums text-stone-900">
                       {tooltip.value.toLocaleString()}
                     </span>
@@ -375,7 +425,7 @@ export function MapBlock({ block }: MapBlockProps) {
                     )}
                   </div>
                   {tooltip.rank < block.regions.length && (
-                    <div className="mt-0.5 pl-4 text-[0.5625rem] font-mono text-stone-300">
+                    <div className="mt-0.5 pl-[18px] text-[0.5625rem] font-mono text-stone-300">
                       #{tooltip.rank + 1} of {block.regions.length}
                     </div>
                   )}
@@ -395,7 +445,7 @@ export function MapBlock({ block }: MapBlockProps) {
             <div className="space-y-0.5">
               {topRegions.map((region, i) => {
                 const value = finiteValue(region.value)
-                const color = getDotColor(value, maxValue, block.colorScale)
+                const color = getDotColor(value, maxValue, block.colorScale, region.name)
                 const pct = ((value / maxValue) * 100).toFixed(0)
                 const label = region.label ?? region.name
                 const isHovered = hoveredRegion === label
@@ -467,6 +517,17 @@ export function MapBlock({ block }: MapBlockProps) {
   )
 }
 
+/* ── Region color legend entries ── */
+const REGION_LEGEND_ENTRIES: readonly { label: string; color: string }[] = [
+  { label: 'North America', color: '#C2553A' },
+  { label: 'Europe',        color: '#2563EB' },
+  { label: 'Asia Pacific',  color: '#16A34A' },
+  { label: 'Middle East',   color: '#D97706' },
+  { label: 'S. America',    color: '#7C3AED' },
+  { label: 'Africa',        color: '#0F766E' },
+  { label: 'Australia',     color: '#DC2626' },
+]
+
 /* ── Legend sub-component ── */
 function MapLegend({ colorScale }: { readonly colorScale?: string }) {
   if (colorScale === 'binary') {
@@ -506,28 +567,15 @@ function MapLegend({ colorScale }: { readonly colorScale?: string }) {
 
   return (
     <div className="rounded-lg border border-rule bg-surface-active/40 p-2.5 text-xs text-muted">
-      <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Stake concentration</div>
+      <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint mb-1.5">Region</div>
       <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-        <span className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#94A3B8' }} />
-          <span className="text-2xs">Low</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: BLUE_RAMP.low }} />
-          <span className="text-2xs">Moderate</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: BLUE_RAMP.high }} />
-          <span className="text-2xs">High</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: BLUE_RAMP.top }} />
-          <span className="text-2xs">Dominant</span>
-        </span>
+        {REGION_LEGEND_ENTRIES.map(({ label, color }) => (
+          <span key={label} className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+            <span className="text-2xs truncate">{label}</span>
+          </span>
+        ))}
       </div>
-      <p className="text-[0.5625rem] text-text-faint mt-1.5 leading-tight">
-        Node size and color reflect relative validator share. Paper metrics: Gini<sub>g</sub>, HHI<sub>g</sub>.
-      </p>
     </div>
   )
 }
