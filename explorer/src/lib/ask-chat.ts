@@ -59,6 +59,23 @@ export type AskToolSet = Record<string, GenericAskTool> & {
     }
     readonly output: unknown
   }
+  readonly query_results_table: {
+    readonly input: {
+      readonly dimensions?: readonly string[]
+      readonly metrics?: readonly string[]
+      readonly filters?: {
+        readonly evaluation?: string
+        readonly paradigm?: string
+        readonly result?: string
+      }
+      readonly slot?: 'initial' | 'final'
+      readonly orderBy?: string
+      readonly order?: 'asc' | 'desc'
+      readonly limit?: number
+      readonly title?: string
+    }
+    readonly output: unknown
+  }
   readonly render_blocks: {
     readonly input: {
       readonly summary?: string
@@ -164,6 +181,7 @@ const TOOL_ACTIVITY_LABELS: Record<string, string> = {
   suggest_underexplored_topics: 'Drafting follow-up ideas',
   build_simulation_config: 'Assembling simulation config',
   query_cached_results: 'Loading pre-computed results',
+  query_results_table: 'Running structured data query',
   render_blocks: 'Organizing the page',
 }
 

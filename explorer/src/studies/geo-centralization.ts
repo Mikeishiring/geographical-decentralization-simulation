@@ -470,8 +470,9 @@ const ASSISTANT: StudyPackage['assistant'] = {
     {
       id: 'structured-query',
       title: 'Structured data queries',
-      description: 'Planned: expose study-owned datasets through constrained SQL-style or semantic query tools for advanced readers.',
-      state: 'planned',
+      description: 'Query the published Results catalog with constrained ranking, table, and SQL-style asks without leaving the page.',
+      state: 'live',
+      prompts: ['Show me a table of published runs sorted by final Gini.'],
     },
   ],
   promptTips: [
@@ -486,6 +487,12 @@ const ASSISTANT: StudyPackage['assistant'] = {
       label: 'Ask for a specific comparison',
       description: 'Contrast two scenarios or paradigms explicitly to trigger the comparison path instead of a generic summary.',
       example: 'Compare baseline local vs external block building on fairness pressure.',
+    },
+    {
+      id: 'ask-for-a-table',
+      label: 'Ask for a table or ranking',
+      description: 'Use list, rank, sorted, or table language when you want a compact data view instead of a prose answer.',
+      example: 'Show me the top published runs by final Gini and include the paradigm.',
     },
     {
       id: 'ask-mechanism',

@@ -481,6 +481,81 @@ export function buildTools(): Anthropic.Messages.Tool[] {
       },
     },
     {
+      name: 'query_results_table',
+      description:
+        'Run a constrained structured query over the study-owned published Results catalog. ' +
+        'Use this for ranking, list, table, sorted, or SQL-style questions about published result rows. ' +
+        'Prefer it when the user wants a compact tabular or leaderboard-like view rather than a single narrative comparison.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          dimensions: {
+            type: 'array' as const,
+            description: 'Metadata columns to show for each published result row.',
+            items: {
+              type: 'string' as const,
+              enum: ['evaluation', 'paradigm', 'result', 'validators', 'migrationCost', 'gamma', 'activeRegions', 'dominantRegion', 'sourceRole', 'totalSlots'],
+            },
+            minItems: 1,
+            maxItems: 6,
+          },
+          metrics: {
+            type: 'array' as const,
+            description: 'Metric columns to show from the initial or final snapshot.',
+            items: {
+              type: 'string' as const,
+              enum: ['gini', 'hhi', 'liveness', 'proposal_times', 'mev', 'attestations', 'clusters', 'failed_block_proposals', 'total_distance'],
+            },
+            minItems: 1,
+            maxItems: 4,
+          },
+          filters: {
+            type: 'object' as const,
+            properties: {
+              evaluation: {
+                type: 'string' as const,
+                description: 'Optional evaluation family, paper-chart key, or alias to narrow the published rows.',
+              },
+              paradigm: {
+                type: 'string' as const,
+                description: 'Optional paradigm filter, typically SSP/External or MSP/Local.',
+              },
+              result: {
+                type: 'string' as const,
+                description: 'Optional result key, paper-chart key, or alias.',
+              },
+            },
+            required: [],
+            additionalProperties: false,
+          },
+          slot: {
+            type: 'string' as const,
+            enum: ['initial', 'final'],
+            description: 'Which snapshot to use for metric values.',
+          },
+          orderBy: {
+            type: 'string' as const,
+            description: 'Sort by one metric or one dimension key.',
+          },
+          order: {
+            type: 'string' as const,
+            enum: ['asc', 'desc'],
+            description: 'Sort direction for the structured query.',
+          },
+          limit: {
+            type: 'integer' as const,
+            description: 'Maximum number of rows to return (1-20).',
+          },
+          title: {
+            type: 'string' as const,
+            description: 'Optional reader-facing title for the returned table/chart.',
+          },
+        },
+        required: [],
+        additionalProperties: false,
+      },
+    },
+    {
       name: 'render_blocks',
       description:
         'Compose visual blocks to answer the user\'s question about the active study package. ' +
