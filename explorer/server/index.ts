@@ -51,7 +51,7 @@ import {
 } from '../src/types/simulation-view.ts'
 import { getActiveStudy } from '../src/studies/index.ts'
 import type { StudyDashboardSpec, TopicCard } from '../src/studies/types.ts'
-import type { AskArtifactData, AskStatusData } from '../src/lib/ask-artifact.ts'
+import type { AskArtifactData, AskPlanData, AskStatusData } from '../src/lib/ask-artifact.ts'
 import type { AskUIMessage } from '../src/lib/ask-chat.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -5208,11 +5208,213 @@ function buildAskStatus(
   }
 }
 
+function buildAskPlanModules(
+  route: AskPlanData['route'],
+  options: {
+    readonly hasTemplateMatch: boolean
+  },
+): AskPlanData['modules'] {
+  switch (route) {
+    case 'orientation':
+      return [
+        {
+          id: 'paper-guide',
+          label: 'Paper guide',
+          detail: 'Explain the study, its main contrast, and the first caveats before drilling into figures.',
+          state: 'selected',
+        },
+        {
+          id: 'results-replay',
+          label: 'Results replay',
+          detail: 'Available when the question narrows to one metric, scenario, or comparison.',
+          state: 'available',
+        },
+        {
+          id: 'structured-query',
+          label: 'Structured query',
+          detail: 'Available if the user wants a ranked or tabulated view over published Results rows.',
+          state: 'available',
+        },
+      ]
+    case 'structured-results':
+      return [
+        {
+          id: 'results-catalog',
+          label: 'Published Results catalog',
+          detail: 'Query ranked rows from the frozen paper dataset rather than improvising an answer from summaries.',
+          state: 'selected',
+        },
+        {
+          id: 'results-surface',
+          label: 'Results-style blocks',
+          detail: 'Turn the structured query into compact chart, table, and insight blocks underneath the prompt.',
+          state: 'selected',
+        },
+        {
+          id: 'paper-anchor',
+          label: 'Paper figure anchor',
+          detail: 'Attach a canonical study figure when the ranked rows map onto a known Results family.',
+          state: options.hasTemplateMatch ? 'selected' : 'available',
+        },
+      ]
+    case 'results':
+      return [
+        {
+          id: 'results-families',
+          label: 'Published Results families',
+          detail: 'Load the scenario families that answer the metric or comparison directly from the study package.',
+          state: 'selected',
+        },
+        {
+          id: 'canonical-figure',
+          label: 'Canonical figure scaffold',
+          detail: 'Reuse the study-owned chart or replay block when the question maps to a known Results family.',
+          state: options.hasTemplateMatch ? 'selected' : 'available',
+        },
+        {
+          id: 'mechanism-synthesis',
+          label: 'Mechanism synthesis',
+          detail: 'Summarize what the retrieved pattern implies and where the paper draws its caveats.',
+          state: 'selected',
+        },
+      ]
+    case 'hybrid':
+    default:
+      return [
+        {
+          id: 'reading-surface',
+          label: 'Reading surface',
+          detail: 'Start with the strongest grounded explanation path for the current question.',
+          state: 'selected',
+        },
+        {
+          id: 'results-replay',
+          label: 'Results replay',
+          detail: 'Pull in a published figure or metric family if the question sharpens into one comparison.',
+          state: options.hasTemplateMatch ? 'selected' : 'available',
+        },
+        {
+          id: 'follow-up-guidance',
+          label: 'Follow-up guidance',
+          detail: 'Offer narrower prompts that test the current capability surface more explicitly.',
+          state: 'selected',
+        },
+      ]
+  }
+}
+
+function buildAskPlanData(
+  query: string,
+  options?: {
+    readonly status?: AskPlanData['status']
+    readonly latestCachedResults?: unknown
+  },
+): AskPlanData {
+  const status = options?.status ?? 'planned'
+  const route: AskPlanData['route'] =
+    isOrientationExploreQuery(query) ? 'orientation' :
+    isStructuredResultsQuery(query) ? 'structured-results' :
+    isPrecomputedResultsExploreQuery(query) ? 'results' :
+    'hybrid'
+
+  const expectedTemplates =
+    route === 'results' || route === 'structured-results'
+      ? resolveExpectedStudyResultsTemplates(query)
+      : []
+  const loadedResponses = normalizePublishedResultsCollection(options?.latestCachedResults)
+  const loadedTemplates = loadedResponses.length > 0
+    ? resolveStudyResultsTemplatesForResponses(query, loadedResponses)
+    : []
+  const loadedTemplateIds = new Set(loadedTemplates.map(template => template.id))
+  const templates = [
+    ...expectedTemplates.map(template => ({
+      id: template.id,
+      title: template.title,
+      pattern: template.pattern,
+      questionAnswered: template.questionAnswered,
+      state: loadedTemplateIds.has(template.id) ? 'loaded' : 'target',
+    })),
+    ...loadedTemplates
+      .filter(template => !expectedTemplates.some(expected => expected.id === template.id))
+      .map(template => ({
+        id: template.id,
+        title: template.title,
+        pattern: template.pattern,
+        questionAnswered: template.questionAnswered,
+        state: 'loaded' as const,
+      })),
+  ]
+
+  const hasTemplateMatch = templates.length > 0
+  const modules = buildAskPlanModules(route, { hasTemplateMatch })
+
+  switch (route) {
+    case 'orientation':
+      return {
+        status,
+        title: 'Reading guide route',
+        route,
+        rationale: 'This looks like an overview or mechanism question, so the assistant should explain the study clearly before narrowing into one figure or metric.',
+        modules,
+        templates,
+        nextSteps: [
+          'Summarize the paper and its core contrast in plain language.',
+          'Anchor the explanation to one claim, caveat, or figure family.',
+          'Offer a concrete next question or next surface to open.',
+        ],
+      }
+    case 'structured-results':
+      return {
+        status,
+        title: 'Structured published Results query',
+        route,
+        rationale: 'This question is asking for a ranking, list, or table over the frozen Results catalog, so the assistant should query rows first and narrate second.',
+        modules,
+        templates,
+        nextSteps: [
+          hasTemplateMatch ? `Use the matching Results family${templates.length === 1 ? '' : 'ies'} as an anchor.` : 'Query the published Results catalog for the strongest matching rows.',
+          'Lay out a compact chart and table before adding interpretation.',
+          'Explain the ranking in plain language and suggest the next comparison.',
+        ],
+      }
+    case 'results':
+      return {
+        status,
+        title: 'Published Results replay',
+        route,
+        rationale: 'This question names metrics, scenarios, or comparisons that map onto the study-owned Results families, so the assistant should load those families before drafting.',
+        modules,
+        templates,
+        nextSteps: [
+          hasTemplateMatch ? `Load ${templates.map(template => template.title).join(', ')}.` : 'Load the strongest matching published Results family.',
+          'Use the canonical figure or replay block as the page backbone.',
+          'Summarize the retrieved pattern and the paper caveat that matters most.',
+        ],
+      }
+    case 'hybrid':
+    default:
+      return {
+        status,
+        title: 'Mixed reading route',
+        route,
+        rationale: 'This question is best answered with a compact mix of explanation and grounded retrieval, so the assistant will follow the most specific evidence path it can support.',
+        modules,
+        templates,
+        nextSteps: [
+          'Start with the strongest grounded explanation path.',
+          'Pull in a Results family only if the question sharpens into one comparison or metric.',
+          'Leave the user with a narrower next question that tests one capability clearly.',
+        ],
+      }
+  }
+}
+
 function buildExploreChatTools(
   query: string,
   options?: {
     onCachedResults?: (result: unknown) => void
     onArtifact?: (artifact: AskArtifactData) => void
+    onPlan?: (plan: AskPlanData) => void
     onStatus?: (status: AskStatusData) => void
   },
 ) {
@@ -5361,6 +5563,10 @@ function buildExploreChatTools(
         if (liveArtifact) {
           options?.onArtifact?.(liveArtifact)
         }
+        options?.onPlan?.(buildAskPlanData(query, {
+          status: 'active',
+          latestCachedResults,
+        }))
         options?.onStatus?.(buildAskStatus(
           'evidence',
           'done',
@@ -5395,6 +5601,10 @@ function buildExploreChatTools(
         ))
         const result = await executeExploreChatToolCall('query_results_table', input as Record<string, unknown>)
         streamReferencedArtifact(result, 'Structured results query ready')
+        options?.onPlan?.(buildAskPlanData(query, {
+          status: 'active',
+          latestCachedResults,
+        }))
         options?.onStatus?.(buildAskStatus(
           'evidence',
           'done',
@@ -5423,6 +5633,10 @@ function buildExploreChatTools(
           cached: false,
           canonicalBlocks: buildExploreArtifactScaffold(query, latestCachedResults),
         })
+        options?.onPlan?.(buildAskPlanData(query, {
+          status: 'ready',
+          latestCachedResults,
+        }))
         options?.onArtifact?.(buildExploreArtifactData('ready', 'Answer ready', response))
         options?.onStatus?.(buildAskStatus(
           'render',
@@ -5477,6 +5691,13 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
             data: artifact,
           })
         }
+        const writePlan = (plan: AskPlanData) => {
+          writer.write({
+            type: 'data-plan',
+            id: 'ask-plan',
+            data: plan,
+          })
+        }
         const writeStatus = (status: AskStatusData) => {
           writer.write({
             type: 'data-status',
@@ -5485,6 +5706,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
           })
         }
 
+        writePlan(buildAskPlanData(trimmedQuery, { status: 'planned' }))
         writeStatus(buildAskStatus(
           'plan',
           'done',
@@ -5497,6 +5719,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
             latestCachedResults = result
           },
           onArtifact: writeArtifact,
+          onPlan: writePlan,
           onStatus: writeStatus,
         })
 
@@ -5511,6 +5734,10 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
             const allToolCalls = steps.flatMap(step => step.toolCalls)
             const expectedTemplates = resolveExpectedStudyResultsTemplates(trimmedQuery)
             if (stepNumber === 0 && isStructuredResultsQuery(trimmedQuery)) {
+              writePlan(buildAskPlanData(trimmedQuery, {
+                status: 'active',
+                latestCachedResults,
+              }))
               writeStatus(buildAskStatus(
                 'plan',
                 'active',
@@ -5524,6 +5751,10 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
               }
             }
             if (stepNumber === 0 && isPrecomputedResultsExploreQuery(trimmedQuery) && expectedTemplates.length > 0) {
+              writePlan(buildAskPlanData(trimmedQuery, {
+                status: 'active',
+                latestCachedResults,
+              }))
               writeStatus(buildAskStatus(
                 'plan',
                 'active',
@@ -5537,6 +5768,10 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
               }
             }
             if (stepNumber >= 1 && allToolCalls.some(toolCall => toolCall.toolName === 'query_results_table')) {
+              writePlan(buildAskPlanData(trimmedQuery, {
+                status: 'active',
+                latestCachedResults,
+              }))
               writeStatus(buildAskStatus(
                 'compose',
                 'active',
@@ -5551,6 +5786,10 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
             }
             const hasPublishedResults = normalizePublishedResultsCollection(latestCachedResults).length > 0
             if (hasPublishedResults && isPrecomputedResultsExploreQuery(trimmedQuery) && stepNumber >= 1) {
+              writePlan(buildAskPlanData(trimmedQuery, {
+                status: 'active',
+                latestCachedResults,
+              }))
               const normalizedResponses = normalizePublishedResultsCollection(latestCachedResults)
               const loadedTemplates = resolveStudyResultsTemplatesForResponses(trimmedQuery, normalizedResponses)
               const missingTemplates = expectedTemplates.filter(template =>
@@ -5595,6 +5834,10 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
               return undefined
             }
 
+            writePlan(buildAskPlanData(trimmedQuery, {
+              status: 'active',
+              latestCachedResults,
+            }))
             writeStatus(buildAskStatus(
               'compose',
               'active',

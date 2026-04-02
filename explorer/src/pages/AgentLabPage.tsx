@@ -21,6 +21,7 @@ import { explore, getApiHealth, createExploration, publishExploration, type Expl
 import { ASK_DATA_PART_SCHEMAS, type AskArtifactData } from '../lib/ask-artifact'
 import {
   type AskUIMessage,
+  extractLatestAskPlan,
   extractAskStatusHistory,
   extractLatestAssistantText,
   extractLatestExploreArtifact,
@@ -39,6 +40,7 @@ import {
 import { AgentStepCard } from '../components/agent/AgentStepCard'
 import { AgentCostBar } from '../components/agent/AgentCostBar'
 import { AskCapabilityPanel } from '../components/explore/AskCapabilityPanel'
+import { AskPlanPanel } from '../components/explore/AskPlanPanel'
 import { AskStatusFeed } from '../components/explore/AskStatusFeed'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { AskLoadingStateCard, buildAskLoadingDescriptor } from '../components/explore/AskLoadingState'
@@ -194,11 +196,13 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
   const displayedArtifact = aiResponse
     ? buildReadyArtifact(aiResponse)
     : streamedArtifact
+  const askPlan = extractLatestAskPlan(askMessages)
   const askLeadText = extractLatestAssistantText(askMessages)
   const askToolActivities = extractLatestToolActivities(askMessages)
   const askStatusHistory = extractAskStatusHistory(askMessages)
   const askProgressSignal = [
     askMessages.length,
+    askPlan ? `${askPlan.route}:${askPlan.status}:${askPlan.templates.map(template => `${template.id}:${template.state}`).join('|')}` : '',
     askLeadText.trim(),
     askToolActivities.map(activity => `${activity.id}:${activity.state}`).join('|'),
     askStatusHistory.map(status => `${status.id}:${status.state}`).join('|'),
@@ -555,6 +559,13 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
               </div>
             )}
           </div>
+
+          {askPlan && (
+            <AskPlanPanel
+              plan={askPlan}
+              compact={askLoading && !displayedArtifact}
+            />
+          )}
 
           <AskCapabilityPanel
             capabilities={ASK_CAPABILITIES}
