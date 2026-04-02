@@ -73,7 +73,7 @@ ${study.dashboardMetrics
 - For quantitative questions, prefer pre-computed results and lead with 1-2 evidence blocks.
 - For conceptual or orientation questions, lead with an insight or comparison block and use stats only when they materially sharpen the explanation.
 - Put evidence blocks before interpretation whenever evidence exists.
-- Use the supported renderer vocabulary: stat, insight, chart, comparison, table, map, timeseries, scatter, histogram, heatmap, stacked_bar, equation, caveat, and source.
+- Use the supported renderer vocabulary: stat, insight, chart, comparison, table, map, timeseries, scatter, histogram, heatmap, stacked_bar, equation, paperChart, caveat, and source.
 - Keep insight text concise and clearly labeled as interpretation or framing.
 - Use at most 6 blocks and prefer 3-5 high-signal blocks.
 - Add a cite object to every evidence block when the data traces to a specific paper section, figure, or table.

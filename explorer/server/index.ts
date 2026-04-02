@@ -34,7 +34,7 @@ import {
   parseSimulationBlockBundle,
   type SimulationRenderableArtifact,
 } from '../src/lib/simulation-artifact-blocks.ts'
-import { parseBlocks, type Block } from '../src/types/blocks.ts'
+import { parseBlocks, type Block, type Cite } from '../src/types/blocks.ts'
 import {
   type SimulationArtifactBundle,
   type SimulationChartMetricKey,
@@ -801,7 +801,7 @@ function isPrecomputedResultsExploreQuery(query: string): boolean {
 
 function buildExploreResultsModeContext(query: string): string {
   if (!isPrecomputedResultsExploreQuery(query)) return ''
-  return '\n\n## Quantitative Mode\nThis question should lean on pre-computed results when possible. Prefer query_cached_results before relying on generic summaries. Use compact stat, comparison, chart, table, or map blocks that feel like the study\'s Results surface. When the cached data covers only part of the ask, answer that supported slice clearly and mark the rest as interpretation or open follow-up.'
+  return '\n\n## Quantitative Mode\nThis question should lean on pre-computed results when possible. Prefer query_cached_results before relying on generic summaries. Use compact stat, comparison, paperChart, chart, table, or map blocks that feel like the study\'s Results surface. When a study-owned paperChart matches the retrieved dataset family, reuse it instead of inventing a bespoke figure. When the cached data covers only part of the ask, answer that supported slice clearly and mark the rest as interpretation or open follow-up.'
 }
 
 function buildExploreChatSystemPrompt(query: string, sessionContext: string): string {
@@ -826,6 +826,7 @@ function stablePriority(type: Block['type']): number {
       return 0
     case 'comparison':
     case 'chart':
+    case 'paperChart':
     case 'timeseries':
     case 'map':
     case 'table':
@@ -946,6 +947,16 @@ function normalizeGeneratedBlock(block: Block): Block | null {
         title: limitText(block.title, 72),
         data,
         unit: limitText(block.unit, 12) || undefined,
+      }
+    }
+    case 'paperChart': {
+      const title = limitText(block.title, 72)
+      const dataKey = limitText(block.dataKey, 64)
+      if (!title || !dataKey || !ACTIVE_STUDY.paperCharts[dataKey]) return null
+      return {
+        ...block,
+        title,
+        dataKey,
       }
     }
     case 'table': {
@@ -1129,6 +1140,13 @@ function coerceGeneratedBlockShape(rawBlock: unknown): unknown {
         text: coerceGeneratedText(block.text ?? block.content),
         emphasis: block.emphasis,
       }
+    case 'paperChart':
+      return {
+        type: 'paperChart',
+        title: coerceGeneratedText(block.title),
+        dataKey: coerceGeneratedText(block.dataKey ?? block.data_key ?? block.key),
+        cite: block.cite,
+      }
     case 'caveat': {
       const title = coerceGeneratedText(block.title)?.trim()
       const text = coerceGeneratedText(block.text ?? block.content ?? block.detail)?.trim()
@@ -1269,17 +1287,35 @@ function buildGeneratedExploreResponse(
     model?: string
     cached?: boolean
     preserveLeadBlock?: boolean
+    canonicalBlocks?: readonly Block[]
   },
 ): ExploreResponse {
-  const normalizedBlocks = normalizeGeneratedBlocks(input.blocks, {
+  const seededBlocks = [
+    ...(options?.canonicalBlocks ?? []),
+    ...(input.blocks ?? []),
+  ]
+  const hasPaperChartSeed = seededBlocks.some(block =>
+    Boolean(block)
+    && typeof block === 'object'
+    && !Array.isArray(block)
+    && (block as { type?: unknown }).type === 'paperChart',
+  )
+  const normalizedBlocks = normalizeGeneratedBlocks([
+    ...(hasPaperChartSeed ? [] : buildQueryPaperChartFallbackBlocks(query)),
+    ...seededBlocks,
+  ], {
     preserveLeadBlock: options?.preserveLeadBlock ?? isOrientationExploreQuery(query),
   })
-  const normalizedSummary = normalizeGeneratedSummary(input.summary, query, normalizedBlocks)
+  const finalizedBlocks = ensurePaperChartBlock(
+    normalizedBlocks,
+    resolvePreferredPaperChartBlock(query, options?.canonicalBlocks),
+  )
+  const normalizedSummary = normalizeGeneratedSummary(input.summary, query, finalizedBlocks)
   const normalizedFollowUps = normalizeGeneratedFollowUps(query, input.follow_ups)
 
   const result: ExploreResponse = {
     summary: normalizedSummary,
-    blocks: normalizedBlocks,
+    blocks: finalizedBlocks,
     followUps: normalizedFollowUps,
     model: options?.model ?? anthropicModel,
     cached: options?.cached ?? false,
@@ -1919,6 +1955,68 @@ type ExploreCachedResultFilters = {
   readonly result?: string
 }
 
+type PublishedExploreMetricKey = Extract<
+  keyof PublishedReplayMetrics,
+  | 'gini'
+  | 'hhi'
+  | 'liveness'
+  | 'proposal_times'
+  | 'mev'
+  | 'attestations'
+  | 'clusters'
+  | 'failed_block_proposals'
+  | 'total_distance'
+>
+
+interface PublishedExploreDominantRegion {
+  readonly regionId: string
+  readonly city: string | null
+  readonly share: number
+  readonly count: number
+}
+
+interface PublishedExploreResultEntry {
+  readonly label: string
+  readonly evaluation: string
+  readonly paradigm: 'SSP' | 'MSP'
+  readonly result: string
+  readonly datasetPath: string
+  readonly sourceRole: string
+  readonly description: string | null
+  readonly validators: number | null
+  readonly migrationCost: number | null
+  readonly gamma: number | null
+  readonly totalSlots: number
+  readonly initialMetrics: Readonly<Record<string, number | null>>
+  readonly finalMetrics: Readonly<Record<string, number | null>>
+  readonly activeRegions: number
+  readonly dominantRegion: PublishedExploreDominantRegion | null
+  readonly topRegions: string
+  readonly metricDigest: readonly string[]
+}
+
+interface PublishedExploreCompanionEntry {
+  readonly label: string
+  readonly evaluation: string
+  readonly paradigm: 'SSP' | 'MSP'
+  readonly result: string
+  readonly datasetPath: string
+  readonly finalMetrics: Readonly<Record<string, number | null>>
+  readonly activeRegions: number
+  readonly dominantRegion: PublishedExploreDominantRegion | null
+}
+
+interface PublishedResultsToolResponse {
+  readonly source: 'published-replay'
+  readonly query: {
+    readonly evaluation: string | null
+    readonly paradigm: 'SSP' | 'MSP' | null
+    readonly result: string | null
+  }
+  readonly results: readonly PublishedExploreResultEntry[]
+  readonly pairedComparison: PublishedExploreCompanionEntry | null
+}
+
 function normalizePublishedCatalogParadigm(
   rawParadigm: string | undefined,
 ): PublishedResearchDatasetEntry['paradigm'] | undefined {
@@ -1973,6 +2071,44 @@ function inferPublishedResult(filters: ExploreCachedResultFilters): string | und
     return filters.sourcePlacement
   }
   return 'cost_0.002'
+}
+
+function sanitizeExploreCachedResultFilters(
+  filters: ExploreCachedResultFilters,
+): ExploreCachedResultFilters {
+  const evaluation = filters.evaluation?.trim() || undefined
+  const normalizedResult = filters.result?.trim().toLowerCase()
+  const shouldDropResultHint = Boolean(
+    normalizedResult
+    && evaluation !== 'Test'
+    && [
+      'baseline',
+      'data',
+      'gini',
+      'gini_g',
+      'hhi',
+      'hhi_g',
+      'cv',
+      'cv_g',
+      'lc',
+      'lc_g',
+      'liveness',
+      'mev',
+      'proposal',
+      'proposal_times',
+      'attestations',
+      'clusters',
+      'failed_block_proposals',
+    ].includes(normalizedResult),
+  )
+
+  return {
+    paradigm: filters.paradigm?.trim() || undefined,
+    distribution: filters.distribution?.trim() || undefined,
+    sourcePlacement: filters.sourcePlacement?.trim() || undefined,
+    evaluation,
+    result: shouldDropResultHint ? undefined : (filters.result?.trim() || undefined),
+  }
 }
 
 async function loadExplorePublishedResults(filters: ExploreCachedResultFilters): Promise<unknown> {
@@ -2082,7 +2218,9 @@ async function loadExplorePublishedResults(filters: ExploreCachedResultFilters):
         const finalSnapshot = buildPublishedSlotSummary(payload, Math.max(0, totalPublishedSlots(payload) - 1))
         pairedComparison = {
           label: `${companionEntry.evaluation} / ${companionEntry.paradigm} / ${companionEntry.result}`,
+          evaluation: companionEntry.evaluation,
           paradigm: companionEntry.paradigm === 'External' ? 'SSP' : 'MSP',
+          result: companionEntry.result,
           datasetPath: toPublishedResultsRelativePath(datasetPath),
           finalMetrics: finalSnapshot.metrics,
           activeRegions: finalSnapshot.activeRegions,
@@ -2109,6 +2247,533 @@ async function loadExplorePublishedResults(filters: ExploreCachedResultFilters):
     results: compactResults,
     pairedComparison,
   }
+}
+
+type PublishedExploreComparableEntry = PublishedExploreResultEntry | PublishedExploreCompanionEntry
+
+function isPublishedExploreResultEntry(value: unknown): value is PublishedExploreResultEntry {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const candidate = value as Record<string, unknown>
+  return typeof candidate.evaluation === 'string'
+    && typeof candidate.result === 'string'
+    && typeof candidate.datasetPath === 'string'
+    && (candidate.paradigm === 'SSP' || candidate.paradigm === 'MSP')
+}
+
+function isPublishedExploreCompanionEntry(value: unknown): value is PublishedExploreCompanionEntry {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const candidate = value as Record<string, unknown>
+  return typeof candidate.evaluation === 'string'
+    && typeof candidate.result === 'string'
+    && typeof candidate.datasetPath === 'string'
+    && (candidate.paradigm === 'SSP' || candidate.paradigm === 'MSP')
+}
+
+function isPublishedResultsToolResponse(value: unknown): value is PublishedResultsToolResponse {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const candidate = value as Record<string, unknown>
+  if (candidate.source !== 'published-replay' || !Array.isArray(candidate.results)) return false
+  if (!candidate.results.every(isPublishedExploreResultEntry)) return false
+  return candidate.pairedComparison == null || isPublishedExploreCompanionEntry(candidate.pairedComparison)
+}
+
+function publishedParadigmDisplayLabel(paradigm: 'SSP' | 'MSP' | 'External' | 'Local'): 'External' | 'Local' {
+  return paradigm === 'SSP' || paradigm === 'External' ? 'External' : 'Local'
+}
+
+function publishedParadigmSortValue(paradigm: 'SSP' | 'MSP'): number {
+  return paradigm === 'SSP' ? 0 : 1
+}
+
+function formatPublishedEvaluationLabel(evaluation: string): string {
+  return evaluation
+    .replace(/-Effect$/i, '')
+    .replace(/EIP7782/g, 'EIP-7782')
+    .replace(/-/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function formatPublishedResultLabel(result: string): string {
+  return result
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function buildPublishedSelectionKey(entry: {
+  readonly evaluation: string
+  readonly paradigm: 'SSP' | 'MSP' | 'External' | 'Local'
+  readonly result: string
+}): string {
+  return `${entry.evaluation}::${publishedParadigmDisplayLabel(entry.paradigm)}::${entry.result}`
+}
+
+function selectPublishedMetricKey(query: string): PublishedExploreMetricKey | null {
+  const matchers: ReadonlyArray<{
+    readonly key: PublishedExploreMetricKey
+    readonly pattern: RegExp
+  }> = [
+    { key: 'proposal_times', pattern: /\b(proposal|latency|response time|block time)\b/i },
+    { key: 'failed_block_proposals', pattern: /\bfailed block|missed block|failed proposal\b/i },
+    { key: 'attestations', pattern: /\battestation\b/i },
+    { key: 'liveness', pattern: /\bliveness|uptime|availability\b/i },
+    { key: 'mev', pattern: /\bmev\b/i },
+    { key: 'hhi', pattern: /\bhhi|herfindahl\b/i },
+    { key: 'gini', pattern: /\bgini|inequality|centrali[sz]ation|concentration\b/i },
+    { key: 'clusters', pattern: /\bcluster\b/i },
+    { key: 'total_distance', pattern: /\bdistance|dispersion\b/i },
+  ]
+
+  const match = matchers.find(candidate => candidate.pattern.test(query))
+  return match?.key ?? null
+}
+
+function publishedMetricTitle(key: PublishedExploreMetricKey): string {
+  switch (key) {
+    case 'gini':
+      return 'Gini'
+    case 'hhi':
+      return 'HHI'
+    case 'liveness':
+      return 'Liveness'
+    case 'proposal_times':
+      return 'Proposal latency'
+    case 'mev':
+      return 'Average MEV'
+    case 'attestations':
+      return 'Attestations'
+    case 'clusters':
+      return 'Clusters'
+    case 'failed_block_proposals':
+      return 'Failed proposals'
+    case 'total_distance':
+      return 'Total distance'
+    default:
+      return publishedMetricLabel(key)
+  }
+}
+
+function publishedMetricSemantics(
+  key: PublishedExploreMetricKey,
+): 'lower-is-better' | 'higher-is-better' | null {
+  switch (key) {
+    case 'gini':
+    case 'hhi':
+    case 'proposal_times':
+    case 'failed_block_proposals':
+    case 'total_distance':
+      return 'lower-is-better'
+    case 'liveness':
+    case 'attestations':
+      return 'higher-is-better'
+    default:
+      return null
+  }
+}
+
+function inferPublishedExperiment(
+  evaluation: string | undefined,
+): Cite['experiment'] | undefined {
+  if (!evaluation) return undefined
+  if (evaluation === 'Baseline') return 'baseline'
+  if (evaluation.startsWith('SE1-')) return 'SE1'
+  if (evaluation.startsWith('SE2-')) return 'SE2'
+  if (evaluation.startsWith('SE3-')) return 'SE3'
+  if (evaluation.startsWith('SE4-Attestation')) return 'SE4a'
+  if (evaluation.startsWith('SE4-EIP7782')) return 'SE4b'
+  return undefined
+}
+
+function findStudyPaperChartBlock(
+  dataKey: string,
+): { title: string; cite?: Cite } | null {
+  for (const section of ACTIVE_STUDY.sections) {
+    const matchingBlock = section.blocks.find(
+      (block): block is Extract<Block, { type: 'paperChart' }> =>
+        block.type === 'paperChart' && block.dataKey === dataKey,
+    )
+    if (matchingBlock) {
+      return {
+        title: matchingBlock.title,
+        cite: matchingBlock.cite,
+      }
+    }
+  }
+  return null
+}
+
+function resolvePublishedCompareEntries(
+  response: PublishedResultsToolResponse,
+): PublishedExploreComparableEntry[] {
+  const combined = [
+    ...response.results,
+    ...(response.pairedComparison ? [response.pairedComparison] : []),
+  ]
+  if (combined.length === 0) return []
+
+  for (const entry of combined) {
+    const exactPair = combined.find(candidate =>
+      candidate.datasetPath !== entry.datasetPath
+      && candidate.evaluation === entry.evaluation
+      && candidate.result === entry.result
+      && candidate.paradigm !== entry.paradigm,
+    )
+    if (exactPair) {
+      return [entry, exactPair].toSorted(
+        (left, right) => publishedParadigmSortValue(left.paradigm) - publishedParadigmSortValue(right.paradigm),
+      )
+    }
+  }
+
+  const [first] = combined
+  const fallbackPair = combined.find(candidate =>
+    candidate.datasetPath !== first.datasetPath
+    && candidate.paradigm !== first.paradigm,
+  )
+
+  return fallbackPair
+    ? [first, fallbackPair].toSorted(
+        (left, right) => publishedParadigmSortValue(left.paradigm) - publishedParadigmSortValue(right.paradigm),
+      )
+    : [first]
+}
+
+function resolveCanonicalPaperChartKey(
+  response: PublishedResultsToolResponse,
+): string | null {
+  const selections = new Set(
+    [
+      ...response.results,
+      ...(response.pairedComparison ? [response.pairedComparison] : []),
+    ].map(entry => buildPublishedSelectionKey(entry)),
+  )
+  if (selections.size === 0) return null
+
+  let bestMatch: { key: string; score: number } | null = null
+
+  for (const [dataKey, chart] of Object.entries(ACTIVE_STUDY.paperCharts)) {
+    const links = chart.publishedScenarioLinks ?? []
+    if (links.length === 0) continue
+
+    const matchedLinks = links.filter(link => selections.has(buildPublishedSelectionKey(link))).length
+    if (matchedLinks === 0) continue
+
+    const score = matchedLinks * 12 - Math.max(0, links.length - matchedLinks)
+    if (!bestMatch || score > bestMatch.score) {
+      bestMatch = { key: dataKey, score }
+    }
+  }
+
+  return bestMatch?.key ?? null
+}
+
+function buildPublishedScenarioTitle(entries: readonly PublishedExploreComparableEntry[]): string {
+  const evaluation = entries[0]?.evaluation
+  if (!evaluation) return 'Published Results'
+  const evaluationLabel = formatPublishedEvaluationLabel(evaluation)
+  const result = entries[0]?.result
+  if (!result || (evaluation === 'Baseline' && result === 'cost_0.002')) {
+    return evaluationLabel
+  }
+  return `${evaluationLabel} (${formatPublishedResultLabel(result)})`
+}
+
+function buildPublishedExploreCite(
+  entries: readonly PublishedExploreComparableEntry[],
+  chartKey: string | null,
+): Cite | undefined {
+  if (chartKey) {
+    const chartBlock = findStudyPaperChartBlock(chartKey)
+    if (chartBlock?.cite) return chartBlock.cite
+  }
+
+  const experiment = inferPublishedExperiment(entries[0]?.evaluation)
+  return experiment ? { experiment } : undefined
+}
+
+function buildPublishedMetricStatBlock(
+  entry: PublishedExploreComparableEntry,
+  counterpart: PublishedExploreComparableEntry | null,
+  metricKey: PublishedExploreMetricKey | null,
+  cite: Cite | undefined,
+): Block | null {
+  if (metricKey) {
+    const metricValue = entry.finalMetrics[metricKey] ?? null
+    if (metricValue != null) {
+      const counterpartValue = counterpart?.finalMetrics[metricKey] ?? null
+      const semantics = publishedMetricSemantics(metricKey)
+      const delta = counterpartValue == null
+        ? undefined
+        : `vs ${publishedParadigmDisplayLabel(counterpart.paradigm)} ${metricValue >= counterpartValue ? '+' : '−'}${formatPublishedMetricValue(metricKey, Math.abs(metricValue - counterpartValue))}`
+      const sentiment =
+        counterpartValue == null || semantics == null
+          ? undefined
+          : (
+              (semantics === 'lower-is-better' && metricValue < counterpartValue)
+              || (semantics === 'higher-is-better' && metricValue > counterpartValue)
+            )
+              ? 'positive'
+              : metricValue === counterpartValue
+                ? 'neutral'
+                : 'negative'
+
+      return {
+        type: 'stat',
+        value: formatPublishedMetricValue(metricKey, metricValue),
+        label: `${publishedParadigmDisplayLabel(entry.paradigm)} ${publishedMetricTitle(metricKey)}`,
+        sublabel: `${buildPublishedScenarioTitle([entry])} at slot ${entry.totalSlots.toLocaleString()}`,
+        delta,
+        sentiment,
+        cite,
+      }
+    }
+  }
+
+  if (entry.dominantRegion) {
+    return {
+      type: 'stat',
+      value: `${formatMetricNumber(entry.dominantRegion.share, 1)}%`,
+      label: `${publishedParadigmDisplayLabel(entry.paradigm)} top-region share`,
+      sublabel: `${entry.dominantRegion.city ?? entry.dominantRegion.regionId} at slot ${entry.totalSlots.toLocaleString()}`,
+      cite,
+    }
+  }
+
+  return {
+    type: 'stat',
+    value: entry.activeRegions.toLocaleString(),
+    label: `${publishedParadigmDisplayLabel(entry.paradigm)} active regions`,
+    sublabel: `${buildPublishedScenarioTitle([entry])} at slot ${entry.totalSlots.toLocaleString()}`,
+    cite,
+  }
+}
+
+function buildPublishedComparisonBlock(
+  left: PublishedExploreComparableEntry,
+  right: PublishedExploreComparableEntry,
+  metricKey: PublishedExploreMetricKey | null,
+  cite: Cite | undefined,
+): Block {
+  const leftItems: Array<{ key: string; value: string }> = []
+  const rightItems: Array<{ key: string; value: string }> = []
+
+  if (metricKey) {
+    leftItems.push({
+      key: publishedMetricTitle(metricKey),
+      value: formatPublishedMetricValue(metricKey, left.finalMetrics[metricKey] ?? null),
+    })
+    rightItems.push({
+      key: publishedMetricTitle(metricKey),
+      value: formatPublishedMetricValue(metricKey, right.finalMetrics[metricKey] ?? null),
+    })
+  }
+
+  leftItems.push(
+    { key: 'Active regions', value: left.activeRegions.toLocaleString() },
+    {
+      key: 'Top region',
+      value: left.dominantRegion
+        ? `${left.dominantRegion.city ?? left.dominantRegion.regionId} (${formatMetricNumber(left.dominantRegion.share, 1)}%)`
+        : 'N/A',
+    },
+    { key: 'Dataset', value: formatPublishedResultLabel(left.result) },
+  )
+
+  rightItems.push(
+    { key: 'Active regions', value: right.activeRegions.toLocaleString() },
+    {
+      key: 'Top region',
+      value: right.dominantRegion
+        ? `${right.dominantRegion.city ?? right.dominantRegion.regionId} (${formatMetricNumber(right.dominantRegion.share, 1)}%)`
+        : 'N/A',
+    },
+    { key: 'Dataset', value: formatPublishedResultLabel(right.result) },
+  )
+
+  const leftMetricValue = metricKey ? left.finalMetrics[metricKey] ?? null : null
+  const rightMetricValue = metricKey ? right.finalMetrics[metricKey] ?? null : null
+  const semantics = metricKey ? publishedMetricSemantics(metricKey) : null
+  const verdict = metricKey && leftMetricValue != null && rightMetricValue != null
+    ? (() => {
+        if (leftMetricValue === rightMetricValue) {
+          return `${publishedParadigmDisplayLabel(left.paradigm)} and ${publishedParadigmDisplayLabel(right.paradigm)} finish even on ${publishedMetricTitle(metricKey).toLowerCase()}.`
+        }
+        const leftWins =
+          semantics == null
+            ? leftMetricValue > rightMetricValue
+            : semantics === 'lower-is-better'
+              ? leftMetricValue < rightMetricValue
+              : leftMetricValue > rightMetricValue
+        const winningEntry = leftWins ? left : right
+        const winningValue = leftWins ? leftMetricValue : rightMetricValue
+        const losingValue = leftWins ? rightMetricValue : leftMetricValue
+        const comparator = semantics === 'lower-is-better' ? 'lower' : semantics === 'higher-is-better' ? 'higher' : 'different'
+        return `${publishedParadigmDisplayLabel(winningEntry.paradigm)} finishes with ${comparator} ${publishedMetricTitle(metricKey).toLowerCase()} (${formatPublishedMetricValue(metricKey, winningValue)} vs ${formatPublishedMetricValue(metricKey, losingValue)}).`
+      })()
+    : `${publishedParadigmDisplayLabel(left.paradigm)} and ${publishedParadigmDisplayLabel(right.paradigm)} end in the same published scenario family with different geographic footprints.`
+
+  return {
+    type: 'comparison',
+    title: `${buildPublishedScenarioTitle([left, right])}: ${publishedParadigmDisplayLabel(left.paradigm)} vs ${publishedParadigmDisplayLabel(right.paradigm)}`,
+    left: {
+      label: publishedParadigmDisplayLabel(left.paradigm),
+      items: leftItems,
+    },
+    right: {
+      label: publishedParadigmDisplayLabel(right.paradigm),
+      items: rightItems,
+    },
+    verdict,
+    cite,
+  }
+}
+
+function buildCanonicalExploreBlocks(
+  query: string,
+  cachedResults: unknown,
+): Block[] {
+  if (!isPublishedResultsToolResponse(cachedResults)) return []
+
+  const compareEntries = resolvePublishedCompareEntries(cachedResults)
+  if (compareEntries.length === 0) return []
+
+  const metricKey = selectPublishedMetricKey(query)
+  const chartKey = resolveCanonicalPaperChartKey(cachedResults)
+  const cite = buildPublishedExploreCite(compareEntries, chartKey)
+  const blocks: Block[] = []
+
+  const heroStats = compareEntries
+    .slice(0, 2)
+    .map((entry, index, all) =>
+      buildPublishedMetricStatBlock(entry, all.length > 1 ? all[1 - index] ?? null : null, metricKey, cite),
+    )
+    .filter((block): block is Block => block !== null)
+
+  blocks.push(...heroStats)
+
+  if (compareEntries.length >= 2) {
+    blocks.push(buildPublishedComparisonBlock(compareEntries[0]!, compareEntries[1]!, metricKey, cite))
+  }
+
+  if (chartKey) {
+    const chartBlock = findStudyPaperChartBlock(chartKey)
+    blocks.push({
+      type: 'paperChart',
+      title: chartBlock?.title ?? `${buildPublishedScenarioTitle(compareEntries)}: published figure`,
+      dataKey: chartKey,
+      cite: chartBlock?.cite ?? cite,
+    })
+  }
+
+  return blocks
+}
+
+function resolvePaperChartKeyFromQuery(query: string): string | null {
+  const queryTokens = tokenize(query)
+  if (queryTokens.length === 0) return null
+
+  let bestMatch: { key: string; score: number } | null = null
+
+  for (const [dataKey, chart] of Object.entries(ACTIVE_STUDY.paperCharts)) {
+    const score = overlapScore(
+      queryTokens,
+      tokenize([
+        dataKey,
+        chart.description,
+        chart.takeaway,
+        ...chart.metadata,
+        ...(chart.publishedScenarioLinks ?? []).map(link =>
+          `${link.label} ${link.evaluation} ${link.paradigm} ${link.result}`,
+        ),
+      ].join(' ')),
+    )
+
+    if (!bestMatch || score > bestMatch.score) {
+      bestMatch = { key: dataKey, score }
+    }
+  }
+
+  return bestMatch?.key ?? null
+}
+
+function buildQueryPaperChartFallbackBlocks(query: string): Block[] {
+  if (!isPrecomputedResultsExploreQuery(query)) return []
+  const chartKey = resolvePaperChartKeyFromQuery(query)
+  if (!chartKey) return []
+
+  const chartBlock = findStudyPaperChartBlock(chartKey)
+  return [{
+    type: 'paperChart',
+    title: chartBlock?.title ?? `${formatPublishedEvaluationLabel(chartKey)} results`,
+    dataKey: chartKey,
+    cite: chartBlock?.cite,
+  }]
+}
+
+function buildExploreArtifactScaffold(
+  query: string,
+  cachedResults: unknown,
+): Block[] {
+  const canonicalBlocks = buildCanonicalExploreBlocks(query, cachedResults)
+  if (canonicalBlocks.some(block => block.type === 'paperChart')) {
+    return canonicalBlocks
+  }
+
+  const fallbackChartBlocks = buildQueryPaperChartFallbackBlocks(query)
+  if (fallbackChartBlocks.length === 0) {
+    return canonicalBlocks
+  }
+
+  return [...canonicalBlocks, ...fallbackChartBlocks]
+}
+
+function resolvePreferredPaperChartBlock(
+  query: string,
+  canonicalBlocks: readonly Block[] | undefined,
+): Extract<Block, { type: 'paperChart' }> | null {
+  const canonicalPaperChart = canonicalBlocks?.find(
+    (block): block is Extract<Block, { type: 'paperChart' }> => block.type === 'paperChart',
+  )
+  if (canonicalPaperChart) return canonicalPaperChart
+
+  const [fallbackBlock] = buildQueryPaperChartFallbackBlocks(query)
+  return fallbackBlock?.type === 'paperChart' ? fallbackBlock : null
+}
+
+function ensurePaperChartBlock(
+  blocks: readonly Block[],
+  preferredPaperChart: Extract<Block, { type: 'paperChart' }> | null,
+): Block[] {
+  if (!preferredPaperChart || blocks.some(block => block.type === 'paperChart')) {
+    return [...blocks]
+  }
+
+  const nextBlocks = [...blocks]
+  if (nextBlocks.length >= MAX_GENERATED_BLOCKS) {
+    const removableIndex = [...nextBlocks.keys()]
+      .reverse()
+      .find(index => nextBlocks[index]!.type !== 'source' && nextBlocks[index]!.type !== 'caveat')
+    if (removableIndex != null && removableIndex >= 0) {
+      nextBlocks.splice(removableIndex, 1)
+    } else {
+      nextBlocks.pop()
+    }
+  }
+
+  const insertionIndex = nextBlocks.findIndex(block =>
+    block.type === 'insight'
+    || block.type === 'caveat'
+    || block.type === 'source',
+  )
+
+  if (insertionIndex >= 0) {
+    nextBlocks.splice(insertionIndex, 0, preferredPaperChart)
+  } else {
+    nextBlocks.push(preferredPaperChart)
+  }
+
+  return nextBlocks
 }
 
 function normalizePublishedPaperLens(
@@ -3148,13 +3813,13 @@ async function executeExploreChatToolCall(
     if (!ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH || !existsSync(ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH)) {
       return executeToolCall(name, input)
     }
-    return await loadExplorePublishedResults({
+    return await loadExplorePublishedResults(sanitizeExploreCachedResultFilters({
       paradigm: typeof input.paradigm === 'string' ? input.paradigm : undefined,
       distribution: typeof input.distribution === 'string' ? input.distribution : undefined,
       sourcePlacement: typeof input.sourcePlacement === 'string' ? input.sourcePlacement : undefined,
       evaluation: typeof input.evaluation === 'string' ? input.evaluation : undefined,
       result: typeof input.result === 'string' ? input.result : undefined,
-    })
+    }))
   }
 
   return executeToolCall(name, input)
@@ -3196,6 +3861,8 @@ function extractTextFromUiMessage(message: UIMessage | undefined): string {
 }
 
 function buildExploreChatTools(query: string) {
+  let latestCachedResults: unknown = null
+
   return {
     search_topic_cards: createTool({
       description: 'Search the curated findings library for relevant paper topics.',
@@ -3253,7 +3920,11 @@ function buildExploreChatTools(query: string) {
         evaluation: z.string().optional(),
         result: z.string().optional(),
       }),
-      execute: async (input) => executeExploreChatToolCall('query_cached_results', input as Record<string, unknown>),
+      execute: async (input) => {
+        const result = await executeExploreChatToolCall('query_cached_results', input as Record<string, unknown>)
+        latestCachedResults = result
+        return result
+      },
     }),
     render_blocks: createTool({
       description: 'Compose the final page artifact using the supported block formats and pre-computed data where relevant.',
@@ -3265,6 +3936,7 @@ function buildExploreChatTools(query: string) {
       }, {
         model: anthropicModel,
         cached: false,
+        canonicalBlocks: buildExploreArtifactScaffold(query, latestCachedResults),
       }),
     }),
   }
@@ -3385,6 +4057,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
     ]
     const MAX_TOOL_ROUNDS = 3
     let finalResponse: Anthropic.Messages.Message | null = null
+    let latestCachedResults: unknown = null
 
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
       const response = await client.messages.create({
@@ -3429,10 +4102,16 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
       messages.push({ role: 'assistant', content: response.content })
 
       // Add tool results
-      const toolResults: Anthropic.Messages.ToolResultBlockParam[] = toolCalls.map(call => ({
-        type: 'tool_result' as const,
-        tool_use_id: call.id,
-        content: JSON.stringify(executeToolCall(call.name, call.input as Record<string, unknown>)),
+      const toolResults: Anthropic.Messages.ToolResultBlockParam[] = await Promise.all(toolCalls.map(async call => {
+        const result = await executeExploreChatToolCall(call.name, call.input as Record<string, unknown>)
+        if (call.name === 'query_cached_results') {
+          latestCachedResults = result
+        }
+        return {
+          type: 'tool_result' as const,
+          tool_use_id: call.id,
+          content: JSON.stringify(result),
+        }
       }))
       messages.push({ role: 'user', content: toolResults })
     }
@@ -3461,6 +4140,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
       cached: finalResponse.usage?.cache_read_input_tokens
         ? finalResponse.usage.cache_read_input_tokens > 0
         : false,
+      canonicalBlocks: buildExploreArtifactScaffold(trimmedQuery, latestCachedResults),
     })
     res.json(result)
   } catch (error) {
