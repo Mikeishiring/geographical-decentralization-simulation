@@ -40,7 +40,7 @@ RUN if [ "$TARGETOS" = "linux" ]; then \
         fi; \
         BINDING_VERSION=$(node -p "require('$PACKAGE_JSON_PATH').optionalDependencies['$BINDING_NAME'] || ''"); \
         if [ -n "$BINDING_VERSION" ]; then \
-          (cd /app/explorer && npm install --no-save \"$BINDING_NAME@$BINDING_VERSION\"); \
+          (cd /app/explorer && npm install --no-save "${BINDING_NAME}@${BINDING_VERSION}"); \
         fi; \
       }; \
       install_optional_binding "$ROLLDOWN_BINDING" "/app/explorer/node_modules/rolldown/package.json"; \
