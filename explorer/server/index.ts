@@ -16,7 +16,14 @@ import { runInNewContext } from 'node:vm'
 import { fileURLToPath } from 'node:url'
 import Anthropic from '@anthropic-ai/sdk'
 import { createAnthropic } from '@ai-sdk/anthropic'
-import { hasToolCall, streamText, tool as createTool, type UIMessage } from 'ai'
+import {
+  createUIMessageStream,
+  pipeUIMessageStreamToResponse,
+  hasToolCall,
+  streamText,
+  tool as createTool,
+  type UIMessage,
+} from 'ai'
 import { z } from 'zod/v4'
 import { SIMULATION_COPILOT_CONTEXT, PUBLISHED_REPLAY_COPILOT_CONTEXT } from './study-context.ts'
 import { buildStudyContext } from './study-context-builder.ts'
@@ -44,6 +51,7 @@ import {
 } from '../src/types/simulation-view.ts'
 import { getActiveStudy } from '../src/studies/index.ts'
 import type { TopicCard } from '../src/studies/types.ts'
+import type { AskArtifactData, AskUIMessage } from '../src/lib/ask-chat.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXPLORER_ROOT = path.resolve(__dirname, '..')
@@ -243,7 +251,7 @@ interface ExploreProvenance {
 
 interface ExploreResponse {
   summary: string
-  blocks: unknown[]
+  blocks: Block[]
   followUps: string[]
   model: string
   cached: boolean
@@ -1341,6 +1349,68 @@ function buildGeneratedExploreResponse(
 
   result.provenance.explorationId = savedExploration.id
   return result
+}
+
+function buildLiveArtifactSummary(
+  query: string,
+  canonicalBlocks: readonly Block[],
+): string {
+  if (canonicalBlocks.some(block => block.type === 'paperChart' || block.type === 'chart')) {
+    return isPrecomputedResultsExploreQuery(query)
+      ? 'Pre-computed results loaded. Organizing the page around the retrieved scenarios and figures.'
+      : 'Grounded evidence loaded. Organizing the page.'
+  }
+
+  if (canonicalBlocks.some(block => block.type === 'comparison' || block.type === 'table')) {
+    return 'Grounded comparison evidence loaded. Organizing the answer around the retrieved material.'
+  }
+
+  return 'Grounded evidence loaded. Organizing the page.'
+}
+
+function buildExploreArtifactData(
+  status: AskArtifactData['status'],
+  stage: string,
+  response: ExploreResponse,
+): AskArtifactData {
+  return {
+    status,
+    stage,
+    response: {
+      summary: response.summary,
+      blocks: response.blocks,
+      followUps: response.followUps,
+      model: response.model,
+      cached: response.cached,
+      provenance: response.provenance,
+    },
+  }
+}
+
+function buildLiveExploreArtifact(
+  query: string,
+  canonicalBlocks: readonly Block[],
+  stage: string,
+): AskArtifactData | null {
+  if (canonicalBlocks.length === 0) return null
+
+  return buildExploreArtifactData(
+    'streaming',
+    stage,
+    {
+      summary: buildLiveArtifactSummary(query, canonicalBlocks),
+      blocks: [...canonicalBlocks],
+      followUps: [],
+      model: anthropicModel,
+      cached: false,
+      provenance: {
+        source: 'generated',
+        label: 'Live artifact',
+        detail: 'Streaming a provisional page scaffold from retrieved evidence.',
+        canonical: false,
+      },
+    },
+  )
 }
 
 function normalizeSimulationPrompts(
@@ -4336,6 +4406,7 @@ function buildExploreChatTools(
   query: string,
   options?: {
     onCachedResults?: (result: unknown) => void
+    onArtifact?: (artifact: AskArtifactData) => void
   },
 ) {
   let latestCachedResults: unknown = null
@@ -4355,6 +4426,39 @@ function buildExploreChatTools(
     }
     options?.onCachedResults?.(latestCachedResults)
   }
+  const streamReferencedArtifact = (result: unknown, stage: string) => {
+    if (!options?.onArtifact || !result || typeof result !== 'object' || Array.isArray(result)) return
+    const candidate = result as {
+      summary?: unknown
+      description?: unknown
+      blocks?: unknown
+    }
+    const blocks = parseBlocks(Array.isArray(candidate.blocks) ? candidate.blocks : [])
+    if (blocks.length === 0) return
+
+    options.onArtifact(buildExploreArtifactData(
+      'streaming',
+      stage,
+      {
+        summary:
+          typeof candidate.summary === 'string' && candidate.summary.trim().length > 0
+            ? candidate.summary.trim()
+            : typeof candidate.description === 'string' && candidate.description.trim().length > 0
+              ? candidate.description.trim()
+              : 'Grounded evidence loaded. Organizing the page.',
+        blocks,
+        followUps: [],
+        model: anthropicModel,
+        cached: false,
+        provenance: {
+          source: 'generated',
+          label: 'Live artifact',
+          detail: 'Streaming a provisional page scaffold from retrieved study evidence.',
+          canonical: false,
+        },
+      },
+    ))
+  }
 
   return {
     search_topic_cards: createTool({
@@ -4370,7 +4474,11 @@ function buildExploreChatTools(
       inputSchema: z.object({
         id: z.string(),
       }),
-      execute: async (input) => executeToolCall('get_topic_card', input as Record<string, unknown>),
+      execute: async (input) => {
+        const result = await executeToolCall('get_topic_card', input as Record<string, unknown>)
+        streamReferencedArtifact(result, 'Loaded curated paper evidence')
+        return result
+      },
     }),
     search_explorations: createTool({
       description: 'Search prior study explorations for related questions and summaries.',
@@ -4389,7 +4497,11 @@ function buildExploreChatTools(
       inputSchema: z.object({
         id: z.string(),
       }),
-      execute: async (input) => executeToolCall('get_exploration', input as Record<string, unknown>),
+      execute: async (input) => {
+        const result = await executeToolCall('get_exploration', input as Record<string, unknown>)
+        streamReferencedArtifact(result, 'Loaded prior exploration context')
+        return result
+      },
     }),
     suggest_underexplored_topics: createTool({
       description: 'Suggest narrowly related follow-up questions that are still underexplored.',
@@ -4416,28 +4528,40 @@ function buildExploreChatTools(
       execute: async (input) => {
         const result = await executeExploreChatToolCall('query_cached_results', input as Record<string, unknown>)
         storeCachedResults(result)
+        const liveArtifact = buildLiveExploreArtifact(
+          query,
+          buildExploreArtifactScaffold(query, latestCachedResults),
+          'Loaded pre-computed results',
+        )
+        if (liveArtifact) {
+          options?.onArtifact?.(liveArtifact)
+        }
         return result
       },
     }),
     render_blocks: createTool({
       description: 'Compose the final page artifact using the supported block formats and pre-computed data where relevant.',
       inputSchema: renderBlocksToolInputSchema,
-      execute: async (input) => buildGeneratedExploreResponse(query, {
-        summary: input.summary,
-        blocks: input.blocks as unknown[] | undefined,
-        follow_ups: input.follow_ups,
-      }, {
-        model: anthropicModel,
-        cached: false,
-        canonicalBlocks: buildExploreArtifactScaffold(query, latestCachedResults),
-      }),
+      execute: async (input) => {
+        const response = buildGeneratedExploreResponse(query, {
+          summary: input.summary,
+          blocks: input.blocks as unknown[] | undefined,
+          follow_ups: input.follow_ups,
+        }, {
+          model: anthropicModel,
+          cached: false,
+          canonicalBlocks: buildExploreArtifactScaffold(query, latestCachedResults),
+        })
+        options?.onArtifact?.(buildExploreArtifactData('ready', 'Answer ready', response))
+        return response
+      },
     }),
   }
 }
 
 app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
   const { messages, history } = req.body as {
-    messages?: UIMessage[]
+    messages?: AskUIMessage[]
     history?: Array<{ query: string; summary: string }>
   }
   const originalMessages = Array.isArray(messages) ? messages : []
@@ -4466,43 +4590,63 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
       : ''
     const systemPrompt = buildExploreChatSystemPrompt(trimmedQuery, sessionContext)
     let latestCachedResults: unknown = null
-    const exploreChatTools = buildExploreChatTools(trimmedQuery, {
-      onCachedResults: (result) => {
-        latestCachedResults = result
-      },
-    })
-
-    const result = streamText({
-      model: aiSdkAnthropicProvider(anthropicModel),
-      system: systemPrompt,
-      prompt: trimmedQuery,
-      maxOutputTokens: 4096,
-      tools: exploreChatTools,
-      stopWhen: hasToolCall('render_blocks'),
-      prepareStep: ({ steps, stepNumber }) => {
-        const allToolCalls = steps.flatMap(step => step.toolCalls)
-        const hasPublishedResults = normalizePublishedResultsCollection(latestCachedResults).length > 0
-        if (hasPublishedResults && isPrecomputedResultsExploreQuery(trimmedQuery) && stepNumber >= 1) {
-          return {
-            activeTools: ['render_blocks'],
-            toolChoice: { type: 'tool', toolName: 'render_blocks' },
-            system: `${systemPrompt}\n\n## Finalization\nYou already have exact pre-computed results and a study-owned artifact scaffold for this question. Do not call search cards or prior exploration tools. Call render_blocks now and organize the page from the retrieved Results evidence.`,
-          }
-        }
-        if (!shouldForceExploreRenderStep(stepNumber, allToolCalls)) {
-          return undefined
-        }
-
-        return {
-          activeTools: ['render_blocks'],
-          toolChoice: { type: 'tool', toolName: 'render_blocks' },
-          system: `${systemPrompt}\n\n## Finalization\nYou already have enough evidence for this answer. Do not call any more lookup tools. Call render_blocks now and organize the page from the evidence already gathered in this conversation.`,
-        }
-      },
-    })
-
-    result.pipeUIMessageStreamToResponse(res, {
+    const stream = createUIMessageStream<AskUIMessage>({
       originalMessages,
+      execute: ({ writer }) => {
+        const writeArtifact = (artifact: AskArtifactData) => {
+          writer.write({
+            type: 'data-artifact',
+            id: 'ask-artifact',
+            data: artifact,
+          })
+        }
+
+        const exploreChatTools = buildExploreChatTools(trimmedQuery, {
+          onCachedResults: (result) => {
+            latestCachedResults = result
+          },
+          onArtifact: writeArtifact,
+        })
+
+        const result = streamText({
+          model: aiSdkAnthropicProvider(anthropicModel),
+          system: systemPrompt,
+          prompt: trimmedQuery,
+          maxOutputTokens: 4096,
+          tools: exploreChatTools,
+          stopWhen: hasToolCall('render_blocks'),
+          prepareStep: ({ steps, stepNumber }) => {
+            const allToolCalls = steps.flatMap(step => step.toolCalls)
+            const hasPublishedResults = normalizePublishedResultsCollection(latestCachedResults).length > 0
+            if (hasPublishedResults && isPrecomputedResultsExploreQuery(trimmedQuery) && stepNumber >= 1) {
+              return {
+                activeTools: ['render_blocks'],
+                toolChoice: { type: 'tool', toolName: 'render_blocks' },
+                system: `${systemPrompt}\n\n## Finalization\nYou already have exact pre-computed results and a study-owned artifact scaffold for this question. Do not call search cards or prior exploration tools. Call render_blocks now and organize the page from the retrieved Results evidence.`,
+              }
+            }
+            if (!shouldForceExploreRenderStep(stepNumber, allToolCalls)) {
+              return undefined
+            }
+
+            return {
+              activeTools: ['render_blocks'],
+              toolChoice: { type: 'tool', toolName: 'render_blocks' },
+              system: `${systemPrompt}\n\n## Finalization\nYou already have enough evidence for this answer. Do not call any more lookup tools. Call render_blocks now and organize the page from the evidence already gathered in this conversation.`,
+            }
+          },
+        })
+
+        writer.merge(result.toUIMessageStream<AskUIMessage>())
+      },
+    })
+
+    pipeUIMessageStreamToResponse({
+      response: res,
+      stream,
+      headers: undefined,
+      status: undefined,
+      statusText: undefined,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
