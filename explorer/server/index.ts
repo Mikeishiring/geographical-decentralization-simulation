@@ -792,7 +792,7 @@ function isOrientationExploreQuery(query: string): boolean {
 
 function buildExploreQueryModeContext(query: string): string {
   if (!isOrientationExploreQuery(query)) return ''
-  return '\n\n## Query Mode\nThis is an orientation or onboarding question. Answer directly in plain language. Organize the page around: (1) what the study is about, (2) the main contrast or mechanism, (3) why it matters, and (4) a few concrete next questions or next surfaces. Lead with an insight or comparison block, not raw stats, unless a number materially sharpens the explanation.'
+  return '\n\n## Query Mode\nThis is an orientation or onboarding question. Answer directly in plain language. Organize the page around: (1) what the study is about, (2) the main contrast or mechanism, (3) why it matters, and (4) a few concrete next questions or next surfaces. Lead with an insight or comparison block, not raw stats, unless a number materially sharpens the explanation. Do not call query_cached_results for a generic overview prompt unless the user explicitly asks for a figure, metric, scenario, or comparison.'
 }
 
 function isPrecomputedResultsExploreQuery(query: string): boolean {
@@ -801,7 +801,7 @@ function isPrecomputedResultsExploreQuery(query: string): boolean {
 
 function buildExploreResultsModeContext(query: string): string {
   if (!isPrecomputedResultsExploreQuery(query)) return ''
-  return '\n\n## Quantitative Mode\nThis question should lean on pre-computed results when possible. Prefer query_cached_results before relying on generic summaries. Use compact stat, comparison, paperChart, chart, table, or map blocks that feel like the study\'s Results surface. When a study-owned paperChart matches the retrieved dataset family, reuse it instead of inventing a bespoke figure. When the cached data covers only part of the ask, answer that supported slice clearly and mark the rest as interpretation or open follow-up.'
+  return '\n\n## Quantitative Mode\nThis question should lean on pre-computed results when possible. Prefer query_cached_results before relying on generic summaries. Use compact stat, comparison, paperChart, chart, table, or map blocks that feel like the study\'s Results surface. When a study-owned paperChart matches the retrieved dataset family, reuse it instead of inventing a bespoke figure. Treat those study-owned blocks as the skeleton of the answer and add only the minimum interpretation needed to explain them. When the cached data covers only part of the ask, answer that supported slice clearly and mark the rest as interpretation or open follow-up.'
 }
 
 function buildExploreChatSystemPrompt(query: string, sessionContext: string): string {
@@ -1290,8 +1290,9 @@ function buildGeneratedExploreResponse(
     canonicalBlocks?: readonly Block[]
   },
 ): ExploreResponse {
+  const canonicalBlocks = [...(options?.canonicalBlocks ?? [])]
   const seededBlocks = [
-    ...(options?.canonicalBlocks ?? []),
+    ...canonicalBlocks,
     ...(input.blocks ?? []),
   ]
   const hasPaperChartSeed = seededBlocks.some(block =>
@@ -1306,10 +1307,12 @@ function buildGeneratedExploreResponse(
   ], {
     preserveLeadBlock: options?.preserveLeadBlock ?? isOrientationExploreQuery(query),
   })
-  const finalizedBlocks = ensurePaperChartBlock(
-    normalizedBlocks,
-    resolvePreferredPaperChartBlock(query, options?.canonicalBlocks),
-  )
+  const finalizedBlocks = canonicalBlocks.length > 0 && isPrecomputedResultsExploreQuery(query)
+    ? mergeCanonicalExploreBlocks(query, input.summary, canonicalBlocks, normalizedBlocks)
+    : ensurePaperChartBlock(
+        normalizedBlocks,
+        resolvePreferredPaperChartBlock(query, canonicalBlocks),
+      )
   const normalizedSummary = normalizeGeneratedSummary(input.summary, query, finalizedBlocks)
   const normalizedFollowUps = normalizeGeneratedFollowUps(query, input.follow_ups)
 
@@ -2073,10 +2076,37 @@ function inferPublishedResult(filters: ExploreCachedResultFilters): string | und
   return 'cost_0.002'
 }
 
+function normalizePublishedEvaluationFilter(
+  value: string | undefined,
+): string | undefined {
+  if (!value) return undefined
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) return undefined
+  if (normalized === 'test') return 'Test'
+  if (normalized === 'baseline') return 'Baseline'
+  if (normalized.includes('source') || normalized.includes('se1')) {
+    return 'SE1-Information-Source-Placement-Effect'
+  }
+  if ((normalized.includes('distribution') && normalized.includes('validator')) || normalized.includes('se2')) {
+    return 'SE2-Validator-Distribution-Effect'
+  }
+  if (normalized.includes('joint') || normalized.includes('heterogeneity') || normalized.includes('se3')) {
+    return 'SE3-Joint-Heterogeneity'
+  }
+  if (normalized.includes('attestation') || normalized.includes('gamma') || normalized.includes('se4a')) {
+    return 'SE4-Attestation-Threshold'
+  }
+  if (normalized.includes('eip7782') || normalized.includes('eip-7782') || normalized.includes('shorter slot') || normalized.includes('se4b')) {
+    return 'SE4-EIP7782'
+  }
+  return value.trim()
+}
+
 function sanitizeExploreCachedResultFilters(
   filters: ExploreCachedResultFilters,
 ): ExploreCachedResultFilters {
-  const evaluation = filters.evaluation?.trim() || undefined
+  const normalizedParadigm = filters.paradigm?.trim().toLowerCase()
+  const evaluation = normalizePublishedEvaluationFilter(filters.evaluation)
   const normalizedResult = filters.result?.trim().toLowerCase()
   const shouldDropResultHint = Boolean(
     normalizedResult
@@ -2103,7 +2133,9 @@ function sanitizeExploreCachedResultFilters(
   )
 
   return {
-    paradigm: filters.paradigm?.trim() || undefined,
+    paradigm: normalizedParadigm && ['both', 'either', 'comparison', 'compare'].includes(normalizedParadigm)
+      ? undefined
+      : (filters.paradigm?.trim() || undefined),
     distribution: filters.distribution?.trim() || undefined,
     sourcePlacement: filters.sourcePlacement?.trim() || undefined,
     evaluation,
@@ -2251,30 +2283,125 @@ async function loadExplorePublishedResults(filters: ExploreCachedResultFilters):
 
 type PublishedExploreComparableEntry = PublishedExploreResultEntry | PublishedExploreCompanionEntry
 
-function isPublishedExploreResultEntry(value: unknown): value is PublishedExploreResultEntry {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
-  const candidate = value as Record<string, unknown>
-  return typeof candidate.evaluation === 'string'
-    && typeof candidate.result === 'string'
-    && typeof candidate.datasetPath === 'string'
-    && (candidate.paradigm === 'SSP' || candidate.paradigm === 'MSP')
+function normalizePublishedExploreParadigm(
+  value: unknown,
+): 'SSP' | 'MSP' | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'ssp' || normalized === 'external') return 'SSP'
+  if (normalized === 'msp' || normalized === 'local') return 'MSP'
+  return null
 }
 
-function isPublishedExploreCompanionEntry(value: unknown): value is PublishedExploreCompanionEntry {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
-  const candidate = value as Record<string, unknown>
-  return typeof candidate.evaluation === 'string'
-    && typeof candidate.result === 'string'
-    && typeof candidate.datasetPath === 'string'
-    && (candidate.paradigm === 'SSP' || candidate.paradigm === 'MSP')
+function coercePublishedExploreMetrics(
+  value: unknown,
+): Readonly<Record<string, number | null>> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value).map(([key, metricValue]) => [
+      key,
+      typeof metricValue === 'number' && Number.isFinite(metricValue) ? metricValue : null,
+    ]),
+  )
 }
 
-function isPublishedResultsToolResponse(value: unknown): value is PublishedResultsToolResponse {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+function coercePublishedDominantRegion(
+  value: unknown,
+): PublishedExploreDominantRegion | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const candidate = value as Record<string, unknown>
-  if (candidate.source !== 'published-replay' || !Array.isArray(candidate.results)) return false
-  if (!candidate.results.every(isPublishedExploreResultEntry)) return false
-  return candidate.pairedComparison == null || isPublishedExploreCompanionEntry(candidate.pairedComparison)
+  if (typeof candidate.regionId !== 'string') return null
+  return {
+    regionId: candidate.regionId,
+    city: typeof candidate.city === 'string' ? candidate.city : null,
+    share: typeof candidate.share === 'number' && Number.isFinite(candidate.share) ? candidate.share : 0,
+    count: typeof candidate.count === 'number' && Number.isFinite(candidate.count) ? candidate.count : 0,
+  }
+}
+
+function coercePublishedExploreResultEntry(
+  value: unknown,
+): PublishedExploreResultEntry | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const candidate = value as Record<string, unknown>
+  const evaluation = typeof candidate.evaluation === 'string' ? candidate.evaluation : null
+  const result = typeof candidate.result === 'string' ? candidate.result : null
+  const datasetPath = typeof candidate.datasetPath === 'string' ? candidate.datasetPath : null
+  const paradigm = normalizePublishedExploreParadigm(candidate.paradigm)
+  if (!evaluation || !result || !datasetPath || !paradigm) return null
+  return {
+    label: typeof candidate.label === 'string' ? candidate.label : `${evaluation} / ${publishedParadigmDisplayLabel(paradigm)} / ${result}`,
+    evaluation,
+    paradigm,
+    result,
+    datasetPath,
+    sourceRole: typeof candidate.sourceRole === 'string' ? candidate.sourceRole : 'published results',
+    description: typeof candidate.description === 'string' ? candidate.description : null,
+    validators: typeof candidate.validators === 'number' && Number.isFinite(candidate.validators) ? candidate.validators : null,
+    migrationCost: typeof candidate.migrationCost === 'number' && Number.isFinite(candidate.migrationCost) ? candidate.migrationCost : null,
+    gamma: typeof candidate.gamma === 'number' && Number.isFinite(candidate.gamma) ? candidate.gamma : null,
+    totalSlots: typeof candidate.totalSlots === 'number' && Number.isFinite(candidate.totalSlots) ? candidate.totalSlots : 0,
+    initialMetrics: coercePublishedExploreMetrics(candidate.initialMetrics),
+    finalMetrics: coercePublishedExploreMetrics(candidate.finalMetrics),
+    activeRegions: typeof candidate.activeRegions === 'number' && Number.isFinite(candidate.activeRegions) ? candidate.activeRegions : 0,
+    dominantRegion: coercePublishedDominantRegion(candidate.dominantRegion),
+    topRegions: typeof candidate.topRegions === 'string' ? candidate.topRegions : '',
+    metricDigest: Array.isArray(candidate.metricDigest)
+      ? candidate.metricDigest.filter((entry): entry is string => typeof entry === 'string')
+      : [],
+  }
+}
+
+function coercePublishedExploreCompanionEntry(
+  value: unknown,
+  fallback: PublishedExploreResultEntry | null,
+): PublishedExploreCompanionEntry | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const candidate = value as Record<string, unknown>
+  const datasetPath = typeof candidate.datasetPath === 'string' ? candidate.datasetPath : null
+  const paradigm = normalizePublishedExploreParadigm(candidate.paradigm)
+  const evaluation = typeof candidate.evaluation === 'string'
+    ? candidate.evaluation
+    : fallback?.evaluation ?? null
+  const result = typeof candidate.result === 'string'
+    ? candidate.result
+    : fallback?.result ?? null
+  if (!datasetPath || !paradigm || !evaluation || !result) return null
+  return {
+    label: typeof candidate.label === 'string' ? candidate.label : `${evaluation} / ${publishedParadigmDisplayLabel(paradigm)} / ${result}`,
+    evaluation,
+    paradigm,
+    result,
+    datasetPath,
+    finalMetrics: coercePublishedExploreMetrics(candidate.finalMetrics),
+    activeRegions: typeof candidate.activeRegions === 'number' && Number.isFinite(candidate.activeRegions) ? candidate.activeRegions : 0,
+    dominantRegion: coercePublishedDominantRegion(candidate.dominantRegion),
+  }
+}
+
+function normalizePublishedResultsToolResponse(
+  value: unknown,
+): PublishedResultsToolResponse | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const candidate = value as Record<string, unknown>
+  if (candidate.source !== 'published-replay' || !Array.isArray(candidate.results)) return null
+  const results = candidate.results
+    .map(coercePublishedExploreResultEntry)
+    .filter((entry): entry is PublishedExploreResultEntry => entry !== null)
+  if (results.length === 0) return null
+  const query = candidate.query && typeof candidate.query === 'object' && !Array.isArray(candidate.query)
+    ? candidate.query as Record<string, unknown>
+    : {}
+  return {
+    source: 'published-replay',
+    query: {
+      evaluation: typeof query.evaluation === 'string' ? query.evaluation : null,
+      paradigm: normalizePublishedExploreParadigm(query.paradigm),
+      result: typeof query.result === 'string' ? query.result : null,
+    },
+    results,
+    pairedComparison: coercePublishedExploreCompanionEntry(candidate.pairedComparison, results[0] ?? null),
+  }
 }
 
 function publishedParadigmDisplayLabel(paradigm: 'SSP' | 'MSP' | 'External' | 'Local'): 'External' | 'Local' {
@@ -2633,13 +2760,14 @@ function buildCanonicalExploreBlocks(
   query: string,
   cachedResults: unknown,
 ): Block[] {
-  if (!isPublishedResultsToolResponse(cachedResults)) return []
+  const normalizedResults = normalizePublishedResultsToolResponse(cachedResults)
+  if (!normalizedResults) return []
 
-  const compareEntries = resolvePublishedCompareEntries(cachedResults)
+  const compareEntries = resolvePublishedCompareEntries(normalizedResults)
   if (compareEntries.length === 0) return []
 
   const metricKey = selectPublishedMetricKey(query)
-  const chartKey = resolveCanonicalPaperChartKey(cachedResults)
+  const chartKey = resolveCanonicalPaperChartKey(normalizedResults)
   const cite = buildPublishedExploreCite(compareEntries, chartKey)
   const blocks: Block[] = []
 
@@ -2774,6 +2902,68 @@ function ensurePaperChartBlock(
   }
 
   return nextBlocks
+}
+
+function mergeCanonicalExploreBlocks(
+  query: string,
+  summary: string | undefined,
+  canonicalBlocks: readonly Block[],
+  modelBlocks: readonly Block[],
+): Block[] {
+  const canonicalEvidence = orderBlocksEvidenceFirst(canonicalBlocks)
+  const merged: Block[] = [...canonicalEvidence]
+
+  const hasCanonicalComparison = canonicalEvidence.some(block => block.type === 'comparison')
+  const supportingComparison = !hasCanonicalComparison
+    ? modelBlocks.find(block => block.type === 'comparison')
+    : null
+  const supportingInsight = modelBlocks.find(block => block.type === 'insight')
+  const supportingCaveat = modelBlocks.find(block => block.type === 'caveat')
+  const supportingSource = modelBlocks.find(block => block.type === 'source')
+
+  if (supportingComparison) {
+    merged.push(supportingComparison)
+  }
+
+  if (supportingInsight) {
+    merged.push(supportingInsight)
+  } else {
+    const summaryText = limitText(summary, 380)
+    if (summaryText) {
+      merged.push({
+        type: 'insight',
+        emphasis: 'normal',
+        title: 'Answer',
+        text: summaryText,
+      })
+    }
+  }
+
+  if (supportingCaveat) {
+    merged.push(supportingCaveat)
+  }
+
+  if (supportingSource) {
+    merged.push(supportingSource)
+  }
+
+  const finalized = ensurePaperChartBlock(
+    orderBlocksEvidenceFirst(merged),
+    resolvePreferredPaperChartBlock(query, canonicalBlocks),
+  )
+
+  if (finalized.length >= MAX_GENERATED_BLOCKS) {
+    return finalized.slice(0, MAX_GENERATED_BLOCKS)
+  }
+
+  const padded = [...finalized]
+  if (!padded.some(block => block.type === 'caveat') && padded.length < MAX_GENERATED_BLOCKS) {
+    padded.push(DEFAULT_GENERATED_CAVEAT_BLOCK)
+  }
+  if (!padded.some(block => block.type === 'source') && padded.length < MAX_GENERATED_BLOCKS) {
+    padded.push(DEFAULT_GENERATED_SOURCE_BLOCK)
+  }
+  return padded.slice(0, MAX_GENERATED_BLOCKS)
 }
 
 function normalizePublishedPaperLens(
@@ -3860,8 +4050,17 @@ function extractTextFromUiMessage(message: UIMessage | undefined): string {
     .trim()
 }
 
-function buildExploreChatTools(query: string) {
+function buildExploreChatTools(
+  query: string,
+  options?: {
+    onCachedResults?: (result: unknown) => void
+  },
+) {
   let latestCachedResults: unknown = null
+  const storeCachedResults = (result: unknown) => {
+    latestCachedResults = normalizePublishedResultsToolResponse(result) ?? result
+    options?.onCachedResults?.(latestCachedResults)
+  }
 
   return {
     search_topic_cards: createTool({
@@ -3922,7 +4121,7 @@ function buildExploreChatTools(query: string) {
       }),
       execute: async (input) => {
         const result = await executeExploreChatToolCall('query_cached_results', input as Record<string, unknown>)
-        latestCachedResults = result
+        storeCachedResults(result)
         return result
       },
     }),
@@ -3972,7 +4171,12 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
       ? `\n\n## Session Context\nPrevious queries this session:\n${sessionHistory.map((entry, index) => `${index + 1}. "${entry.query}" -> ${entry.summary}`).join('\n')}\n\nBuild on prior context where relevant.`
       : ''
     const systemPrompt = buildExploreChatSystemPrompt(trimmedQuery, sessionContext)
-    const exploreChatTools = buildExploreChatTools(trimmedQuery)
+    let latestCachedResults: unknown = null
+    const exploreChatTools = buildExploreChatTools(trimmedQuery, {
+      onCachedResults: (result) => {
+        latestCachedResults = result
+      },
+    })
 
     const result = streamText({
       model: aiSdkAnthropicProvider(anthropicModel),
@@ -3983,6 +4187,14 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
       stopWhen: hasToolCall('render_blocks'),
       prepareStep: ({ steps, stepNumber }) => {
         const allToolCalls = steps.flatMap(step => step.toolCalls)
+        const hasPublishedResults = normalizePublishedResultsToolResponse(latestCachedResults) !== null
+        if (hasPublishedResults && isPrecomputedResultsExploreQuery(trimmedQuery) && stepNumber >= 1) {
+          return {
+            activeTools: ['render_blocks'],
+            toolChoice: { type: 'tool', toolName: 'render_blocks' },
+            system: `${systemPrompt}\n\n## Finalization\nYou already have exact pre-computed results and a study-owned artifact scaffold for this question. Do not call search cards or prior exploration tools. Call render_blocks now and organize the page from the retrieved Results evidence.`,
+          }
+        }
         if (!shouldForceExploreRenderStep(stepNumber, allToolCalls)) {
           return undefined
         }
@@ -4105,7 +4317,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
       const toolResults: Anthropic.Messages.ToolResultBlockParam[] = await Promise.all(toolCalls.map(async call => {
         const result = await executeExploreChatToolCall(call.name, call.input as Record<string, unknown>)
         if (call.name === 'query_cached_results') {
-          latestCachedResults = result
+          latestCachedResults = normalizePublishedResultsToolResponse(result) ?? result
         }
         return {
           type: 'tool_result' as const,
