@@ -2,6 +2,9 @@ FROM node:20-bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+ARG TARGETOS
+ARG TARGETARCH
+
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 python3-pip python3-venv ca-certificates git git-lfs curl \
   && git lfs install \
@@ -17,6 +20,19 @@ COPY explorer/package.json ./explorer/package.json
 COPY study-generator/package.json ./study-generator/package.json
 COPY packages/study-schema/package.json ./packages/study-schema/package.json
 RUN npm ci --workspace explorer --include-workspace-root=false
+RUN if [ "$TARGETOS" = "linux" ]; then \
+      case "$TARGETARCH" in \
+        amd64) ROLLDOWN_BINDING='@rolldown/binding-linux-x64-gnu' ;; \
+        arm64) ROLLDOWN_BINDING='@rolldown/binding-linux-arm64-gnu' ;; \
+        *) ROLLDOWN_BINDING='' ;; \
+      esac; \
+      if [ -n "$ROLLDOWN_BINDING" ]; then \
+        ROLLDOWN_VERSION=$(node -p "require('./explorer/node_modules/rolldown/package.json').optionalDependencies['$ROLLDOWN_BINDING'] || ''"); \
+        if [ -n "$ROLLDOWN_VERSION" ]; then \
+          cd explorer && npm install --no-save "$ROLLDOWN_BINDING@$ROLLDOWN_VERSION"; \
+        fi; \
+      fi; \
+    fi
 
 WORKDIR /app/explorer
 
