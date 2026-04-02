@@ -4988,10 +4988,17 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
           stopWhen: hasToolCall('render_blocks'),
           prepareStep: ({ steps, stepNumber }) => {
             const allToolCalls = steps.flatMap(step => step.toolCalls)
+            const expectedTemplates = resolveExpectedStudyResultsTemplates(trimmedQuery)
+            if (stepNumber === 0 && isPrecomputedResultsExploreQuery(trimmedQuery) && expectedTemplates.length > 0) {
+              return {
+                activeTools: ['query_cached_results'],
+                toolChoice: { type: 'tool', toolName: 'query_cached_results' },
+                system: `${systemPrompt}\n\n## Results Retrieval\nThis question maps to the following study-owned Results templates:\n${expectedTemplates.map(template => `- ${template.title} (${template.pattern}): ${template.questionAnswered}`).join('\n')}\n\nStart by calling query_cached_results. Do not search topic cards or prior explorations before loading the relevant pre-computed Results family or families.${buildActiveResultsTemplateContext(trimmedQuery, latestCachedResults)}`,
+              }
+            }
             const hasPublishedResults = normalizePublishedResultsCollection(latestCachedResults).length > 0
             if (hasPublishedResults && isPrecomputedResultsExploreQuery(trimmedQuery) && stepNumber >= 1) {
               const normalizedResponses = normalizePublishedResultsCollection(latestCachedResults)
-              const expectedTemplates = resolveExpectedStudyResultsTemplates(trimmedQuery)
               const loadedTemplates = resolveStudyResultsTemplatesForResponses(trimmedQuery, normalizedResponses)
               const missingTemplates = expectedTemplates.filter(template =>
                 !loadedTemplates.some(loaded => loaded.id === template.id),
