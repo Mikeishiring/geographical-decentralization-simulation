@@ -264,7 +264,8 @@ export function buildTools(): Anthropic.Messages.Tool[] {
       name: 'search_topic_cards',
       description:
         'Search the curated findings library for editorial topic cards extracted from the paper. ' +
-        'Use this first when the user is asking about known paper findings, comparisons, experiments, or metrics.',
+        'Use this first when the user is asking about known paper findings, comparisons, experiments, or metrics. ' +
+        'Treat matching cards as evidence or scaffolding, not as the final answer by themselves.',
       input_schema: {
         type: 'object' as const,
         properties: {
@@ -284,7 +285,8 @@ export function buildTools(): Anthropic.Messages.Tool[] {
       name: 'get_topic_card',
       description:
         'Retrieve a single curated topic card by ID, including its editorial blocks and suggested prompts. ' +
-        'Use this after search_topic_cards when a curated card appears to directly answer the question.',
+        'Use this after search_topic_cards when a curated card appears relevant. ' +
+        'Inspect it for evidence, then still compose a fresh answer tailored to the current question.',
       input_schema: {
         type: 'object' as const,
         properties: {
@@ -301,7 +303,8 @@ export function buildTools(): Anthropic.Messages.Tool[] {
       description:
         'Search the community exploration pool for prior questions and answers about the study. ' +
         'Use this to check if a similar question has been asked before, or to find related explorations. ' +
-        'Returns a list of exploration summaries with IDs, vote counts, and tags.',
+        'Returns a list of exploration summaries with IDs, vote counts, and tags. ' +
+        'Treat them as prior context, not as an automatic final response.',
       input_schema: {
         type: 'object' as const,
         properties: {
@@ -340,7 +343,8 @@ export function buildTools(): Anthropic.Messages.Tool[] {
       name: 'get_exploration',
       description:
         'Retrieve a single exploration by its ID. Returns the full exploration including all blocks, ' +
-        'follow-up questions, votes, and verification status.',
+        'follow-up questions, votes, and verification status. ' +
+        'Use it to inspect prior work, then synthesize a response for the current user.',
       input_schema: {
         type: 'object' as const,
         properties: {
@@ -485,6 +489,7 @@ export function buildTools(): Anthropic.Messages.Tool[] {
         'heatmap for correlation matrices (e.g. validator×region concentration), stacked_bar for composition breakdowns (e.g. region share over time), ' +
         'equation for formulas (e.g. Nakamoto coefficient, Gini definition), ' +
         'caveat for limitations, source for references. Include at least one evidence block when possible, place evidence before insight, label insights as interpretation/framing, avoid redundant blocks, and keep follow-up prompts concrete. Maximum 6 blocks. ' +
+        'Always compose a fresh response for the current question, even when prior cards or explorations were useful source material. ' +
         'Use this as the final presentation step after searching curated cards, prior explorations, or building a simulation config.',
       input_schema: {
         type: 'object' as const,
