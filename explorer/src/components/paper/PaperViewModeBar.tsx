@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ListTree, FileText, BookOpen, ScrollText } from 'lucide-react'
+import { ListTree, FileText, BookOpen, ScrollText, MousePointerClick, Users } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { getActiveStudy } from '../../studies'
@@ -61,6 +61,21 @@ const SPECTRUM_POSITIONS: Record<ReaderMode, number> = {
   html: 70,
   paper: 100,
 }
+
+const COMMUNITY_NOTE_STEPS = [
+  {
+    title: 'Highlight any passage',
+    detail: 'Select text in Editorial, Arguments, HTML, or the PDF to open the note composer.',
+  },
+  {
+    title: 'Publish a human takeaway',
+    detail: 'Add context in your own words. Public notes are interpretation layered on top of the cited evidence.',
+  },
+  {
+    title: 'See it in two places',
+    detail: 'Published notes appear inline in the paper and on the Community page for replies, votes, and linking.',
+  },
+] as const
 
 interface PaperViewModeBarProps {
   readonly readerMode: ReaderMode
@@ -156,7 +171,7 @@ export function PaperViewModeBar({
 
         <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:shrink-0">
           {onNotesToggle && (
-            <Tooltip label="Toggle inline community notes and interpretations">
+            <Tooltip label="Show inline public notes, note highlights, and section annotation prompts">
               <button
                 onClick={onNotesToggle}
                 onMouseEnter={() => setNotesHovered(true)}
@@ -232,6 +247,24 @@ export function PaperViewModeBar({
                   </div>
                 </div>
               )}
+
+              <div className="rounded-lg border border-accent/12 bg-accent/[0.035] px-3 py-3">
+                <div className="flex items-center gap-2 text-xs font-medium text-text-primary">
+                  <Users className="h-3.5 w-3.5 text-accent" />
+                  Community notes workflow
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  {COMMUNITY_NOTE_STEPS.map((item, index) => (
+                    <div key={item.title} className="rounded-md border border-rule/60 bg-white/85 px-3 py-2.5">
+                      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent/70">
+                        {index === 0 ? <MousePointerClick className="h-3 w-3" /> : <span>{`0${index + 1}`}</span>}
+                        <span>{item.title}</span>
+                      </div>
+                      <p className="mt-1 text-[11px] leading-relaxed text-muted">{item.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <div className="grid gap-6 sm:grid-cols-3">
                 <div>

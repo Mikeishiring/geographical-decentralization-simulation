@@ -5,7 +5,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import {
   Sun, Moon, MessageSquarePlus, Trash2, ExternalLink,
-  ChevronUp, ZoomIn, ZoomOut,
+  ChevronUp, ZoomIn, ZoomOut, Users,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SNAPPY, SPRING_CRISP } from '../../lib/theme'
@@ -305,7 +305,7 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
               )}
             >
               <MessageSquarePlus className="h-3 w-3" />
-              Notes ({annotations.length})
+              Private notes ({annotations.length})
             </button>
 
             {/* Add note */}
@@ -322,7 +322,7 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
               )}
             >
               <MessageSquarePlus className="h-3 w-3" />
-              Add note
+              New private note
             </button>
 
             {/* arXiv link */}
@@ -344,6 +344,29 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
         </div>
       </motion.div>
 
+      <div className={cn(
+        'rounded-xl border px-4 py-3',
+        darkMode ? 'border-white/10 bg-slate-900/80 text-white/80' : 'border-accent/12 bg-accent/[0.035] text-text-primary',
+      )}>
+        <div className="flex items-start gap-2.5">
+          <span className={cn(
+            'mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
+            darkMode ? 'bg-white/8 text-accent' : 'bg-white text-accent shadow-sm',
+          )}>
+            <Users className="h-3.5 w-3.5" />
+          </span>
+          <div>
+            <div className="text-xs font-medium">Public community notes vs private PDF notes</div>
+            <p className={cn(
+              'mt-1 text-xs leading-relaxed',
+              darkMode ? 'text-white/60' : 'text-muted',
+            )}>
+              Highlight text anywhere in the PDF to open a public community note tied to that passage. The toolbar controls here are for private notes saved only in this browser.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* ── Annotation form (expands below toolbar) ── */}
       <AnimatePresence>
         {showAnnotationForm && (
@@ -361,12 +384,18 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
               <div className={cn(
                 'text-2xs font-medium uppercase tracking-[0.1em]',
                 darkMode ? 'text-white/40' : 'text-text-faint',
-              )}>New annotation</div>
+              )}>New private note</div>
+              <p className={cn(
+                'mt-1 text-xs leading-relaxed',
+                darkMode ? 'text-white/55' : 'text-muted',
+              )}>
+                Private notes stay on this device. Use text highlight if you want to publish a public community note instead.
+              </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
                 <textarea
                   value={newAnnotation.text}
                   onChange={e => setNewAnnotation(prev => ({ ...prev, text: e.target.value }))}
-                  placeholder="Your note about this section of the paper..."
+                  placeholder="Your private note about this section of the paper..."
                   className={cn(
                     'w-full rounded-lg border px-3 py-2 text-sm placeholder:opacity-40 focus:border-accent focus:outline-none resize-none',
                     darkMode
@@ -510,7 +539,7 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
                 'text-2xs font-medium uppercase tracking-[0.1em]',
                 darkMode ? 'text-white/40' : 'text-text-faint',
               )}>
-                Your annotations ({annotations.length})
+                Private annotations ({annotations.length})
               </div>
               <div className="stagger-reveal space-y-2 max-h-[calc(100vh-18rem)] overflow-y-auto">
                 {[...annotations].sort((a, b) => a.page - b.page).map(annotation => (
