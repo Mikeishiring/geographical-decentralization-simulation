@@ -434,6 +434,128 @@ const DASHBOARDS: StudyPackage['dashboards'] = [
   },
 ]
 
+const ASSISTANT: StudyPackage['assistant'] = {
+  askHeading: 'Ask a question about the paper',
+  askDescription: 'Get grounded answers from the paper, its pre-computed Results datasets, and the exact simulation surfaces. Use Ask for interpretation and orientation; use Run experiment for a bounded what-if loop.',
+  askPlaceholder: 'Ask about a mechanism, comparison, metric, or implication...',
+  suggestedPrompts: [
+    {
+      label: 'Mechanism',
+      prompt: 'Why does a higher gamma centralize external block building more but disperse local?',
+      mode: 'both',
+    },
+    {
+      label: 'Comparison',
+      prompt: 'Does starting geography matter more than paradigm choice?',
+      mode: 'ask',
+    },
+    {
+      label: 'Geography',
+      prompt: 'Why do the same low-latency regions keep winning?',
+      mode: 'ask',
+    },
+    {
+      label: 'Design',
+      prompt: 'What does this imply for protocol design and supplier policy?',
+      mode: 'ask',
+    },
+    {
+      label: 'Timing',
+      prompt: 'What changes under shorter slots: geography or fairness?',
+      mode: 'ask',
+    },
+    {
+      label: 'Experiment',
+      prompt: 'What happens to centralization if we double gamma under local block building?',
+      mode: 'experiment',
+    },
+    {
+      label: 'Experiment',
+      prompt: 'How does slot time affect geographic fairness under external block building?',
+      mode: 'experiment',
+    },
+    {
+      label: 'Realism',
+      prompt: 'Does the simplified MEV model bias the results toward external block building?',
+      mode: 'ask',
+    },
+  ],
+  resultsStyleGuidance: 'When pre-computed results are available, prefer compact Results-surface formats over generic chat prose: lead with the strongest comparison or metric strip, then use the smallest number of chart, table, map, or comparison blocks needed to make the point. Reuse published atlas framing and terminology before inventing bespoke layouts.',
+  systemPromptSupplement: `## Study-Specific Concepts
+### External Block Building (PBS / ePBS)
+Proposers outsource block construction to specialized suppliers (builders via relays
+in current MEV-Boost, or directly under ePBS). The latency-critical path is
+proposer-to-supplier for value capture and supplier-to-attesters for consensus.
+Validators benefit from co-locating near suppliers.
+Note: the simulation engine uses the internal label "SSP" for this paradigm.
+
+### Local Block Building
+Proposers construct their own blocks using information from multiple distributed
+signal sources. The latency-critical path is sources-to-proposer for value capture
+and proposer-to-attesters for consensus. Validators benefit from proximity to both
+information sources and attesters.
+Note: the simulation engine uses the internal label "MSP" for this paradigm.
+
+## Baseline Results (§4.2)
+Both paradigms drive geographic centralization starting from the homogeneous baseline distribution.
+
+- External block building rises more slowly from the neutral baseline and is more sensitive to migration cost.
+- Local block building rises faster from the same baseline and tends to show higher reward variance.
+- North America is a recurring focal hub in both paradigms.
+- With migration costs, external block building retains more persistence away from the tightest hubs than local.
+
+## Reference Tags For Paper Experiments
+Use SE1, SE2, SE3, and SE4 as reader-orientation references. Do not present them as stronger than the underlying paper text, exact outputs, or metadata supplied in the current context.
+
+## SE1 Reference: Information-Source Placement (§4.3)
+- External + latency-aligned: usually softer than the misaligned external case
+- External + latency-misaligned: stronger co-location pressure around a poorly connected supplier
+- Local + latency-aligned: stronger centralization than the homogeneous local case
+- Local + latency-misaligned: lower reward variance can appear because source and attester pulls diverge
+
+Reference reading: the same infrastructure change can have opposite effects depending on paradigm.
+
+## SE2 Reference: Heterogeneous Initial Distribution (§4.4)
+- Uses real Ethereum validator distribution (Chainbound data)
+- Both paradigms converge rapidly
+- External block building amplifies reward disparities more strongly
+- Starting distribution matters a lot when validators are already concentrated
+
+## SE3 Reference: Joint Heterogeneity (§4.5)
+- Combines heterogeneous validators with heterogeneous information sources
+- External block building with remote or poorly connected suppliers under the heterogeneous validator start can produce transient decentralization early
+- This is not a steady state
+
+## SE4a Reference: Attestation Threshold Gamma (§4.6.1)
+- External: higher gamma increases centralization
+- Local: higher gamma can reduce centralization
+- This is one of the paper's most surprising findings
+
+## SE4b Reference: Shorter Slot Times / EIP-7782 (§4.6.2)
+- Centralization trajectories are largely unchanged
+- Reward variance increases
+- Shorter slots amplify relative latency advantage without changing the eventual geographic equilibrium much
+
+## Metrics Definitions
+- Gini_g: geographic Gini coefficient
+- HHI_g: geographic Herfindahl-Hirschman Index
+- CV_g: coefficient of variation of geographic payoffs
+- LC_g: liveness coefficient, the minimum number of regions whose failure can break liveness
+
+## Geography
+40 GCP regions across 7 macro-regions.
+Latency data comes from GCP inter-region measurements in data/gcp_latency.csv.
+
+## Paper Limitations
+1. GCP-only latency data
+2. Deterministic linear MEV function
+3. Fungible information sources
+4. Full-information assumption
+5. Constant migration cost
+6. No multi-paradigm coexistence modeling
+7. No strategic behavior such as coalition formation`,
+}
+
 export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
   id: 'geo-centralization',
   classification: 'simulation',
@@ -728,6 +850,7 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
       },
     ],
   },
+  assistant: ASSISTANT,
   runtime: {
     adapter: 'exact',
     defaultSimulationConfig: {
@@ -942,5 +1065,9 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
         url: 'https://github.com/syang-ng/geographical-decentralization-simulation',
       },
     ],
+    publishedResults: {
+      catalogPath: 'dashboard/assets/research-catalog.js',
+      baseDir: 'dashboard',
+    },
   },
 }

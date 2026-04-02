@@ -3,6 +3,9 @@ import type { PaperNarrative } from '../data/paper-narrative'
 import type { Author, PaperSection } from '../data/paper-sections'
 import type { TopicCard } from '../data/default-blocks'
 import type {
+  StudyAssistantConfig,
+  StudyAssistantMode,
+  StudyAssistantSuggestedPrompt,
   StudyArtifactRef,
   StudyAppendixLink,
   StudyClaimRegistry,
@@ -21,6 +24,9 @@ import type {
 
 export type { Author, PaperNarrative, PaperSection, TopicCard }
 export type {
+  StudyAssistantConfig,
+  StudyAssistantMode,
+  StudyAssistantSuggestedPrompt,
   StudyArtifactRef,
   StudyAppendixLink,
   StudyClaimRegistry,

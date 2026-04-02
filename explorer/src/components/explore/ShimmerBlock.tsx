@@ -75,9 +75,15 @@ function BreathingChartSkeleton() {
 }
 
 /** Skeleton placeholder blocks shown while Sonnet generates a response */
-export function ShimmerLoading() {
+interface ShimmerLoadingProps {
+  readonly tone?: 'active' | 'steady' | 'slow'
+}
+
+export function ShimmerLoading({ tone = 'active' }: ShimmerLoadingProps) {
   return (
-    <div className="space-y-3">
+    <div className="relative space-y-3 overflow-hidden">
+      <div className="lab-loading-orb" data-state={tone === 'active' ? 'active' : undefined} aria-hidden="true" />
+
       {/* Stat row skeleton */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[0, 1, 2].map(i => (

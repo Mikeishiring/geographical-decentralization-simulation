@@ -12,9 +12,14 @@ import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
 import fs from 'node:fs/promises'
+import { runInNewContext } from 'node:vm'
 import { fileURLToPath } from 'node:url'
 import Anthropic from '@anthropic-ai/sdk'
-import { STUDY_CONTEXT, SIMULATION_COPILOT_CONTEXT, PUBLISHED_REPLAY_COPILOT_CONTEXT } from './study-context.ts'
+import { createAnthropic } from '@ai-sdk/anthropic'
+import { hasToolCall, streamText, tool as createTool, type UIMessage } from 'ai'
+import { z } from 'zod/v4'
+import { SIMULATION_COPILOT_CONTEXT, PUBLISHED_REPLAY_COPILOT_CONTEXT } from './study-context.ts'
+import { buildStudyContext } from './study-context-builder.ts'
 import { buildTools } from './catalog.ts'
 import { SimulationRuntime, parseSimulationRequest, type SimulationRequest } from './simulation-runtime.ts'
 import { ExplorationStore, normalizeQuery, type ExplorationSurface, type ListOptions } from './exploration-store.ts'
@@ -42,6 +47,7 @@ import type { TopicCard } from '../src/studies/types.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXPLORER_ROOT = path.resolve(__dirname, '..')
+const REPO_ROOT = path.resolve(EXPLORER_ROOT, '..')
 const DASHBOARD_DIR = path.resolve(EXPLORER_ROOT, '..', 'dashboard')
 const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
 const MISSING_ANTHROPIC_CONFIG_MESSAGE = 'Anthropic API is not configured on this server. Add ANTHROPIC_API_KEY to explorer/.env or your shell environment.'
@@ -77,6 +83,7 @@ const STOP_WORDS = new Set([
 ])
 
 const ACTIVE_STUDY = getActiveStudy()
+const STUDY_CONTEXT = buildStudyContext(ACTIVE_STUDY)
 const OVERVIEW_CARD = ACTIVE_STUDY.overviewCard
 const TOPIC_CARDS = ACTIVE_STUDY.topicCards
 const CURATED_CARDS = [OVERVIEW_CARD, ...TOPIC_CARDS]
@@ -97,6 +104,25 @@ const DEFAULT_GENERATED_CAVEAT_BLOCK: Block = {
 const DEFAULT_SIMULATION_CONFIG: SimulationRequest = {
   ...ACTIVE_STUDY.runtime.defaultSimulationConfig,
 }
+
+function resolveRepoRelativePath(rawPath: string | undefined | null): string | null {
+  const trimmed = rawPath?.trim()
+  if (!trimmed) return null
+  return path.isAbsolute(trimmed)
+    ? path.resolve(trimmed)
+    : path.resolve(REPO_ROOT, trimmed)
+}
+
+const ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH = resolveRepoRelativePath(
+  ACTIVE_STUDY.runtime.publishedResults?.catalogPath,
+)
+const ACTIVE_PUBLISHED_RESULTS_BASE_DIR = resolveRepoRelativePath(
+  ACTIVE_STUDY.runtime.publishedResults?.baseDir,
+) ?? (
+  ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH
+    ? path.resolve(path.dirname(ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH), '..')
+    : null
+)
 
 const PAPER_REFERENCE_OVERRIDES = {
   ...ACTIVE_STUDY.runtime.paperReferenceOverrides,
@@ -181,6 +207,7 @@ app.use(cors({ origin: allowedOrigins }))
 app.use(express.json({ limit: '1mb' }))
 
 const client = apiKey ? new Anthropic({ apiKey }) : null
+const aiSdkAnthropicProvider = apiKey ? createAnthropic({ apiKey }) : null
 const allTools = buildTools()
 const exploreTools = allTools.filter(tool => tool.name !== 'render_simulation_view_spec')
 const simulationCopilotTools = allTools.filter(
@@ -194,6 +221,7 @@ const agentLoopOrchestrator = client
   ? new AgentLoopOrchestrator(client, agentLoopStore, simulationRuntime, anthropicModel)
   : null
 const publishedReplayDatasetCache = new Map<string, PublishedReplayPayload>()
+let publishedResearchCatalogCache: PublishedResearchCatalog | null = null
 const publishedRegionLookup = new Map(GCP_REGIONS.map(region => [region.id, region] as const))
 
 interface ExploreRequest {
@@ -491,6 +519,34 @@ interface PublishedReplayPayload {
   readonly slots?: Record<string, ReadonlyArray<readonly [string, number]>>
 }
 
+interface PublishedResearchMetadata {
+  readonly v?: number
+  readonly cost?: number
+  readonly delta?: number
+  readonly cutoff?: number
+  readonly gamma?: number
+  readonly description?: string
+}
+
+interface PublishedResearchDatasetEntry {
+  readonly evaluation: string
+  readonly paradigm: 'Local' | 'External'
+  readonly result: string
+  readonly path: string
+  readonly sourceRole?: string
+  readonly metadata?: PublishedResearchMetadata
+}
+
+interface PublishedResearchCatalog {
+  readonly defaultSelection?: {
+    readonly evaluation: string
+    readonly paradigm: string
+    readonly result: string
+    readonly path: string
+  } | null
+  readonly datasets: readonly PublishedResearchDatasetEntry[]
+}
+
 interface CreateExplorationRequest {
   query: string
   summary: string
@@ -736,7 +792,32 @@ function isOrientationExploreQuery(query: string): boolean {
 
 function buildExploreQueryModeContext(query: string): string {
   if (!isOrientationExploreQuery(query)) return ''
-  return '\n\n## Query Mode\nThis is an orientation or onboarding question. Answer directly in plain language. Organize the page around: (1) what the project studies, (2) the core external-vs-local contrast, (3) why it matters, and (4) a few concrete next questions. Lead with an insight or comparison block, not raw stats, unless a number materially sharpens the explanation.'
+  return '\n\n## Query Mode\nThis is an orientation or onboarding question. Answer directly in plain language. Organize the page around: (1) what the study is about, (2) the main contrast or mechanism, (3) why it matters, and (4) a few concrete next questions or next surfaces. Lead with an insight or comparison block, not raw stats, unless a number materially sharpens the explanation.'
+}
+
+function isPrecomputedResultsExploreQuery(query: string): boolean {
+  return /(compare|comparison|versus| vs\b|difference|gini|hhi|liveness|mev|proposal|attestation|gamma|slot|latency|validator|region|geograph|distribution|baseline|local|external|source placement|misaligned|aligned)/i.test(query)
+}
+
+function buildExploreResultsModeContext(query: string): string {
+  if (!isPrecomputedResultsExploreQuery(query)) return ''
+  return '\n\n## Quantitative Mode\nThis question should lean on pre-computed results when possible. Prefer query_cached_results before relying on generic summaries. Use compact stat, comparison, chart, table, or map blocks that feel like the study\'s Results surface. When the cached data covers only part of the ask, answer that supported slice clearly and mark the rest as interpretation or open follow-up.'
+}
+
+function buildExploreChatSystemPrompt(query: string, sessionContext: string): string {
+  return STUDY_CONTEXT + sessionContext + buildExploreQueryModeContext(query) + buildExploreResultsModeContext(query)
+}
+
+function shouldForceExploreRenderStep(stepNumber: number, toolCalls: readonly { toolName: string }[]): boolean {
+  const hasTerminalRender = toolCalls.some(toolCall => toolCall.toolName === 'render_blocks')
+  if (hasTerminalRender) return false
+
+  const evidenceCalls = toolCalls.filter(toolCall => toolCall.toolName !== 'search_topic_cards')
+  if (stepNumber >= 4) return true
+  if (stepNumber >= 3 && evidenceCalls.length > 0) return true
+  if (stepNumber >= 2 && toolCalls.some(toolCall => toolCall.toolName === 'query_cached_results')) return true
+
+  return false
 }
 
 function stablePriority(type: Block['type']): number {
@@ -1060,6 +1141,35 @@ function coerceGeneratedBlockShape(rawBlock: unknown): unknown {
       const rows = Array.isArray(block.data)
         ? block.data.map(row => coerceGeneratedStringRow(row)).filter(row => row.length > 0)
         : []
+      const comparisonItems = Array.isArray(block.items)
+        ? block.items
+          .map(item => {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) return null
+            const entry = item as Record<string, unknown>
+            const objectValues = entry.values && typeof entry.values === 'object' && !Array.isArray(entry.values)
+              ? Object.entries(entry.values as Record<string, unknown>)
+                  .map(([key, value]) => ({
+                    key,
+                    value: coerceGeneratedText(value),
+                  }))
+                  .filter((value): value is { key: string; value: string } => Boolean(value.value))
+              : []
+            const description = coerceGeneratedText(entry.description)
+            const summaryValue = coerceGeneratedText(entry.value)
+            const values = objectValues.length > 0
+              ? objectValues
+              : [
+                  description ? { key: 'Mechanism', value: description } : null,
+                  summaryValue ? { key: 'Takeaway', value: summaryValue } : null,
+                ].filter((value): value is { key: string; value: string } => value !== null)
+            if (values.length === 0) return null
+            return {
+              label: coerceGeneratedText(entry.label) ?? 'Comparison',
+              items: values,
+            }
+          })
+          .filter((item): item is { label: string; items: Array<{ key: string; value: string }> } => item !== null)
+        : []
 
       if (rows.length >= 2) {
         const [headers, ...bodyRows] = rows
@@ -1070,6 +1180,16 @@ function coerceGeneratedBlockShape(rawBlock: unknown): unknown {
             headers,
             rows: bodyRows,
           }
+        }
+      }
+
+      if (comparisonItems.length >= 2) {
+        return {
+          type: 'comparison',
+          title: coerceGeneratedText(block.title),
+          left: comparisonItems[0],
+          right: comparisonItems[1],
+          verdict: coerceGeneratedText(block.verdict ?? block.summary),
         }
       }
 
@@ -1136,6 +1256,52 @@ function normalizeGeneratedBlocks(
   }
 
   return polished.slice(0, MAX_GENERATED_BLOCKS)
+}
+
+function buildGeneratedExploreResponse(
+  query: string,
+  input: {
+    summary?: string
+    blocks?: unknown[]
+    follow_ups?: readonly string[]
+  },
+  options?: {
+    model?: string
+    cached?: boolean
+    preserveLeadBlock?: boolean
+  },
+): ExploreResponse {
+  const normalizedBlocks = normalizeGeneratedBlocks(input.blocks, {
+    preserveLeadBlock: options?.preserveLeadBlock ?? isOrientationExploreQuery(query),
+  })
+  const normalizedSummary = normalizeGeneratedSummary(input.summary, query, normalizedBlocks)
+  const normalizedFollowUps = normalizeGeneratedFollowUps(query, input.follow_ups)
+
+  const result: ExploreResponse = {
+    summary: normalizedSummary,
+    blocks: normalizedBlocks,
+    followUps: normalizedFollowUps,
+    model: options?.model ?? anthropicModel,
+    cached: options?.cached ?? false,
+    provenance: {
+      source: 'generated',
+      label: 'Fresh interpretation',
+      detail: 'Generated a new structured reading from the study context and the current question.',
+      canonical: false,
+    },
+  }
+
+  const savedExploration = explorationStore.save({
+    query,
+    summary: result.summary,
+    blocks: result.blocks,
+    followUps: result.followUps,
+    model: result.model,
+    cached: result.cached,
+  })
+
+  result.provenance.explorationId = savedExploration.id
+  return result
 }
 
 function normalizeSimulationPrompts(
@@ -1424,12 +1590,34 @@ function sourceRoleLabel(sourceRole: string | null | undefined): string {
   return 'information sources'
 }
 
+function toPublishedResultsRelativePath(candidatePath: string): string {
+  if (!ACTIVE_PUBLISHED_RESULTS_BASE_DIR) {
+    return candidatePath.replace(/\\/g, '/')
+  }
+  return path.relative(ACTIVE_PUBLISHED_RESULTS_BASE_DIR, candidatePath).replace(/\\/g, '/')
+}
+
 function normalizePublishedDatasetPath(rawPath: string | null | undefined): string | null {
   const trimmed = rawPath?.trim().replace(/\\/g, '/')
-  if (!trimmed) return null
-  const resolved = path.resolve(DASHBOARD_DIR, trimmed)
-  if (!isWithinDirectory(DASHBOARD_DIR, resolved)) return null
+  if (!trimmed || !ACTIVE_PUBLISHED_RESULTS_BASE_DIR) return null
+  const resolved = path.resolve(ACTIVE_PUBLISHED_RESULTS_BASE_DIR, trimmed)
+  if (!isWithinDirectory(ACTIVE_PUBLISHED_RESULTS_BASE_DIR, resolved)) return null
   return existsSync(resolved) ? resolved : null
+}
+
+async function loadPublishedResearchCatalog(): Promise<PublishedResearchCatalog | null> {
+  if (publishedResearchCatalogCache) {
+    return publishedResearchCatalogCache
+  }
+  if (!ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH || !existsSync(ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH)) {
+    return null
+  }
+
+  const raw = await fs.readFile(ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH, 'utf8')
+  const sandbox = { window: {} as { RESEARCH_CATALOG?: PublishedResearchCatalog } }
+  runInNewContext(raw, sandbox, { filename: ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH })
+  publishedResearchCatalogCache = sandbox.window.RESEARCH_CATALOG ?? null
+  return publishedResearchCatalogCache
 }
 
 async function loadPublishedReplayPayload(datasetPath: string): Promise<PublishedReplayPayload> {
@@ -1723,6 +1911,206 @@ function summarizeViewerSnapshotContext(
   return lines
 }
 
+type ExploreCachedResultFilters = {
+  readonly paradigm?: string
+  readonly distribution?: string
+  readonly sourcePlacement?: string
+  readonly evaluation?: string
+  readonly result?: string
+}
+
+function normalizePublishedCatalogParadigm(
+  rawParadigm: string | undefined,
+): PublishedResearchDatasetEntry['paradigm'] | undefined {
+  if (!rawParadigm) return undefined
+  const normalized = rawParadigm.trim().toLowerCase()
+  if (normalized === 'ssp' || normalized === 'external') return 'External'
+  if (normalized === 'msp' || normalized === 'local') return 'Local'
+  return undefined
+}
+
+function inferPublishedEvaluation(filters: ExploreCachedResultFilters): string | undefined {
+  if (filters.evaluation?.trim()) return filters.evaluation.trim()
+  if (filters.sourcePlacement === 'latency-aligned' || filters.sourcePlacement === 'latency-misaligned') {
+    return 'SE1-Information-Source-Placement-Effect'
+  }
+  if (filters.distribution === 'heterogeneous') {
+    return 'SE2-Validator-Distribution-Effect'
+  }
+  if (!filters.distribution || filters.distribution === 'homogeneous' || filters.distribution === 'homogeneous-gcp') {
+    return 'Baseline'
+  }
+  return undefined
+}
+
+function inferPublishedResult(filters: ExploreCachedResultFilters): string | undefined {
+  const normalizedResult = filters.result?.trim().toLowerCase()
+  if (
+    normalizedResult
+    && ![
+      'baseline',
+      'data',
+      'gini',
+      'gini_g',
+      'hhi',
+      'hhi_g',
+      'cv',
+      'cv_g',
+      'lc',
+      'lc_g',
+      'liveness',
+      'mev',
+      'proposal',
+      'proposal_times',
+      'attestations',
+      'clusters',
+      'failed_block_proposals',
+    ].includes(normalizedResult)
+  ) {
+    return filters.result?.trim()
+  }
+  if (filters.sourcePlacement === 'latency-aligned' || filters.sourcePlacement === 'latency-misaligned') {
+    return filters.sourcePlacement
+  }
+  return 'cost_0.002'
+}
+
+async function loadExplorePublishedResults(filters: ExploreCachedResultFilters): Promise<unknown> {
+  const catalog = await loadPublishedResearchCatalog()
+  if (!catalog) {
+    return {
+      source: 'published-replay',
+      message: 'The published Results catalog is unavailable on this server.',
+    }
+  }
+
+  const paradigm = normalizePublishedCatalogParadigm(filters.paradigm)
+  const evaluation = inferPublishedEvaluation(filters)
+  const result = inferPublishedResult(filters)
+
+  const matchedEntries = catalog.datasets.filter(entry => {
+    if (paradigm && entry.paradigm !== paradigm) return false
+    if (evaluation && entry.evaluation !== evaluation) return false
+    if (result && entry.result !== result) return false
+    return true
+  })
+
+  if (matchedEntries.length === 0) {
+    return {
+      source: 'published-replay',
+      message: 'No published Results datasets match those filters.',
+      availableSelections: {
+        evaluations: [...new Set(catalog.datasets.map(entry => entry.evaluation))],
+        paradigms: ['SSP', 'MSP'],
+        results: [...new Set(catalog.datasets.map(entry => entry.result))],
+      },
+    }
+  }
+
+  const results = await Promise.all(matchedEntries.map(async entry => {
+    const datasetPath = normalizePublishedDatasetPath(entry.path)
+    if (!datasetPath) return null
+
+    const payload = await loadPublishedReplayPayload(datasetPath)
+    const initialSnapshot = buildPublishedSlotSummary(payload, 0)
+    const finalSnapshot = buildPublishedSlotSummary(payload, Math.max(0, totalPublishedSlots(payload) - 1))
+    const metricDigest = ([
+      'gini',
+      'hhi',
+      'liveness',
+      'proposal_times',
+      'mev',
+      'failed_block_proposals',
+      'clusters',
+      'attestations',
+    ] as const)
+      .map(key => summarizePublishedSeries(key, payload.metrics?.[key]))
+      .filter((line): line is string => Boolean(line))
+
+    return {
+      label: `${entry.evaluation} / ${entry.paradigm} / ${entry.result}`,
+      evaluation: entry.evaluation,
+      paradigm: entry.paradigm === 'External' ? 'SSP' : 'MSP',
+      result: entry.result,
+      datasetPath: toPublishedResultsRelativePath(datasetPath),
+      sourceRole: sourceRoleLabel(entry.sourceRole),
+      description: payload.description ?? entry.metadata?.description ?? null,
+      validators: payload.v ?? entry.metadata?.v ?? null,
+      migrationCost: payload.cost ?? entry.metadata?.cost ?? null,
+      gamma: payload.gamma ?? entry.metadata?.gamma ?? null,
+      totalSlots: finalSnapshot.totalSlots,
+      initialMetrics: initialSnapshot.metrics,
+      finalMetrics: finalSnapshot.metrics,
+      activeRegions: finalSnapshot.activeRegions,
+      dominantRegion: finalSnapshot.dominantRegion
+        ? {
+            regionId: finalSnapshot.dominantRegion.regionId,
+            city: finalSnapshot.dominantRegion.city,
+            share: finalSnapshot.dominantRegion.share,
+            count: finalSnapshot.dominantRegion.count,
+          }
+        : null,
+      topRegions: finalSnapshot.topRegions,
+      metricDigest,
+    }
+  }))
+
+  const compactResults = results.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+  if (compactResults.length === 0) {
+    return {
+      source: 'published-replay',
+      message: 'The matching published Results datasets could not be loaded.',
+    }
+  }
+
+  const companion = compactResults.length === 1
+    ? compactResults[0]
+    : null
+
+  let pairedComparison: unknown = null
+  if (companion && paradigm) {
+    const oppositeParadigm = paradigm === 'External' ? 'Local' : 'External'
+    const companionEntry = catalog.datasets.find(entry =>
+      entry.evaluation === companion.evaluation
+      && entry.result === companion.result
+      && entry.paradigm === oppositeParadigm,
+    )
+    if (companionEntry) {
+      const datasetPath = normalizePublishedDatasetPath(companionEntry.path)
+      if (datasetPath) {
+        const payload = await loadPublishedReplayPayload(datasetPath)
+        const finalSnapshot = buildPublishedSlotSummary(payload, Math.max(0, totalPublishedSlots(payload) - 1))
+        pairedComparison = {
+          label: `${companionEntry.evaluation} / ${companionEntry.paradigm} / ${companionEntry.result}`,
+          paradigm: companionEntry.paradigm === 'External' ? 'SSP' : 'MSP',
+          datasetPath: toPublishedResultsRelativePath(datasetPath),
+          finalMetrics: finalSnapshot.metrics,
+          activeRegions: finalSnapshot.activeRegions,
+          dominantRegion: finalSnapshot.dominantRegion
+            ? {
+                regionId: finalSnapshot.dominantRegion.regionId,
+                city: finalSnapshot.dominantRegion.city,
+                share: finalSnapshot.dominantRegion.share,
+                count: finalSnapshot.dominantRegion.count,
+              }
+            : null,
+        }
+      }
+    }
+  }
+
+  return {
+    source: 'published-replay',
+    query: {
+      evaluation: evaluation ?? null,
+      paradigm: paradigm ? (paradigm === 'External' ? 'SSP' : 'MSP') : null,
+      result: result ?? null,
+    },
+    results: compactResults,
+    pairedComparison,
+  }
+}
+
 function normalizePublishedPaperLens(
   value: unknown,
 ): 'evidence' | 'theory' | 'methods' {
@@ -1874,8 +2262,8 @@ async function buildPublishedReplayContext(
 
   const parts = [
     '## Active Published Replay',
-    `- label: ${request.datasetLabel?.trim() || path.relative(DASHBOARD_DIR, datasetPath).replace(/\\/g, '/')}`,
-    `- datasetPath: ${path.relative(DASHBOARD_DIR, datasetPath).replace(/\\/g, '/')}`,
+    `- label: ${request.datasetLabel?.trim() || toPublishedResultsRelativePath(datasetPath)}`,
+    `- datasetPath: ${toPublishedResultsRelativePath(datasetPath)}`,
     `- sourceRole: ${sourceRoleLabel(request.sourceRole)}`,
     `- audienceMode: ${request.audienceMode ?? 'reader'}`,
     `- paperLens: ${request.paperLens ?? 'evidence'}`,
@@ -1921,8 +2309,8 @@ async function buildPublishedReplayContext(
   if (comparePayload && comparePath) {
     parts.push(
       '## Comparison Replay',
-      `- label: ${request.compareLabel?.trim() || path.relative(DASHBOARD_DIR, comparePath).replace(/\\/g, '/')}`,
-      `- datasetPath: ${path.relative(DASHBOARD_DIR, comparePath).replace(/\\/g, '/')}`,
+      `- label: ${request.compareLabel?.trim() || toPublishedResultsRelativePath(comparePath)}`,
+      `- datasetPath: ${toPublishedResultsRelativePath(comparePath)}`,
       `- sourceRole: ${sourceRoleLabel(request.compareSourceRole)}`,
       `- description: ${comparePayload.description ?? 'No description supplied.'}`,
       ...summarizePublishedSlotSnapshot('Comparison Final Slot', compareFinalSnapshot!),
@@ -2752,6 +3140,203 @@ function executeToolCall(
   return { error: `Unknown tool: ${name}` }
 }
 
+async function executeExploreChatToolCall(
+  name: string,
+  input: Record<string, unknown>,
+): Promise<unknown> {
+  if (name === 'query_cached_results') {
+    if (!ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH || !existsSync(ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH)) {
+      return executeToolCall(name, input)
+    }
+    return await loadExplorePublishedResults({
+      paradigm: typeof input.paradigm === 'string' ? input.paradigm : undefined,
+      distribution: typeof input.distribution === 'string' ? input.distribution : undefined,
+      sourcePlacement: typeof input.sourcePlacement === 'string' ? input.sourcePlacement : undefined,
+      evaluation: typeof input.evaluation === 'string' ? input.evaluation : undefined,
+      result: typeof input.result === 'string' ? input.result : undefined,
+    })
+  }
+
+  return executeToolCall(name, input)
+}
+
+const renderBlocksToolInputSchema = z.object({
+  summary: z.string().optional(),
+  blocks: z.array(z.unknown()).optional(),
+  follow_ups: z.array(z.string()).optional(),
+})
+
+function normalizeExploreHistory(
+  history: unknown,
+): Array<{ query: string; summary: string }> {
+  return Array.isArray(history)
+    ? history
+      .filter((entry): entry is { query: string; summary: string } =>
+        Boolean(entry)
+        && typeof entry === 'object'
+        && typeof (entry as { query?: unknown }).query === 'string'
+        && typeof (entry as { summary?: unknown }).summary === 'string',
+      )
+      .slice(-MAX_SESSION_HISTORY_ENTRIES)
+      .map(entry => ({
+        query: limitText(entry.query.trim(), MAX_EXPLORE_QUERY_LENGTH),
+        summary: limitText(entry.summary.trim(), MAX_SESSION_SUMMARY_LENGTH),
+      }))
+      .filter(entry => entry.query.length > 0 && entry.summary.length > 0)
+    : []
+}
+
+function extractTextFromUiMessage(message: UIMessage | undefined): string {
+  if (!message) return ''
+
+  return message.parts
+    .flatMap(part => part.type === 'text' ? [part.text] : [])
+    .join(' ')
+    .trim()
+}
+
+function buildExploreChatTools(query: string) {
+  return {
+    search_topic_cards: createTool({
+      description: 'Search the curated findings library for relevant paper topics.',
+      inputSchema: z.object({
+        query: z.string().optional(),
+        limit: z.number().int().optional(),
+      }),
+      execute: async (input) => executeToolCall('search_topic_cards', input as Record<string, unknown>),
+    }),
+    get_topic_card: createTool({
+      description: 'Retrieve one curated paper topic card by id.',
+      inputSchema: z.object({
+        id: z.string(),
+      }),
+      execute: async (input) => executeToolCall('get_topic_card', input as Record<string, unknown>),
+    }),
+    search_explorations: createTool({
+      description: 'Search prior study explorations for related questions and summaries.',
+      inputSchema: z.object({
+        query: z.string().optional(),
+        paradigm: z.string().optional(),
+        experiment: z.string().optional(),
+        verified_only: z.boolean().optional(),
+        sort: z.string().optional(),
+        limit: z.number().int().optional(),
+      }),
+      execute: async (input) => executeToolCall('search_explorations', input as Record<string, unknown>),
+    }),
+    get_exploration: createTool({
+      description: 'Retrieve a prior exploration by id.',
+      inputSchema: z.object({
+        id: z.string(),
+      }),
+      execute: async (input) => executeToolCall('get_exploration', input as Record<string, unknown>),
+    }),
+    suggest_underexplored_topics: createTool({
+      description: 'Suggest narrowly related follow-up questions that are still underexplored.',
+      inputSchema: z.object({
+        query: z.string().optional(),
+        limit: z.number().int().optional(),
+      }),
+      execute: async (input) => executeToolCall('suggest_underexplored_topics', input as Record<string, unknown>),
+    }),
+    build_simulation_config: createTool({
+      description: 'Compose a bounded simulation configuration without running it.',
+      inputSchema: z.record(z.string(), z.unknown()),
+      execute: async (input) => executeToolCall('build_simulation_config', input),
+    }),
+    query_cached_results: createTool({
+      description: 'Query the study-owned published Results datasets and pre-computed simulation metrics that power the Results surface.',
+      inputSchema: z.object({
+        paradigm: z.string().optional(),
+        distribution: z.string().optional(),
+        sourcePlacement: z.string().optional(),
+        evaluation: z.string().optional(),
+        result: z.string().optional(),
+      }),
+      execute: async (input) => executeExploreChatToolCall('query_cached_results', input as Record<string, unknown>),
+    }),
+    render_blocks: createTool({
+      description: 'Compose the final page artifact using the supported block formats and pre-computed data where relevant.',
+      inputSchema: renderBlocksToolInputSchema,
+      execute: async (input) => buildGeneratedExploreResponse(query, {
+        summary: input.summary,
+        blocks: input.blocks as unknown[] | undefined,
+        follow_ups: input.follow_ups,
+      }, {
+        model: anthropicModel,
+        cached: false,
+      }),
+    }),
+  }
+}
+
+app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
+  const { messages, history } = req.body as {
+    messages?: UIMessage[]
+    history?: Array<{ query: string; summary: string }>
+  }
+  const originalMessages = Array.isArray(messages) ? messages : []
+  const lastUserMessage = [...originalMessages].reverse().find(message => message?.role === 'user')
+  const trimmedQuery = extractTextFromUiMessage(lastUserMessage)
+
+  if (!trimmedQuery) {
+    res.status(400).json({ error: 'A user question is required.' })
+    return
+  }
+  if (trimmedQuery.length > MAX_EXPLORE_QUERY_LENGTH) {
+    res.status(400).json({
+      error: `Query is too long. Keep it under ${MAX_EXPLORE_QUERY_LENGTH} characters and narrow the ask.`,
+    })
+    return
+  }
+  if (!aiSdkAnthropicProvider) {
+    res.status(503).json({ error: MISSING_ANTHROPIC_CONFIG_MESSAGE })
+    return
+  }
+
+  try {
+    const sessionHistory = normalizeExploreHistory(history)
+    const sessionContext = sessionHistory.length
+      ? `\n\n## Session Context\nPrevious queries this session:\n${sessionHistory.map((entry, index) => `${index + 1}. "${entry.query}" -> ${entry.summary}`).join('\n')}\n\nBuild on prior context where relevant.`
+      : ''
+    const systemPrompt = buildExploreChatSystemPrompt(trimmedQuery, sessionContext)
+    const exploreChatTools = buildExploreChatTools(trimmedQuery)
+
+    const result = streamText({
+      model: aiSdkAnthropicProvider(anthropicModel),
+      system: systemPrompt,
+      prompt: trimmedQuery,
+      maxOutputTokens: 4096,
+      tools: exploreChatTools,
+      stopWhen: hasToolCall('render_blocks'),
+      prepareStep: ({ steps, stepNumber }) => {
+        const allToolCalls = steps.flatMap(step => step.toolCalls)
+        if (!shouldForceExploreRenderStep(stepNumber, allToolCalls)) {
+          return undefined
+        }
+
+        return {
+          activeTools: ['render_blocks'],
+          toolChoice: { type: 'tool', toolName: 'render_blocks' },
+          system: `${systemPrompt}\n\n## Finalization\nYou already have enough evidence for this answer. Do not call any more lookup tools. Call render_blocks now and organize the page from the evidence already gathered in this conversation.`,
+        }
+      },
+    })
+
+    result.pipeUIMessageStreamToResponse(res, {
+      originalMessages,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    const status =
+      message.includes('rate_limit') ? 429 :
+      message.includes('authentication') ? 401 :
+      500
+
+    res.status(status).json({ error: message })
+  }
+})
+
 app.post('/api/explore', exploreRateLimit, async (req, res) => {
   const { query, history } = req.body as ExploreRequest
   const trimmedQuery = query?.trim()
@@ -2767,20 +3352,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
     return
   }
 
-  const sessionHistory = Array.isArray(history)
-    ? history
-      .filter((entry): entry is { query: string; summary: string } =>
-        Boolean(entry)
-        && typeof entry.query === 'string'
-        && typeof entry.summary === 'string',
-      )
-      .slice(-MAX_SESSION_HISTORY_ENTRIES)
-      .map(entry => ({
-        query: limitText(entry.query.trim(), MAX_EXPLORE_QUERY_LENGTH),
-        summary: limitText(entry.summary.trim(), MAX_SESSION_SUMMARY_LENGTH),
-      }))
-      .filter(entry => entry.query.length > 0 && entry.summary.length > 0)
-    : []
+  const sessionHistory = normalizeExploreHistory(history)
 
   if (!client) {
     const curatedMatch = findCuratedMatch(trimmedQuery)
@@ -2805,6 +3377,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
       ? `\n\n## Session Context\nPrevious queries this session:\n${sessionHistory.map((entry, index) => `${index + 1}. "${entry.query}" -> ${entry.summary}`).join('\n')}\n\nBuild on prior context where relevant.`
       : ''
     const queryModeContext = buildExploreQueryModeContext(trimmedQuery)
+    const resultsModeContext = buildExploreResultsModeContext(trimmedQuery)
 
     // Multi-turn tool execution loop
     const messages: Anthropic.Messages.MessageParam[] = [
@@ -2820,7 +3393,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
         system: [
           {
             type: 'text',
-            text: STUDY_CONTEXT + sessionContext + queryModeContext,
+            text: STUDY_CONTEXT + sessionContext + queryModeContext + resultsModeContext,
             cache_control: sessionHistory.length ? undefined : { type: 'ephemeral' },
           },
         ],
@@ -2883,38 +3456,12 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
       blocks?: unknown[]
       follow_ups?: string[]
     }
-    const normalizedBlocks = normalizeGeneratedBlocks(input.blocks, {
-      preserveLeadBlock: isOrientationExploreQuery(trimmedQuery),
-    })
-    const normalizedSummary = normalizeGeneratedSummary(input.summary, trimmedQuery, normalizedBlocks)
-    const normalizedFollowUps = normalizeGeneratedFollowUps(trimmedQuery, input.follow_ups)
-
-    const result: ExploreResponse = {
-      summary: normalizedSummary,
-      blocks: normalizedBlocks,
-      followUps: normalizedFollowUps,
+    const result = buildGeneratedExploreResponse(trimmedQuery, input, {
       model: finalResponse.model,
       cached: finalResponse.usage?.cache_read_input_tokens
         ? finalResponse.usage.cache_read_input_tokens > 0
         : false,
-      provenance: {
-        source: 'generated',
-        label: 'Fresh interpretation',
-        detail: 'Generated a new structured reading from the study context and the current question.',
-        canonical: false,
-      },
-    }
-
-    const savedExploration = explorationStore.save({
-      query: trimmedQuery,
-      summary: result.summary,
-      blocks: result.blocks,
-      followUps: result.followUps,
-      model: result.model,
-      cached: result.cached,
     })
-
-    result.provenance.explorationId = savedExploration.id
     res.json(result)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
@@ -3034,9 +3581,9 @@ app.post('/api/published-replay-copilot', publishedReplayCopilotRateLimit, async
           ? 'Generated against the active published replay and the selected comparison replay.'
           : 'Generated against the active published replay.',
         canonical: false,
-        datasetPath: path.relative(DASHBOARD_DIR, replayContext.datasetPath).replace(/\\/g, '/'),
+        datasetPath: toPublishedResultsRelativePath(replayContext.datasetPath),
         comparePath: replayContext.comparePath
-          ? path.relative(DASHBOARD_DIR, replayContext.comparePath).replace(/\\/g, '/')
+          ? toPublishedResultsRelativePath(replayContext.comparePath)
           : undefined,
       },
     }
@@ -3147,9 +3694,9 @@ app.post('/api/published-replay-notes', async (req, res) => {
 
   const nextNote: PublishedReplayNote = {
     id: randomUUID(),
-    datasetPath: path.relative(DASHBOARD_DIR, datasetPath).replace(/\\/g, '/'),
+    datasetPath: toPublishedResultsRelativePath(datasetPath),
     datasetLabel: request.datasetLabel?.trim() || null,
-    comparePath: comparePath ? path.relative(DASHBOARD_DIR, comparePath).replace(/\\/g, '/') : null,
+    comparePath: comparePath ? toPublishedResultsRelativePath(comparePath) : null,
     compareLabel: request.compareLabel?.trim() || null,
     slotIndex,
     slotNumber,

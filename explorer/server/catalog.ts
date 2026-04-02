@@ -453,9 +453,8 @@ export function buildTools(): Anthropic.Messages.Tool[] {
     {
       name: 'query_cached_results',
       description:
-        'Query pre-computed simulation results from the cache. Returns summary metrics (Gini, HHI, liveness, MEV, supermajority success, top regions) ' +
-        'for completed runs. Use this to answer questions about simulation outcomes without requiring the user to run a new simulation. ' +
-        'The server pre-warms 10 canonical configs (External/Local × homogeneous/aligned/misaligned). ' +
+        'Query pre-computed study results. Returns summary metrics for matching completed runs and, when the active study exposes them, can be backed by frozen published Results datasets. ' +
+        'Use this to answer questions about outcomes without requiring the user to run a new simulation. ' +
         'Filter by paradigm, distribution, and/or source placement to narrow results.',
       input_schema: {
         type: 'object' as const,
@@ -482,7 +481,7 @@ export function buildTools(): Anthropic.Messages.Tool[] {
     {
       name: 'render_blocks',
       description:
-        'Compose visual blocks to answer the user\'s question about the geo-decentralization study. ' +
+        'Compose visual blocks to answer the user\'s question about the active study package. ' +
         'Prefer 3-5 high-signal blocks, not a maximal list. Use a mix of block types: stat for key numbers, insight for explanations, chart for bar/line data, ' +
         'comparison for external vs local block building, table for structured data, map for geography, timeseries for trends, ' +
         'scatter for correlation/trade-off plots (e.g. latency vs decentralization), histogram for distributions (e.g. Gini coefficient spread across runs), ' +

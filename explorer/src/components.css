@@ -188,3 +188,103 @@
   border-radius: 2px;
   background: rgba(0, 0, 0, 0.06);
 }
+
+/* ── Ask loading state — staged progress card ── */
+.ask-loading-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(37, 99, 235, 0.08);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(22, 163, 74, 0.05), transparent 28%),
+    rgba(255, 255, 255, 0.97);
+  box-shadow:
+    0 12px 32px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.ask-loading-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(37,99,235,0.34), rgba(194,85,58,0.24), rgba(22,163,74,0.22));
+}
+
+.ask-loading-dot {
+  position: relative;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.22);
+  animation: ask-loading-pulse 1.8s ease-out infinite;
+}
+
+.ask-loading-dot[data-tone="steady"] {
+  background: #4DA6FF;
+}
+
+.ask-loading-dot[data-tone="slow"] {
+  background: var(--color-warning);
+  box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.16);
+}
+
+@keyframes ask-loading-pulse {
+  0% {
+    transform: scale(0.92);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.22);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0);
+  }
+  100% {
+    transform: scale(0.92);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+}
+
+.ask-loading-stage {
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ask-loading-stage[data-state="pending"] {
+  border-color: rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.ask-loading-stage[data-state="active"] {
+  border-color: rgba(37, 99, 235, 0.18);
+  background: rgba(37, 99, 235, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.ask-loading-stage[data-state="done"] {
+  border-color: rgba(22, 163, 74, 0.18);
+  background: rgba(22, 163, 74, 0.05);
+}
+
+.ask-loading-stage-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ask-loading-stage-dot[data-state="active"] {
+  background: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.ask-loading-stage-dot[data-state="done"] {
+  background: var(--color-success);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+.ask-loading-stage-dot[data-state="error"] {
+  background: var(--color-danger);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}

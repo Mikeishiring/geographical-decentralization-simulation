@@ -157,6 +157,11 @@ export interface StudySimulationConfig {
 
 export type StudyRuntimeAdapterKind = 'none' | 'static' | 'exact' | 'hybrid'
 
+export interface StudyPublishedResultsConfig {
+  readonly catalogPath: string
+  readonly baseDir?: string
+}
+
 export interface StudyRuntimeConfig {
   readonly adapter: StudyRuntimeAdapterKind
   readonly defaultSimulationConfig: StudySimulationConfig
@@ -164,6 +169,24 @@ export interface StudyRuntimeConfig {
   readonly simulationPresets: Readonly<Record<string, Partial<StudySimulationConfig>>>
   readonly canonicalPrewarmConfigs: readonly StudySimulationConfig[]
   readonly sourceBlockRefs: readonly StudySourceRef[]
+  readonly publishedResults?: StudyPublishedResultsConfig
+}
+
+export type StudyAssistantMode = 'ask' | 'experiment' | 'both'
+
+export interface StudyAssistantSuggestedPrompt {
+  readonly label: string
+  readonly prompt: string
+  readonly mode?: StudyAssistantMode
+}
+
+export interface StudyAssistantConfig {
+  readonly askHeading?: string
+  readonly askDescription?: string
+  readonly askPlaceholder?: string
+  readonly suggestedPrompts: readonly StudyAssistantSuggestedPrompt[]
+  readonly resultsStyleGuidance?: string
+  readonly systemPromptSupplement?: string
 }
 
 export interface StudyNavigationConfig {
@@ -187,4 +210,5 @@ export interface StudyPackageFrame {
   readonly dashboardMetrics: readonly StudyDashboardMetric[]
   readonly navigation: StudyNavigationConfig
   readonly runtime: StudyRuntimeConfig
+  readonly assistant: StudyAssistantConfig
 }
