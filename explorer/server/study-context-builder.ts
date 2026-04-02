@@ -32,7 +32,7 @@ function formatResultsTemplates(study: StudyPackage): string[] {
         return `- ${dataKey}: ${chart.takeaway}`
       }
 
-      return `- ${dashboard.title} (${dashboard.pattern}) -> ${dataKey}: ${dashboard.questionAnswered} ${dashboard.summary}`
+      return `- ${dashboard.title} (${dashboard.pattern}) -> ${dataKey}: ${dashboard.questionAnswered} ${dashboard.summary}${dashboard.askMetricKey ? ` Lead metric: ${dashboard.askMetricKey}.` : ''}`
     })
 }
 
