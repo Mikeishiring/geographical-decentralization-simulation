@@ -24,6 +24,9 @@ interface SectionNavProps {
   readonly compact?: boolean
 }
 
+const NOTE_PREVIEW_OPEN_DELAY_MS = 140
+const NOTE_PREVIEW_CLOSE_DELAY_MS = 80
+
 function collectNoteHighlights(notes: readonly Exploration[]): readonly NoteHighlight[] {
   const seen = new Map<string, NoteHighlight>()
   for (const note of notes) {
@@ -60,11 +63,11 @@ function NoteHoverCard({
 
   const handleEnter = () => {
     window.clearTimeout(timeoutRef.current)
-    timeoutRef.current = window.setTimeout(() => setHovered(true), 380)
+    timeoutRef.current = window.setTimeout(() => setHovered(true), NOTE_PREVIEW_OPEN_DELAY_MS)
   }
   const handleLeave = () => {
     window.clearTimeout(timeoutRef.current)
-    timeoutRef.current = window.setTimeout(() => setHovered(false), 120)
+    timeoutRef.current = window.setTimeout(() => setHovered(false), NOTE_PREVIEW_CLOSE_DELAY_MS)
   }
 
   useEffect(() => () => window.clearTimeout(timeoutRef.current), [])

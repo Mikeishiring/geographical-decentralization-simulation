@@ -82,7 +82,7 @@ function computePosition(rect: DOMRect, containerRef?: React.RefObject<HTMLEleme
 
 type SubmitPhase = 'idle' | 'submitting' | 'success' | 'error'
 
-const CONFIRM_DWELL_MS = 1400
+const CONFIRM_DWELL_MS = 900
 
 /* ── Props ──────────────────────────────────────────────────────────────── */
 
@@ -129,16 +129,16 @@ export function SelectionPopover({
     setPosition(computePosition(rect, containerRef))
   }, [rect, containerRef])
 
-  // Auto-focus textarea after popup mounts (agentation: 50ms delay)
+  // Auto-focus textarea on the next frame so the note can be typed immediately.
   useEffect(() => {
     if (!anchor || !position || phase !== 'idle') return
-    const timer = window.setTimeout(() => {
+    const frame = window.requestAnimationFrame(() => {
       const el = textareaRef.current
       if (!el) return
       el.focus()
       el.setSelectionRange(el.value.length, el.value.length)
-    }, 50)
-    return () => window.clearTimeout(timer)
+    })
+    return () => window.cancelAnimationFrame(frame)
   }, [anchor, position, phase])
 
   // Outside click: shake if has text, dismiss if empty (agentation pattern)
@@ -324,10 +324,14 @@ export function SelectionPopover({
                   </span>
                   {sectionNoteCount > 0 && (
                     <span className="text-[10px] font-medium tabular-nums text-black/40">
-                      {sectionNoteCount} note{sectionNoteCount !== 1 ? 's' : ''} here
+                      {sectionNoteCount} note{sectionNoteCount !== 1 ? 's' : ''} in this section
                     </span>
                   )}
                 </div>
+
+                <p className="mb-2 text-[10px] leading-relaxed text-black/45">
+                  Publish a public reader note tied to this passage. It will appear below this section and on Community, where other readers can reply and vote.
+                </p>
 
                 {/* Quoted selection (agentation: 80 char, italic, subtle bg) */}
                 <div className="mb-2 text-xs italic leading-[1.45] text-black/55 bg-black/[0.04] rounded px-2 py-1.5">
@@ -360,7 +364,7 @@ export function SelectionPopover({
 
                 {/* Helper text */}
                 <p className="mt-1.5 text-[10px] leading-snug text-black/40">
-                  Notes are public. Lead with what you observed, not what you assumed.
+                  Notes are public. Lead with what you observed, then label the inference. Press Enter to publish and Shift+Enter for a new line.
                 </p>
 
                 {/* Actions bar */}

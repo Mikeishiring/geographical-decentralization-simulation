@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TextAnchor } from '../types/anchors'
 
+const MIN_SELECTION_LENGTH = 3
+const MAX_SELECTION_LENGTH = 500
+
 /**
  * Watches for text selections within a container element and returns
  * a TextAnchor with the selected excerpt and nearest section context.
@@ -13,12 +16,57 @@ export function useTextSelection(viewMode?: string) {
   const [anchor, setAnchor] = useState<TextAnchor | null>(null)
   const [rect, setRect] = useState<DOMRect | null>(null)
   const rangeRef = useRef<Range | null>(null)
+  const selectionSyncFrameRef = useRef<number | null>(null)
+  const pointerSelectingRef = useRef(false)
 
-  const clearSelection = useCallback(() => {
+  const resetSelectionState = useCallback(() => {
     setAnchor(null)
     setRect(null)
     rangeRef.current = null
   }, [])
+
+  const clearSelection = useCallback(() => {
+    resetSelectionState()
+    window.getSelection()?.removeAllRanges()
+  }, [resetSelectionState])
+
+  const syncSelectionFromWindow = useCallback(() => {
+    const container = containerRef.current
+    const sel = window.getSelection()
+    if (!container || !sel || sel.isCollapsed || !sel.rangeCount) return false
+
+    const range = sel.getRangeAt(0)
+    if (!container.contains(range.commonAncestorContainer)) return false
+
+    const text = sel.toString().replace(/\s+/g, ' ').trim()
+    if (text.length < MIN_SELECTION_LENGTH || text.length > MAX_SELECTION_LENGTH) return false
+
+    const sectionId = findAncestorAttribute(range.commonAncestorContainer, 'data-section-id')
+    const blockId = findAncestorAttribute(range.commonAncestorContainer, 'data-block-id')
+
+    rangeRef.current = range.cloneRange()
+
+    setAnchor({
+      sectionId: sectionId ?? undefined,
+      blockId: blockId ?? undefined,
+      excerpt: text,
+      viewMode,
+    })
+    setRect(range.getBoundingClientRect())
+    return true
+  }, [viewMode])
+
+  const scheduleSelectionSync = useCallback(() => {
+    if (selectionSyncFrameRef.current !== null) {
+      window.cancelAnimationFrame(selectionSyncFrameRef.current)
+    }
+    selectionSyncFrameRef.current = window.requestAnimationFrame(() => {
+      selectionSyncFrameRef.current = null
+      if (!syncSelectionFromWindow()) {
+        resetSelectionState()
+      }
+    })
+  }, [resetSelectionState, syncSelectionFromWindow])
 
   // Recompute rect from the stored Range on every scroll/resize.
   // Debounced to prevent flicker during fast scrolling — the popover
@@ -52,61 +100,68 @@ export function useTextSelection(viewMode?: string) {
       window.removeEventListener('resize', recompute)
       if (rafId !== null) cancelAnimationFrame(rafId)
     }
-  }, [anchor]) // Re-attach when anchor changes (i.e. new selection); clearSelection is stable (useCallback with [])
+  }, [anchor, clearSelection])
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
-    const handleMouseUp = () => {
-      // Small delay to let browser finalize the selection
-      window.requestAnimationFrame(() => {
-        const sel = window.getSelection()
-        if (!sel || sel.isCollapsed || !sel.rangeCount) return
-
-        const text = sel.toString().trim()
-        if (text.length < 3 || text.length > 500) return
-
-        const range = sel.getRangeAt(0)
-
-        // Check that selection is within our container
-        if (!container.contains(range.commonAncestorContainer)) return
-
-        // Walk up from the selection to find the nearest data-section-id
-        const sectionId = findAncestorAttribute(range.commonAncestorContainer, 'data-section-id')
-        const blockId = findAncestorAttribute(range.commonAncestorContainer, 'data-block-id')
-
-        // Store the live Range so we can recompute rect on scroll
-        rangeRef.current = range.cloneRange()
-
-        setAnchor({
-          sectionId: sectionId ?? undefined,
-          blockId: blockId ?? undefined,
-          excerpt: text,
-          viewMode,
-        })
-        setRect(range.getBoundingClientRect())
-      })
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest?.('[data-annotation-popover]')) return
+      pointerSelectingRef.current = true
+      resetSelectionState()
     }
 
-    const handleMouseDown = (e: MouseEvent) => {
-      // Don't clear if the click is inside the annotation popover.
-      // The popover marks itself with [data-annotation-popover].
-      const target = e.target as HTMLElement
-      if (target.closest?.('[data-annotation-popover]')) return
-
-      // Clear on new mouse down to reset stale selections
-      clearSelection()
+    const handlePointerUp = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest?.('[data-annotation-popover]')) {
+        pointerSelectingRef.current = false
+        return
+      }
+      pointerSelectingRef.current = false
+      scheduleSelectionSync()
     }
 
-    container.addEventListener('mouseup', handleMouseUp)
-    container.addEventListener('mousedown', handleMouseDown)
+    const handleKeyUp = () => {
+      scheduleSelectionSync()
+    }
+
+    const handleSelectionChange = () => {
+      if (pointerSelectingRef.current) return
+      if ((document.activeElement as HTMLElement | null)?.closest?.('[data-annotation-popover]')) return
+
+      const selection = window.getSelection()
+      if (!selection || selection.isCollapsed || !selection.rangeCount) {
+        resetSelectionState()
+        return
+      }
+
+      const range = selection.getRangeAt(0)
+      if (!container.contains(range.commonAncestorContainer)) {
+        resetSelectionState()
+        return
+      }
+
+      scheduleSelectionSync()
+    }
+
+    container.addEventListener('pointerdown', handlePointerDown)
+    container.addEventListener('pointerup', handlePointerUp)
+    container.addEventListener('keyup', handleKeyUp)
+    document.addEventListener('selectionchange', handleSelectionChange)
 
     return () => {
-      container.removeEventListener('mouseup', handleMouseUp)
-      container.removeEventListener('mousedown', handleMouseDown)
+      container.removeEventListener('pointerdown', handlePointerDown)
+      container.removeEventListener('pointerup', handlePointerUp)
+      container.removeEventListener('keyup', handleKeyUp)
+      document.removeEventListener('selectionchange', handleSelectionChange)
+      if (selectionSyncFrameRef.current !== null) {
+        window.cancelAnimationFrame(selectionSyncFrameRef.current)
+        selectionSyncFrameRef.current = null
+      }
     }
-  }, [viewMode, clearSelection])
+  }, [resetSelectionState, scheduleSelectionSync])
 
   return {
     containerRef,
