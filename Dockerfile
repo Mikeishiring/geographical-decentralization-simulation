@@ -22,16 +22,29 @@ COPY packages/study-schema/package.json ./packages/study-schema/package.json
 RUN npm ci --workspace explorer --include-workspace-root=false
 RUN if [ "$TARGETOS" = "linux" ]; then \
       case "$TARGETARCH" in \
-        amd64) ROLLDOWN_BINDING='@rolldown/binding-linux-x64-gnu' ;; \
-        arm64) ROLLDOWN_BINDING='@rolldown/binding-linux-arm64-gnu' ;; \
-        *) ROLLDOWN_BINDING='' ;; \
+        amd64) \
+          ROLLDOWN_BINDING='@rolldown/binding-linux-x64-gnu'; \
+          LIGHTNINGCSS_BINDING='lightningcss-linux-x64-gnu' ;; \
+        arm64) \
+          ROLLDOWN_BINDING='@rolldown/binding-linux-arm64-gnu'; \
+          LIGHTNINGCSS_BINDING='lightningcss-linux-arm64-gnu' ;; \
+        *) \
+          ROLLDOWN_BINDING=''; \
+          LIGHTNINGCSS_BINDING='' ;; \
       esac; \
-      if [ -n "$ROLLDOWN_BINDING" ]; then \
-        ROLLDOWN_VERSION=$(node -p "require('./explorer/node_modules/rolldown/package.json').optionalDependencies['$ROLLDOWN_BINDING'] || ''"); \
-        if [ -n "$ROLLDOWN_VERSION" ]; then \
-          cd explorer && npm install --no-save "$ROLLDOWN_BINDING@$ROLLDOWN_VERSION"; \
+      install_optional_binding() { \
+        BINDING_NAME="$1"; \
+        PACKAGE_JSON_PATH="$2"; \
+        if [ -z "$BINDING_NAME" ]; then \
+          return 0; \
         fi; \
-      fi; \
+        BINDING_VERSION=$(node -p "require('$PACKAGE_JSON_PATH').optionalDependencies['$BINDING_NAME'] || ''"); \
+        if [ -n "$BINDING_VERSION" ]; then \
+          (cd /app/explorer && npm install --no-save \"$BINDING_NAME@$BINDING_VERSION\"); \
+        fi; \
+      }; \
+      install_optional_binding "$ROLLDOWN_BINDING" "/app/explorer/node_modules/rolldown/package.json"; \
+      install_optional_binding "$LIGHTNINGCSS_BINDING" "/app/explorer/node_modules/lightningcss/package.json"; \
     fi
 
 WORKDIR /app/explorer
