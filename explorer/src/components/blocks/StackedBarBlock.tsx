@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
 import type { StackedBarBlock as StackedBarBlockType } from '../../types/blocks'
+import { BlockEmptyState } from './BlockEmptyState'
 
 interface StackedBarBlockProps {
   block: StackedBarBlockType
@@ -11,14 +12,7 @@ export function StackedBarBlock({ block }: StackedBarBlockProps) {
   const [hoveredBar, setHoveredBar] = useState<{ catIdx: number; seriesIdx: number } | null>(null)
 
   if (block.categories.length === 0 || block.series.length === 0) {
-    return (
-      <div className="overflow-hidden rounded-xl border border-rule bg-white">
-        <div className="border-b border-rule px-5 py-3">
-          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
-        </div>
-        <div className="px-5 py-8 text-center text-xs text-muted">No data available</div>
-      </div>
-    )
+    return <BlockEmptyState title={block.title} message="No stacked-series categories or values were attached to this block." />
   }
 
   const totals = block.categories.map((_, catIdx) =>

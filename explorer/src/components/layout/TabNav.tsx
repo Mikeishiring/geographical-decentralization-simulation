@@ -80,15 +80,15 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                   aria-selected={isActive}
                   tabIndex={isActive ? 0 : -1}
                   className={cn(
-                    'relative flex items-center gap-2 px-3.5 py-3 text-13 transition-colors',
+                    'relative flex items-center gap-2 rounded-xl px-3.5 py-3 text-13 transition-colors',
                     isActive
-                      ? 'text-text-primary font-medium'
+                      ? 'bg-surface-active/70 text-text-primary font-medium'
                       : 'text-muted hover:text-text-primary',
                   )}
                 >
                   <Icon className={cn(
                     'h-3.5 w-3.5 shrink-0 transition-colors',
-                    isActive ? 'text-accent' : 'text-muted/60',
+                    isActive ? 'text-accent' : isHovered ? 'text-text-primary' : 'text-muted/60',
                   )} />
                   <span className="text-xs sm:text-sm">{tab.label}</span>
 
@@ -96,7 +96,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                   {isHovered && !isActive && (
                     <motion.div
                       layoutId="tab-hover-bg"
-                      className="absolute inset-x-1 inset-y-1.5 rounded-lg bg-surface-active -z-10"
+                      className="absolute inset-0 rounded-xl border border-rule/70 bg-white shadow-[0_6px_20px_-18px_rgba(15,23,42,0.25)] -z-10"
                       transition={SPRING_SNAPPY}
                     />
                   )}
@@ -122,10 +122,19 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 2, scale: 0.97 }}
                       transition={SPRING_SNAPPY}
-                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-30 whitespace-nowrap pointer-events-none"
+                      className="absolute top-full left-1/2 z-30 mt-2 w-[min(18rem,calc(100vw-2rem))] -translate-x-1/2 pointer-events-none"
                     >
-                      <div className="relative rounded-lg bg-text-primary/92 px-3 py-2 text-11 text-white/90 shadow-lg backdrop-blur-sm">
-                        {tab.hint}
+                      <div className="relative rounded-xl border border-white/10 bg-text-primary/94 px-3.5 py-3 text-left text-white/90 shadow-xl backdrop-blur-md">
+                        <div className="absolute -top-[5px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-white/10 bg-text-primary/94" />
+                        <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+                          Preview
+                        </div>
+                        <div className="mt-1 text-11 font-medium text-white">
+                          {tab.label}
+                        </div>
+                        <div className="mt-1 text-11 leading-relaxed text-white/72">
+                          {tab.hint}
+                        </div>
                       </div>
                     </motion.div>
                   )}

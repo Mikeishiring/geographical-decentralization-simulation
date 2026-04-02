@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING_CRISP } from '../../lib/theme'
 import type { ComparisonBlock as ComparisonBlockType } from '../../types/blocks'
+import { BlockEmptyState } from './BlockEmptyState'
 import { CiteBadge } from './CiteBadge'
 
 interface ComparisonBlockProps {
@@ -13,12 +14,7 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
   const [hoveredSide, setHoveredSide] = useState<'left' | 'right' | null>(null)
 
   if (block.left.items.length === 0 && block.right.items.length === 0) {
-    return (
-      <div className="bg-white border border-rule rounded-xl p-5">
-        <h3 className="text-base font-semibold text-text-primary mb-4 font-serif">{block.title}</h3>
-        <div className="text-center text-xs text-muted py-4">No comparison data available</div>
-      </div>
-    )
+    return <BlockEmptyState title={block.title} message="Both sides of this comparison are empty in the current payload." />
   }
 
   return (

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING_CRISP } from '../../lib/theme'
 import type { TableBlock as TableBlockType } from '../../types/blocks'
+import { BlockEmptyState } from './BlockEmptyState'
 import { CiteBadge } from './CiteBadge'
 
 interface TableBlockProps {
@@ -14,12 +15,7 @@ export function TableBlock({ block }: TableBlockProps) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null)
 
   if (block.rows.length === 0 || block.headers.length === 0) {
-    return (
-      <div className="bg-white border border-rule rounded-xl p-5">
-        <h3 className="text-sm font-medium text-text-primary mb-4">{block.title}</h3>
-        <div className="text-center text-xs text-muted py-4">No data available</div>
-      </div>
-    )
+    return <BlockEmptyState title={block.title} message="No headers or rows were attached to this table." />
   }
 
   return (

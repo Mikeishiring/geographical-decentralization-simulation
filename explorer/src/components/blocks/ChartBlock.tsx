@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
 import type { ChartBlock as ChartBlockType } from '../../types/blocks'
+import { BlockEmptyState } from './BlockEmptyState'
 
 interface ChartBlockProps {
   block: ChartBlockType
@@ -55,14 +56,7 @@ export function ChartBlock({ block }: ChartBlockProps) {
 }
 
 function EmptyBlock({ title }: { readonly title: string }) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-rule bg-white">
-      <div className="border-b border-rule px-5 py-3">
-        <h3 className="text-sm font-medium text-text-primary">{title}</h3>
-      </div>
-      <div className="px-5 py-8 text-center text-xs text-muted">No data available</div>
-    </div>
-  )
+  return <BlockEmptyState title={title} message="No chart points were attached to this block." />
 }
 
 function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string }) {

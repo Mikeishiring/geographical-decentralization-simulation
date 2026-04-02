@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { BLOCK_COLORS, CHART, SPRING_SNAPPY } from '../../lib/theme'
 import { centerOutReveal } from '../../lib/chart-animations'
 import type { HistogramBlock as HistogramBlockType } from '../../types/blocks'
+import { BlockEmptyState } from './BlockEmptyState'
 
 interface HistogramBlockProps {
   block: HistogramBlockType
@@ -12,14 +13,7 @@ export function HistogramBlock({ block }: HistogramBlockProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
   if (block.bins.length === 0) {
-    return (
-      <div className="overflow-hidden rounded-xl border border-rule bg-white">
-        <div className="border-b border-rule px-5 py-3">
-          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
-        </div>
-        <div className="px-5 py-8 text-center text-xs text-muted">No data available</div>
-      </div>
-    )
+    return <BlockEmptyState title={block.title} message="No histogram bins were attached to this block." />
   }
 
   const maxCount = Math.max(1, ...block.bins.map(b => b.count))
