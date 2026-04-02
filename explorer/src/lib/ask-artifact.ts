@@ -29,7 +29,7 @@ export const askArtifactDataSchema = z.object({
 })
 
 export const askPlanStatusSchema = z.enum(['planned', 'active', 'ready'])
-export const askPlanRouteSchema = z.enum(['orientation', 'results', 'structured-results', 'hybrid'])
+export const askPlanRouteSchema = z.enum(['orientation', 'results', 'structured-results', 'simulation-config', 'hybrid'])
 
 export const askPlanModuleSchema = z.object({
   id: z.string(),

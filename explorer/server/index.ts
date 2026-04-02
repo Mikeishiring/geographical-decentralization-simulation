@@ -819,6 +819,18 @@ function isStructuredResultsQuery(query: string): boolean {
   ].some(pattern => pattern.test(normalized))
 }
 
+function isSimulationPlanningExploreQuery(query: string): boolean {
+  const normalized = query.trim().toLowerCase()
+  if (!normalized) return false
+  if (isOrientationExploreQuery(query) || isStructuredResultsQuery(query)) return false
+
+  return [
+    /\b(what should i run|what to run|what experiment should i run|how should i test|how do i test)\b/,
+    /\b(set up|setup|configure|configuration|preset)\b.*\b(run|experiment|simulation)\b/,
+    /\b(run|experiment|simulation)\b.*\b(with|for|to test)\b/,
+  ].some(pattern => pattern.test(normalized))
+}
+
 function buildExploreResultsModeContext(query: string): string {
   if (!isPrecomputedResultsExploreQuery(query)) return ''
   return '\n\n## Quantitative Mode\nThis question should lean on pre-computed results when possible. Prefer query_cached_results before relying on generic summaries. Use compact stat, comparison, paperChart, chart, table, or map blocks that feel like the study\'s Results surface. When a study-owned paperChart matches the retrieved dataset family, reuse it instead of inventing a bespoke figure. If the retrieved data spans multiple scenarios or parameter settings, summarize the pattern across those variants before zooming into any one case. Treat those study-owned blocks as the skeleton of the answer and add only the minimum interpretation needed to explain them. When the cached data covers only part of the ask, answer that supported slice clearly and mark the rest as interpretation or open follow-up.'
@@ -829,12 +841,18 @@ function buildExploreStructuredResultsModeContext(query: string): string {
   return '\n\n## Structured Results Query Mode\nThis question is asking for a ranked, listed, tabulated, or SQL-style view over the study-owned published Results catalog. Use query_results_table first. Prefer returning a compact chart + table + brief insight block over a prose-only answer. Treat the structured query result as grounded evidence, then call render_blocks to finalize the page if needed.'
 }
 
+function buildExploreSimulationPlanningModeContext(query: string): string {
+  if (!isSimulationPlanningExploreQuery(query)) return ''
+  return '\n\n## Experiment Planning Mode\nThis question is asking what to run, how to encode a bounded test, or which preset to use. Use build_simulation_config first. Return the recommended exact-mode configuration as a compact plan with the proposed config, why it matches the question, and what the user would learn by running it. Do not pretend the simulation has already been executed.'
+}
+
 function buildExploreChatSystemPrompt(query: string, sessionContext: string): string {
   return STUDY_CONTEXT
     + sessionContext
     + buildExploreQueryModeContext(query)
     + buildExploreResultsModeContext(query)
     + buildExploreStructuredResultsModeContext(query)
+    + buildExploreSimulationPlanningModeContext(query)
 }
 
 function shouldForceExploreRenderStep(stepNumber: number, toolCalls: readonly { toolName: string }[]): boolean {
@@ -1668,6 +1686,92 @@ function buildSimulationConfig(input: Record<string, unknown>) {
       'Named study presets use the paper-style 10,000-slot and 0.002 ETH reference setup unless you override fields.',
       'It composes a run configuration only; it does not execute the simulation.',
       'Scenario labels are paper references for orientation, not standalone evidence.',
+    ],
+  }
+}
+
+function buildSimulationConfigArtifact(
+  result: unknown,
+): {
+  readonly summary: string
+  readonly description: string
+  readonly blocks: readonly Block[]
+  readonly followUps: readonly string[]
+} | null {
+  if (!result || typeof result !== 'object' || Array.isArray(result)) return null
+  const candidate = result as Record<string, unknown>
+
+  if (candidate.valid !== true || !candidate.config || typeof candidate.config !== 'object' || Array.isArray(candidate.config)) {
+    const error = typeof candidate.error === 'string'
+      ? candidate.error
+      : 'The requested configuration is outside the exact-mode bounds.'
+    return {
+      summary: 'Suggested run is outside exact bounds',
+      description: error,
+      blocks: [{
+        type: 'caveat',
+        text: error,
+      }],
+      followUps: [
+        'Ask for a smaller or more paper-like variant of this run.',
+        'Ask which single parameter to change first and why.',
+      ],
+    }
+  }
+
+  const config = candidate.config as Record<string, unknown>
+  const configRows = [
+    ['Paradigm', String(config.paradigm ?? 'N/A')],
+    ['Validators', typeof config.validators === 'number' ? formatMetricNumber(config.validators, 0) : 'N/A'],
+    ['Slots', typeof config.slots === 'number' ? formatMetricNumber(config.slots, 0) : 'N/A'],
+    ['Distribution', typeof config.distribution === 'string' ? config.distribution : 'N/A'],
+    ['Source placement', typeof config.sourcePlacement === 'string' ? config.sourcePlacement : 'N/A'],
+    ['Migration cost', typeof config.migrationCost === 'number' ? formatMetricNumber(config.migrationCost, 4) : 'N/A'],
+    ['Gamma', typeof config.attestationThreshold === 'number' ? formatMetricNumber(config.attestationThreshold, 4) : 'N/A'],
+    ['Slot time', typeof config.slotTime === 'number' ? `${formatMetricNumber(config.slotTime, 0)}s` : 'N/A'],
+    ['Seed', typeof config.seed === 'number' ? formatMetricNumber(config.seed, 0) : 'N/A'],
+  ]
+  const scenarioLabels = Array.isArray(candidate.scenarioLabels)
+    ? candidate.scenarioLabels.filter((label): label is string => typeof label === 'string')
+    : []
+  const notes = Array.isArray(candidate.notes)
+    ? candidate.notes.filter((note): note is string => typeof note === 'string')
+    : []
+  const configSummary = [
+    typeof config.paradigm === 'string'
+      ? `${config.paradigm === 'SSP' ? 'External' : 'Local'} block building`
+      : null,
+    typeof config.slotTime === 'number' ? `${formatMetricNumber(config.slotTime, 0)}s slots` : null,
+    typeof config.sourcePlacement === 'string' ? `${config.sourcePlacement} sources` : null,
+  ].filter((part): part is string => part !== null)
+
+  return {
+    summary: configSummary.length > 0
+      ? `Suggested exact run: ${configSummary.join(' · ')}`
+      : 'Suggested exact run',
+    description: 'A bounded exact-mode configuration is ready to inspect or run next.',
+    blocks: [
+      {
+        type: 'insight',
+        title: 'Recommended bounded run',
+        text: scenarioLabels.length > 0
+          ? `This config is closest to ${scenarioLabels.join(', ')} and stays inside the paper-style exact-mode bounds.`
+          : 'This config stays inside the paper-style exact-mode bounds and is ready for an exact run.',
+      },
+      {
+        type: 'table',
+        title: 'Exact simulation config',
+        headers: ['Field', 'Value'],
+        rows: configRows,
+      },
+      ...(notes.length > 0 ? [{
+        type: 'caveat' as const,
+        text: notes.join(' '),
+      }] : []),
+    ],
+    followUps: [
+      'Explain what this run would test before I execute it.',
+      'Tighten this to the smallest single-parameter change from the paper baseline.',
     ],
   }
 }
@@ -5257,6 +5361,27 @@ function buildAskPlanModules(
           state: options.hasTemplateMatch ? 'selected' : 'available',
         },
       ]
+    case 'simulation-config':
+      return [
+        {
+          id: 'experiment-planner',
+          label: 'Experiment planner',
+          detail: 'Compose a bounded exact-mode run configuration without pretending the simulation already ran.',
+          state: 'selected',
+        },
+        {
+          id: 'paper-reference',
+          label: 'Paper reference setup',
+          detail: 'Anchor the proposed run to paper-style defaults, presets, and scenario labels where possible.',
+          state: 'selected',
+        },
+        {
+          id: 'results-replay',
+          label: 'Results replay',
+          detail: 'Available after the run plan if the user wants to compare it back to the frozen published figures.',
+          state: 'available',
+        },
+      ]
     case 'results':
       return [
         {
@@ -5313,6 +5438,7 @@ function buildAskPlanData(
   const status = options?.status ?? 'planned'
   const route: AskPlanData['route'] =
     isOrientationExploreQuery(query) ? 'orientation' :
+    isSimulationPlanningExploreQuery(query) ? 'simulation-config' :
     isStructuredResultsQuery(query) ? 'structured-results' :
     isPrecomputedResultsExploreQuery(query) ? 'results' :
     'hybrid'
@@ -5375,6 +5501,20 @@ function buildAskPlanData(
           hasTemplateMatch ? `Use the matching Results family${templates.length === 1 ? '' : 'ies'} as an anchor.` : 'Query the published Results catalog for the strongest matching rows.',
           'Lay out a compact chart and table before adding interpretation.',
           'Explain the ranking in plain language and suggest the next comparison.',
+        ],
+      }
+    case 'simulation-config':
+      return {
+        status,
+        title: 'Experiment setup route',
+        route,
+        rationale: 'This question is asking what to run or how to encode a bounded test, so the assistant should propose an exact-mode configuration before making any claims about outcomes.',
+        modules,
+        templates,
+        nextSteps: [
+          'Propose a bounded exact-mode configuration that matches the question.',
+          'Explain which paper preset or scenario label it is closest to.',
+          'Clarify what the user would learn by running it next.',
         ],
       }
     case 'results':
@@ -5535,7 +5675,30 @@ function buildExploreChatTools(
     build_simulation_config: createTool({
       description: 'Compose a bounded simulation configuration without running it.',
       inputSchema: z.record(z.string(), z.unknown()),
-      execute: async (input) => executeToolCall('build_simulation_config', input),
+      execute: async (input) => {
+        options?.onStatus?.(buildAskStatus(
+          'evidence',
+          'active',
+          'Planning bounded experiment',
+          'Translating the question into an exact-mode configuration that stays inside the study bounds.',
+        ))
+        const result = executeToolCall('build_simulation_config', input)
+        const artifact = buildSimulationConfigArtifact(result)
+        if (artifact) {
+          streamReferencedArtifact(artifact, 'Experiment setup ready')
+        }
+        options?.onPlan?.(buildAskPlanData(query, {
+          status: 'active',
+          latestCachedResults,
+        }))
+        options?.onStatus?.(buildAskStatus(
+          'evidence',
+          'done',
+          'Experiment setup ready',
+          'A bounded exact-mode config is ready to inspect before running anything.',
+        ))
+        return result
+      },
     }),
     query_cached_results: createTool({
       description: 'Query the study-owned published Results datasets and pre-computed simulation metrics that power the Results surface.',
@@ -5733,6 +5896,23 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
           prepareStep: ({ steps, stepNumber }) => {
             const allToolCalls = steps.flatMap(step => step.toolCalls)
             const expectedTemplates = resolveExpectedStudyResultsTemplates(trimmedQuery)
+            if (stepNumber === 0 && isSimulationPlanningExploreQuery(trimmedQuery)) {
+              writePlan(buildAskPlanData(trimmedQuery, {
+                status: 'active',
+                latestCachedResults,
+              }))
+              writeStatus(buildAskStatus(
+                'plan',
+                'active',
+                'Routing to experiment planner',
+                'This question is asking what to run next, so the assistant is drafting a bounded exact-mode config before answering.',
+              ))
+              return {
+                activeTools: ['build_simulation_config'],
+                toolChoice: { type: 'tool', toolName: 'build_simulation_config' },
+                system: `${systemPrompt}\n\n## Experiment Planning\nThis question is asking for a bounded run plan. Start by calling build_simulation_config. Use paper-style defaults or presets unless the user asked to override them. Do not claim simulation outcomes yet. After the config is drafted, call render_blocks to present it clearly.`,
+              }
+            }
             if (stepNumber === 0 && isStructuredResultsQuery(trimmedQuery)) {
               writePlan(buildAskPlanData(trimmedQuery, {
                 status: 'active',
@@ -5765,6 +5945,23 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
                 activeTools: ['query_cached_results'],
                 toolChoice: { type: 'tool', toolName: 'query_cached_results' },
                 system: `${systemPrompt}\n\n## Results Retrieval\nThis question maps to the following study-owned Results templates:\n${expectedTemplates.map(template => `- ${template.title} (${template.pattern}): ${template.questionAnswered}`).join('\n')}\n\nStart by calling query_cached_results. Do not search topic cards or prior explorations before loading the relevant pre-computed Results family or families.${buildActiveResultsTemplateContext(trimmedQuery, latestCachedResults)}`,
+              }
+            }
+            if (stepNumber >= 1 && allToolCalls.some(toolCall => toolCall.toolName === 'build_simulation_config')) {
+              writePlan(buildAskPlanData(trimmedQuery, {
+                status: 'active',
+                latestCachedResults,
+              }))
+              writeStatus(buildAskStatus(
+                'compose',
+                'active',
+                'Packaging experiment setup',
+                'The bounded config is ready, so the assistant is turning it into a readable run plan.',
+              ))
+              return {
+                activeTools: ['render_blocks'],
+                toolChoice: { type: 'tool', toolName: 'render_blocks' },
+                system: `${systemPrompt}\n\n## Finalization\nYou already have a bounded exact-mode configuration for this question. Do not search cards or Results families. Call render_blocks now and preserve the config table and setup guidance as the backbone of the page.`,
               }
             }
             if (stepNumber >= 1 && allToolCalls.some(toolCall => toolCall.toolName === 'query_results_table')) {
@@ -5916,6 +6113,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
     const queryModeContext = buildExploreQueryModeContext(trimmedQuery)
     const resultsModeContext = buildExploreResultsModeContext(trimmedQuery)
     const structuredResultsModeContext = buildExploreStructuredResultsModeContext(trimmedQuery)
+    const simulationPlanningModeContext = buildExploreSimulationPlanningModeContext(trimmedQuery)
 
     // Multi-turn tool execution loop
     const messages: Anthropic.Messages.MessageParam[] = [
@@ -5946,7 +6144,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
         system: [
           {
             type: 'text',
-            text: STUDY_CONTEXT + sessionContext + queryModeContext + resultsModeContext + structuredResultsModeContext,
+            text: STUDY_CONTEXT + sessionContext + queryModeContext + resultsModeContext + structuredResultsModeContext + simulationPlanningModeContext,
             cache_control: sessionHistory.length ? undefined : { type: 'ephemeral' },
           },
         ],

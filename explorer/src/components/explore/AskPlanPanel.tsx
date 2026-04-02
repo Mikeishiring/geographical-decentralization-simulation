@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { BarChart3, Compass, Database, Sparkles } from 'lucide-react'
+import { BarChart3, Compass, Database, FlaskConical, Sparkles } from 'lucide-react'
 import type { AskPlanData } from '../../lib/ask-artifact'
 import { cn } from '../../lib/cn'
 import { SPRING } from '../../lib/theme'
@@ -17,6 +17,8 @@ function routeLabel(route: AskPlanData['route']): string {
       return 'Results replay'
     case 'structured-results':
       return 'Structured query'
+    case 'simulation-config':
+      return 'Experiment setup'
     case 'hybrid':
     default:
       return 'Hybrid route'
@@ -31,6 +33,8 @@ function routeIcon(route: AskPlanData['route']) {
       return BarChart3
     case 'structured-results':
       return Database
+    case 'simulation-config':
+      return FlaskConical
     case 'hybrid':
     default:
       return Sparkles
