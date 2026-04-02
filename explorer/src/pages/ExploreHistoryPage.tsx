@@ -270,6 +270,37 @@ export function ExploreHistoryPage({
         </div>
       </div>
 
+      <div className="rounded-xl border border-rule bg-white px-4 py-4">
+        <div>
+          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">How community notes work</div>
+          <div className="mt-1 text-sm font-medium text-text-primary">Notes stay anchored to evidence, then move into public discussion</div>
+          <p className="mt-1 max-w-3xl text-13 leading-[1.6] text-muted">
+            A note begins from a highlighted paper passage or a concrete simulation artifact. After someone publishes a human title and takeaway, it appears here for replies, votes, linking, and re-entry into the paper or results.
+          </p>
+        </div>
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          {[
+            {
+              title: '1. Start from a passage or run',
+              detail: 'Reading notes quote the exact paper text they respond to. Simulation notes stay tied to the exact-run context that generated them.',
+            },
+            {
+              title: '2. Publish intentionally',
+              detail: 'Only notes with a human-authored title and takeaway become public. Draft context and saved AI traces stay off the Community surface.',
+            },
+            {
+              title: '3. Let discussion sort signal',
+              detail: 'Readers vote, reply, and share direct links. Sorting modes then surface the newest, strongest, most discussed, or most contested notes.',
+            },
+          ].map(item => (
+            <div key={item.title} className="rounded-lg border border-rule/70 bg-surface-active/35 px-3 py-3">
+              <div className="text-xs font-medium text-text-primary">{item.title}</div>
+              <div className="mt-1 text-xs leading-[1.55] text-muted">{item.detail}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {hiddenDraftExploration && (
         <div className="rounded-xl border border-warning/30 bg-warning/6 px-4 py-3">
           <div className="text-sm font-medium text-text-primary">

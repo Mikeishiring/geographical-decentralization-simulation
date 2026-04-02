@@ -19,6 +19,21 @@ function communityPreviewLabel(exploration: Exploration): string {
     : 'Community interpretation'
 }
 
+const COMMUNITY_FLOW = [
+  {
+    title: 'Anchor to evidence',
+    detail: 'Notes start from a highlighted paper passage or a specific exact-run artifact.',
+  },
+  {
+    title: 'Publish a human reading',
+    detail: 'The title and takeaway are reader interpretation layered on top of the evidence, not author claims.',
+  },
+  {
+    title: 'Discuss in public',
+    detail: 'Replies and votes help the most useful context surface on the Community page.',
+  },
+] as const
+
 export function CommunityPreview({
   isActive,
   onOpenNote,
@@ -78,7 +93,7 @@ export function CommunityPreview({
           </div>
           <div className="mt-1.5 text-13 font-medium text-text-primary">How other readers annotated the evidence</div>
           <div className="mt-1 text-[11px] leading-relaxed text-text-faint">
-            Published community notes layered on top of the paper, not author claims.
+            Published community notes stay tied to specific passages or exact-run outputs, then move into public discussion. They are reader interpretation layered on top of the evidence, not author claims.
           </div>
         </div>
         {onTabChange && (
@@ -89,6 +104,21 @@ export function CommunityPreview({
             Open Community
           </button>
         )}
+      </div>
+
+      <div className="mb-4 grid gap-2 md:grid-cols-3">
+        {COMMUNITY_FLOW.map((item, index) => (
+          <div
+            key={item.title}
+            className="rounded-lg border border-black/[0.06] bg-surface-active/35 px-3 py-3"
+          >
+            <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-accent/60">
+              0{index + 1}
+            </div>
+            <div className="mt-1 text-xs font-medium text-text-primary">{item.title}</div>
+            <div className="mt-1 text-[11px] leading-relaxed text-text-faint">{item.detail}</div>
+          </div>
+        ))}
       </div>
 
       <motion.div

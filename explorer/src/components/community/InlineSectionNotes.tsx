@@ -69,8 +69,8 @@ export function InlineSectionNotes({ notes, onOpenNote, showAnnotationHint = fal
         hasPublishedNotes ? 'text-text-faint' : 'text-muted',
       )}>
         {hasPublishedNotes
-          ? 'Reader interpretations layered on top of the paper. Useful context, not paper claims.'
-          : 'No public notes yet. Highlight text in this section or open Community to leave the first annotation.'}
+          ? 'Reader interpretations anchored to exact passages in this section. Expand a note to see the quoted text, the public thread, and where the discussion has gone. Useful context, not paper claims.'
+          : 'No public notes yet. Highlight a sentence or paragraph in this section, add your reading, and publish it. The note will appear here and on Community for replies and voting.'}
       </div>
 
       <AnimatePresence>
