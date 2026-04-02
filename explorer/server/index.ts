@@ -801,7 +801,7 @@ function isPrecomputedResultsExploreQuery(query: string): boolean {
 
 function buildExploreResultsModeContext(query: string): string {
   if (!isPrecomputedResultsExploreQuery(query)) return ''
-  return '\n\n## Quantitative Mode\nThis question should lean on pre-computed results when possible. Prefer query_cached_results before relying on generic summaries. Use compact stat, comparison, paperChart, chart, table, or map blocks that feel like the study\'s Results surface. When a study-owned paperChart matches the retrieved dataset family, reuse it instead of inventing a bespoke figure. Treat those study-owned blocks as the skeleton of the answer and add only the minimum interpretation needed to explain them. When the cached data covers only part of the ask, answer that supported slice clearly and mark the rest as interpretation or open follow-up.'
+  return '\n\n## Quantitative Mode\nThis question should lean on pre-computed results when possible. Prefer query_cached_results before relying on generic summaries. Use compact stat, comparison, paperChart, chart, table, or map blocks that feel like the study\'s Results surface. When a study-owned paperChart matches the retrieved dataset family, reuse it instead of inventing a bespoke figure. If the retrieved data spans multiple scenarios or parameter settings, summarize the pattern across those variants before zooming into any one case. Treat those study-owned blocks as the skeleton of the answer and add only the minimum interpretation needed to explain them. When the cached data covers only part of the ask, answer that supported slice clearly and mark the rest as interpretation or open follow-up.'
 }
 
 function buildExploreChatSystemPrompt(query: string, sessionContext: string): string {
@@ -2031,7 +2031,8 @@ function normalizePublishedCatalogParadigm(
 }
 
 function inferPublishedEvaluation(filters: ExploreCachedResultFilters): string | undefined {
-  if (filters.evaluation?.trim()) return filters.evaluation.trim()
+  const normalizedEvaluation = normalizePublishedEvaluationFilter(filters.evaluation)
+  if (normalizedEvaluation) return normalizedEvaluation
   if (filters.sourcePlacement === 'latency-aligned' || filters.sourcePlacement === 'latency-misaligned') {
     return 'SE1-Information-Source-Placement-Effect'
   }
@@ -2045,6 +2046,7 @@ function inferPublishedEvaluation(filters: ExploreCachedResultFilters): string |
 }
 
 function inferPublishedResult(filters: ExploreCachedResultFilters): string | undefined {
+  const normalizedEvaluation = normalizePublishedEvaluationFilter(filters.evaluation)
   const normalizedResult = filters.result?.trim().toLowerCase()
   if (
     normalizedResult
@@ -2073,6 +2075,14 @@ function inferPublishedResult(filters: ExploreCachedResultFilters): string | und
   if (filters.sourcePlacement === 'latency-aligned' || filters.sourcePlacement === 'latency-misaligned') {
     return filters.sourcePlacement
   }
+  if (
+    normalizedEvaluation === 'SE1-Information-Source-Placement-Effect'
+    || normalizedEvaluation === 'SE3-Joint-Heterogeneity'
+    || normalizedEvaluation === 'SE4-Attestation-Threshold'
+    || normalizedEvaluation === 'SE4-EIP7782'
+  ) {
+    return undefined
+  }
   return 'cost_0.002'
 }
 
@@ -2093,7 +2103,7 @@ function normalizePublishedEvaluationFilter(
   if (normalized.includes('joint') || normalized.includes('heterogeneity') || normalized.includes('se3')) {
     return 'SE3-Joint-Heterogeneity'
   }
-  if (normalized.includes('attestation') || normalized.includes('gamma') || normalized.includes('se4a')) {
+  if (normalized.includes('attestation') || normalized.includes('gamma') || normalized.includes('gamma_sweep') || normalized.includes('sweep') || normalized.includes('se4a')) {
     return 'SE4-Attestation-Threshold'
   }
   if (normalized.includes('eip7782') || normalized.includes('eip-7782') || normalized.includes('shorter slot') || normalized.includes('se4b')) {
@@ -2436,6 +2446,211 @@ function buildPublishedSelectionKey(entry: {
   return `${entry.evaluation}::${publishedParadigmDisplayLabel(entry.paradigm)}::${entry.result}`
 }
 
+function buildPublishedScenarioGroupKey(entry: {
+  readonly evaluation: string
+  readonly result: string
+}): string {
+  return `${entry.evaluation}::${entry.result}`
+}
+
+function publishedMetricUnit(
+  key: PublishedExploreMetricKey,
+): string | undefined {
+  switch (key) {
+    case 'proposal_times':
+      return ' ms'
+    case 'mev':
+      return ' ETH'
+    case 'liveness':
+    case 'attestations':
+      return '%'
+    default:
+      return undefined
+  }
+}
+
+function readPublishedEntryGamma(
+  entry: PublishedExploreComparableEntry,
+): number | null {
+  if (!('gamma' in entry)) return null
+  return typeof entry.gamma === 'number' && Number.isFinite(entry.gamma) ? entry.gamma : null
+}
+
+function parsePublishedResultSortValue(
+  entry: PublishedExploreComparableEntry,
+): number | null {
+  const gamma = readPublishedEntryGamma(entry)
+  if (gamma != null) {
+    return gamma
+  }
+
+  const normalized = entry.result.trim().toLowerCase()
+  const gammaMatch = normalized.match(/gamma[_-]?([0-9.]+)/)
+  if (gammaMatch) {
+    const value = Number(gammaMatch[1])
+    return Number.isFinite(value) ? value : null
+  }
+
+  const costMatch = normalized.match(/cost[_-]?([0-9.]+)/)
+  if (costMatch) {
+    const value = Number(costMatch[1])
+    return Number.isFinite(value) ? value : null
+  }
+
+  const slotMatch = normalized.match(/(?:slot|time|seconds?)[_-]?([0-9.]+)/)
+  if (slotMatch) {
+    const value = Number(slotMatch[1])
+    return Number.isFinite(value) ? value : null
+  }
+
+  return null
+}
+
+function publishedEvaluationSortValue(
+  evaluation: string,
+): number {
+  switch (inferPublishedExperiment(evaluation)) {
+    case 'baseline':
+      return 0
+    case 'SE1':
+      return 1
+    case 'SE2':
+      return 2
+    case 'SE3':
+      return 3
+    case 'SE4a':
+      return 4
+    case 'SE4b':
+      return 5
+    default:
+      return 99
+  }
+}
+
+function formatPublishedScenarioCompactLabel(
+  entry: PublishedExploreComparableEntry,
+): string {
+  if (entry.evaluation === 'Baseline') return 'Baseline'
+  const gamma = readPublishedEntryGamma(entry)
+  if (gamma != null) {
+    return `γ ${formatMetricNumber(gamma, 2)}`
+  }
+
+  if (entry.result && entry.result !== 'cost_0.002') {
+    return formatPublishedResultLabel(entry.result)
+  }
+
+  return formatPublishedEvaluationLabel(entry.evaluation)
+}
+
+function collectPublishedScenarioEntries(
+  responses: readonly PublishedResultsToolResponse[],
+): PublishedExploreComparableEntry[] {
+  const seen = new Set<string>()
+  const collected: PublishedExploreComparableEntry[] = []
+
+  for (const response of responses) {
+    for (const entry of [
+      ...response.results,
+      ...(response.pairedComparison ? [response.pairedComparison] : []),
+    ]) {
+      if (seen.has(entry.datasetPath)) continue
+      seen.add(entry.datasetPath)
+      collected.push(entry)
+    }
+  }
+
+  return collected
+}
+
+function countPublishedScenarioGroups(
+  entries: readonly PublishedExploreComparableEntry[],
+): number {
+  return new Set(entries.map(buildPublishedScenarioGroupKey)).size
+}
+
+function buildPublishedScenarioMetricChartBlock(
+  query: string,
+  entries: readonly PublishedExploreComparableEntry[],
+): Block | null {
+  const metricKey = selectPublishedScenarioMetricKey(query)
+  if (!metricKey) return null
+  if (countPublishedScenarioGroups(entries) < 2) return null
+
+  const scenarioGroups = new Map<string, PublishedExploreComparableEntry[]>()
+  for (const entry of entries) {
+    const groupKey = buildPublishedScenarioGroupKey(entry)
+    const group = scenarioGroups.get(groupKey) ?? []
+    group.push(entry)
+    scenarioGroups.set(groupKey, group)
+  }
+
+  const orderedGroups = [...scenarioGroups.values()]
+    .map(group => group.toSorted(
+      (left, right) => publishedParadigmSortValue(left.paradigm) - publishedParadigmSortValue(right.paradigm),
+    ))
+    .toSorted((left, right) => {
+      const leftRepresentative = left[0]!
+      const rightRepresentative = right[0]!
+      const evaluationDelta =
+        publishedEvaluationSortValue(leftRepresentative.evaluation)
+        - publishedEvaluationSortValue(rightRepresentative.evaluation)
+      if (evaluationDelta !== 0) return evaluationDelta
+
+      const leftSortValue = parsePublishedResultSortValue(leftRepresentative)
+      const rightSortValue = parsePublishedResultSortValue(rightRepresentative)
+      if (leftSortValue != null && rightSortValue != null && leftSortValue !== rightSortValue) {
+        return leftSortValue - rightSortValue
+      }
+
+      return leftRepresentative.result.localeCompare(rightRepresentative.result)
+    })
+
+  const baseLabels = orderedGroups.map(group => formatPublishedScenarioCompactLabel(group[0]!))
+  const labelCounts = new Map<string, number>()
+  for (const label of baseLabels) {
+    labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1)
+  }
+
+  const data = orderedGroups.flatMap((group, index) => {
+    const representative = group[0]!
+    const baseLabel = baseLabels[index]!
+    const label = (labelCounts.get(baseLabel) ?? 0) > 1
+      ? `${formatPublishedEvaluationLabel(representative.evaluation)} / ${baseLabel}`
+      : baseLabel
+
+    return group.flatMap(entry => {
+      const metricValue = entry.finalMetrics[metricKey] ?? null
+      if (metricValue == null) return []
+      return [{
+        label,
+        value: metricValue,
+        category: publishedParadigmDisplayLabel(entry.paradigm),
+      }]
+    })
+  })
+
+  if (data.length < 2) return null
+
+  const representativeEntries = orderedGroups.map(group => group[0]!)
+  const sameEvaluation = representativeEntries.every(entry => entry.evaluation === representativeEntries[0]?.evaluation)
+    ? representativeEntries[0]?.evaluation ?? null
+    : null
+
+  return {
+    type: 'chart',
+    title: sameEvaluation
+      ? `${publishedMetricTitle(metricKey)} across ${formatPublishedEvaluationLabel(sameEvaluation)} scenarios`
+      : `${publishedMetricTitle(metricKey)} across retrieved scenarios`,
+    chartType: 'bar',
+    data,
+    unit: publishedMetricUnit(metricKey),
+    cite: sameEvaluation
+      ? buildPublishedExploreCite(representativeEntries, null)
+      : undefined,
+  }
+}
+
 function selectPublishedMetricKey(query: string): PublishedExploreMetricKey | null {
   const matchers: ReadonlyArray<{
     readonly key: PublishedExploreMetricKey
@@ -2443,17 +2658,26 @@ function selectPublishedMetricKey(query: string): PublishedExploreMetricKey | nu
   }> = [
     { key: 'proposal_times', pattern: /\b(proposal|latency|response time|block time)\b/i },
     { key: 'failed_block_proposals', pattern: /\bfailed block|missed block|failed proposal\b/i },
-    { key: 'attestations', pattern: /\battestation\b/i },
+    { key: 'gini', pattern: /\bgini|inequality|centrali[sz]ation|concentration\b/i },
+    { key: 'hhi', pattern: /\bhhi|herfindahl\b/i },
+    { key: 'attestations', pattern: /\battestations\b|\battestation (?:count|rate|share|level)\b/i },
     { key: 'liveness', pattern: /\bliveness|uptime|availability\b/i },
     { key: 'mev', pattern: /\bmev\b/i },
-    { key: 'hhi', pattern: /\bhhi|herfindahl\b/i },
-    { key: 'gini', pattern: /\bgini|inequality|centrali[sz]ation|concentration\b/i },
     { key: 'clusters', pattern: /\bcluster\b/i },
     { key: 'total_distance', pattern: /\bdistance|dispersion\b/i },
   ]
 
   const match = matchers.find(candidate => candidate.pattern.test(query))
   return match?.key ?? null
+}
+
+function selectPublishedScenarioMetricKey(query: string): PublishedExploreMetricKey | null {
+  const explicitMetric = selectPublishedMetricKey(query)
+  if (explicitMetric) return explicitMetric
+
+  return /\b(compare|comparison|versus|vs\b|difference|gap|change|changes|higher|lower)\b/i.test(query)
+    ? 'gini'
+    : null
 }
 
 function publishedMetricTitle(key: PublishedExploreMetricKey): string {
@@ -2763,6 +2987,8 @@ function buildCanonicalExploreBlocks(
   const normalizedResults = normalizePublishedResultsToolResponse(cachedResults)
   if (!normalizedResults) return []
 
+  const scenarioEntries = collectPublishedScenarioEntries([normalizedResults])
+  const hasScenarioSweep = countPublishedScenarioGroups(scenarioEntries) > 1
   const compareEntries = resolvePublishedCompareEntries(normalizedResults)
   if (compareEntries.length === 0) return []
 
@@ -2771,17 +2997,24 @@ function buildCanonicalExploreBlocks(
   const cite = buildPublishedExploreCite(compareEntries, chartKey)
   const blocks: Block[] = []
 
-  const heroStats = compareEntries
-    .slice(0, 2)
-    .map((entry, index, all) =>
-      buildPublishedMetricStatBlock(entry, all.length > 1 ? all[1 - index] ?? null : null, metricKey, cite),
-    )
-    .filter((block): block is Block => block !== null)
+  if (hasScenarioSweep) {
+    const sweepChart = buildPublishedScenarioMetricChartBlock(query, scenarioEntries)
+    if (sweepChart) {
+      blocks.push(sweepChart)
+    }
+  } else {
+    const heroStats = compareEntries
+      .slice(0, 2)
+      .map((entry, index, all) =>
+        buildPublishedMetricStatBlock(entry, all.length > 1 ? all[1 - index] ?? null : null, metricKey, cite),
+      )
+      .filter((block): block is Block => block !== null)
 
-  blocks.push(...heroStats)
+    blocks.push(...heroStats)
 
-  if (compareEntries.length >= 2) {
-    blocks.push(buildPublishedComparisonBlock(compareEntries[0]!, compareEntries[1]!, metricKey, cite))
+    if (compareEntries.length >= 2) {
+      blocks.push(buildPublishedComparisonBlock(compareEntries[0]!, compareEntries[1]!, metricKey, cite))
+    }
   }
 
   if (chartKey) {
@@ -2795,6 +3028,45 @@ function buildCanonicalExploreBlocks(
   }
 
   return blocks
+}
+
+function normalizePublishedResultsCollection(
+  cachedResults: unknown,
+): PublishedResultsToolResponse[] {
+  if (Array.isArray(cachedResults)) {
+    return cachedResults
+      .map(normalizePublishedResultsToolResponse)
+      .filter((response): response is PublishedResultsToolResponse => response !== null)
+  }
+
+  const response = normalizePublishedResultsToolResponse(cachedResults)
+  return response ? [response] : []
+}
+
+function selectScenarioComparisonBlocks(
+  query: string,
+  responses: readonly PublishedResultsToolResponse[],
+): Block[] {
+  const merged: Block[] = []
+  const scenarioChart = buildPublishedScenarioMetricChartBlock(
+    query,
+    collectPublishedScenarioEntries(responses),
+  )
+  if (scenarioChart) {
+    merged.push(scenarioChart)
+  }
+
+  for (const response of responses) {
+    const blocks = buildCanonicalExploreBlocks(query, response)
+    const comparison = blocks.find(block => block.type === 'comparison')
+    const paperChart = blocks.find(block => block.type === 'paperChart')
+    if (comparison) merged.push(comparison)
+    if (paperChart) merged.push(paperChart)
+  }
+
+  return merged.filter((block, index, all) =>
+    all.findIndex(candidate => blockSignature(candidate) === blockSignature(block)) === index,
+  )
 }
 
 function resolvePaperChartKeyFromQuery(query: string): string | null {
@@ -2843,7 +3115,17 @@ function buildExploreArtifactScaffold(
   query: string,
   cachedResults: unknown,
 ): Block[] {
-  const canonicalBlocks = buildCanonicalExploreBlocks(query, cachedResults)
+  const normalizedResponses = normalizePublishedResultsCollection(cachedResults)
+  if (normalizedResponses.length > 1) {
+    const combinedBlocks = selectScenarioComparisonBlocks(query, normalizedResponses)
+    if (combinedBlocks.length > 0) {
+      return combinedBlocks.slice(0, Math.max(4, MAX_GENERATED_BLOCKS - 2))
+    }
+  }
+
+  const canonicalBlocks = normalizedResponses.length > 0
+    ? buildCanonicalExploreBlocks(query, normalizedResponses[normalizedResponses.length - 1]!)
+    : buildCanonicalExploreBlocks(query, cachedResults)
   if (canonicalBlocks.some(block => block.type === 'paperChart')) {
     return canonicalBlocks
   }
@@ -4057,8 +4339,20 @@ function buildExploreChatTools(
   },
 ) {
   let latestCachedResults: unknown = null
+  let cachedResultsHistory: PublishedResultsToolResponse[] = []
   const storeCachedResults = (result: unknown) => {
-    latestCachedResults = normalizePublishedResultsToolResponse(result) ?? result
+    const normalizedResult = normalizePublishedResultsToolResponse(result)
+    if (normalizedResult) {
+      const signature = JSON.stringify(normalizedResult.query) + '::' + normalizedResult.results.map(entry => entry.datasetPath).join('|')
+      const nextHistory = cachedResultsHistory.filter(existing =>
+        JSON.stringify(existing.query) + '::' + existing.results.map(entry => entry.datasetPath).join('|') !== signature,
+      )
+      nextHistory.push(normalizedResult)
+      cachedResultsHistory = nextHistory.slice(-3)
+      latestCachedResults = [...cachedResultsHistory]
+    } else {
+      latestCachedResults = result
+    }
     options?.onCachedResults?.(latestCachedResults)
   }
 
@@ -4187,7 +4481,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
       stopWhen: hasToolCall('render_blocks'),
       prepareStep: ({ steps, stepNumber }) => {
         const allToolCalls = steps.flatMap(step => step.toolCalls)
-        const hasPublishedResults = normalizePublishedResultsToolResponse(latestCachedResults) !== null
+        const hasPublishedResults = normalizePublishedResultsCollection(latestCachedResults).length > 0
         if (hasPublishedResults && isPrecomputedResultsExploreQuery(trimmedQuery) && stepNumber >= 1) {
           return {
             activeTools: ['render_blocks'],
@@ -4270,6 +4564,20 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
     const MAX_TOOL_ROUNDS = 3
     let finalResponse: Anthropic.Messages.Message | null = null
     let latestCachedResults: unknown = null
+    const cacheCachedResult = (result: unknown) => {
+      const normalizedResult = normalizePublishedResultsToolResponse(result)
+      if (normalizedResult) {
+        const current = normalizePublishedResultsCollection(latestCachedResults)
+        const signature = JSON.stringify(normalizedResult.query) + '::' + normalizedResult.results.map(entry => entry.datasetPath).join('|')
+        const next = current.filter(existing =>
+          JSON.stringify(existing.query) + '::' + existing.results.map(entry => entry.datasetPath).join('|') !== signature,
+        )
+        next.push(normalizedResult)
+        latestCachedResults = next.slice(-3)
+        return
+      }
+      latestCachedResults = result
+    }
 
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
       const response = await client.messages.create({
@@ -4317,7 +4625,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
       const toolResults: Anthropic.Messages.ToolResultBlockParam[] = await Promise.all(toolCalls.map(async call => {
         const result = await executeExploreChatToolCall(call.name, call.input as Record<string, unknown>)
         if (call.name === 'query_cached_results') {
-          latestCachedResults = normalizePublishedResultsToolResponse(result) ?? result
+          cacheCachedResult(result)
         }
         return {
           type: 'tool_result' as const,
