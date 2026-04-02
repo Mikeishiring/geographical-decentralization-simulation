@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { CHART, SPRING_CRISP, SPRING_SOFT } from '../../lib/theme'
 import { centerOutReveal } from '../../lib/chart-animations'
 import type { HeatmapBlock as HeatmapBlockType } from '../../types/blocks'
+import { BlockEmptyState } from './BlockEmptyState'
 
 interface HeatmapBlockProps {
   block: HeatmapBlockType
@@ -32,14 +33,7 @@ export function HeatmapBlock({ block }: HeatmapBlockProps) {
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null)
 
   if (block.rows.length === 0 || block.columns.length === 0) {
-    return (
-      <div className="overflow-hidden rounded-xl border border-rule bg-white">
-        <div className="border-b border-rule px-5 py-3">
-          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
-        </div>
-        <div className="px-5 py-8 text-center text-xs text-muted">No data available</div>
-      </div>
-    )
+    return <BlockEmptyState title={block.title} message="No row or column matrix was attached to this heatmap." />
   }
 
   const allValues = block.values.flat()

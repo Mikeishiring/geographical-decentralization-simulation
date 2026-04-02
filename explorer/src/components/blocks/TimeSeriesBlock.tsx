@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { BLOCK_COLORS, CHART, INTENT_COLORS, SPRING_CRISP } from '../../lib/theme'
 import { crosshairFadeNearLive } from '../../lib/chart-animations'
 import type { TimeSeriesBlock as TimeSeriesBlockType } from '../../types/blocks'
+import { BlockEmptyState } from './BlockEmptyState'
 
 interface TimeSeriesBlockProps {
   block: TimeSeriesBlockType
@@ -82,12 +83,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
 
   const allPoints = block.series.flatMap(series => series.data)
   if (allPoints.length === 0) {
-    return (
-      <div className="lab-panel rounded-xl p-5">
-        <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
-        <p className="mt-3 text-sm text-muted">No time series data to display.</p>
-      </div>
-    )
+    return <BlockEmptyState title={block.title} message="No time-series samples were attached to this block." />
   }
 
   const minX = Math.min(...allPoints.map(point => point.x))

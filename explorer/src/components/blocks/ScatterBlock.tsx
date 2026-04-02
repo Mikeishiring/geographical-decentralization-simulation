@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
 import { centerOutReveal } from '../../lib/chart-animations'
 import type { ScatterBlock as ScatterBlockType } from '../../types/blocks'
+import { BlockEmptyState } from './BlockEmptyState'
 
 interface ScatterBlockProps {
   block: ScatterBlockType
@@ -13,14 +14,7 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
   const gradientId = useId()
 
   if (block.points.length === 0) {
-    return (
-      <div className="overflow-hidden rounded-xl border border-rule bg-white">
-        <div className="border-b border-rule px-5 py-3">
-          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
-        </div>
-        <div className="px-5 py-8 text-center text-xs text-muted">No data available</div>
-      </div>
-    )
+    return <BlockEmptyState title={block.title} message="No scatter points were attached to this block." />
   }
 
   const padding = { top: 20, right: 50, bottom: 40, left: 50 }

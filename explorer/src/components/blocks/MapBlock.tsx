@@ -5,6 +5,7 @@ import { LIGHT_SURFACE, SPRING_SOFT, SPRING_SNAPPY, SPRING_POPUP } from '../../l
 import { cn } from '../../lib/cn'
 import { WORLD_PATHS } from '../../data/world-paths'
 import type { MapBlock as MapBlockType } from '../../types/blocks'
+import { BlockEmptyState } from './BlockEmptyState'
 
 interface MapBlockProps {
   block: MapBlockType
@@ -184,14 +185,7 @@ export function MapBlock({ block }: MapBlockProps) {
   }, [tooltip])
 
   if (regions.length === 0) {
-    return (
-      <div className="overflow-hidden rounded-xl border border-rule bg-white">
-        <div className="border-b border-rule px-5 py-3">
-          <h3 className="text-sm font-medium text-text-primary">{block.title}</h3>
-        </div>
-        <div className="px-5 py-10 text-center text-xs text-muted">No region data available</div>
-      </div>
-    )
+    return <BlockEmptyState title={block.title} message="No region coordinates or values were attached to this map." />
   }
 
   return (
