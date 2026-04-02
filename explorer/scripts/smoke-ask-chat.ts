@@ -143,6 +143,10 @@ async function main() {
     assert(giniArtifactIndex < giniRenderIndex, 'Expected the quantitative Ask stream to emit data-artifact before render_blocks')
     assert(countOccurrences(giniStream.body, 'data-artifact') >= 2, 'Expected the quantitative Ask stream to emit provisional and final artifacts')
     assert(
+      !giniStream.body.includes('toolName":"search_topic_cards'),
+      'Expected the quantitative Ask stream to retrieve pre-computed results before falling back to topic-card search',
+    )
+    assert(
       giniStream.body.includes('0.2534') && giniStream.body.includes('0.6954'),
       'Expected the quantitative Ask stream to include exact published baseline Gini values',
     )
