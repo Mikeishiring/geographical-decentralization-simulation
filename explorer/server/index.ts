@@ -705,7 +705,7 @@ function trimTrailingPunctuation(value: string): string {
 function normalizeInterpretiveTitle(rawTitle: string | undefined): string {
   const title = limitText(rawTitle, 72)
   if (!title) return 'Guide interpretation'
-  if (/^(guide interpretation|interpretation|assistant framing|reading note)/i.test(title)) {
+  if (/^(guide interpretation|interpretation|assistant framing|reading note|direct answer|overview|orientation|what this means|what this |what the |why |why it matters|how to read this|core contrast|start here)/i.test(title)) {
     return title
   }
   return limitText(`Guide interpretation: ${title}`, 72)
@@ -716,12 +716,27 @@ function qualifyPaperSummary(rawSummary: string | undefined, fallback = ''): str
   const safeFallback = limitText(fallback, 140)
   if (!summary) return safeFallback ?? ''
   if (
-    /^(paper-backed reading:|from the paper\b|based on the paper\b|what the paper suggests:)/i.test(summary)
+    /^(paper-backed reading:|from the paper\b|based on the paper\b|what the paper suggests:|answer:|this (paper|project|study|explorer)\b|the (paper|project|study|explorer)\b)/i.test(summary)
     || /\b(shows|suggests|indicates|points to)\b/i.test(summary)
   ) {
     return summary
   }
   return limitText(`Paper-backed reading: ${summary}`, 140) || safeFallback || 'Paper-backed exploration'
+}
+
+function isOrientationExploreQuery(query: string): boolean {
+  const normalized = query.trim().toLowerCase()
+  if (!normalized) return false
+
+  return [
+    /\b(project|paper|study|explorer|website|site|app)\b/,
+    /\b(what is this|what should i know|tell me more|overview|start here|walk me through|how do i use|how should i use)\b/,
+  ].some(pattern => pattern.test(normalized))
+}
+
+function buildExploreQueryModeContext(query: string): string {
+  if (!isOrientationExploreQuery(query)) return ''
+  return '\n\n## Query Mode\nThis is an orientation or onboarding question. Answer directly in plain language. Organize the page around: (1) what the project studies, (2) the core external-vs-local contrast, (3) why it matters, and (4) a few concrete next questions. Lead with an insight or comparison block, not raw stats, unless a number materially sharpens the explanation.'
 }
 
 function stablePriority(type: Block['type']): number {
@@ -749,19 +764,35 @@ function blockSignature(block: Block): string {
   return JSON.stringify(block)
 }
 
-function orderBlocksEvidenceFirst(blocks: readonly Block[]): Block[] {
-  return blocks
-    .map((block, index) => ({
-      block: block.type === 'insight'
-        ? { ...block, title: normalizeInterpretiveTitle(block.title) }
-        : block,
-      index,
-    }))
-    .toSorted((left, right) => {
-      const priorityGap = stablePriority(left.block.type) - stablePriority(right.block.type)
-      return priorityGap !== 0 ? priorityGap : left.index - right.index
-    })
-    .map(entry => entry.block)
+function orderBlocksEvidenceFirst(
+  blocks: readonly Block[],
+  options?: { preserveLeadBlock?: boolean },
+): Block[] {
+  const normalized = blocks.map((block, index) => ({
+    block: block.type === 'insight'
+      ? { ...block, title: normalizeInterpretiveTitle(block.title) }
+      : block,
+    index,
+  }))
+
+  const sortEntries = (entries: typeof normalized) =>
+    entries
+      .toSorted((left, right) => {
+        const priorityGap = stablePriority(left.block.type) - stablePriority(right.block.type)
+        return priorityGap !== 0 ? priorityGap : left.index - right.index
+      })
+      .map(entry => entry.block)
+
+  if (
+    options?.preserveLeadBlock
+    && normalized.length > 0
+    && (normalized[0]!.block.type === 'insight' || normalized[0]!.block.type === 'comparison')
+  ) {
+    const [lead, ...rest] = normalized
+    return [lead.block, ...sortEntries(rest)]
+  }
+
+  return sortEntries(normalized)
 }
 
 function normalizeGeneratedBlock(block: Block): Block | null {
@@ -1055,7 +1086,10 @@ function coerceGeneratedBlockShape(rawBlock: unknown): unknown {
   }
 }
 
-function normalizeGeneratedBlocks(rawBlocks: unknown[] | undefined): Block[] {
+function normalizeGeneratedBlocks(
+  rawBlocks: unknown[] | undefined,
+  options?: { preserveLeadBlock?: boolean },
+): Block[] {
   const normalized = parseBlocks((rawBlocks ?? []).map(coerceGeneratedBlockShape))
     .map(normalizeGeneratedBlock)
     .filter((block): block is Block => block !== null)
@@ -1064,7 +1098,7 @@ function normalizeGeneratedBlocks(rawBlocks: unknown[] | undefined): Block[] {
     all.findIndex(candidate => blockSignature(candidate) === blockSignature(block)) === index,
   )
 
-  const ordered = orderBlocksEvidenceFirst(deduped)
+  const ordered = orderBlocksEvidenceFirst(deduped, options)
 
   const hasInsight = ordered.some(block => block.type === 'insight' || block.type === 'comparison')
   const hasSource = ordered.some(block => block.type === 'source')
@@ -2748,20 +2782,20 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
       .filter(entry => entry.query.length > 0 && entry.summary.length > 0)
     : []
 
-  const curatedMatch = findCuratedMatch(trimmedQuery)
-  if (curatedMatch) {
-    res.json(buildCuratedResponse(curatedMatch))
-    return
-  }
-
-  const historyMatch = explorationStore.findBestMatch(trimmedQuery, 0.82)
-  const reusedHistory = buildHistoryResponse(historyMatch)
-  if (reusedHistory) {
-    res.json(reusedHistory)
-    return
-  }
-
   if (!client) {
+    const curatedMatch = findCuratedMatch(trimmedQuery)
+    if (curatedMatch) {
+      res.json(buildCuratedResponse(curatedMatch))
+      return
+    }
+
+    const historyMatch = explorationStore.findBestMatch(trimmedQuery, 0.82)
+    const reusedHistory = buildHistoryResponse(historyMatch)
+    if (reusedHistory) {
+      res.json(reusedHistory)
+      return
+    }
+
     res.status(503).json({ error: MISSING_ANTHROPIC_CONFIG_MESSAGE })
     return
   }
@@ -2770,6 +2804,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
     const sessionContext = sessionHistory.length
       ? `\n\n## Session Context\nPrevious queries this session:\n${sessionHistory.map((entry, index) => `${index + 1}. "${entry.query}" -> ${entry.summary}`).join('\n')}\n\nBuild on prior context where relevant.`
       : ''
+    const queryModeContext = buildExploreQueryModeContext(trimmedQuery)
 
     // Multi-turn tool execution loop
     const messages: Anthropic.Messages.MessageParam[] = [
@@ -2785,7 +2820,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
         system: [
           {
             type: 'text',
-            text: STUDY_CONTEXT + sessionContext,
+            text: STUDY_CONTEXT + sessionContext + queryModeContext,
             cache_control: sessionHistory.length ? undefined : { type: 'ephemeral' },
           },
         ],
@@ -2848,7 +2883,9 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
       blocks?: unknown[]
       follow_ups?: string[]
     }
-    const normalizedBlocks = normalizeGeneratedBlocks(input.blocks)
+    const normalizedBlocks = normalizeGeneratedBlocks(input.blocks, {
+      preserveLeadBlock: isOrientationExploreQuery(trimmedQuery),
+    })
     const normalizedSummary = normalizeGeneratedSummary(input.summary, trimmedQuery, normalizedBlocks)
     const normalizedFollowUps = normalizeGeneratedFollowUps(trimmedQuery, input.follow_ups)
 
