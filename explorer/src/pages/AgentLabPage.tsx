@@ -21,6 +21,7 @@ import { explore, getApiHealth, createExploration, publishExploration, type Expl
 import { ASK_DATA_PART_SCHEMAS, type AskArtifactData } from '../lib/ask-artifact'
 import {
   type AskUIMessage,
+  extractAskStatusHistory,
   extractLatestAssistantText,
   extractLatestExploreArtifact,
   extractLatestExploreResponse,
@@ -37,6 +38,8 @@ import {
 } from '../components/agent/agent-hooks'
 import { AgentStepCard } from '../components/agent/AgentStepCard'
 import { AgentCostBar } from '../components/agent/AgentCostBar'
+import { AskCapabilityPanel } from '../components/explore/AskCapabilityPanel'
+import { AskStatusFeed } from '../components/explore/AskStatusFeed'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { AskLoadingStateCard, buildAskLoadingDescriptor } from '../components/explore/AskLoadingState'
 import { ShimmerLoading } from '../components/explore/ShimmerBlock'
@@ -67,6 +70,36 @@ const ASK_DESCRIPTION = ASSISTANT_CONFIG.askDescription
 const ASK_PLACEHOLDER = ASSISTANT_CONFIG.askPlaceholder
   ?? 'Ask about a mechanism, comparison, metric, or implication...'
 const ASK_HEADING = ASSISTANT_CONFIG.askHeading ?? 'Ask a question about the paper'
+const ASK_CAPABILITIES = ASSISTANT_CONFIG.capabilities ?? [
+  {
+    id: 'read-paper',
+    title: 'Explain the paper',
+    description: 'Summarize the main mechanism and claims in the active study package.',
+    state: 'live' as const,
+    prompts: [`What is the main claim of ${ACTIVE_STUDY.metadata.title}?`],
+  },
+  {
+    id: 'compare-results',
+    title: 'Compare results',
+    description: 'Pull pre-computed figures and comparisons into the page.',
+    state: 'live' as const,
+    prompts: ['Which result matters most, and why?'],
+  },
+]
+const ASK_PROMPT_TIPS = ASSISTANT_CONFIG.promptTips ?? [
+  {
+    id: 'tip-metric',
+    label: 'Name a metric',
+    description: 'Mention the exact outcome you care about to get to the right evidence faster.',
+    example: 'How does Gini change under higher gamma?',
+  },
+  {
+    id: 'tip-compare',
+    label: 'Ask for a contrast',
+    description: 'Contrast two scenarios or paradigms instead of asking for a broad summary.',
+    example: 'Compare baseline local vs external block building.',
+  },
+]
 
 interface AgentLabPageProps {
   readonly onTabChange?: (tab: import('../components/layout/TabNav').TabId) => void
@@ -163,10 +196,12 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
     : streamedArtifact
   const askLeadText = extractLatestAssistantText(askMessages)
   const askToolActivities = extractLatestToolActivities(askMessages)
+  const askStatusHistory = extractAskStatusHistory(askMessages)
   const askProgressSignal = [
     askMessages.length,
     askLeadText.trim(),
     askToolActivities.map(activity => `${activity.id}:${activity.state}`).join('|'),
+    askStatusHistory.map(status => `${status.id}:${status.state}`).join('|'),
     displayedArtifact?.stage ?? '',
     displayedArtifact?.response.blocks.length ?? 0,
   ].join('::')
@@ -521,11 +556,21 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
             )}
           </div>
 
+          <AskCapabilityPanel
+            capabilities={ASK_CAPABILITIES}
+            promptTips={ASK_PROMPT_TIPS}
+            onPromptSelect={handleSuggestionClick}
+            busy={askLoading}
+          />
+
           {/* AI results */}
           <AnimatePresence mode="wait">
             {askLoading && !displayedArtifact ? (
               <motion.div key="loading" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={SPRING}>
                 <div className="space-y-4">
+                  {askStatusHistory.length > 0 && (
+                    <AskStatusFeed statuses={askStatusHistory} />
+                  )}
                   {askLoadingState && (
                     <AskLoadingStateCard
                       descriptor={askLoadingState}
@@ -566,6 +611,12 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                     </div>
                   )}
                 </div>
+
+                {askStatusHistory.length > 0 && !aiResponse && (
+                  <div className="mb-4">
+                    <AskStatusFeed statuses={askStatusHistory} compact />
+                  </div>
+                )}
 
                 {askToolActivities.length > 0 && (
                   <div className="mb-4 flex flex-wrap gap-2">

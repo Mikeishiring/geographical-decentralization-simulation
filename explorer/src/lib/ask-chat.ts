@@ -1,6 +1,6 @@
 import type { UIMessage } from 'ai'
 import type { ExploreResponse } from './api'
-import type { AskArtifactData, AskDataParts } from './ask-artifact'
+import type { AskArtifactData, AskDataParts, AskStatusData } from './ask-artifact'
 
 type GenericAskTool = {
   readonly input: unknown
@@ -76,6 +76,84 @@ export interface AskToolActivity {
   readonly toolName: string
   readonly label: string
   readonly state: 'running' | 'done' | 'error'
+}
+
+export function extractAskStatusHistory(messages: readonly AskUIMessage[]): readonly AskStatusData[] {
+  const statuses: AskStatusData[] = []
+
+  for (const message of messages) {
+    if (!message || message.role !== 'assistant') continue
+
+    for (const part of message.parts) {
+      const statusPart = part as {
+        type?: string
+        data?: AskStatusData
+      } | undefined
+      if (!statusPart || statusPart.type !== 'data-status' || !statusPart.data) continue
+      statuses.push(statusPart.data)
+    }
+  }
+
+  if (statuses.length > 0) {
+    return statuses
+      .slice()
+      .sort((left, right) => left.timestamp - right.timestamp)
+  }
+
+  const toolActivities = extractLatestToolActivities(messages)
+  const assistantText = extractLatestAssistantText(messages)
+  const latestArtifact = extractLatestExploreArtifact(messages)
+  const derived: AskStatusData[] = [{
+    id: 'synthetic-question',
+    phase: 'plan',
+    state: 'done',
+    label: 'Question received',
+    detail: 'The assistant has the active study context and is beginning to work.',
+    timestamp: 1,
+  }]
+
+  if (toolActivities.length > 0) {
+    derived.push(...toolActivities.map((activity, index) => ({
+      id: `synthetic-tool-${activity.id}`,
+      phase: activity.toolName === 'render_blocks' ? 'render' : 'evidence',
+      state:
+        activity.state === 'error' ? 'error' :
+        activity.state === 'done' ? 'done' :
+        'active',
+      label: activity.label,
+      detail:
+        activity.toolName === 'render_blocks'
+          ? 'Turning the gathered evidence into the final block layout.'
+          : 'Pulling grounded evidence into the live answer surface.',
+      timestamp: 10 + index,
+    } satisfies AskStatusData)))
+  }
+
+  if (assistantText.trim().length > 0) {
+    derived.push({
+      id: 'synthetic-compose',
+      phase: 'compose',
+      state: latestArtifact?.status === 'ready' ? 'done' : 'active',
+      label: 'Drafting answer',
+      detail: 'The assistant has started writing directly against the gathered evidence.',
+      timestamp: 50,
+    })
+  }
+
+  if (latestArtifact) {
+    derived.push({
+      id: 'synthetic-artifact',
+      phase: latestArtifact.status === 'ready' ? 'render' : 'compose',
+      state: latestArtifact.status === 'ready' ? 'done' : 'active',
+      label: latestArtifact.status === 'ready' ? 'Answer ready' : latestArtifact.stage,
+      detail: latestArtifact.status === 'ready'
+        ? 'The final page artifact is assembled and ready to read.'
+        : 'A provisional page artifact is being updated live underneath the prompt.',
+      timestamp: 90,
+    })
+  }
+
+  return derived
 }
 
 const TOOL_ACTIVITY_LABELS: Record<string, string> = {
