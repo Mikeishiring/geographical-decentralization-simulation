@@ -18,8 +18,8 @@ import { NodeArc } from '../components/decorative/NodeArc'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SNAPPY } from '../lib/theme'
 import { explore, getApiHealth, createExploration, publishExploration, type ExploreResponse, type ExploreError } from '../lib/api'
+import { ASK_DATA_PART_SCHEMAS, type AskArtifactData } from '../lib/ask-artifact'
 import {
-  type AskArtifactData,
   type AskUIMessage,
   extractLatestAssistantText,
   extractLatestExploreArtifact,
@@ -79,8 +79,8 @@ function buildReadyArtifact(response: ExploreResponse): AskArtifactData {
     stage: 'Answer ready',
     response: {
       summary: response.summary,
-      blocks: response.blocks,
-      followUps: response.followUps,
+      blocks: [...response.blocks],
+      followUps: [...response.followUps],
       model: response.model,
       cached: response.cached,
       provenance: response.provenance,
@@ -148,6 +148,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
     clearError: clearAskChatError,
   } = useChat<AskUIMessage>({
     transport: askTransportRef.current,
+    dataPartSchemas: ASK_DATA_PART_SCHEMAS,
     onFinish: ({ messages }) => {
       const nextResponse = extractLatestExploreResponse(messages)
       const submittedQuery = pendingAskQueryRef.current
@@ -558,6 +559,12 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                       ? (aiResponse.cached ? 'Cached response' : 'Fresh interpretation')
                       : displayedArtifact.stage}
                   </div>
+                  {!aiResponse && displayedArtifact.status !== 'ready' && (
+                    <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/[0.04] px-3 py-1 text-11 font-medium text-accent">
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                      Live artifact update
+                    </div>
+                  )}
                 </div>
 
                 {askToolActivities.length > 0 && (

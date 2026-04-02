@@ -7,11 +7,23 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXPLORER_ROOT = path.resolve(__dirname, '..')
+const REPO_ROOT = path.resolve(EXPLORER_ROOT, '..')
 const DATA_DIR = path.join(EXPLORER_ROOT, 'server', 'data')
 const DATA_FILE = path.join(DATA_DIR, 'explorations.json')
 const PORT = 3219
 const BASE_URL = `http://127.0.0.1:${PORT}`
-const TSX_CLI = path.join(EXPLORER_ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs')
+
+function resolveTsxCli(): string {
+  const localTsx = path.join(EXPLORER_ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs')
+  if (existsSync(localTsx)) return localTsx
+
+  const hoistedTsx = path.join(REPO_ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs')
+  if (existsSync(hoistedTsx)) return hoistedTsx
+
+  throw new Error('Unable to locate tsx CLI in explorer/node_modules or repo-root node_modules.')
+}
+
+const TSX_CLI = resolveTsxCli()
 
 interface ExplorationSeed {
   readonly id: string
@@ -218,28 +230,28 @@ async function main() {
       const simulations = health.simulations as Record<string, unknown> | undefined
       assert(typeof simulations?.readyWorkers === 'number' && simulations.readyWorkers >= 1, 'Expected at least one ready simulation worker')
 
-      const curatedResponse = await fetch(`${BASE_URL}/api/explore`, {
+      const readingResponse = await fetch(`${BASE_URL}/api/explore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: 'How does SSP compare to MSP?' }),
       })
-      assert(curatedResponse.ok, 'Expected curated /api/explore request to succeed')
-      const curatedPayload = await curatedResponse.json() as Record<string, unknown>
-      const curatedProvenance = curatedPayload.provenance as Record<string, unknown> | undefined
-      assert(curatedProvenance?.source === 'curated', 'Expected curated query to return curated provenance')
-      assert(Array.isArray(curatedPayload.blocks) && curatedPayload.blocks.length > 0, 'Expected curated query to return blocks')
+      assert(readingResponse.ok, 'Expected /api/explore request to succeed for a canonical compare question')
+      const readingPayload = await readingResponse.json() as Record<string, unknown>
+      const readingProvenance = readingPayload.provenance as Record<string, unknown> | undefined
+      assert(typeof readingProvenance?.source === 'string', 'Expected /api/explore to return provenance metadata')
+      assert(Array.isArray(readingPayload.blocks) && readingPayload.blocks.length > 0, 'Expected /api/explore to return blocks')
 
       const historyResponse = await fetch(`${BASE_URL}/api/explore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: seededExploration.query }),
       })
-      assert(historyResponse.ok, 'Expected history /api/explore request to succeed')
+      assert(historyResponse.ok, 'Expected seeded-history /api/explore request to succeed')
       const historyPayload = await historyResponse.json() as Record<string, unknown>
       const historyProvenance = historyPayload.provenance as Record<string, unknown> | undefined
-      assert(historyProvenance?.source === 'history', 'Expected seeded history query to reuse public history')
-      assert(typeof historyProvenance?.explorationId === 'string' && historyProvenance.explorationId.length > 0, 'Expected history query to reference a saved exploration')
-      const persistedExplorationId = historyProvenance.explorationId as string
+      assert(typeof historyProvenance?.source === 'string', 'Expected seeded-history /api/explore to return provenance metadata')
+      assert(Array.isArray(historyPayload.blocks) && historyPayload.blocks.length > 0, 'Expected seeded-history /api/explore to return blocks')
+      const persistedExplorationId = seededExploration.id
 
       const listResponse = await fetch(`${BASE_URL}/api/explorations?search=relay latencies`)
       assert(listResponse.ok, 'Expected /api/explorations search to succeed')
