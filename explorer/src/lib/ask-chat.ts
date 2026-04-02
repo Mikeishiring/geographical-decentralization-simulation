@@ -1,6 +1,6 @@
 import type { UIMessage } from 'ai'
 import type { ExploreResponse } from './api'
-import type { AskArtifactData, AskDataParts, AskStatusData } from './ask-artifact'
+import type { AskArtifactData, AskDataParts, AskPlanData, AskStatusData } from './ask-artifact'
 
 type GenericAskTool = {
   readonly input: unknown
@@ -222,6 +222,24 @@ export function extractLatestExploreArtifact(messages: readonly AskUIMessage[]):
         data?: AskArtifactData
       } | undefined
       if (!part || part.type !== 'data-artifact') continue
+      return part.data ?? null
+    }
+  }
+
+  return null
+}
+
+export function extractLatestAskPlan(messages: readonly AskUIMessage[]): AskPlanData | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (!message || message.role !== 'assistant') continue
+
+    for (let partIndex = message.parts.length - 1; partIndex >= 0; partIndex -= 1) {
+      const part = message.parts[partIndex] as {
+        type?: string
+        data?: AskPlanData
+      } | undefined
+      if (!part || part.type !== 'data-plan') continue
       return part.data ?? null
     }
   }

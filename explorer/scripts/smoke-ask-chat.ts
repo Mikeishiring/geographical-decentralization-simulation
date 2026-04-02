@@ -141,6 +141,10 @@ async function main() {
     assert(giniArtifactIndex >= 0, 'Expected the quantitative Ask stream to emit a data-artifact part')
     assert(giniRenderIndex >= 0, 'Expected the quantitative Ask stream to emit render_blocks output')
     assert(giniArtifactIndex < giniRenderIndex, 'Expected the quantitative Ask stream to emit data-artifact before render_blocks')
+    assert(
+      giniStream.body.includes('data-plan'),
+      'Expected the streamed Ask surface to emit a live query plan before the final artifact',
+    )
     assert(countOccurrences(giniStream.body, 'data-artifact') >= 2, 'Expected the quantitative Ask stream to emit provisional and final artifacts')
     assert(
       !giniStream.body.includes('toolName":"search_topic_cards'),
@@ -159,6 +163,10 @@ async function main() {
     assert(
       structuredQueryStream.body.includes('query_results_table'),
       'Expected SQL-style Ask prompts to route through the structured results query tool',
+    )
+    assert(
+      structuredQueryStream.body.includes('"route":"structured-results"'),
+      'Expected SQL-style Ask prompts to advertise the structured-results route in the live query plan',
     )
     assert(
       structuredQueryStream.body.includes('Published results query') || structuredQueryStream.body.includes('Structured query over'),
