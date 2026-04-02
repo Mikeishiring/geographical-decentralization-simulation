@@ -68,7 +68,22 @@ export type AskToolSet = Record<string, GenericAskTool> & {
   }
 }
 
-export type AskUIMessage = UIMessage<unknown, {}, AskToolSet>
+export type AskArtifactStatus = 'loading' | 'streaming' | 'ready'
+
+export interface AskArtifactData {
+  readonly status: AskArtifactStatus
+  readonly stage: string
+  readonly response: Pick<
+    ExploreResponse,
+    'summary' | 'blocks' | 'followUps' | 'model' | 'cached' | 'provenance'
+  >
+}
+
+type AskDataParts = {
+  readonly artifact: AskArtifactData
+}
+
+export type AskUIMessage = UIMessage<unknown, AskDataParts, AskToolSet>
 
 export interface AskToolActivity {
   readonly id: string
@@ -109,6 +124,24 @@ export function extractLatestExploreResponse(messages: readonly AskUIMessage[]):
     if (!message || message.role !== 'assistant') continue
     const response = extractExploreResponseFromMessage(message)
     if (response) return response
+  }
+
+  return null
+}
+
+export function extractLatestExploreArtifact(messages: readonly AskUIMessage[]): AskArtifactData | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (!message || message.role !== 'assistant') continue
+
+    for (let partIndex = message.parts.length - 1; partIndex >= 0; partIndex -= 1) {
+      const part = message.parts[partIndex] as {
+        type?: string
+        data?: AskArtifactData
+      } | undefined
+      if (!part || part.type !== 'data-artifact') continue
+      return part.data ?? null
+    }
   }
 
   return null

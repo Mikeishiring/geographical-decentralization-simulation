@@ -19,8 +19,10 @@ import { cn } from '../lib/cn'
 import { SPRING, SPRING_SNAPPY } from '../lib/theme'
 import { explore, getApiHealth, createExploration, publishExploration, type ExploreResponse, type ExploreError } from '../lib/api'
 import {
+  type AskArtifactData,
   type AskUIMessage,
   extractLatestAssistantText,
+  extractLatestExploreArtifact,
   extractLatestExploreResponse,
   extractLatestToolActivities,
 } from '../lib/ask-chat'
@@ -69,6 +71,21 @@ const ASK_HEADING = ASSISTANT_CONFIG.askHeading ?? 'Ask a question about the pap
 interface AgentLabPageProps {
   readonly onTabChange?: (tab: import('../components/layout/TabNav').TabId) => void
   readonly onOpenCommunityExploration?: (explorationId: string) => void
+}
+
+function buildReadyArtifact(response: ExploreResponse): AskArtifactData {
+  return {
+    status: 'ready',
+    stage: 'Answer ready',
+    response: {
+      summary: response.summary,
+      blocks: response.blocks,
+      followUps: response.followUps,
+      model: response.model,
+      cached: response.cached,
+      provenance: response.provenance,
+    },
+  }
 }
 
 export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }: AgentLabPageProps) {
@@ -139,12 +156,18 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
       pendingAskQueryRef.current = null
     },
   })
+  const streamedArtifact = extractLatestExploreArtifact(askMessages)
+  const displayedArtifact = aiResponse
+    ? buildReadyArtifact(aiResponse)
+    : streamedArtifact
   const askLeadText = extractLatestAssistantText(askMessages)
   const askToolActivities = extractLatestToolActivities(askMessages)
   const askProgressSignal = [
     askMessages.length,
     askLeadText.trim(),
     askToolActivities.map(activity => `${activity.id}:${activity.state}`).join('|'),
+    displayedArtifact?.stage ?? '',
+    displayedArtifact?.response.blocks.length ?? 0,
   ].join('::')
 
   const sessionQuery = useAgentSession(sessionId)
@@ -171,13 +194,13 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
 
   useEffect(() => {
     if (!anthropicEnabled) return
-    if (askStatus !== 'ready' || askMessages.length === 0 || aiResponse || aiError || askChatError) return
+    if (askStatus !== 'ready' || askMessages.length === 0 || aiResponse || streamedArtifact || aiError || askChatError) return
     pendingAskQueryRef.current = null
     setAiError({
       error: 'The assistant finished without a renderable page. Try narrowing the question to one comparison, metric, or mechanism.',
       status: 500,
     })
-  }, [aiError, aiResponse, anthropicEnabled, askChatError, askMessages, askStatus])
+  }, [aiError, aiResponse, anthropicEnabled, askChatError, askMessages, askStatus, streamedArtifact])
 
   useEffect(() => {
     const isAskBusy = anthropicEnabled
@@ -375,7 +398,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
         toolActivities: askToolActivities,
       })
     : null
-  const hasAskResult = aiResponse !== null || askLoading || aiError !== null
+  const hasAskResult = aiResponse !== null || streamedArtifact !== null || askLoading || aiError !== null
   const hasExperiment = session !== null
 
   return (
@@ -499,7 +522,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
 
           {/* AI results */}
           <AnimatePresence mode="wait">
-            {askLoading && !aiResponse ? (
+            {askLoading && !displayedArtifact ? (
               <motion.div key="loading" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={SPRING}>
                 <div className="space-y-4">
                   {askLoadingState && (
@@ -516,13 +539,24 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
               <motion.div key="error" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={SPRING}>
                 <ErrorDisplay error={aiError} onRetry={() => handleAskSubmit(query)} />
               </motion.div>
-            ) : aiResponse ? (
+            ) : displayedArtifact ? (
               <motion.div key={`ai-${query}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={SPRING}>
                 <div className="mb-4">
-                  <h2 className="text-base font-semibold text-text-primary font-serif">{aiResponse.summary}</h2>
+                  <h2 className="text-base font-semibold text-text-primary font-serif">
+                    {displayedArtifact.response.summary || displayedArtifact.stage}
+                  </h2>
                   <div className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-                    <span className={cn('w-1.5 h-1.5 rounded-full', aiResponse.cached ? 'bg-success' : 'bg-accent')} />
-                    {aiResponse.cached ? 'Cached response' : 'Fresh interpretation'}
+                    <span className={cn(
+                      'w-1.5 h-1.5 rounded-full',
+                      aiResponse
+                        ? (aiResponse.cached ? 'bg-success' : 'bg-accent')
+                        : displayedArtifact.status === 'ready'
+                          ? 'bg-success'
+                          : 'bg-accent',
+                    )} />
+                    {aiResponse
+                      ? (aiResponse.cached ? 'Cached response' : 'Fresh interpretation')
+                      : displayedArtifact.stage}
                   </div>
                 </div>
 
@@ -550,48 +584,54 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                   </div>
                 )}
 
-                <BlockCanvas blocks={aiResponse.blocks} />
+                <BlockCanvas blocks={displayedArtifact.response.blocks} />
 
                 {/* Action bar */}
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs">
-                  {aiResponse.provenance.explorationId && (
-                    <button onClick={handleShare} className="inline-flex items-center gap-1.5 text-muted hover:text-accent transition-colors">
-                      <Link2 className="w-3 h-3" />
-                      {shareState === 'copied' ? 'Link copied' : 'Share'}
+                {aiResponse && (
+                  <div className="mt-4 flex flex-wrap items-center gap-3 text-xs">
+                    {aiResponse.provenance.explorationId && (
+                      <button onClick={handleShare} className="inline-flex items-center gap-1.5 text-muted hover:text-accent transition-colors">
+                        <Link2 className="w-3 h-3" />
+                        {shareState === 'copied' ? 'Link copied' : 'Share'}
+                      </button>
+                    )}
+                    <button onClick={handleExportMarkdown} className="inline-flex items-center gap-1.5 text-muted hover:text-accent transition-colors">
+                      <FileText className="w-3 h-3" />
+                      {exportState === 'copied' ? 'Copied' : 'Export markdown'}
                     </button>
-                  )}
-                  <button onClick={handleExportMarkdown} className="inline-flex items-center gap-1.5 text-muted hover:text-accent transition-colors">
-                    <FileText className="w-3 h-3" />
-                    {exportState === 'copied' ? 'Copied' : 'Export markdown'}
-                  </button>
-                </div>
+                  </div>
+                )}
 
                 {/* Publish as community note */}
-                <ContributionComposer
-                  sourceLabel="Share as a community note"
-                  defaultTitle={query || aiResponse.summary}
-                  defaultTakeaway={aiResponse.summary}
-                  helperText="Write your own title and takeaway, then publish. Others can see, vote, and reply to your note on the Community page."
-                  publishLabel="Publish note"
-                  successLabel="Published"
-                  viewPublishedLabel="View in Community"
-                  published={publishedId !== null}
-                  isPublishing={publishMutation.isPending}
-                  error={(publishMutation.error as Error | null)?.message ?? null}
-                  onViewPublished={publishedId != null && onOpenCommunityExploration
-                    ? () => onOpenCommunityExploration(publishedId)
-                    : onTabChange
-                      ? () => onTabChange('community')
-                      : undefined}
-                  onPublish={payload => publishMutation.mutate(payload)}
-                />
+                {aiResponse && (
+                  <ContributionComposer
+                    sourceLabel="Share as a community note"
+                    defaultTitle={query || aiResponse.summary}
+                    defaultTakeaway={aiResponse.summary}
+                    helperText="Write your own title and takeaway, then publish. Others can see, vote, and reply to your note on the Community page."
+                    publishLabel="Publish note"
+                    successLabel="Published"
+                    viewPublishedLabel="View in Community"
+                    published={publishedId !== null}
+                    isPublishing={publishMutation.isPending}
+                    error={(publishMutation.error as Error | null)?.message ?? null}
+                    onViewPublished={publishedId != null && onOpenCommunityExploration
+                      ? () => onOpenCommunityExploration(publishedId)
+                      : onTabChange
+                        ? () => onTabChange('community')
+                        : undefined}
+                    onPublish={payload => publishMutation.mutate(payload)}
+                  />
+                )}
 
                 {/* Follow-ups */}
-                <FollowUpPrompts
-                  prompts={aiResponse.followUps}
-                  title="Continue questioning"
-                  onSelect={handleAskSubmit}
-                />
+                {aiResponse && (
+                  <FollowUpPrompts
+                    prompts={aiResponse.followUps}
+                    title="Continue questioning"
+                    onSelect={handleAskSubmit}
+                  />
+                )}
               </motion.div>
             ) : null}
           </AnimatePresence>
