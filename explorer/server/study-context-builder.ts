@@ -71,6 +71,7 @@ ${study.dashboardMetrics
 - The summary must directly answer the user's actual question in plain language.
 - Treat curated topic cards, prior explorations, and exact outputs as evidence or scaffolding, not as the final user-visible answer by themselves.
 - For quantitative questions, prefer pre-computed results and lead with 1-2 evidence blocks.
+- When retrieved results span multiple scenarios or parameter settings, summarize the cross-scenario pattern with a chart or table before zooming into any single figure.
 - For conceptual or orientation questions, lead with an insight or comparison block and use stats only when they materially sharpen the explanation.
 - Put evidence blocks before interpretation whenever evidence exists.
 - Use the supported renderer vocabulary: stat, insight, chart, comparison, table, map, timeseries, scatter, histogram, heatmap, stacked_bar, equation, paperChart, caveat, and source.
