@@ -20,6 +20,22 @@ function formatStudyConfig(config: Partial<StudySimulationConfig>): string[] {
   return rows
 }
 
+function formatResultsTemplates(study: StudyPackage): string[] {
+  return Object.entries(study.paperCharts)
+    .slice(0, 8)
+    .map(([dataKey, chart]) => {
+      const dashboard = chart.dashboardId
+        ? study.dashboards.find(candidate => candidate.id === chart.dashboardId)
+        : null
+
+      if (!dashboard) {
+        return `- ${dataKey}: ${chart.takeaway}`
+      }
+
+      return `- ${dashboard.title} (${dashboard.pattern}) -> ${dataKey}: ${dashboard.questionAnswered} ${dashboard.summary}`
+    })
+}
+
 export function buildStudyContext(study: StudyPackage): string {
   const authors = study.metadata.authors.map(author => author.name).filter(Boolean)
   const featuredClaims = study.claims.featuredClaimIds
@@ -66,6 +82,9 @@ ${study.artifacts
 ${study.dashboardMetrics
     .map(metric => `- ${metric.label}${metric.unit ? ` (${metric.unit})` : ''}`)
     .join('\n')}
+
+## Results Templates
+${formatResultsTemplates(study).join('\n')}
 
 ## Response Guidelines
 - The summary must directly answer the user's actual question in plain language.

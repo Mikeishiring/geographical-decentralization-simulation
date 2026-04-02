@@ -573,6 +573,7 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
   paperCharts: {
     'baseline-results': {
       data: PAPER_CHART_DATA['baseline-results'],
+      dashboardId: 'baseline-centralization',
       description: 'Paper Figure 3 replay over 10,000 slots. One composite figure, four metrics, shared slot axis.',
       takeaway: 'Local block building pulls concentration upward faster and farther than external block building in the baseline setup.',
       metadata: ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', 'gamma = 2/3'],
@@ -600,6 +601,7 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
     },
     'se1-source-placement': {
       data: PAPER_CHART_DATA['se1-source-placement'],
+      dashboardId: 'source-placement-effects',
       description: 'Paper Figure 4 replay for latency-aligned versus latency-misaligned information-source placement under both paradigms.',
       takeaway: 'Source placement flips the centralization gradient by paradigm: aligned sources strengthen local concentration, while misaligned suppliers strengthen external concentration.',
       metadata: ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', 'aligned vs misaligned sources'],
@@ -638,6 +640,7 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
     },
     'se2-distribution': {
       data: PAPER_CHART_DATA['se2-distribution'],
+      dashboardId: 'validator-start-effects',
       description: 'Paper Figure 5 replay for the heterogeneous validator-start experiment using the published 0.002 ETH migration-cost runs.',
       takeaway: 'Once validators start from an already concentrated geography, the two paradigms converge toward similarly compressed outcomes.',
       metadata: ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', 'heterogeneous validator start'],
@@ -664,6 +667,7 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
     },
     'se3-joint': {
       data: PAPER_CHART_DATA['se3-joint'],
+      dashboardId: 'joint-heterogeneity',
       description: 'Paper Figure 6 replay for the joint-heterogeneity experiment across aligned and misaligned source placements.',
       takeaway: 'The only temporary decentralization dip appears in the external misaligned case, and it reverses as the run continues.',
       metadata: ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', 'heterogeneous validators + source placement'],
@@ -702,6 +706,7 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
     },
     'se4a-attestation': {
       data: PAPER_CHART_DATA['se4a-attestation'],
+      dashboardId: 'attestation-threshold',
       description: 'Paper Figure 7 replay across four attestation-threshold settings. One composite figure, four metrics, shared slot axis.',
       takeaway: 'Raising gamma increases external centralization pressure while reducing local centralization pressure.',
       metadata: ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', 'gamma in {1/3, 1/2, 2/3, 4/5}'],
@@ -728,6 +733,7 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
     },
     'se4b-slots': {
       data: PAPER_CHART_DATA['se4b-slots'],
+      dashboardId: 'slot-time-comparison',
       description: 'Paper Figure 8 replay comparing 12-second and 6-second slots for both paradigms.',
       takeaway: 'Shorter slots mostly preserve the concentration trajectory while increasing the reward-variance gap.',
       metadata: ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', '12s vs 6s slots'],
