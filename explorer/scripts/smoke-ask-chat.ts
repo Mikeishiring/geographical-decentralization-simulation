@@ -177,6 +177,24 @@ async function main() {
       'Expected structured results queries to avoid topic-card search before querying the Results catalog',
     )
 
+    const experimentSetupStream = await captureAskStream('What should I run if I want to test shorter slots with misaligned sources?')
+    assert(
+      experimentSetupStream.body.includes('build_simulation_config'),
+      'Expected experiment-planning Ask prompts to route through the bounded simulation-config tool',
+    )
+    assert(
+      experimentSetupStream.body.includes('"route":"simulation-config"'),
+      'Expected experiment-planning Ask prompts to advertise the simulation-config route in the live query plan',
+    )
+    assert(
+      experimentSetupStream.body.includes('Exact simulation config') || experimentSetupStream.body.includes('Suggested exact run'),
+      'Expected experiment-planning Ask prompts to surface a renderable config artifact',
+    )
+    assert(
+      !experimentSetupStream.body.includes('toolName":"search_topic_cards'),
+      'Expected experiment-planning Ask prompts to avoid topic-card search before drafting the config',
+    )
+
     const overviewStream = await captureAskStream('Can you explain the project and its main mechanism?')
     const overviewArtifactIndex = overviewStream.body.indexOf('data-artifact')
     const overviewRenderIndex = overviewStream.body.indexOf('render_blocks')
