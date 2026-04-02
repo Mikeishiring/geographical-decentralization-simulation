@@ -12,9 +12,13 @@ WORKDIR /app
 COPY requirements.txt ./requirements.txt
 RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
-COPY explorer/package.json explorer/package-lock.json ./explorer/
+COPY package.json package-lock.json ./
+COPY explorer/package.json ./explorer/package.json
+COPY study-generator/package.json ./study-generator/package.json
+COPY packages/study-schema/package.json ./packages/study-schema/package.json
+RUN npm ci --workspace explorer --include-workspace-root=false
+
 WORKDIR /app/explorer
-RUN npm ci
 
 WORKDIR /app
 COPY . .
