@@ -808,13 +808,33 @@ function isPrecomputedResultsExploreQuery(query: string): boolean {
   return /(compare|comparison|versus| vs\b|difference|gini|hhi|liveness|mev|proposal|attestation|gamma|slot|latency|validator|region|geograph|distribution|baseline|local|external|source placement|misaligned|aligned)/i.test(query)
 }
 
+function isStructuredResultsQuery(query: string): boolean {
+  const normalized = query.trim().toLowerCase()
+  if (!normalized || !isPrecomputedResultsExploreQuery(query)) return false
+
+  return [
+    /\b(table|tabulate|rows?|dataset|datasets|catalog|leaderboard|rank|ranking|ranked|sorted|sort(?:ed)?(?: by)?|list|sql|query)\b/,
+    /\b(top|bottom)\s+\d+\b/,
+    /\b(show|give|return)\b.*\b(table|list|rows?)\b/,
+  ].some(pattern => pattern.test(normalized))
+}
+
 function buildExploreResultsModeContext(query: string): string {
   if (!isPrecomputedResultsExploreQuery(query)) return ''
   return '\n\n## Quantitative Mode\nThis question should lean on pre-computed results when possible. Prefer query_cached_results before relying on generic summaries. Use compact stat, comparison, paperChart, chart, table, or map blocks that feel like the study\'s Results surface. When a study-owned paperChart matches the retrieved dataset family, reuse it instead of inventing a bespoke figure. If the retrieved data spans multiple scenarios or parameter settings, summarize the pattern across those variants before zooming into any one case. Treat those study-owned blocks as the skeleton of the answer and add only the minimum interpretation needed to explain them. When the cached data covers only part of the ask, answer that supported slice clearly and mark the rest as interpretation or open follow-up.'
 }
 
+function buildExploreStructuredResultsModeContext(query: string): string {
+  if (!isStructuredResultsQuery(query)) return ''
+  return '\n\n## Structured Results Query Mode\nThis question is asking for a ranked, listed, tabulated, or SQL-style view over the study-owned published Results catalog. Use query_results_table first. Prefer returning a compact chart + table + brief insight block over a prose-only answer. Treat the structured query result as grounded evidence, then call render_blocks to finalize the page if needed.'
+}
+
 function buildExploreChatSystemPrompt(query: string, sessionContext: string): string {
-  return STUDY_CONTEXT + sessionContext + buildExploreQueryModeContext(query) + buildExploreResultsModeContext(query)
+  return STUDY_CONTEXT
+    + sessionContext
+    + buildExploreQueryModeContext(query)
+    + buildExploreResultsModeContext(query)
+    + buildExploreStructuredResultsModeContext(query)
 }
 
 function shouldForceExploreRenderStep(stepNumber: number, toolCalls: readonly { toolName: string }[]): boolean {
@@ -822,6 +842,7 @@ function shouldForceExploreRenderStep(stepNumber: number, toolCalls: readonly { 
   if (hasTerminalRender) return false
 
   const evidenceCalls = toolCalls.filter(toolCall => toolCall.toolName !== 'search_topic_cards')
+  if (stepNumber >= 1 && toolCalls.some(toolCall => toolCall.toolName === 'query_results_table')) return true
   if (stepNumber >= 4) return true
   if (stepNumber >= 3 && evidenceCalls.length > 0) return true
   if (stepNumber >= 2 && toolCalls.some(toolCall => toolCall.toolName === 'query_cached_results')) return true
@@ -2052,6 +2073,43 @@ type PublishedExploreMetricKey = Extract<
   | 'total_distance'
 >
 
+const publishedExploreMetricValues = [
+  'gini',
+  'hhi',
+  'liveness',
+  'proposal_times',
+  'mev',
+  'attestations',
+  'clusters',
+  'failed_block_proposals',
+  'total_distance',
+] as const satisfies readonly PublishedExploreMetricKey[]
+
+type PublishedResultsQueryDimension =
+  | 'evaluation'
+  | 'paradigm'
+  | 'result'
+  | 'validators'
+  | 'migrationCost'
+  | 'gamma'
+  | 'activeRegions'
+  | 'dominantRegion'
+  | 'sourceRole'
+  | 'totalSlots'
+
+const publishedResultsQueryDimensionValues = [
+  'evaluation',
+  'paradigm',
+  'result',
+  'validators',
+  'migrationCost',
+  'gamma',
+  'activeRegions',
+  'dominantRegion',
+  'sourceRole',
+  'totalSlots',
+] as const satisfies readonly PublishedResultsQueryDimension[]
+
 interface PublishedExploreDominantRegion {
   readonly regionId: string
   readonly city: string | null
@@ -2503,6 +2561,333 @@ function formatPublishedTotalSlots(totalSlots: number | null | undefined): strin
   return typeof totalSlots === 'number' && Number.isFinite(totalSlots) && totalSlots > 0
     ? totalSlots.toLocaleString()
     : 'N/A'
+}
+
+function resultsQueryDimensionLabel(
+  dimension: PublishedResultsQueryDimension,
+): string {
+  switch (dimension) {
+    case 'evaluation':
+      return 'Evaluation'
+    case 'paradigm':
+      return 'Paradigm'
+    case 'result':
+      return 'Result'
+    case 'validators':
+      return 'Validators'
+    case 'migrationCost':
+      return 'Migration cost'
+    case 'gamma':
+      return 'Gamma'
+    case 'activeRegions':
+      return 'Active regions'
+    case 'dominantRegion':
+      return 'Top region'
+    case 'sourceRole':
+      return 'Source role'
+    case 'totalSlots':
+      return 'Slots'
+    default:
+      return dimension
+  }
+}
+
+function formatResultsQueryDimension(
+  entry: PublishedExploreResultEntry,
+  dimension: PublishedResultsQueryDimension,
+): string {
+  switch (dimension) {
+    case 'evaluation':
+      return formatPublishedEvaluationLabel(entry.evaluation)
+    case 'paradigm':
+      return publishedParadigmDisplayLabel(entry.paradigm)
+    case 'result':
+      return formatPublishedResultLabel(entry.result)
+    case 'validators':
+      return entry.validators != null ? formatMetricNumber(entry.validators, 0) : 'N/A'
+    case 'migrationCost':
+      return entry.migrationCost != null ? formatMetricNumber(entry.migrationCost, 4) : 'N/A'
+    case 'gamma':
+      return entry.gamma != null ? formatMetricNumber(entry.gamma, 4) : 'N/A'
+    case 'activeRegions':
+      return formatMetricNumber(entry.activeRegions, 0)
+    case 'dominantRegion':
+      return entry.dominantRegion?.city
+        ? `${entry.dominantRegion.city} (${formatMetricNumber(entry.dominantRegion.share, 1)}%)`
+        : 'N/A'
+    case 'sourceRole':
+      return entry.sourceRole
+    case 'totalSlots':
+      return formatPublishedTotalSlots(entry.totalSlots)
+    default:
+      return 'N/A'
+  }
+}
+
+function readResultsQueryDimensionSortValue(
+  entry: PublishedExploreResultEntry,
+  dimension: PublishedResultsQueryDimension,
+): string | number {
+  switch (dimension) {
+    case 'evaluation':
+      return formatPublishedEvaluationLabel(entry.evaluation)
+    case 'paradigm':
+      return publishedParadigmSortValue(entry.paradigm)
+    case 'result':
+      return entry.result
+    case 'validators':
+      return entry.validators ?? Number.NEGATIVE_INFINITY
+    case 'migrationCost':
+      return entry.migrationCost ?? Number.NEGATIVE_INFINITY
+    case 'gamma':
+      return entry.gamma ?? Number.NEGATIVE_INFINITY
+    case 'activeRegions':
+      return entry.activeRegions
+    case 'dominantRegion':
+      return entry.dominantRegion?.share ?? Number.NEGATIVE_INFINITY
+    case 'sourceRole':
+      return entry.sourceRole
+    case 'totalSlots':
+      return entry.totalSlots
+    default:
+      return ''
+  }
+}
+
+function buildResultsQueryLabel(
+  entry: PublishedExploreResultEntry,
+  dimensions: readonly PublishedResultsQueryDimension[],
+): string {
+  const selected = dimensions.length > 0
+    ? dimensions
+    : ['evaluation', 'paradigm', 'result'] satisfies readonly PublishedResultsQueryDimension[]
+  return selected
+    .map(dimension => formatResultsQueryDimension(entry, dimension))
+    .join(' · ')
+}
+
+function buildPublishedResultsQueryCite(
+  entries: readonly PublishedExploreResultEntry[],
+): Cite | undefined {
+  const evaluations = [...new Set(entries.map(entry => entry.evaluation))]
+  if (evaluations.length !== 1) return undefined
+  const experiment = inferPublishedExperiment(evaluations[0])
+  return experiment ? { experiment } : undefined
+}
+
+async function queryPublishedResultsTable(input: {
+  readonly dimensions?: readonly PublishedResultsQueryDimension[]
+  readonly metrics?: readonly PublishedExploreMetricKey[]
+  readonly filters?: {
+    readonly evaluation?: string
+    readonly paradigm?: string
+    readonly result?: string
+  }
+  readonly slot?: 'initial' | 'final'
+  readonly orderBy?: string
+  readonly order?: 'asc' | 'desc'
+  readonly limit?: number
+  readonly title?: string
+}): Promise<{
+  readonly summary: string
+  readonly description: string
+  readonly blocks: readonly Block[]
+  readonly followUps: readonly string[]
+}> {
+  const catalog = await loadPublishedResearchCatalog()
+  if (!catalog) {
+    return {
+      summary: 'Structured results query unavailable',
+      description: 'The published Results catalog is unavailable on this server.',
+      blocks: [{
+        type: 'caveat',
+        text: 'The published Results catalog is unavailable on this server.',
+      }],
+      followUps: [],
+    }
+  }
+
+  const dimensions = (input.dimensions?.length
+    ? input.dimensions
+    : ['evaluation', 'paradigm', 'result']) as readonly PublishedResultsQueryDimension[]
+  const metrics = (input.metrics?.length
+    ? input.metrics
+    : ['gini']) as readonly PublishedExploreMetricKey[]
+  const normalizedParadigm = normalizePublishedCatalogParadigm(input.filters?.paradigm)
+  const normalizedEvaluation = normalizePublishedEvaluationFilter(input.filters?.evaluation)
+  const normalizedResult = input.filters?.result?.trim() || undefined
+  const chartMatch = findStudyPaperChartMatch(normalizedResult) ?? findStudyPaperChartMatch(input.filters?.evaluation)
+
+  const matchedEntries = chartMatch?.chart.publishedScenarioLinks?.length
+    ? chartMatch.chart.publishedScenarioLinks.flatMap(link => {
+        if (normalizedParadigm && link.paradigm !== normalizedParadigm) return []
+        const matchingEntry = catalog.datasets.find(entry =>
+          entry.evaluation === link.evaluation
+          && entry.paradigm === link.paradigm
+          && entry.result === link.result,
+        )
+        return matchingEntry ? [matchingEntry] : []
+      })
+    : catalog.datasets.filter(entry => {
+        if (normalizedParadigm && entry.paradigm !== normalizedParadigm) return false
+        if (normalizedEvaluation && entry.evaluation !== normalizedEvaluation) return false
+        if (normalizedResult && entry.result !== normalizedResult) return false
+        return true
+      })
+
+  if (matchedEntries.length === 0) {
+    return {
+      summary: 'No matching published result rows',
+      description: 'The structured query did not match any published Results datasets.',
+      blocks: [{
+        type: 'caveat',
+        text: 'No published Results datasets match that structured query.',
+      }],
+      followUps: [],
+    }
+  }
+
+  const slotMode = input.slot === 'initial' ? 'initial' : 'final'
+  const hydratedEntries = await Promise.all(matchedEntries.map(async entry => {
+    const datasetPath = normalizePublishedDatasetPath(entry.path)
+    if (!datasetPath) return null
+    const payload = await loadPublishedReplayPayload(datasetPath)
+    const initialSnapshot = buildPublishedSlotSummary(payload, 0)
+    const finalSnapshot = buildPublishedSlotSummary(payload, Math.max(0, totalPublishedSlots(payload) - 1))
+    const focusSnapshot = slotMode === 'initial' ? initialSnapshot : finalSnapshot
+    return {
+      label: `${entry.evaluation} / ${entry.paradigm} / ${entry.result}`,
+      evaluation: entry.evaluation,
+      paradigm: entry.paradigm === 'External' ? 'SSP' : 'MSP',
+      result: entry.result,
+      datasetPath: toPublishedResultsRelativePath(datasetPath),
+      sourceRole: sourceRoleLabel(entry.sourceRole),
+      description: payload.description ?? entry.metadata?.description ?? null,
+      validators: payload.v ?? entry.metadata?.v ?? null,
+      migrationCost: payload.cost ?? entry.metadata?.cost ?? null,
+      gamma: payload.gamma ?? entry.metadata?.gamma ?? null,
+      totalSlots: focusSnapshot.totalSlots,
+      initialMetrics: initialSnapshot.metrics,
+      finalMetrics: finalSnapshot.metrics,
+      activeRegions: focusSnapshot.activeRegions,
+      dominantRegion: focusSnapshot.dominantRegion
+        ? {
+            regionId: focusSnapshot.dominantRegion.regionId,
+            city: focusSnapshot.dominantRegion.city,
+            share: focusSnapshot.dominantRegion.share,
+            count: focusSnapshot.dominantRegion.count,
+          }
+        : null,
+      topRegions: focusSnapshot.topRegions,
+      metricDigest: [],
+    } satisfies PublishedExploreResultEntry
+  }))
+
+  const results = hydratedEntries.filter((entry): entry is PublishedExploreResultEntry => entry !== null)
+  if (results.length === 0) {
+    return {
+      summary: 'Structured results rows could not be loaded',
+      description: 'The matching published Results datasets were found in the catalog but could not be read from disk.',
+      blocks: [{
+        type: 'caveat',
+        text: 'The matching published Results datasets could not be loaded for this structured query.',
+      }],
+      followUps: [],
+    }
+  }
+
+  const orderByMetric = normalizePublishedMetricKey(input.orderBy)
+  const orderByDimension = publishedResultsQueryDimensionValues.includes((input.orderBy ?? '') as PublishedResultsQueryDimension)
+    ? input.orderBy as PublishedResultsQueryDimension
+    : null
+  const orderDirection = input.order === 'asc' ? 1 : -1
+  const sorted = results
+    .slice()
+    .sort((left, right) => {
+      if (orderByMetric) {
+        const leftValue = (slotMode === 'initial' ? left.initialMetrics : left.finalMetrics)[orderByMetric] ?? Number.NEGATIVE_INFINITY
+        const rightValue = (slotMode === 'initial' ? right.initialMetrics : right.finalMetrics)[orderByMetric] ?? Number.NEGATIVE_INFINITY
+        return (leftValue - rightValue) * orderDirection
+      }
+      if (orderByDimension) {
+        const leftValue = readResultsQueryDimensionSortValue(left, orderByDimension)
+        const rightValue = readResultsQueryDimensionSortValue(right, orderByDimension)
+        if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+          return (leftValue - rightValue) * orderDirection
+        }
+        return String(leftValue).localeCompare(String(rightValue)) * orderDirection
+      }
+      return left.label.localeCompare(right.label)
+    })
+
+  const limit = Math.max(1, Math.min(20, input.limit ?? 8))
+  const visibleRows = sorted.slice(0, limit)
+  const cite = buildPublishedResultsQueryCite(visibleRows)
+  const headers = [
+    ...dimensions.map(resultsQueryDimensionLabel),
+    ...metrics.map(metric => `${publishedMetricTitle(metric)} (${slotMode})`),
+  ]
+  const rows = visibleRows.map(entry => [
+    ...dimensions.map(dimension => formatResultsQueryDimension(entry, dimension)),
+    ...metrics.map(metric => {
+      const metricValue = (slotMode === 'initial' ? entry.initialMetrics : entry.finalMetrics)[metric] ?? null
+      return formatPublishedMetricValue(metric, metricValue)
+    }),
+  ])
+
+  const blocks: Block[] = []
+  if (metrics.length === 1 && visibleRows.length >= 2 && visibleRows.length <= 10) {
+    const metric = metrics[0]!
+    blocks.push({
+      type: 'chart',
+      title: input.title ?? `${publishedMetricTitle(metric)} across published results`,
+      chartType: 'bar',
+      unit: publishedMetricUnit(metric),
+      data: visibleRows.map(entry => ({
+        label: buildResultsQueryLabel(entry, dimensions),
+        value: (slotMode === 'initial' ? entry.initialMetrics : entry.finalMetrics)[metric] ?? 0,
+        category: publishedParadigmDisplayLabel(entry.paradigm),
+      })),
+      cite,
+    })
+  }
+
+  const topEntry = visibleRows[0]!
+  blocks.push({
+    type: 'insight',
+    title: 'Structured query result',
+    text: orderByMetric
+      ? `${buildResultsQueryLabel(topEntry, dimensions)} is currently ${input.order === 'asc' ? 'lowest' : 'highest'} on ${publishedMetricTitle(orderByMetric)} in the returned published rows.`
+      : `Showing ${visibleRows.length} published result row${visibleRows.length === 1 ? '' : 's'} from the study-owned Results catalog at the ${slotMode} snapshot.`,
+    cite,
+  })
+  blocks.push({
+    type: 'table',
+    title: input.title ?? 'Published results query',
+    headers,
+    rows,
+    cite,
+  })
+
+  if (chartMatch?.key) {
+    const chartBlock = findStudyPaperChartBlock(chartMatch.key)
+    blocks.push({
+      type: 'paperChart',
+      title: chartBlock?.title ?? formatPublishedEvaluationLabel(chartMatch.key),
+      dataKey: chartMatch.key,
+      cite: chartBlock?.cite,
+    })
+  }
+
+  return {
+    summary: `Structured query over ${visibleRows.length} published row${visibleRows.length === 1 ? '' : 's'}`,
+    description: `Returned ${visibleRows.length} of ${results.length} published Results row${results.length === 1 ? '' : 's'} from the ${slotMode} snapshot.`,
+    blocks,
+    followUps: [
+      `Rank the same rows by ${publishedMetricTitle(metrics[0]!)} in the opposite direction.`,
+      'Narrow this to one evaluation or paradigm and compare the remaining rows.',
+    ],
+  }
 }
 
 function normalizePublishedResultsToolResponse(
@@ -4722,6 +5107,40 @@ async function executeExploreChatToolCall(
   name: string,
   input: Record<string, unknown>,
 ): Promise<unknown> {
+  if (name === 'query_results_table') {
+    return await queryPublishedResultsTable({
+      dimensions: Array.isArray(input.dimensions)
+        ? input.dimensions.filter((value): value is PublishedResultsQueryDimension =>
+            typeof value === 'string' && publishedResultsQueryDimensionValues.includes(value as PublishedResultsQueryDimension),
+          )
+        : undefined,
+      metrics: Array.isArray(input.metrics)
+        ? input.metrics.filter((value): value is PublishedExploreMetricKey =>
+            typeof value === 'string' && publishedExploreMetricValues.includes(value as PublishedExploreMetricKey),
+          )
+        : undefined,
+      filters:
+        input.filters && typeof input.filters === 'object' && !Array.isArray(input.filters)
+          ? {
+              evaluation: typeof (input.filters as Record<string, unknown>).evaluation === 'string'
+                ? (input.filters as Record<string, unknown>).evaluation as string
+                : undefined,
+              paradigm: typeof (input.filters as Record<string, unknown>).paradigm === 'string'
+                ? (input.filters as Record<string, unknown>).paradigm as string
+                : undefined,
+              result: typeof (input.filters as Record<string, unknown>).result === 'string'
+                ? (input.filters as Record<string, unknown>).result as string
+                : undefined,
+            }
+          : undefined,
+      slot: input.slot === 'initial' ? 'initial' : 'final',
+      orderBy: typeof input.orderBy === 'string' ? input.orderBy : undefined,
+      order: input.order === 'asc' ? 'asc' : 'desc',
+      limit: typeof input.limit === 'number' && Number.isFinite(input.limit) ? input.limit : undefined,
+      title: typeof input.title === 'string' ? input.title : undefined,
+    })
+  }
+
   if (name === 'query_cached_results') {
     if (!ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH || !existsSync(ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH)) {
       return executeToolCall(name, input)
@@ -4951,6 +5370,40 @@ function buildExploreChatTools(
         return result
       },
     }),
+    query_results_table: createTool({
+      description: 'Run a constrained structured query over the study-owned published Results catalog and return compact Results-style blocks.',
+      inputSchema: z.object({
+        dimensions: z.array(z.enum(publishedResultsQueryDimensionValues)).min(1).max(6).optional(),
+        metrics: z.array(z.enum(publishedExploreMetricValues)).min(1).max(4).optional(),
+        filters: z.object({
+          evaluation: z.string().optional(),
+          paradigm: z.string().optional(),
+          result: z.string().optional(),
+        }).optional(),
+        slot: z.enum(['initial', 'final']).optional(),
+        orderBy: z.string().optional(),
+        order: z.enum(['asc', 'desc']).optional(),
+        limit: z.number().int().min(1).max(20).optional(),
+        title: z.string().optional(),
+      }),
+      execute: async (input) => {
+        options?.onStatus?.(buildAskStatus(
+          'evidence',
+          'active',
+          'Running structured data query',
+          'Ranking or tabulating published Results rows against the study-owned catalog.',
+        ))
+        const result = await executeExploreChatToolCall('query_results_table', input as Record<string, unknown>)
+        streamReferencedArtifact(result, 'Structured results query ready')
+        options?.onStatus?.(buildAskStatus(
+          'evidence',
+          'done',
+          'Structured query ready',
+          'A compact chart and table scaffold is now available from the published Results catalog.',
+        ))
+        return result
+      },
+    }),
     render_blocks: createTool({
       description: 'Compose the final page artifact using the supported block formats and pre-computed data where relevant.',
       inputSchema: renderBlocksToolInputSchema,
@@ -5057,6 +5510,19 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
           prepareStep: ({ steps, stepNumber }) => {
             const allToolCalls = steps.flatMap(step => step.toolCalls)
             const expectedTemplates = resolveExpectedStudyResultsTemplates(trimmedQuery)
+            if (stepNumber === 0 && isStructuredResultsQuery(trimmedQuery)) {
+              writeStatus(buildAskStatus(
+                'plan',
+                'active',
+                'Routing to structured results query',
+                'This question wants a ranked or tabulated view over the published Results catalog before synthesis.',
+              ))
+              return {
+                activeTools: ['query_results_table'],
+                toolChoice: { type: 'tool', toolName: 'query_results_table' },
+                system: `${systemPrompt}\n\n## Structured Results Retrieval\nThis question is asking for a structured view over study-owned Results rows. Start by calling query_results_table. Prefer a compact ranking, chart, or table grounded in the published Results catalog. Do not search topic cards or prior explorations before the structured query returns.`,
+              }
+            }
             if (stepNumber === 0 && isPrecomputedResultsExploreQuery(trimmedQuery) && expectedTemplates.length > 0) {
               writeStatus(buildAskStatus(
                 'plan',
@@ -5068,6 +5534,19 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
                 activeTools: ['query_cached_results'],
                 toolChoice: { type: 'tool', toolName: 'query_cached_results' },
                 system: `${systemPrompt}\n\n## Results Retrieval\nThis question maps to the following study-owned Results templates:\n${expectedTemplates.map(template => `- ${template.title} (${template.pattern}): ${template.questionAnswered}`).join('\n')}\n\nStart by calling query_cached_results. Do not search topic cards or prior explorations before loading the relevant pre-computed Results family or families.${buildActiveResultsTemplateContext(trimmedQuery, latestCachedResults)}`,
+              }
+            }
+            if (stepNumber >= 1 && allToolCalls.some(toolCall => toolCall.toolName === 'query_results_table')) {
+              writeStatus(buildAskStatus(
+                'compose',
+                'active',
+                'Finalizing structured query',
+                'The structured Results rows are loaded, so the assistant is packaging them into the final page.',
+              ))
+              return {
+                activeTools: ['render_blocks'],
+                toolChoice: { type: 'tool', toolName: 'render_blocks' },
+                system: `${systemPrompt}\n\n## Finalization\nYou already have a grounded structured query artifact from the published Results catalog. Do not call search tools. Call render_blocks now and preserve the chart/table evidence as the backbone of the page.`,
               }
             }
             const hasPublishedResults = normalizePublishedResultsCollection(latestCachedResults).length > 0
@@ -5193,6 +5672,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
       : ''
     const queryModeContext = buildExploreQueryModeContext(trimmedQuery)
     const resultsModeContext = buildExploreResultsModeContext(trimmedQuery)
+    const structuredResultsModeContext = buildExploreStructuredResultsModeContext(trimmedQuery)
 
     // Multi-turn tool execution loop
     const messages: Anthropic.Messages.MessageParam[] = [
@@ -5223,7 +5703,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
         system: [
           {
             type: 'text',
-            text: STUDY_CONTEXT + sessionContext + queryModeContext + resultsModeContext,
+            text: STUDY_CONTEXT + sessionContext + queryModeContext + resultsModeContext + structuredResultsModeContext,
             cache_control: sessionHistory.length ? undefined : { type: 'ephemeral' },
           },
         ],

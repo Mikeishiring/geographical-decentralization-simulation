@@ -155,6 +155,20 @@ async function main() {
       'Expected the quantitative Ask stream to surface the pre-computed results stage',
     )
 
+    const structuredQueryStream = await captureAskStream('Show me a table of published runs sorted by final Gini.')
+    assert(
+      structuredQueryStream.body.includes('query_results_table'),
+      'Expected SQL-style Ask prompts to route through the structured results query tool',
+    )
+    assert(
+      structuredQueryStream.body.includes('Published results query') || structuredQueryStream.body.includes('Structured query over'),
+      'Expected structured results queries to surface a table-oriented artifact',
+    )
+    assert(
+      !structuredQueryStream.body.includes('toolName":"search_topic_cards'),
+      'Expected structured results queries to avoid topic-card search before querying the Results catalog',
+    )
+
     const overviewStream = await captureAskStream('Can you explain the project and its main mechanism?')
     const overviewArtifactIndex = overviewStream.body.indexOf('data-artifact')
     const overviewRenderIndex = overviewStream.body.indexOf('render_blocks')
