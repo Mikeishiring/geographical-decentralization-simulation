@@ -248,7 +248,6 @@ explorer/server/data/
 # Explorer source config files intentionally committed despite the global *.json rule
 !package.json
 !explorer/package.json
-!explorer/package-lock.json
 !explorer/tsconfig.json
 !explorer/tsconfig.app.json
 !explorer/tsconfig.node.json
