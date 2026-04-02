@@ -51,7 +51,8 @@ import {
 } from '../src/types/simulation-view.ts'
 import { getActiveStudy } from '../src/studies/index.ts'
 import type { TopicCard } from '../src/studies/types.ts'
-import type { AskArtifactData, AskUIMessage } from '../src/lib/ask-chat.ts'
+import type { AskArtifactData } from '../src/lib/ask-artifact.ts'
+import type { AskUIMessage } from '../src/lib/ask-chat.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXPLORER_ROOT = path.resolve(__dirname, '..')
@@ -2074,6 +2075,7 @@ interface PublishedExploreCompanionEntry {
   readonly paradigm: 'SSP' | 'MSP'
   readonly result: string
   readonly datasetPath: string
+  readonly totalSlots: number
   readonly finalMetrics: Readonly<Record<string, number | null>>
   readonly activeRegions: number
   readonly dominantRegion: PublishedExploreDominantRegion | null
@@ -2334,6 +2336,7 @@ async function loadExplorePublishedResults(filters: ExploreCachedResultFilters):
           paradigm: companionEntry.paradigm === 'External' ? 'SSP' : 'MSP',
           result: companionEntry.result,
           datasetPath: toPublishedResultsRelativePath(datasetPath),
+          totalSlots: finalSnapshot.totalSlots,
           finalMetrics: finalSnapshot.metrics,
           activeRegions: finalSnapshot.activeRegions,
           dominantRegion: finalSnapshot.dominantRegion
@@ -2453,10 +2456,17 @@ function coercePublishedExploreCompanionEntry(
     paradigm,
     result,
     datasetPath,
+    totalSlots: typeof candidate.totalSlots === 'number' && Number.isFinite(candidate.totalSlots) ? candidate.totalSlots : 0,
     finalMetrics: coercePublishedExploreMetrics(candidate.finalMetrics),
     activeRegions: typeof candidate.activeRegions === 'number' && Number.isFinite(candidate.activeRegions) ? candidate.activeRegions : 0,
     dominantRegion: coercePublishedDominantRegion(candidate.dominantRegion),
   }
+}
+
+function formatPublishedTotalSlots(totalSlots: number | null | undefined): string {
+  return typeof totalSlots === 'number' && Number.isFinite(totalSlots) && totalSlots > 0
+    ? totalSlots.toLocaleString()
+    : 'N/A'
 }
 
 function normalizePublishedResultsToolResponse(
@@ -2943,7 +2953,7 @@ function buildPublishedMetricStatBlock(
         type: 'stat',
         value: formatPublishedMetricValue(metricKey, metricValue),
         label: `${publishedParadigmDisplayLabel(entry.paradigm)} ${publishedMetricTitle(metricKey)}`,
-        sublabel: `${buildPublishedScenarioTitle([entry])} at slot ${entry.totalSlots.toLocaleString()}`,
+        sublabel: `${buildPublishedScenarioTitle([entry])} at slot ${formatPublishedTotalSlots(entry.totalSlots)}`,
         delta,
         sentiment,
         cite,
@@ -2956,7 +2966,7 @@ function buildPublishedMetricStatBlock(
       type: 'stat',
       value: `${formatMetricNumber(entry.dominantRegion.share, 1)}%`,
       label: `${publishedParadigmDisplayLabel(entry.paradigm)} top-region share`,
-      sublabel: `${entry.dominantRegion.city ?? entry.dominantRegion.regionId} at slot ${entry.totalSlots.toLocaleString()}`,
+      sublabel: `${entry.dominantRegion.city ?? entry.dominantRegion.regionId} at slot ${formatPublishedTotalSlots(entry.totalSlots)}`,
       cite,
     }
   }
@@ -2965,7 +2975,7 @@ function buildPublishedMetricStatBlock(
     type: 'stat',
     value: entry.activeRegions.toLocaleString(),
     label: `${publishedParadigmDisplayLabel(entry.paradigm)} active regions`,
-    sublabel: `${buildPublishedScenarioTitle([entry])} at slot ${entry.totalSlots.toLocaleString()}`,
+    sublabel: `${buildPublishedScenarioTitle([entry])} at slot ${formatPublishedTotalSlots(entry.totalSlots)}`,
     cite,
   }
 }

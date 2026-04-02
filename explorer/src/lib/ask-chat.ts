@@ -1,5 +1,6 @@
 import type { UIMessage } from 'ai'
 import type { ExploreResponse } from './api'
+import type { AskArtifactData, AskDataParts } from './ask-artifact'
 
 type GenericAskTool = {
   readonly input: unknown
@@ -66,21 +67,6 @@ export type AskToolSet = Record<string, GenericAskTool> & {
     }
     readonly output: ExploreResponse
   }
-}
-
-export type AskArtifactStatus = 'loading' | 'streaming' | 'ready'
-
-export interface AskArtifactData {
-  readonly status: AskArtifactStatus
-  readonly stage: string
-  readonly response: Pick<
-    ExploreResponse,
-    'summary' | 'blocks' | 'followUps' | 'model' | 'cached' | 'provenance'
-  >
-}
-
-type AskDataParts = {
-  readonly artifact: AskArtifactData
 }
 
 export type AskUIMessage = UIMessage<unknown, AskDataParts, AskToolSet>

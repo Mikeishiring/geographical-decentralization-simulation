@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "smoke": "tsx scripts/smoke-explorer.ts",
+    "smoke:ask": "tsx scripts/smoke-ask-chat.ts",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed"
   },
