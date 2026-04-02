@@ -46,6 +46,7 @@ export type {
 export interface StudyPaperChart {
   readonly data: PaperChartData
   readonly dashboardId?: string
+  readonly askAliases?: readonly string[]
   readonly description: string
   readonly takeaway: string
   readonly metadata: readonly string[]

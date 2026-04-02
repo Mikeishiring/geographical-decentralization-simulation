@@ -29,10 +29,10 @@ function formatResultsTemplates(study: StudyPackage): string[] {
         : null
 
       if (!dashboard) {
-        return `- ${dataKey}: ${chart.takeaway}`
+        return `- ${dataKey}: ${chart.takeaway}${chart.askAliases?.length ? ` Aliases: ${formatInlineList(chart.askAliases)}.` : ''}`
       }
 
-      return `- ${dashboard.title} (${dashboard.pattern}) -> ${dataKey}: ${dashboard.questionAnswered} ${dashboard.summary}${dashboard.askMetricKey ? ` Lead metric: ${dashboard.askMetricKey}.` : ''}`
+      return `- ${dashboard.title} (${dashboard.pattern}) -> ${dataKey}: ${dashboard.questionAnswered} ${dashboard.summary}${dashboard.askMetricKey ? ` Lead metric: ${dashboard.askMetricKey}.` : ''}${chart.askAliases?.length ? ` Aliases: ${formatInlineList(chart.askAliases)}.` : ''}`
     })
 }
 
@@ -111,6 +111,7 @@ ${formatResultsTemplates(study).join('\n')}
 - Search prior explorations before generating a fresh answer if the question may already have been covered.
 - Retrieve full topic cards or explorations before reusing them so you can inspect the actual blocks.
 - Use query_cached_results when pre-computed results can answer the question without running a new simulation.
+- If the user explicitly names more than one Results family or alias, retrieve each matching family before calling render_blocks.
 - Use build_simulation_config when the user asks what to run, how to encode a scenario, or wants a paper-style preset.
 - Use suggest_underexplored_topics only for idea generation or follow-up exploration prompts.
 - Use render_blocks as the final step after gathering evidence.

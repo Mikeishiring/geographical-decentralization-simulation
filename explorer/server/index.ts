@@ -1356,7 +1356,12 @@ function buildLiveArtifactSummary(
   query: string,
   canonicalBlocks: readonly Block[],
 ): string {
-  const template = resolveStudyResultsTemplateForBlocks(query, canonicalBlocks)
+  const templates = resolveStudyResultsTemplatesForBlocks(query, canonicalBlocks)
+  if (templates.length > 1 && isPrecomputedResultsExploreQuery(query)) {
+    return `Cross-family Results comparison: ${templates.map(template => template.title).join(' + ')}`
+  }
+
+  const [template] = templates
   if (template && isPrecomputedResultsExploreQuery(query)) {
     return `${template.title}: ${template.summary}`
   }
@@ -2719,9 +2724,9 @@ function countPublishedScenarioGroups(
 function buildPublishedScenarioMetricChartBlock(
   query: string,
   entries: readonly PublishedExploreComparableEntry[],
-  template?: StudyDashboardSpec | null,
+  templates?: readonly StudyDashboardSpec[],
 ): Block | null {
-  const metricKey = selectPublishedScenarioMetricKey(query, template)
+  const metricKey = selectPublishedScenarioMetricKey(query, templates)
   if (!metricKey) return null
   if (countPublishedScenarioGroups(entries) < 2) return null
 
@@ -2801,7 +2806,7 @@ function buildPublishedScenarioMetricChartBlock(
 
 function selectPublishedMetricKey(
   query: string,
-  template?: StudyDashboardSpec | null,
+  templates?: readonly StudyDashboardSpec[],
 ): PublishedExploreMetricKey | null {
   const matchers: ReadonlyArray<{
     readonly key: PublishedExploreMetricKey
@@ -2819,17 +2824,17 @@ function selectPublishedMetricKey(
   ]
 
   const match = matchers.find(candidate => candidate.pattern.test(query))
-  return match?.key ?? resolveTemplateMetricKey(template ?? null)
+  return match?.key ?? resolveTemplateMetricKeys(templates ?? [])
 }
 
 function selectPublishedScenarioMetricKey(
   query: string,
-  template?: StudyDashboardSpec | null,
+  templates?: readonly StudyDashboardSpec[],
 ): PublishedExploreMetricKey | null {
-  const explicitMetric = selectPublishedMetricKey(query, template)
+  const explicitMetric = selectPublishedMetricKey(query, templates)
   if (explicitMetric) return explicitMetric
 
-  const templateMetric = resolveTemplateMetricKey(template ?? null)
+  const templateMetric = resolveTemplateMetricKeys(templates ?? [])
   if (templateMetric) return templateMetric
 
   return /\b(compare|comparison|versus|vs\b|difference|gap|change|changes|higher|lower)\b/i.test(query)
@@ -2920,22 +2925,61 @@ function findStudyResultsTemplate(
   return ACTIVE_STUDY.dashboards.find(dashboard => dashboard.id === dashboardId) ?? null
 }
 
+function resolveStudyResultsTemplates(
+  query: string,
+  chartKeys: readonly (string | null)[],
+): StudyDashboardSpec[] {
+  const templates = chartKeys
+    .map(findStudyResultsTemplate)
+    .filter((template): template is StudyDashboardSpec => template !== null)
+
+  const deduped = templates.filter((template, index, all) =>
+    all.findIndex(candidate => candidate.id === template.id) === index,
+  )
+
+  if (deduped.length > 0) return deduped
+
+  return resolveExpectedStudyResultsTemplates(query)
+}
+
 function resolveStudyResultsTemplate(
   query: string,
   chartKey: string | null,
 ): StudyDashboardSpec | null {
-  return findStudyResultsTemplate(chartKey)
-    ?? findStudyResultsTemplate(resolvePaperChartKeyFromQuery(query))
+  return resolveStudyResultsTemplates(query, [chartKey])[0] ?? null
+}
+
+function resolveStudyResultsTemplatesForResponses(
+  query: string,
+  responses: readonly PublishedResultsToolResponse[],
+): StudyDashboardSpec[] {
+  return resolveStudyResultsTemplates(
+    query,
+    responses.map(response => resolveCanonicalPaperChartKey(response)),
+  )
 }
 
 function resolveStudyResultsTemplateForBlocks(
   query: string,
   blocks: readonly Block[],
 ): StudyDashboardSpec | null {
+  return resolveStudyResultsTemplatesForBlocks(query, blocks)[0] ?? null
+}
+
+function resolveStudyResultsTemplatesForBlocks(
+  query: string,
+  blocks: readonly Block[],
+): StudyDashboardSpec[] {
   const paperChart = blocks.find(
     (block): block is Extract<Block, { type: 'paperChart' }> => block.type === 'paperChart',
   )
-  return resolveStudyResultsTemplate(query, paperChart?.dataKey ?? null)
+  const paperChartKeys = blocks
+    .flatMap(block => block.type === 'paperChart' ? [block.dataKey] : [])
+
+  return resolveStudyResultsTemplates(
+    query,
+    paperChartKeys.length > 0 ? paperChartKeys : [paperChart?.dataKey ?? null],
+  )
 }
 
 function describeStudyResultsLead(
@@ -2963,23 +3007,53 @@ function resolveTemplateMetricKey(
   return normalizePublishedMetricKey(template?.askMetricKey)
 }
 
+function resolveTemplateMetricKeys(
+  templates: readonly StudyDashboardSpec[],
+): PublishedExploreMetricKey | null {
+  const keys = templates
+    .map(template => resolveTemplateMetricKey(template))
+    .filter((key): key is PublishedExploreMetricKey => key !== null)
+
+  const uniqueKeys = [...new Set(keys)]
+  return uniqueKeys.length === 1 ? uniqueKeys[0]! : null
+}
+
+function resolveExpectedStudyResultsTemplates(
+  query: string,
+): StudyDashboardSpec[] {
+  const chartKeys = resolvePaperChartKeysFromQuery(query)
+  if (chartKeys.length === 0) return []
+  return chartKeys
+    .map(findStudyResultsTemplate)
+    .filter((template): template is StudyDashboardSpec => template !== null)
+    .filter((template, index, all) =>
+      all.findIndex(candidate => candidate.id === template.id) === index,
+    )
+}
+
 function buildActiveResultsTemplateContext(
   query: string,
   cachedResults: unknown,
 ): string {
   const normalizedResponses = normalizePublishedResultsCollection(cachedResults)
-  const chartKey = normalizedResponses.length > 0
-    ? resolveCanonicalPaperChartKey(normalizedResponses[normalizedResponses.length - 1]!)
-    : resolvePaperChartKeyFromQuery(query)
-  const template = resolveStudyResultsTemplate(query, chartKey)
-  if (!template) return ''
+  const templates = normalizedResponses.length > 0
+    ? resolveStudyResultsTemplatesForResponses(query, normalizedResponses)
+    : resolveExpectedStudyResultsTemplates(query)
+  if (templates.length === 0) return ''
 
-  return `\n\n## Active Results Template
+  if (templates.length === 1) {
+    const [template] = templates
+    return `\n\n## Active Results Template
 - Template: ${template.title}
 - Pattern: ${template.pattern}
 - Question answered: ${template.questionAnswered}
 - Summary: ${template.summary}
 - Layout guidance: ${describeStudyResultsLead(template)}`
+  }
+
+  return `\n\n## Active Results Templates
+This question spans multiple Results families. Start with a cross-family summary before individual figure replays.
+${templates.map(template => `- ${template.title} (${template.pattern}): ${template.questionAnswered}`).join('\n')}`
 }
 
 function templateLeadPriority(
@@ -3017,8 +3091,38 @@ function orderStudyResultsBlocks(
   options?: { preserveLeadBlock?: boolean },
 ): Block[] {
   const ordered = orderBlocksEvidenceFirst(blocks, options)
-  const template = resolveStudyResultsTemplateForBlocks(query, ordered)
-  if (!template) return ordered
+  const templates = resolveStudyResultsTemplatesForBlocks(query, ordered)
+  if (templates.length === 0) return ordered
+
+  if (templates.length > 1) {
+    return ordered
+      .map((block, index) => ({ block, index }))
+      .toSorted((left, right) => {
+        const multiTemplatePriority = (type: Block['type']): number => {
+          switch (type) {
+            case 'chart':
+            case 'comparison':
+            case 'timeseries':
+              return 0
+            case 'paperChart':
+              return 1
+            case 'stat':
+              return 2
+            case 'table':
+            case 'map':
+              return 3
+            default:
+              return 10 + stablePriority(type)
+          }
+        }
+
+        const priorityGap = multiTemplatePriority(left.block.type) - multiTemplatePriority(right.block.type)
+        return priorityGap !== 0 ? priorityGap : left.index - right.index
+      })
+      .map(entry => entry.block)
+  }
+
+  const [template] = templates
 
   return ordered
     .map((block, index) => ({ block, index }))
@@ -3269,13 +3373,13 @@ function buildCanonicalExploreBlocks(
   if (compareEntries.length === 0) return []
 
   const chartKey = resolveCanonicalPaperChartKey(normalizedResults)
-  const template = resolveStudyResultsTemplate(query, chartKey)
-  const metricKey = selectPublishedMetricKey(query, template)
+  const templates = resolveStudyResultsTemplates(query, [chartKey])
+  const metricKey = selectPublishedMetricKey(query, templates)
   const cite = buildPublishedExploreCite(compareEntries, chartKey)
   const blocks: Block[] = []
 
   if (hasScenarioSweep) {
-    const sweepChart = buildPublishedScenarioMetricChartBlock(query, scenarioEntries, template)
+    const sweepChart = buildPublishedScenarioMetricChartBlock(query, scenarioEntries, templates)
     if (sweepChart) {
       blocks.push(sweepChart)
     }
@@ -3325,14 +3429,11 @@ function selectScenarioComparisonBlocks(
   responses: readonly PublishedResultsToolResponse[],
 ): Block[] {
   const merged: Block[] = []
-  const template = resolveStudyResultsTemplate(
-    query,
-    responses.length > 0 ? resolveCanonicalPaperChartKey(responses[responses.length - 1]!) : null,
-  )
+  const templates = resolveStudyResultsTemplatesForResponses(query, responses)
   const scenarioChart = buildPublishedScenarioMetricChartBlock(
     query,
     collectPublishedScenarioEntries(responses),
-    template,
+    templates,
   )
   if (scenarioChart) {
     merged.push(scenarioChart)
@@ -3351,46 +3452,88 @@ function selectScenarioComparisonBlocks(
   )
 }
 
-function resolvePaperChartKeyFromQuery(query: string): string | null {
+function scoreStudyResultsTemplateQuery(
+  query: string,
+  dataKey: string,
+  chart: typeof ACTIVE_STUDY.paperCharts[string],
+): number {
   const queryTokens = tokenize(query)
-  if (queryTokens.length === 0) return null
+  if (queryTokens.length === 0) return 0
+  const normalizedQuery = query.toLowerCase()
 
-  let bestMatch: { key: string; score: number } | null = null
-
-  for (const [dataKey, chart] of Object.entries(ACTIVE_STUDY.paperCharts)) {
-    const score = overlapScore(
-      queryTokens,
-      tokenize([
-        dataKey,
-        chart.description,
-        chart.takeaway,
-        ...chart.metadata,
-        ...(chart.publishedScenarioLinks ?? []).map(link =>
-          `${link.label} ${link.evaluation} ${link.paradigm} ${link.result}`,
-        ),
-      ].join(' ')),
-    )
-
-    if (!bestMatch || score > bestMatch.score) {
-      bestMatch = { key: dataKey, score }
-    }
-  }
-
-  return bestMatch?.key ?? null
+  const dashboard = chart.dashboardId
+    ? ACTIVE_STUDY.dashboards.find(candidate => candidate.id === chart.dashboardId)
+    : null
+  const aliasMatches = (chart.askAliases ?? [])
+    .filter(alias => normalizedQuery.includes(alias.toLowerCase()))
+    .length
+  const lexicalScore = overlapScore(
+    queryTokens,
+    tokenize([
+      dataKey,
+      ...(chart.askAliases ?? []),
+      chart.description,
+      chart.takeaway,
+      ...chart.metadata,
+      ...(chart.publishedScenarioLinks ?? []).map(link =>
+        `${link.label} ${link.evaluation} ${link.paradigm} ${link.result}`,
+      ),
+      dashboard?.title ?? '',
+      dashboard?.questionAnswered ?? '',
+      dashboard?.summary ?? '',
+    ].join(' ')),
+  )
+  return lexicalScore + Math.min(0.75, aliasMatches * 0.45)
 }
 
-function buildQueryPaperChartFallbackBlocks(query: string): Block[] {
-  if (!isPrecomputedResultsExploreQuery(query)) return []
-  const chartKey = resolvePaperChartKeyFromQuery(query)
-  if (!chartKey) return []
+function resolvePaperChartKeysFromQuery(
+  query: string,
+  limit = 2,
+): string[] {
+  const scored = Object.entries(ACTIVE_STUDY.paperCharts)
+    .map(([dataKey, chart]) => ({
+      key: dataKey,
+      score: scoreStudyResultsTemplateQuery(query, dataKey, chart),
+    }))
+    .filter(candidate => candidate.score > 0)
+    .toSorted((left, right) => right.score - left.score)
 
-  const chartBlock = findStudyPaperChartBlock(chartKey)
-  return [{
-    type: 'paperChart',
-    title: chartBlock?.title ?? `${formatPublishedEvaluationLabel(chartKey)} results`,
-    dataKey: chartKey,
-    cite: chartBlock?.cite,
-  }]
+  const bestScore = scored[0]?.score ?? 0
+  if (bestScore <= 0) return []
+
+  const threshold = Math.max(0.12, bestScore * 0.55)
+  return scored
+    .filter(candidate => candidate.score >= threshold)
+    .slice(0, limit)
+    .map(candidate => candidate.key)
+}
+
+function resolvePaperChartKeyFromQuery(query: string): string | null {
+  return resolvePaperChartKeysFromQuery(query, 1)[0] ?? null
+}
+
+function buildQueryPaperChartFallbackBlocks(
+  query: string,
+  options?: {
+    excludeKeys?: readonly string[]
+    limit?: number
+  },
+): Block[] {
+  if (!isPrecomputedResultsExploreQuery(query)) return []
+  const excludedKeys = new Set(options?.excludeKeys ?? [])
+  const chartKeys = resolvePaperChartKeysFromQuery(query, options?.limit ?? 1)
+    .filter(chartKey => !excludedKeys.has(chartKey))
+  if (chartKeys.length === 0) return []
+
+  return chartKeys.map(chartKey => {
+    const chartBlock = findStudyPaperChartBlock(chartKey)
+    return {
+      type: 'paperChart',
+      title: chartBlock?.title ?? `${formatPublishedEvaluationLabel(chartKey)} results`,
+      dataKey: chartKey,
+      cite: chartBlock?.cite,
+    } satisfies Extract<Block, { type: 'paperChart' }>
+  })
 }
 
 function buildExploreArtifactScaffold(
@@ -3411,8 +3554,21 @@ function buildExploreArtifactScaffold(
   const canonicalBlocks = normalizedResponses.length > 0
     ? buildCanonicalExploreBlocks(query, normalizedResponses[normalizedResponses.length - 1]!)
     : buildCanonicalExploreBlocks(query, cachedResults)
+  const seededPaperChartKeys = canonicalBlocks
+    .flatMap(block => block.type === 'paperChart' ? [block.dataKey] : [])
+  const expectedPaperChartBlocks = normalizedResponses.length === 1
+    ? buildQueryPaperChartFallbackBlocks(query, {
+        excludeKeys: seededPaperChartKeys,
+        limit: 2,
+      })
+    : []
   if (canonicalBlocks.some(block => block.type === 'paperChart')) {
-    return canonicalBlocks
+    return orderStudyResultsBlocks(
+      query,
+      [...canonicalBlocks, ...expectedPaperChartBlocks].filter((block, index, all) =>
+        all.findIndex(candidate => blockSignature(candidate) === blockSignature(block)) === index,
+      ).slice(0, Math.max(4, MAX_GENERATED_BLOCKS - 1)),
+    )
   }
 
   const fallbackChartBlocks = buildQueryPaperChartFallbackBlocks(query)
@@ -4834,6 +4990,28 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
             const allToolCalls = steps.flatMap(step => step.toolCalls)
             const hasPublishedResults = normalizePublishedResultsCollection(latestCachedResults).length > 0
             if (hasPublishedResults && isPrecomputedResultsExploreQuery(trimmedQuery) && stepNumber >= 1) {
+              const normalizedResponses = normalizePublishedResultsCollection(latestCachedResults)
+              const expectedTemplates = resolveExpectedStudyResultsTemplates(trimmedQuery)
+              const loadedTemplates = resolveStudyResultsTemplatesForResponses(trimmedQuery, normalizedResponses)
+              const missingTemplates = expectedTemplates.filter(template =>
+                !loadedTemplates.some(loaded => loaded.id === template.id),
+              )
+              const cachedQueryAttempts = allToolCalls
+                .filter(toolCall => toolCall.toolName === 'query_cached_results')
+                .length
+              if (missingTemplates.length > 0 && cachedQueryAttempts < expectedTemplates.length + 1) {
+                const loadedTemplateList = loadedTemplates.length > 0
+                  ? loadedTemplates.map(template => `- ${template.title} (${template.pattern})`).join('\n')
+                  : '- None yet'
+                const missingTemplateList = missingTemplates
+                  .map(template => `- ${template.title} (${template.pattern}): ${template.questionAnswered}`)
+                  .join('\n')
+                return {
+                  activeTools: ['query_cached_results'],
+                  toolChoice: { type: 'tool', toolName: 'query_cached_results' },
+                  system: `${systemPrompt}\n\n## Results Retrieval\nThis question spans multiple study-owned Results templates. You have loaded:\n${loadedTemplateList}\n\nYou still need:\n${missingTemplateList}\n\nCall query_cached_results again to retrieve the missing Results family before calling render_blocks. Do not search topic cards or prior explorations. Once the missing Results family is loaded, you can call render_blocks.${buildActiveResultsTemplateContext(trimmedQuery, latestCachedResults)}`,
+                }
+              }
               const templateContext = buildActiveResultsTemplateContext(trimmedQuery, latestCachedResults)
               return {
                 activeTools: ['render_blocks'],

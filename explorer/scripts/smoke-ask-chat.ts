@@ -168,6 +168,16 @@ async function main() {
       'Expected template-driven slot-time Ask queries to surface the linked study template',
     )
 
+    const crossFamilyStream = await captureAskStream('Compare the baseline result with the higher gamma result and explain what changes.')
+    assert(
+      countOccurrences(crossFamilyStream.body, 'toolName":"query_cached_results') >= 2,
+      'Expected cross-family Ask queries to retrieve more than one pre-computed Results family before rendering',
+    )
+    assert(
+      crossFamilyStream.body.includes('baseline-results') && crossFamilyStream.body.includes('se4a-attestation'),
+      'Expected cross-family Ask queries to surface both the baseline and higher-gamma study templates',
+    )
+
     console.log('Streamed Ask smoke test passed.')
   } finally {
     await stopServer(server)
