@@ -36,6 +36,18 @@ function formatResultsTemplates(study: StudyPackage): string[] {
     })
 }
 
+function formatAssistantCapabilities(study: StudyPackage): string[] {
+  return (study.assistant.capabilities ?? []).map(capability =>
+    `- ${capability.title}${capability.state ? ` [${capability.state}]` : ''}: ${capability.description}${capability.prompts?.length ? ` Example prompts: ${formatInlineList(capability.prompts)}.` : ''}`,
+  )
+}
+
+function formatAssistantPromptTips(study: StudyPackage): string[] {
+  return (study.assistant.promptTips ?? []).map(tip =>
+    `- ${tip.label}: ${tip.description}${tip.example ? ` Example: ${tip.example}` : ''}`,
+  )
+}
+
 export function buildStudyContext(study: StudyPackage): string {
   const authors = study.metadata.authors.map(author => author.name).filter(Boolean)
   const featuredClaims = study.claims.featuredClaimIds
@@ -85,6 +97,10 @@ ${study.dashboardMetrics
 
 ## Results Templates
 ${formatResultsTemplates(study).join('\n')}
+
+${study.assistant.capabilities?.length ? `\n## Assistant Capabilities\n${formatAssistantCapabilities(study).join('\n')}` : ''}
+
+${study.assistant.promptTips?.length ? `\n## Prompt Guidance\n${formatAssistantPromptTips(study).join('\n')}` : ''}
 
 ## Response Guidelines
 - The summary must directly answer the user's actual question in plain language.

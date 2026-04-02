@@ -4,7 +4,10 @@ import type { Author, PaperSection } from '../data/paper-sections'
 import type { TopicCard } from '../data/default-blocks'
 import type {
   StudyAssistantConfig,
+  StudyAssistantCapability,
+  StudyAssistantCapabilityState,
   StudyAssistantMode,
+  StudyAssistantPromptTip,
   StudyAssistantSuggestedPrompt,
   StudyArtifactRef,
   StudyAppendixLink,
@@ -25,7 +28,10 @@ import type {
 export type { Author, PaperNarrative, PaperSection, TopicCard }
 export type {
   StudyAssistantConfig,
+  StudyAssistantCapability,
+  StudyAssistantCapabilityState,
   StudyAssistantMode,
+  StudyAssistantPromptTip,
   StudyAssistantSuggestedPrompt,
   StudyArtifactRef,
   StudyAppendixLink,

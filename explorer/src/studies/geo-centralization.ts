@@ -445,6 +445,61 @@ const ASSISTANT: StudyPackage['assistant'] = {
   askHeading: 'Ask a question about the paper',
   askDescription: 'Get grounded answers from the paper, its pre-computed Results datasets, and the exact simulation surfaces. Use Ask for interpretation and orientation; use Run experiment for a bounded what-if loop.',
   askPlaceholder: 'Ask about a mechanism, comparison, metric, or implication...',
+  capabilities: [
+    {
+      id: 'explain-paper',
+      title: 'Explain the paper',
+      description: 'Summarize mechanisms, caveats, and protocol implications directly from the study package.',
+      state: 'live',
+      prompts: ['What is the core mechanism that makes geography matter in this paper?'],
+    },
+    {
+      id: 'replay-results',
+      title: 'Replay published Results',
+      description: 'Pull pre-computed figures, comparisons, and atlas-style summaries into the page underneath the answer.',
+      state: 'live',
+      prompts: ['Compare the baseline result with the higher gamma result and explain what changes.'],
+    },
+    {
+      id: 'run-exact-loop',
+      title: 'Run bounded experiments',
+      description: 'Draft and execute an exact simulation loop when a published scenario is not enough.',
+      state: 'exact',
+      prompts: ['What happens if we double gamma under local block building?'],
+    },
+    {
+      id: 'structured-query',
+      title: 'Structured data queries',
+      description: 'Planned: expose study-owned datasets through constrained SQL-style or semantic query tools for advanced readers.',
+      state: 'planned',
+    },
+  ],
+  promptTips: [
+    {
+      id: 'name-a-metric',
+      label: 'Name the metric you care about',
+      description: 'Mention Gini, HHI, latency, liveness, or attestations so the assistant can choose the right Results family immediately.',
+      example: 'How does Gini change under higher gamma?',
+    },
+    {
+      id: 'name-two-scenarios',
+      label: 'Ask for a specific comparison',
+      description: 'Contrast two scenarios or paradigms explicitly to trigger the comparison path instead of a generic summary.',
+      example: 'Compare baseline local vs external block building on fairness pressure.',
+    },
+    {
+      id: 'ask-mechanism',
+      label: 'Ask why, not just what',
+      description: 'After the first answer, ask for the mechanism or paper caveat that explains the observed result.',
+      example: 'Why does higher gamma centralize external block building more strongly?',
+    },
+    {
+      id: 'jump-to-experiment',
+      label: 'Escalate to an experiment',
+      description: 'If the published Results are close but not exact, ask for a bounded run with the variable you want changed.',
+      example: 'What should I run if I want to test shorter slots with misaligned sources?',
+    },
+  ],
   suggestedPrompts: [
     {
       label: 'Mechanism',

@@ -51,7 +51,7 @@ import {
 } from '../src/types/simulation-view.ts'
 import { getActiveStudy } from '../src/studies/index.ts'
 import type { StudyDashboardSpec, TopicCard } from '../src/studies/types.ts'
-import type { AskArtifactData } from '../src/lib/ask-artifact.ts'
+import type { AskArtifactData, AskStatusData } from '../src/lib/ask-artifact.ts'
 import type { AskUIMessage } from '../src/lib/ask-chat.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -4773,11 +4773,28 @@ function extractTextFromUiMessage(message: UIMessage | undefined): string {
     .trim()
 }
 
+function buildAskStatus(
+  phase: AskStatusData['phase'],
+  state: AskStatusData['state'],
+  label: string,
+  detail: string,
+): AskStatusData {
+  return {
+    id: `${phase}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    phase,
+    state,
+    label,
+    detail,
+    timestamp: Date.now(),
+  }
+}
+
 function buildExploreChatTools(
   query: string,
   options?: {
     onCachedResults?: (result: unknown) => void
     onArtifact?: (artifact: AskArtifactData) => void
+    onStatus?: (status: AskStatusData) => void
   },
 ) {
   let latestCachedResults: unknown = null
@@ -4847,6 +4864,12 @@ function buildExploreChatTools(
       }),
       execute: async (input) => {
         const result = await executeToolCall('get_topic_card', input as Record<string, unknown>)
+        options?.onStatus?.(buildAskStatus(
+          'evidence',
+          'done',
+          'Loaded curated paper evidence',
+          'A study-backed topic card is now available for the answer scaffold.',
+        ))
         streamReferencedArtifact(result, 'Loaded curated paper evidence')
         return result
       },
@@ -4870,6 +4893,12 @@ function buildExploreChatTools(
       }),
       execute: async (input) => {
         const result = await executeToolCall('get_exploration', input as Record<string, unknown>)
+        options?.onStatus?.(buildAskStatus(
+          'evidence',
+          'done',
+          'Loaded prior exploration',
+          'A related exploration was pulled in as grounded context for this answer.',
+        ))
         streamReferencedArtifact(result, 'Loaded prior exploration context')
         return result
       },
@@ -4897,6 +4926,12 @@ function buildExploreChatTools(
         result: z.string().optional(),
       }),
       execute: async (input) => {
+        options?.onStatus?.(buildAskStatus(
+          'evidence',
+          'active',
+          'Loading pre-computed results',
+          'Retrieving study-owned Results datasets and matching them to the current question.',
+        ))
         const result = await executeExploreChatToolCall('query_cached_results', input as Record<string, unknown>)
         storeCachedResults(result)
         const liveArtifact = buildLiveExploreArtifact(
@@ -4907,6 +4942,12 @@ function buildExploreChatTools(
         if (liveArtifact) {
           options?.onArtifact?.(liveArtifact)
         }
+        options?.onStatus?.(buildAskStatus(
+          'evidence',
+          'done',
+          'Pre-computed results loaded',
+          'The page now has a provisional Results scaffold from retrieved study data.',
+        ))
         return result
       },
     }),
@@ -4914,6 +4955,12 @@ function buildExploreChatTools(
       description: 'Compose the final page artifact using the supported block formats and pre-computed data where relevant.',
       inputSchema: renderBlocksToolInputSchema,
       execute: async (input) => {
+        options?.onStatus?.(buildAskStatus(
+          'render',
+          'active',
+          'Building final page',
+          'Composing the final block layout from the gathered evidence and study templates.',
+        ))
         const response = buildGeneratedExploreResponse(query, {
           summary: input.summary,
           blocks: input.blocks as unknown[] | undefined,
@@ -4924,6 +4971,12 @@ function buildExploreChatTools(
           canonicalBlocks: buildExploreArtifactScaffold(query, latestCachedResults),
         })
         options?.onArtifact?.(buildExploreArtifactData('ready', 'Answer ready', response))
+        options?.onStatus?.(buildAskStatus(
+          'render',
+          'done',
+          'Answer ready',
+          'The final page artifact has been assembled and is ready to read.',
+        ))
         return response
       },
     }),
@@ -4971,12 +5024,27 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
             data: artifact,
           })
         }
+        const writeStatus = (status: AskStatusData) => {
+          writer.write({
+            type: 'data-status',
+            id: status.id,
+            data: status,
+          })
+        }
+
+        writeStatus(buildAskStatus(
+          'plan',
+          'done',
+          'Question received',
+          'Using the active study package, current query, and recent session context to plan the answer.',
+        ))
 
         const exploreChatTools = buildExploreChatTools(trimmedQuery, {
           onCachedResults: (result) => {
             latestCachedResults = result
           },
           onArtifact: writeArtifact,
+          onStatus: writeStatus,
         })
 
         const result = streamText({
@@ -4990,6 +5058,12 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
             const allToolCalls = steps.flatMap(step => step.toolCalls)
             const expectedTemplates = resolveExpectedStudyResultsTemplates(trimmedQuery)
             if (stepNumber === 0 && isPrecomputedResultsExploreQuery(trimmedQuery) && expectedTemplates.length > 0) {
+              writeStatus(buildAskStatus(
+                'plan',
+                'active',
+                'Routing to Results families',
+                `Matching the question to ${expectedTemplates.length} study-owned Results family${expectedTemplates.length === 1 ? '' : 'ies'} before drafting.`,
+              ))
               return {
                 activeTools: ['query_cached_results'],
                 toolChoice: { type: 'tool', toolName: 'query_cached_results' },
@@ -5007,6 +5081,12 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
                 .filter(toolCall => toolCall.toolName === 'query_cached_results')
                 .length
               if (missingTemplates.length > 0 && cachedQueryAttempts < expectedTemplates.length + 1) {
+                writeStatus(buildAskStatus(
+                  'evidence',
+                  'active',
+                  'Loading another Results family',
+                  `The current comparison still needs ${missingTemplates.map(template => template.title).join(', ')}.`,
+                ))
                 const loadedTemplateList = loadedTemplates.length > 0
                   ? loadedTemplates.map(template => `- ${template.title} (${template.pattern})`).join('\n')
                   : '- None yet'
@@ -5020,6 +5100,12 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
                 }
               }
               const templateContext = buildActiveResultsTemplateContext(trimmedQuery, latestCachedResults)
+              writeStatus(buildAskStatus(
+                'compose',
+                'active',
+                'Drafting from retrieved evidence',
+                'The required Results families are loaded, so the assistant is moving into synthesis and page composition.',
+              ))
               return {
                 activeTools: ['render_blocks'],
                 toolChoice: { type: 'tool', toolName: 'render_blocks' },
@@ -5030,6 +5116,12 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
               return undefined
             }
 
+            writeStatus(buildAskStatus(
+              'compose',
+              'active',
+              'Drafting answer',
+              'Enough evidence is in hand to organize the answer into the final reading surface.',
+            ))
             return {
               activeTools: ['render_blocks'],
               toolChoice: { type: 'tool', toolName: 'render_blocks' },
