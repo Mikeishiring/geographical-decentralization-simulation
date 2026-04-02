@@ -50,7 +50,7 @@ import {
   type SimulationViewSpec,
 } from '../src/types/simulation-view.ts'
 import { getActiveStudy } from '../src/studies/index.ts'
-import type { TopicCard } from '../src/studies/types.ts'
+import type { StudyDashboardSpec, TopicCard } from '../src/studies/types.ts'
 import type { AskArtifactData } from '../src/lib/ask-artifact.ts'
 import type { AskUIMessage } from '../src/lib/ask-chat.ts'
 
@@ -1356,6 +1356,11 @@ function buildLiveArtifactSummary(
   query: string,
   canonicalBlocks: readonly Block[],
 ): string {
+  const template = resolveStudyResultsTemplateForBlocks(query, canonicalBlocks)
+  if (template && isPrecomputedResultsExploreQuery(query)) {
+    return `${template.title}: ${template.summary}`
+  }
+
   if (canonicalBlocks.some(block => block.type === 'paperChart' || block.type === 'chart')) {
     return isPrecomputedResultsExploreQuery(query)
       ? 'Pre-computed results loaded. Organizing the page around the retrieved scenarios and figures.'
@@ -2834,6 +2839,119 @@ function findStudyPaperChartBlock(
   return null
 }
 
+function findStudyResultsTemplate(
+  chartKey: string | null,
+): StudyDashboardSpec | null {
+  if (!chartKey) return null
+  const dashboardId = ACTIVE_STUDY.paperCharts[chartKey]?.dashboardId
+  if (!dashboardId) return null
+  return ACTIVE_STUDY.dashboards.find(dashboard => dashboard.id === dashboardId) ?? null
+}
+
+function resolveStudyResultsTemplate(
+  query: string,
+  chartKey: string | null,
+): StudyDashboardSpec | null {
+  return findStudyResultsTemplate(chartKey)
+    ?? findStudyResultsTemplate(resolvePaperChartKeyFromQuery(query))
+}
+
+function resolveStudyResultsTemplateForBlocks(
+  query: string,
+  blocks: readonly Block[],
+): StudyDashboardSpec | null {
+  const paperChart = blocks.find(
+    (block): block is Extract<Block, { type: 'paperChart' }> => block.type === 'paperChart',
+  )
+  return resolveStudyResultsTemplate(query, paperChart?.dataKey ?? null)
+}
+
+function describeStudyResultsLead(
+  template: StudyDashboardSpec,
+): string {
+  switch (template.pattern) {
+    case 'timeseries-panel':
+      return 'Lead with the reusable figure replay or chart, then add compact stats.'
+    case 'parameter-sweep':
+      return 'Lead with the sweep chart, then add the smallest supporting comparison needed.'
+    case 'benchmark-matrix':
+      return 'Lead with the cross-scenario matrix or chart, then highlight the key comparison.'
+    case 'pre-post-comparison':
+      return 'Lead with the comparison, then support it with the study-owned replay figure.'
+    case 'geography-map':
+      return 'Lead with the map surface and keep supporting numbers compact.'
+    default:
+      return 'Lead with the strongest study-owned Results block before adding interpretation.'
+  }
+}
+
+function buildActiveResultsTemplateContext(
+  query: string,
+  cachedResults: unknown,
+): string {
+  const normalizedResponses = normalizePublishedResultsCollection(cachedResults)
+  const chartKey = normalizedResponses.length > 0
+    ? resolveCanonicalPaperChartKey(normalizedResponses[normalizedResponses.length - 1]!)
+    : resolvePaperChartKeyFromQuery(query)
+  const template = resolveStudyResultsTemplate(query, chartKey)
+  if (!template) return ''
+
+  return `\n\n## Active Results Template
+- Template: ${template.title}
+- Pattern: ${template.pattern}
+- Question answered: ${template.questionAnswered}
+- Summary: ${template.summary}
+- Layout guidance: ${describeStudyResultsLead(template)}`
+}
+
+function templateLeadPriority(
+  template: StudyDashboardSpec,
+  type: Block['type'],
+): number {
+  switch (template.pattern) {
+    case 'timeseries-panel':
+    case 'parameter-sweep':
+    case 'benchmark-matrix':
+      if (type === 'paperChart' || type === 'chart' || type === 'timeseries') return 0
+      if (type === 'comparison') return 1
+      if (type === 'stat') return 2
+      if (type === 'table') return 3
+      return 10 + stablePriority(type)
+    case 'pre-post-comparison':
+      if (type === 'comparison') return 0
+      if (type === 'paperChart' || type === 'chart' || type === 'timeseries') return 1
+      if (type === 'stat') return 2
+      if (type === 'table') return 3
+      return 10 + stablePriority(type)
+    case 'geography-map':
+      if (type === 'map') return 0
+      if (type === 'comparison' || type === 'table') return 1
+      if (type === 'stat') return 2
+      return 10 + stablePriority(type)
+    default:
+      return 10 + stablePriority(type)
+  }
+}
+
+function orderStudyResultsBlocks(
+  query: string,
+  blocks: readonly Block[],
+  options?: { preserveLeadBlock?: boolean },
+): Block[] {
+  const ordered = orderBlocksEvidenceFirst(blocks, options)
+  const template = resolveStudyResultsTemplateForBlocks(query, ordered)
+  if (!template) return ordered
+
+  return ordered
+    .map((block, index) => ({ block, index }))
+    .toSorted((left, right) => {
+      const templateGap =
+        templateLeadPriority(template, left.block.type) - templateLeadPriority(template, right.block.type)
+      return templateGap !== 0 ? templateGap : left.index - right.index
+    })
+    .map(entry => entry.block)
+}
+
 function resolvePublishedCompareEntries(
   response: PublishedResultsToolResponse,
 ): PublishedExploreComparableEntry[] {
@@ -3199,7 +3317,10 @@ function buildExploreArtifactScaffold(
   if (normalizedResponses.length > 1) {
     const combinedBlocks = selectScenarioComparisonBlocks(query, normalizedResponses)
     if (combinedBlocks.length > 0) {
-      return combinedBlocks.slice(0, Math.max(4, MAX_GENERATED_BLOCKS - 2))
+      return orderStudyResultsBlocks(
+        query,
+        combinedBlocks.slice(0, Math.max(4, MAX_GENERATED_BLOCKS - 2)),
+      )
     }
   }
 
@@ -3212,10 +3333,10 @@ function buildExploreArtifactScaffold(
 
   const fallbackChartBlocks = buildQueryPaperChartFallbackBlocks(query)
   if (fallbackChartBlocks.length === 0) {
-    return canonicalBlocks
+    return orderStudyResultsBlocks(query, canonicalBlocks)
   }
 
-  return [...canonicalBlocks, ...fallbackChartBlocks]
+  return orderStudyResultsBlocks(query, [...canonicalBlocks, ...fallbackChartBlocks])
 }
 
 function resolvePreferredPaperChartBlock(
@@ -3272,7 +3393,7 @@ function mergeCanonicalExploreBlocks(
   canonicalBlocks: readonly Block[],
   modelBlocks: readonly Block[],
 ): Block[] {
-  const canonicalEvidence = orderBlocksEvidenceFirst(canonicalBlocks)
+  const canonicalEvidence = orderStudyResultsBlocks(query, canonicalBlocks)
   const merged: Block[] = [...canonicalEvidence]
 
   const hasCanonicalComparison = canonicalEvidence.some(block => block.type === 'comparison')
@@ -3310,7 +3431,7 @@ function mergeCanonicalExploreBlocks(
   }
 
   const finalized = ensurePaperChartBlock(
-    orderBlocksEvidenceFirst(merged),
+    orderStudyResultsBlocks(query, merged),
     resolvePreferredPaperChartBlock(query, canonicalBlocks),
   )
 
@@ -4629,10 +4750,11 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
             const allToolCalls = steps.flatMap(step => step.toolCalls)
             const hasPublishedResults = normalizePublishedResultsCollection(latestCachedResults).length > 0
             if (hasPublishedResults && isPrecomputedResultsExploreQuery(trimmedQuery) && stepNumber >= 1) {
+              const templateContext = buildActiveResultsTemplateContext(trimmedQuery, latestCachedResults)
               return {
                 activeTools: ['render_blocks'],
                 toolChoice: { type: 'tool', toolName: 'render_blocks' },
-                system: `${systemPrompt}\n\n## Finalization\nYou already have exact pre-computed results and a study-owned artifact scaffold for this question. Do not call search cards or prior exploration tools. Call render_blocks now and organize the page from the retrieved Results evidence.`,
+                system: `${systemPrompt}\n\n## Finalization\nYou already have exact pre-computed results and a study-owned artifact scaffold for this question. Do not call search cards or prior exploration tools. Call render_blocks now and organize the page from the retrieved Results evidence.${templateContext}`,
               }
             }
             if (!shouldForceExploreRenderStep(stepNumber, allToolCalls)) {
