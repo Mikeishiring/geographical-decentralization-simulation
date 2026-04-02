@@ -126,6 +126,7 @@ export interface StudyDashboardSpec {
   readonly pattern: StudyDashboardPattern
   readonly questionAnswered: string
   readonly summary: string
+  readonly askMetricKey?: string
   readonly metricIds: readonly string[]
   readonly sourceArtifactIds: readonly string[]
   readonly claimIds: readonly string[]

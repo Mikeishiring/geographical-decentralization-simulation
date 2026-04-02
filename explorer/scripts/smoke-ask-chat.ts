@@ -158,6 +158,16 @@ async function main() {
     assert(overviewRenderIndex >= 0, 'Expected the overview Ask stream to emit render_blocks output')
     assert(countOccurrences(overviewStream.body, 'data-artifact') >= 1, 'Expected the overview Ask stream to emit a renderable page artifact')
 
+    const templateStream = await captureAskStream('What changes under shorter slots: geographic concentration or fairness pressure?')
+    assert(
+      !templateStream.body.includes('No published Results datasets match those filters.'),
+      'Expected template-driven slot-time Ask queries to resolve onto published results instead of dead filters',
+    )
+    assert(
+      templateStream.body.includes('Slot Time Comparison'),
+      'Expected template-driven slot-time Ask queries to surface the linked study template',
+    )
+
     console.log('Streamed Ask smoke test passed.')
   } finally {
     await stopServer(server)

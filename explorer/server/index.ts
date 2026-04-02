@@ -2189,6 +2189,21 @@ function normalizePublishedEvaluationFilter(
   return value.trim()
 }
 
+function findStudyPaperChartMatch(
+  value: string | undefined,
+): { key: string; chart: typeof ACTIVE_STUDY.paperCharts[string] } | null {
+  const normalized = value?.trim().toLowerCase()
+  if (!normalized) return null
+
+  for (const [dataKey, chart] of Object.entries(ACTIVE_STUDY.paperCharts)) {
+    if (dataKey.toLowerCase() === normalized) {
+      return { key: dataKey, chart }
+    }
+  }
+
+  return null
+}
+
 function sanitizeExploreCachedResultFilters(
   filters: ExploreCachedResultFilters,
 ): ExploreCachedResultFilters {
@@ -2242,13 +2257,24 @@ async function loadExplorePublishedResults(filters: ExploreCachedResultFilters):
   const paradigm = normalizePublishedCatalogParadigm(filters.paradigm)
   const evaluation = inferPublishedEvaluation(filters)
   const result = inferPublishedResult(filters)
+  const chartMatch = findStudyPaperChartMatch(filters.result) ?? findStudyPaperChartMatch(filters.evaluation)
 
-  const matchedEntries = catalog.datasets.filter(entry => {
-    if (paradigm && entry.paradigm !== paradigm) return false
-    if (evaluation && entry.evaluation !== evaluation) return false
-    if (result && entry.result !== result) return false
-    return true
-  })
+  const matchedEntries = chartMatch?.chart.publishedScenarioLinks?.length
+    ? chartMatch.chart.publishedScenarioLinks.flatMap(link => {
+        if (paradigm && link.paradigm !== paradigm) return []
+        const matchingEntry = catalog.datasets.find(entry =>
+          entry.evaluation === link.evaluation
+          && entry.paradigm === link.paradigm
+          && entry.result === link.result,
+        )
+        return matchingEntry ? [matchingEntry] : []
+      })
+    : catalog.datasets.filter(entry => {
+        if (paradigm && entry.paradigm !== paradigm) return false
+        if (evaluation && entry.evaluation !== evaluation) return false
+        if (result && entry.result !== result) return false
+        return true
+      })
 
   if (matchedEntries.length === 0) {
     return {
@@ -2538,6 +2564,42 @@ function buildPublishedScenarioGroupKey(entry: {
   return `${entry.evaluation}::${entry.result}`
 }
 
+function normalizePublishedMetricKey(
+  value: string | undefined,
+): PublishedExploreMetricKey | null {
+  if (!value) return null
+  switch (value.trim().toLowerCase()) {
+    case 'gini':
+      return 'gini'
+    case 'hhi':
+      return 'hhi'
+    case 'liveness':
+      return 'liveness'
+    case 'proposal_times':
+    case 'proposal-times':
+    case 'proposal':
+    case 'latency':
+      return 'proposal_times'
+    case 'mev':
+      return 'mev'
+    case 'attestations':
+    case 'attestation':
+      return 'attestations'
+    case 'clusters':
+    case 'cluster':
+      return 'clusters'
+    case 'failed_block_proposals':
+    case 'failed-proposals':
+    case 'failed proposals':
+      return 'failed_block_proposals'
+    case 'total_distance':
+    case 'distance':
+      return 'total_distance'
+    default:
+      return null
+  }
+}
+
 function publishedMetricUnit(
   key: PublishedExploreMetricKey,
 ): string | undefined {
@@ -2657,8 +2719,9 @@ function countPublishedScenarioGroups(
 function buildPublishedScenarioMetricChartBlock(
   query: string,
   entries: readonly PublishedExploreComparableEntry[],
+  template?: StudyDashboardSpec | null,
 ): Block | null {
-  const metricKey = selectPublishedScenarioMetricKey(query)
+  const metricKey = selectPublishedScenarioMetricKey(query, template)
   if (!metricKey) return null
   if (countPublishedScenarioGroups(entries) < 2) return null
 
@@ -2736,7 +2799,10 @@ function buildPublishedScenarioMetricChartBlock(
   }
 }
 
-function selectPublishedMetricKey(query: string): PublishedExploreMetricKey | null {
+function selectPublishedMetricKey(
+  query: string,
+  template?: StudyDashboardSpec | null,
+): PublishedExploreMetricKey | null {
   const matchers: ReadonlyArray<{
     readonly key: PublishedExploreMetricKey
     readonly pattern: RegExp
@@ -2753,12 +2819,18 @@ function selectPublishedMetricKey(query: string): PublishedExploreMetricKey | nu
   ]
 
   const match = matchers.find(candidate => candidate.pattern.test(query))
-  return match?.key ?? null
+  return match?.key ?? resolveTemplateMetricKey(template ?? null)
 }
 
-function selectPublishedScenarioMetricKey(query: string): PublishedExploreMetricKey | null {
-  const explicitMetric = selectPublishedMetricKey(query)
+function selectPublishedScenarioMetricKey(
+  query: string,
+  template?: StudyDashboardSpec | null,
+): PublishedExploreMetricKey | null {
+  const explicitMetric = selectPublishedMetricKey(query, template)
   if (explicitMetric) return explicitMetric
+
+  const templateMetric = resolveTemplateMetricKey(template ?? null)
+  if (templateMetric) return templateMetric
 
   return /\b(compare|comparison|versus|vs\b|difference|gap|change|changes|higher|lower)\b/i.test(query)
     ? 'gini'
@@ -2883,6 +2955,12 @@ function describeStudyResultsLead(
     default:
       return 'Lead with the strongest study-owned Results block before adding interpretation.'
   }
+}
+
+function resolveTemplateMetricKey(
+  template: StudyDashboardSpec | null,
+): PublishedExploreMetricKey | null {
+  return normalizePublishedMetricKey(template?.askMetricKey)
 }
 
 function buildActiveResultsTemplateContext(
@@ -3190,13 +3268,14 @@ function buildCanonicalExploreBlocks(
   const compareEntries = resolvePublishedCompareEntries(normalizedResults)
   if (compareEntries.length === 0) return []
 
-  const metricKey = selectPublishedMetricKey(query)
   const chartKey = resolveCanonicalPaperChartKey(normalizedResults)
+  const template = resolveStudyResultsTemplate(query, chartKey)
+  const metricKey = selectPublishedMetricKey(query, template)
   const cite = buildPublishedExploreCite(compareEntries, chartKey)
   const blocks: Block[] = []
 
   if (hasScenarioSweep) {
-    const sweepChart = buildPublishedScenarioMetricChartBlock(query, scenarioEntries)
+    const sweepChart = buildPublishedScenarioMetricChartBlock(query, scenarioEntries, template)
     if (sweepChart) {
       blocks.push(sweepChart)
     }
@@ -3246,9 +3325,14 @@ function selectScenarioComparisonBlocks(
   responses: readonly PublishedResultsToolResponse[],
 ): Block[] {
   const merged: Block[] = []
+  const template = resolveStudyResultsTemplate(
+    query,
+    responses.length > 0 ? resolveCanonicalPaperChartKey(responses[responses.length - 1]!) : null,
+  )
   const scenarioChart = buildPublishedScenarioMetricChartBlock(
     query,
     collectPublishedScenarioEntries(responses),
+    template,
   )
   if (scenarioChart) {
     merged.push(scenarioChart)
