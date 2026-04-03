@@ -120,6 +120,15 @@ export function AskPlanPanel({ plan, compact = false }: AskPlanPanelProps) {
               </span>
             </div>
           )}
+          {plan.launch?.inputs?.length ? (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {plan.launch.inputs.map(input => (
+                <span key={`${plan.launch?.workflowId ?? plan.launch?.label}-${input.id}`} className="rounded-full border border-rule bg-surface-active px-2 py-0.5 text-11 text-text-faint">
+                  {input.label}: {input.value}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
 

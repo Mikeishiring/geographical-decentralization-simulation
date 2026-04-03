@@ -853,6 +853,26 @@ function findStudyWorkflow(workflowId: string | undefined): StudyAssistantWorkfl
   return ACTIVE_STUDY.assistant.workflows?.find(workflow => workflow.id === workflowId) ?? null
 }
 
+function buildWorkflowLaunchInputs(
+  workflow: StudyAssistantWorkflow | null,
+  launch: AskLaunchContext | null | undefined,
+): NonNullable<AskPlanData['launch']>['inputs'] | undefined {
+  if (!workflow?.fields?.length || !launch?.workflowValues) return undefined
+
+  const inputs = workflow.fields.flatMap(field => {
+    const rawValue = launch.workflowValues?.[field.id]
+    if (!rawValue) return []
+    const option = field.options.find(candidate => candidate.value === rawValue)
+    return [{
+      id: field.id,
+      label: field.label,
+      value: option?.label ?? rawValue,
+    }]
+  })
+
+  return inputs.length > 0 ? inputs : undefined
+}
+
 function buildAskLaunchPromptContext(launch: AskLaunchContext | null | undefined): string {
   if (!launch) return ''
 
@@ -863,6 +883,10 @@ function buildAskLaunchPromptContext(launch: AskLaunchContext | null | undefined
     parts.push(`This request was launched from the study workflow "${workflow?.title ?? launch.workflowId ?? 'workflow'}".`)
     if (workflow?.description) {
       parts.push(`Workflow intent: ${workflow.description}`)
+    }
+    const launchInputs = buildWorkflowLaunchInputs(workflow, launch)
+    if (launchInputs?.length) {
+      parts.push(`Selected workflow inputs: ${launchInputs.map(input => `${input.label} = ${input.value}`).join('; ')}.`)
     }
   } else if (launch.source === 'query-workbench') {
     parts.push('This request was launched from the typed structured-query workbench, not from free-form text alone.')
@@ -5921,6 +5945,7 @@ function buildAskPlanData(
     ? queryRequest?.view ?? null
     : null
   const workflow = findStudyWorkflow(options?.launch?.workflowId)
+  const workflowInputs = buildWorkflowLaunchInputs(workflow, options?.launch)
   const launch = options?.launch
     ? {
       source: options.launch.source ?? 'workflow',
@@ -5935,6 +5960,7 @@ function buildAskPlanData(
             ? `Pinned to the ${queryView.title} study surface before the assistant started reasoning.`
             : 'Pinned to a typed structured query launch before the assistant started reasoning.',
       workflowId: options.launch.workflowId,
+      inputs: workflowInputs,
     } satisfies NonNullable<AskPlanData['launch']>
     : undefined
 

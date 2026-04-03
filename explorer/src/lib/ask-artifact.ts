@@ -91,6 +91,11 @@ export const askPlanLaunchSchema = z.object({
   label: z.string(),
   detail: z.string(),
   workflowId: z.string().optional(),
+  inputs: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    value: z.string(),
+  })).optional(),
 })
 
 export const askPlanDataSchema = z.object({

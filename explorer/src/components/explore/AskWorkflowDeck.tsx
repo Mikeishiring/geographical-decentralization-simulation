@@ -153,12 +153,14 @@ export function AskWorkflowDeck({
             ? {
                 source: 'workflow',
                 workflowId: workflow.id,
+                workflowValues: selections[workflow.id] ? { ...selections[workflow.id] } : undefined,
                 routeHint: workflow.routeHint,
               }
             : workflow.id
               ? {
                   source: 'workflow',
                   workflowId: workflow.id,
+                  workflowValues: selections[workflow.id] ? { ...selections[workflow.id] } : undefined,
                 }
               : undefined
           const isPromptActive = normalizePrompt(activePrompt) === normalizePrompt(resolvedPrompt)
