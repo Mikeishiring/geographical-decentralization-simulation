@@ -305,6 +305,25 @@ async function main() {
       const experimentLaunchProvenance = experimentLaunchResponse?.provenance as Record<string, unknown> | undefined
       assert(experimentLaunchProvenance?.label === 'Study experiment adapter', 'Expected direct experiment launch preview to expose experiment adapter provenance')
 
+      const presetQueryPreviewResponse = await fetch(`${BASE_URL}/api/explore/launch-preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: 'Show me a table of published runs sorted by final Gini.',
+          launch: {
+            source: 'workflow',
+            workflowId: 'query-the-leaderboard',
+            workflowPresetId: 'top-final-gini',
+            routeHint: 'structured-results',
+          },
+        }),
+      })
+      await assertOk(presetQueryPreviewResponse, 'Expected /api/explore/launch-preview to resolve a preset-only structured workflow launch')
+      const presetQueryPreview = await presetQueryPreviewResponse.json() as Record<string, unknown>
+      assert(presetQueryPreview.route === 'structured-results', 'Expected preset-only structured preview to advertise the structured-results route')
+      const presetQueryRequest = presetQueryPreview.queryRequest as Record<string, unknown> | undefined
+      assert(presetQueryRequest?.viewId === 'published-runs', 'Expected preset-only structured preview to resolve the published-runs study view')
+
       const readingResponse = await fetch(`${BASE_URL}/api/explore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
