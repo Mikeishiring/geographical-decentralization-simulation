@@ -489,6 +489,10 @@ export function buildTools(): Anthropic.Messages.Tool[] {
       input_schema: {
         type: 'object' as const,
         properties: {
+          viewId: {
+            type: 'string' as const,
+            description: 'Optional study-owned query-view id that presets dimensions, metrics, ranking, and linked Results families.',
+          },
           dimensions: {
             type: 'array' as const,
             description: 'Metadata columns to show for each published result row.',

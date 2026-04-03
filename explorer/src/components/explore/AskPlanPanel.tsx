@@ -104,6 +104,16 @@ export function AskPlanPanel({ plan, compact = false }: AskPlanPanelProps) {
           <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
             Active modules
           </div>
+          {plan.queryView && (
+            <div className="mt-2 rounded-xl border border-accent/15 bg-white px-3 py-2 shadow-sm">
+              <div className="text-xs font-medium text-text-primary">
+                {plan.queryView.title}
+              </div>
+              <div className="mt-1 text-11 leading-5 text-muted">
+                {plan.queryView.description}
+              </div>
+            </div>
+          )}
           <div className="mt-2 flex flex-wrap gap-2">
             {visibleModules.map(module => (
               <div

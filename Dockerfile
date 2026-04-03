@@ -17,8 +17,7 @@ COPY explorer/package.json ./explorer/package.json
 COPY study-generator/package.json ./study-generator/package.json
 COPY packages/study-schema/package.json ./packages/study-schema/package.json
 RUN npm ci --workspace explorer --include-workspace-root=false \
- && npm install --workspace explorer --include-workspace-root=false \
- && node -e "const { createRequire } = require('module'); const req = createRequire('/app/explorer/package.json'); if (process.platform === 'linux' && process.arch === 'x64') { req.resolve('@rolldown/binding-linux-x64-gnu'); req.resolve('lightningcss-linux-x64-gnu'); } else if (process.platform === 'linux' && process.arch === 'arm64') { req.resolve('@rolldown/binding-linux-arm64-gnu'); req.resolve('lightningcss-linux-arm64-gnu'); }"
+ && node -e "const { createRequire } = require('module'); const req = createRequire('/app/explorer/package.json'); if (process.platform === 'linux' && process.arch === 'x64') { req.resolve('@rolldown/binding-linux-x64-gnu'); req.resolve('lightningcss-linux-x64-gnu'); }"
 
 WORKDIR /app/explorer
 
