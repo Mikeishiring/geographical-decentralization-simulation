@@ -350,6 +350,28 @@ async function main() {
       'Expected typed experiment workflow launches to keep the exact configuration scaffold in the final artifact',
     )
 
+    const presetExperimentWorkflowStream = await captureAskLaunchStream(
+      'What should I run if I want to test a higher gamma under local block building and learn about concentration?',
+      {
+        source: 'workflow',
+        workflowId: 'plan-a-bounded-run',
+        workflowPresetId: 'local-higher-gamma',
+        routeHint: 'simulation-config',
+      },
+    )
+    assert(
+      presetExperimentWorkflowStream.stages.includes('Experiment plan prefetched'),
+      'Expected preset-only experiment workflow launches to prefetch the bounded config scaffold',
+    )
+    assert(
+      !presetExperimentWorkflowStream.body.includes('toolName":"build_simulation_config'),
+      'Expected preset-only experiment workflow launches to skip the extra config tool round-trip',
+    )
+    assert(
+      presetExperimentWorkflowStream.body.includes('"label":"Preset","value":"Local higher gamma"'),
+      'Expected preset-only experiment workflow launches to expose the resolved preset in the live plan',
+    )
+
     const gammaSweepStream = await captureAskStream('Show me the higher-gamma runs sorted by final Gini.')
     assert(
       gammaSweepStream.body.includes('"queryView":{"id":"gamma-sweep"'),

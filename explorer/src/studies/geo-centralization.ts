@@ -530,6 +530,28 @@ const ASSISTANT: StudyPackage['assistant'] = {
       badge: 'Results',
       outputs: ['canonical figure', 'comparison blocks', 'paper caveat'],
       bestFor: ['Two-scenario comparisons', 'Figure-led answers', 'Cross-family Results questions'],
+      presets: [
+        {
+          id: 'baseline-vs-gamma',
+          label: 'Baseline vs gamma',
+          description: 'Contrast the baseline family with the SE4a attestation-threshold sweep on concentration.',
+          values: {
+            leftScenario: 'baseline',
+            rightScenario: 'higher-gamma',
+            lens: 'gini',
+          },
+        },
+        {
+          id: 'baseline-vs-slots',
+          label: 'Baseline vs slots',
+          description: 'Compare the baseline against the shorter-slot family with a fairness lens.',
+          values: {
+            leftScenario: 'baseline',
+            rightScenario: 'shorter-slots',
+            lens: 'fairness-pressure',
+          },
+        },
+      ],
       fields: [
         {
           id: 'leftScenario',
@@ -586,6 +608,26 @@ const ASSISTANT: StudyPackage['assistant'] = {
       badge: 'Query',
       outputs: ['chart + table', 'ranked rows', 'grounded insight'],
       bestFor: ['Ranking asks', 'SQL-style questions', 'Catalog-wide comparisons'],
+      presets: [
+        {
+          id: 'top-final-gini',
+          label: 'Top final Gini',
+          description: 'Rank the published runs by final geographic Gini.',
+          values: {
+            metric: 'gini',
+            snapshot: 'final',
+          },
+        },
+        {
+          id: 'top-final-latency',
+          label: 'Top proposal time',
+          description: 'Rank the published runs by final proposal time.',
+          values: {
+            metric: 'proposal_times',
+            snapshot: 'final',
+          },
+        },
+      ],
       fields: [
         {
           id: 'metric',
@@ -629,6 +671,35 @@ const ASSISTANT: StudyPackage['assistant'] = {
       badge: 'Sweep',
       outputs: ['parameter sweep table', 'bounded chart', 'supported filters'],
       bestFor: ['Gamma sweep questions', 'SE1/SE4 family inspection', 'Constrained structured analysis'],
+      presets: [
+        {
+          id: 'gamma-concentration',
+          label: 'Gamma concentration',
+          description: 'Inspect the SE4a gamma sweep through final Gini.',
+          values: {
+            family: 'gamma-sweep',
+            metric: 'gini',
+          },
+        },
+        {
+          id: 'slot-time-latency',
+          label: 'Slot-time latency',
+          description: 'Inspect the shorter-slot family through final proposal time.',
+          values: {
+            family: 'slot-time-runs',
+            metric: 'proposal_times',
+          },
+        },
+        {
+          id: 'source-placement-gini',
+          label: 'Source placement Gini',
+          description: 'Inspect the SE1 source-placement family through final Gini.',
+          values: {
+            family: 'source-placement-runs',
+            metric: 'gini',
+          },
+        },
+      ],
       fields: [
         {
           id: 'family',
@@ -672,6 +743,38 @@ const ASSISTANT: StudyPackage['assistant'] = {
       badge: 'Experiment',
       outputs: ['exact config', 'paper preset match', 'next run recommendation'],
       bestFor: ['What should I run?', 'Preset selection', 'Near-miss published scenarios'],
+      presets: [
+        {
+          id: 'external-slots-misaligned',
+          label: 'External shorter slots',
+          description: 'Test shorter slots with misaligned sources under external block building.',
+          values: {
+            change: 'shorter-slots-misaligned',
+            paradigm: 'SSP',
+            goal: 'fairness-pressure',
+          },
+        },
+        {
+          id: 'local-higher-gamma',
+          label: 'Local higher gamma',
+          description: 'Plan a higher-gamma local run to test concentration pressure.',
+          values: {
+            change: 'higher-gamma',
+            paradigm: 'MSP',
+            goal: 'geographic-concentration',
+          },
+        },
+        {
+          id: 'external-aligned-sources',
+          label: 'External aligned sources',
+          description: 'Plan an aligned-source external run to inspect proposal latency.',
+          values: {
+            change: 'aligned-sources',
+            paradigm: 'SSP',
+            goal: 'proposal-latency',
+          },
+        },
+      ],
       fields: [
         {
           id: 'change',

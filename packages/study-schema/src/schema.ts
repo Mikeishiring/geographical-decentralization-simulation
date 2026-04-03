@@ -211,12 +211,21 @@ export interface StudyAssistantWorkflow {
   readonly promptTemplate?: string
   readonly structuredQueryTemplate?: StudyAssistantStructuredQueryTemplate
   readonly simulationConfigTemplate?: StudyAssistantSimulationConfigTemplate
+  readonly presets?: readonly StudyAssistantWorkflowPreset[]
   readonly mode?: StudyAssistantMode
   readonly routeHint?: StudyAssistantRouteHint
   readonly badge?: string
   readonly outputs?: readonly string[]
   readonly bestFor?: readonly string[]
   readonly fields?: readonly StudyAssistantWorkflowField[]
+}
+
+export interface StudyAssistantWorkflowPreset {
+  readonly id: string
+  readonly label: string
+  readonly description?: string
+  readonly badge?: string
+  readonly values?: Readonly<Record<string, string>>
 }
 
 export interface StudyAssistantStructuredQueryTemplate {

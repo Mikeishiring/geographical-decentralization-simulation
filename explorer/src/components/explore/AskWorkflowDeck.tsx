@@ -5,7 +5,12 @@ import { BarChart3, Compass, Database, FlaskConical, Loader2, Sparkles, Wand2 } 
 import type { AskLaunchContext } from '../../lib/ask-launch'
 import { cn } from '../../lib/cn'
 import { previewAskLaunch, type AskLaunchPreview } from '../../lib/api'
-import { buildWorkflowLaunchContext, composeWorkflowPrompt } from '../../lib/workflow-launch'
+import {
+  buildWorkflowLaunchContext,
+  buildWorkflowPresetSelections,
+  composeWorkflowPrompt,
+  resolveWorkflowSelections,
+} from '../../lib/workflow-launch'
 import { SPRING } from '../../lib/theme'
 import type {
   StudyAssistantMode,
@@ -141,6 +146,17 @@ function syncWorkflowSelections(
   return next
 }
 
+function detectActivePresetId(
+  workflow: StudyAssistantWorkflow,
+  selections: Readonly<Record<string, string>> | undefined,
+): string | undefined {
+  if (!workflow.presets?.length) return undefined
+  const resolvedSelections = resolveWorkflowSelections(workflow, selections)
+  return workflow.presets.find(preset =>
+    Object.entries(preset.values ?? {}).every(([key, value]) => resolvedSelections[key] === value),
+  )?.id
+}
+
 export function AskWorkflowDeck({
   workflows,
   mode,
@@ -159,10 +175,12 @@ export function AskWorkflowDeck({
   if (visibleWorkflows.length === 0) return null
 
   const workflowCards = visibleWorkflows.map(workflow => {
-    const resolvedPrompt = composeWorkflowPrompt(workflow, selections[workflow.id])
-    const launchContext = buildWorkflowLaunchContext(workflow, selections[workflow.id])
+    const activePresetId = detectActivePresetId(workflow, selections[workflow.id])
+    const resolvedPrompt = composeWorkflowPrompt(workflow, selections[workflow.id], activePresetId)
+    const launchContext = buildWorkflowLaunchContext(workflow, selections[workflow.id], activePresetId)
     return {
       workflow,
+      activePresetId,
       resolvedPrompt,
       launchContext,
     }
@@ -202,7 +220,7 @@ export function AskWorkflowDeck({
       </div>
 
       <div className="mt-4 grid gap-3 xl:grid-cols-3 md:grid-cols-2">
-        {workflowCards.map(({ workflow, resolvedPrompt, launchContext }, index) => {
+        {workflowCards.map(({ workflow, activePresetId, resolvedPrompt, launchContext }, index) => {
           const Icon = routeIcon(workflow.routeHint)
           const isPromptActive = normalizePrompt(activePrompt) === normalizePrompt(resolvedPrompt)
           const isRouteActive = !isPromptActive && workflow.routeHint != null && workflow.routeHint === activeRoute
@@ -279,6 +297,42 @@ export function AskWorkflowDeck({
                     <Wand2 className="h-3.5 w-3.5" />
                     Typed launch
                   </div>
+                  {workflow.presets?.length ? (
+                    <div className="mb-3 rounded-xl border border-accent/10 bg-accent/[0.03] px-3 py-3">
+                      <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
+                        Quick presets
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {workflow.presets.map(preset => (
+                          <button
+                            key={`${workflow.id}-${preset.id}`}
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              const presetSelections = buildWorkflowPresetSelections(workflow, preset.id)
+                              setSelections(current => ({
+                                ...current,
+                                [workflow.id]: presetSelections,
+                              }))
+                            }}
+                            className={cn(
+                              'rounded-full border px-2.5 py-1 text-11 font-medium transition-colors',
+                              activePresetId === preset.id
+                                ? 'border-accent/20 bg-white text-accent'
+                                : 'border-rule bg-white/70 text-text-faint hover:border-accent/20 hover:text-accent',
+                            )}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                      {workflow.presets.find(preset => preset.id === activePresetId)?.description ? (
+                        <div className="mt-2 text-11 leading-5 text-muted">
+                          {workflow.presets.find(preset => preset.id === activePresetId)?.description}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="grid gap-2">
                     {workflow.fields.map(field => {
                       const selectedValue = selections[workflow.id]?.[field.id] ?? field.defaultValue ?? field.options[0]?.value ?? ''

@@ -55,6 +55,8 @@ import type { AskArtifactData, AskPlanData, AskStatusData } from '../src/lib/ask
 import type { AskUIMessage } from '../src/lib/ask-chat.ts'
 import { askLaunchContextSchema, type AskLaunchContext } from '../src/lib/ask-launch.ts'
 import {
+  findWorkflowPreset,
+  resolveWorkflowSelections,
   resolveWorkflowSimulationConfig,
   resolveWorkflowStructuredQuery,
 } from '../src/lib/workflow-launch.ts'
@@ -863,12 +865,14 @@ function resolveWorkflowLaunchContext(
   if (!launch?.workflowId) return launch
   const workflow = findStudyWorkflow(launch.workflowId)
   if (!workflow) return launch
-  const structuredQuery = launch.structuredQuery ?? resolveWorkflowStructuredQuery(workflow, launch.workflowValues)
-  const simulationConfig = launch.simulationConfig ?? resolveWorkflowSimulationConfig(workflow, launch.workflowValues)
+  const resolvedSelections = resolveWorkflowSelections(workflow, launch.workflowValues, launch.workflowPresetId)
+  const structuredQuery = launch.structuredQuery ?? resolveWorkflowStructuredQuery(workflow, resolvedSelections)
+  const simulationConfig = launch.simulationConfig ?? resolveWorkflowSimulationConfig(workflow, resolvedSelections)
   if (!launch.routeHint && !structuredQuery && !simulationConfig) return launch
 
   return {
     ...launch,
+    workflowValues: Object.keys(resolvedSelections).length > 0 ? resolvedSelections : launch.workflowValues,
     routeHint: launch.routeHint ?? workflow.routeHint,
     structuredQuery,
     simulationConfig,
@@ -879,9 +883,23 @@ function buildWorkflowLaunchInputs(
   workflow: StudyAssistantWorkflow | null,
   launch: AskLaunchContext | null | undefined,
 ): NonNullable<AskPlanData['launch']>['inputs'] | undefined {
-  if (!workflow?.fields?.length || !launch?.workflowValues) return undefined
+  if (!workflow) return undefined
 
-  const inputs = workflow.fields.flatMap(field => {
+  const inputs: NonNullable<AskPlanData['launch']>['inputs'] = []
+  const preset = findWorkflowPreset(workflow, launch?.workflowPresetId)
+  if (preset) {
+    inputs.push({
+      id: 'preset',
+      label: 'Preset',
+      value: preset.label,
+    })
+  }
+
+  if (!workflow.fields?.length || !launch?.workflowValues) {
+    return inputs.length > 0 ? inputs : undefined
+  }
+
+  inputs.push(...workflow.fields.flatMap(field => {
     const rawValue = launch.workflowValues?.[field.id]
     if (!rawValue) return []
     const option = field.options.find(candidate => candidate.value === rawValue)
@@ -890,7 +908,7 @@ function buildWorkflowLaunchInputs(
       label: field.label,
       value: option?.label ?? rawValue,
     }]
-  })
+  }))
 
   return inputs.length > 0 ? inputs : undefined
 }
@@ -905,6 +923,10 @@ function buildAskLaunchPromptContext(launch: AskLaunchContext | null | undefined
     parts.push(`This request was launched from the study workflow "${workflow?.title ?? launch.workflowId ?? 'workflow'}".`)
     if (workflow?.description) {
       parts.push(`Workflow intent: ${workflow.description}`)
+    }
+    const preset = workflow ? findWorkflowPreset(workflow, launch.workflowPresetId) : undefined
+    if (preset) {
+      parts.push(`Selected preset: ${preset.label}.${preset.description ? ` ${preset.description}` : ''}`)
     }
     const launchInputs = buildWorkflowLaunchInputs(workflow, launch)
     if (launchInputs?.length) {

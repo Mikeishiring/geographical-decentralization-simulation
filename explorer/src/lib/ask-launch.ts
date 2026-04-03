@@ -34,6 +34,7 @@ export const askLaunchSimulationConfigSchema = z.object({
 export const askLaunchContextSchema = z.object({
   source: z.enum(['workflow', 'query-workbench']).optional(),
   workflowId: z.string().optional(),
+  workflowPresetId: z.string().optional(),
   workflowValues: z.record(z.string(), z.string()).optional(),
   routeHint: askLaunchRouteSchema.optional(),
   structuredQuery: askLaunchStructuredQuerySchema.optional(),
