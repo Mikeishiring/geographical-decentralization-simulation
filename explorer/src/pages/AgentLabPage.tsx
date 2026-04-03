@@ -102,6 +102,7 @@ const ASK_PROMPT_TIPS = ASSISTANT_CONFIG.promptTips ?? [
     example: 'Compare baseline local vs external block building.',
   },
 ]
+const ASK_QUERY_VIEWS = ASSISTANT_CONFIG.queryViews ?? []
 
 interface AgentLabPageProps {
   readonly onTabChange?: (tab: import('../components/layout/TabNav').TabId) => void
@@ -570,6 +571,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
           <AskCapabilityPanel
             capabilities={ASK_CAPABILITIES}
             promptTips={ASK_PROMPT_TIPS}
+            queryViews={ASK_QUERY_VIEWS}
             onPromptSelect={handleSuggestionClick}
             busy={askLoading}
           />

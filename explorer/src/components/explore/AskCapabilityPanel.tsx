@@ -2,12 +2,14 @@ import { BarChart3, Database, FlaskConical, MessageSquareText, Sparkles } from '
 import type {
   StudyAssistantCapability,
   StudyAssistantPromptTip,
+  StudyAssistantQueryView,
 } from '../../studies/types'
 import { cn } from '../../lib/cn'
 
 interface AskCapabilityPanelProps {
   readonly capabilities: readonly StudyAssistantCapability[]
   readonly promptTips: readonly StudyAssistantPromptTip[]
+  readonly queryViews?: readonly StudyAssistantQueryView[]
   readonly onPromptSelect: (prompt: string) => void
   readonly busy?: boolean
 }
@@ -47,10 +49,11 @@ function capabilityStateClass(state: StudyAssistantCapability['state']): string 
 export function AskCapabilityPanel({
   capabilities,
   promptTips,
+  queryViews = [],
   onPromptSelect,
   busy = false,
 }: AskCapabilityPanelProps) {
-  if (capabilities.length === 0 && promptTips.length === 0) return null
+  if (capabilities.length === 0 && promptTips.length === 0 && queryViews.length === 0) return null
 
   return (
     <div className="rounded-2xl border border-rule bg-white px-5 py-5">
@@ -67,7 +70,7 @@ export function AskCapabilityPanel({
           </p>
         </div>
         <div className="rounded-full border border-rule bg-surface-active px-3 py-1.5 text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
-          {capabilities.filter(capability => capability.state !== 'planned').length} active modules
+          {capabilities.filter(capability => capability.state !== 'planned').length + queryViews.length} active modules
         </div>
       </div>
 
@@ -116,6 +119,68 @@ export function AskCapabilityPanel({
               </div>
             )
           })}
+        </div>
+      )}
+
+      {queryViews.length > 0 && (
+        <div className="mt-5 rounded-2xl border border-rule bg-surface-active/60 px-4 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm font-medium text-text-primary">
+              Structured query views
+            </div>
+            <div className="text-11 uppercase tracking-[0.08em] text-text-faint">
+              Study-owned table and leaderboard surfaces
+            </div>
+          </div>
+          <div className="mt-3 grid gap-3 xl:grid-cols-2">
+            {queryViews.map(view => {
+              const primaryPrompt = view.prompts?.[0]
+              return (
+                <div key={view.id} className="rounded-xl border border-rule bg-white/90 px-3.5 py-3 shadow-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-xs font-medium text-text-primary">
+                      {view.title}
+                    </div>
+                    <div className="rounded-full border border-rule bg-surface-active px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-text-faint">
+                      {view.id}
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-muted">
+                    {view.description}
+                  </p>
+                  {(view.defaultMetrics?.length || view.defaultDimensions?.length) && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {view.defaultMetrics?.map(metric => (
+                        <span key={`${view.id}-${metric}`} className="rounded-full border border-accent/15 bg-accent/[0.04] px-2 py-0.5 text-11 text-accent">
+                          {metric}
+                        </span>
+                      ))}
+                      {view.defaultDimensions?.slice(0, 2).map(dimension => (
+                        <span key={`${view.id}-${dimension}`} className="rounded-full border border-rule bg-surface-active px-2 py-0.5 text-11 text-text-faint">
+                          {dimension}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {primaryPrompt && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => onPromptSelect(primaryPrompt)}
+                      className={cn(
+                        'mt-3 rounded-full border px-3 py-1 text-11 font-medium transition-colors',
+                        busy
+                          ? 'cursor-not-allowed border-rule bg-surface-active text-muted'
+                          : 'border-accent/20 bg-white text-accent hover:border-accent/30 hover:bg-accent/[0.04]',
+                      )}
+                    >
+                      {primaryPrompt}
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 
