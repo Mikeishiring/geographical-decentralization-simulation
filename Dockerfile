@@ -2,9 +2,6 @@ FROM node:20-bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-ARG TARGETOS
-ARG TARGETARCH
-
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 python3-pip python3-venv ca-certificates git git-lfs curl \
   && git lfs install \
@@ -19,33 +16,9 @@ COPY package.json package-lock.json ./
 COPY explorer/package.json ./explorer/package.json
 COPY study-generator/package.json ./study-generator/package.json
 COPY packages/study-schema/package.json ./packages/study-schema/package.json
-RUN npm ci --workspace explorer --include-workspace-root=false
-RUN if [ "$TARGETOS" = "linux" ]; then \
-      case "$TARGETARCH" in \
-        amd64) \
-          ROLLDOWN_BINDING='@rolldown/binding-linux-x64-gnu'; \
-          LIGHTNINGCSS_BINDING='lightningcss-linux-x64-gnu' ;; \
-        arm64) \
-          ROLLDOWN_BINDING='@rolldown/binding-linux-arm64-gnu'; \
-          LIGHTNINGCSS_BINDING='lightningcss-linux-arm64-gnu' ;; \
-        *) \
-          ROLLDOWN_BINDING=''; \
-          LIGHTNINGCSS_BINDING='' ;; \
-      esac; \
-      install_optional_binding() { \
-        BINDING_NAME="$1"; \
-        PACKAGE_JSON_PATH="$2"; \
-        if [ -z "$BINDING_NAME" ]; then \
-          return 0; \
-        fi; \
-        BINDING_VERSION=$(node -p "require('$PACKAGE_JSON_PATH').optionalDependencies['$BINDING_NAME'] || ''"); \
-        if [ -n "$BINDING_VERSION" ]; then \
-          (cd /app/explorer && npm install --no-save "${BINDING_NAME}@${BINDING_VERSION}"); \
-        fi; \
-      }; \
-      install_optional_binding "$ROLLDOWN_BINDING" "/app/explorer/node_modules/rolldown/package.json"; \
-      install_optional_binding "$LIGHTNINGCSS_BINDING" "/app/explorer/node_modules/lightningcss/package.json"; \
-    fi
+RUN npm ci --workspace explorer --include-workspace-root=false \
+ && npm install --workspace explorer --include-workspace-root=false \
+ && node -e "const { createRequire } = require('module'); const req = createRequire('/app/explorer/package.json'); if (process.platform === 'linux' && process.arch === 'x64') { req.resolve('@rolldown/binding-linux-x64-gnu'); req.resolve('lightningcss-linux-x64-gnu'); } else if (process.platform === 'linux' && process.arch === 'arm64') { req.resolve('@rolldown/binding-linux-arm64-gnu'); req.resolve('lightningcss-linux-arm64-gnu'); }"
 
 WORKDIR /app/explorer
 
