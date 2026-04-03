@@ -230,6 +230,35 @@ async function main() {
       const simulations = health.simulations as Record<string, unknown> | undefined
       assert(typeof simulations?.readyWorkers === 'number' && simulations.readyWorkers >= 1, 'Expected at least one ready simulation worker')
 
+      const directQueryPreviewResponse = await fetch(`${BASE_URL}/api/explore/query-preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: 'Show me published runs sorted by final Gini.',
+          launch: {
+            source: 'query-workbench',
+            routeHint: 'structured-results',
+            structuredQuery: {
+              viewId: 'published-runs',
+              metrics: ['gini'],
+              slot: 'final',
+              orderBy: 'gini',
+              order: 'desc',
+              limit: 8,
+            },
+          },
+        }),
+      })
+      await assertOk(directQueryPreviewResponse, 'Expected /api/explore/query-preview to succeed for a typed structured launch')
+      const directQueryPreview = await directQueryPreviewResponse.json() as Record<string, unknown>
+      assert(directQueryPreview.route === 'structured-results', 'Expected direct structured query preview to advertise the structured-results route')
+      const directQueryRequest = directQueryPreview.queryRequest as Record<string, unknown> | undefined
+      assert(directQueryRequest?.viewId === 'published-runs', 'Expected direct structured query preview to preserve the pinned study view')
+      const directQueryResponse = directQueryPreview.response as Record<string, unknown> | undefined
+      assert(Array.isArray(directQueryResponse?.blocks) && directQueryResponse.blocks.length > 0, 'Expected direct structured query preview to return a compact artifact scaffold')
+      const directQueryProvenance = directQueryResponse?.provenance as Record<string, unknown> | undefined
+      assert(directQueryProvenance?.label === 'Study query adapter', 'Expected direct structured query preview to expose adapter provenance')
+
       const readingResponse = await fetch(`${BASE_URL}/api/explore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

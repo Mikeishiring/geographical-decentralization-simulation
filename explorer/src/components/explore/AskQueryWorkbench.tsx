@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react'
-import { ArrowUpDown, Database, Filter, SlidersHorizontal } from 'lucide-react'
+import { useDeferredValue, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { ArrowUpDown, Database, Filter, Loader2, SlidersHorizontal } from 'lucide-react'
 import type { AskPlanData } from '../../lib/ask-artifact'
 import type { AskLaunchContext } from '../../lib/ask-launch'
 import { cn } from '../../lib/cn'
+import { previewStructuredQuery } from '../../lib/api'
 import type { StudyAssistantQueryView } from '../../studies/types'
+import type { Block } from '../../types/blocks'
 
 interface AskQueryWorkbenchProps {
   readonly queryViews: readonly StudyAssistantQueryView[]
@@ -140,6 +143,72 @@ function buildPrompt(view: StudyAssistantQueryView, state: QueryWorkbenchState):
   return `Use the structured query view "${view.title}" (${view.id}). Show me a table from the published Results catalog with columns ${state.dimensions.join(', ')} and metrics ${state.metrics.join(', ')} at the ${state.slot} snapshot, sorted by ${state.orderBy} ${state.order}, limited to ${state.limit} rows.${filterClause} Then summarize the ranking in plain language and point out the strongest comparison.`
 }
 
+function buildLaunchContext(
+  view: StudyAssistantQueryView,
+  state: QueryWorkbenchState,
+): AskLaunchContext {
+  return {
+    source: 'query-workbench',
+    routeHint: 'structured-results',
+    structuredQuery: {
+      viewId: view.id,
+      dimensions: [...state.dimensions],
+      metrics: [...state.metrics],
+      filters: {
+        evaluation: state.evaluation,
+        paradigm: state.paradigm,
+        result: state.result,
+      },
+      slot: state.slot,
+      orderBy: state.orderBy,
+      order: state.order,
+      limit: state.limit,
+    },
+  }
+}
+
+function previewBlockTypeLabel(block: Block): string {
+  switch (block.type) {
+    case 'chart':
+      return 'Chart'
+    case 'table':
+      return 'Table'
+    case 'paperChart':
+      return 'Paper figure'
+    case 'insight':
+      return 'Insight'
+    case 'comparison':
+      return 'Comparison'
+    case 'stat':
+      return 'Stat'
+    case 'caveat':
+      return 'Caveat'
+    default:
+      return labelize(block.type)
+  }
+}
+
+function previewBlockLead(block: Block): string {
+  switch (block.type) {
+    case 'chart':
+      return `${block.data.length} points · ${block.chartType ?? 'bar'}`
+    case 'table':
+      return `${block.rows.length} rows · ${block.headers.length} columns`
+    case 'paperChart':
+      return `Canonical figure ${labelize(block.dataKey)}`
+    case 'insight':
+      return block.text
+    case 'comparison':
+      return block.verdict ?? `${block.left.label} vs ${block.right.label}`
+    case 'stat':
+      return `${block.label}: ${block.value}`
+    case 'caveat':
+      return block.text
+    default:
+      return ''
+  }
+}
+
 function matchesQueryState(
   state: QueryWorkbenchState | null,
   viewId: string | null | undefined,
@@ -180,6 +249,7 @@ export function AskQueryWorkbench({
   const liveViewMatch = activeViewId
     ? queryViews.find(view => view.id === activeViewId) ?? null
     : null
+  const deferredState = useDeferredValue(state)
 
   useEffect(() => {
     if (!queryViews.length) {
@@ -206,24 +276,31 @@ export function AskQueryWorkbench({
   if (!activeView || !state) return null
 
   const prompt = buildPrompt(activeView, state)
-  const launchContext: AskLaunchContext = {
-    source: 'query-workbench',
-    routeHint: 'structured-results',
-    structuredQuery: {
-      viewId: activeView.id,
-      dimensions: [...state.dimensions],
-      metrics: [...state.metrics],
-      filters: {
-        evaluation: state.evaluation,
-        paradigm: state.paradigm,
-        result: state.result,
-      },
-      slot: state.slot,
-      orderBy: state.orderBy,
-      order: state.order,
-      limit: state.limit,
-    },
-  }
+  const launchContext = buildLaunchContext(activeView, state)
+  const deferredView = deferredState
+    ? queryViews.find(view => view.id === deferredState.viewId) ?? null
+    : null
+  const deferredPrompt = deferredView && deferredState
+    ? buildPrompt(deferredView, deferredState)
+    : ''
+  const deferredLaunchContext = deferredView && deferredState
+    ? buildLaunchContext(deferredView, deferredState)
+    : null
+  const previewQuery = useQuery({
+    queryKey: ['ask-query-preview', deferredLaunchContext?.structuredQuery ?? null],
+    enabled: Boolean(deferredLaunchContext),
+    staleTime: 30_000,
+    placeholderData: previousData => previousData,
+    queryFn: async () => previewStructuredQuery(deferredPrompt, deferredLaunchContext!),
+  })
+  const preview = previewQuery.data
+  const previewBlocks = preview?.response.blocks.slice(0, 3) ?? []
+  const previewSummary = preview?.response.summary ?? activeView.title
+  const previewStatusLabel = previewQuery.isLoading && !preview
+    ? 'Loading direct preview'
+    : previewQuery.isFetching
+      ? 'Refreshing adapter preview'
+      : 'Adapter preview ready'
 
   const setView = (viewId: string) => {
     const nextView = queryViews.find(view => view.id === viewId)
@@ -506,19 +583,100 @@ export function AskQueryWorkbench({
 
         <div className="space-y-4">
           <div className="rounded-2xl border border-accent/15 bg-accent/[0.04] px-4 py-4">
-            <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
-              Launch preview
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
+                Live adapter preview
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/85 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-accent">
+                {previewQuery.isLoading && !preview ? <Loader2 className="h-3 w-3 animate-spin" /> : <Database className="h-3 w-3" />}
+                {previewStatusLabel}
+              </div>
             </div>
             <div className="mt-2 text-sm font-medium text-text-primary">
-              {activeView.title}
+              {preview?.queryView?.title ?? activeView.title}
             </div>
             <p className="mt-2 text-xs leading-6 text-muted">
-              {prompt}
+              {preview?.description || prompt}
             </p>
-            {activeView.executionHints?.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full border border-white/80 bg-white/85 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                Direct study query
+              </span>
+              <span className="rounded-full border border-white/80 bg-white/85 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                {labelize(state.slot)} snapshot
+              </span>
+              <span className="rounded-full border border-white/80 bg-white/85 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                {state.limit} rows
+              </span>
+            </div>
+            {preview?.queryRequest ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {preview.queryRequest.metrics.map(metric => (
+                  <span key={`preview-metric-${metric}`} className="rounded-full border border-accent/15 bg-white/85 px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-accent">
+                    Metric · {labelize(metric)}
+                  </span>
+                ))}
+                {preview.queryRequest.dimensions.map(dimension => (
+                  <span key={`preview-dimension-${dimension}`} className="rounded-full border border-white/80 bg-white/85 px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-text-faint">
+                    Column · {labelize(dimension)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {preview?.queryRequest.notes.length ? (
               <div className="mt-3 rounded-xl border border-white/70 bg-white/80 px-3 py-3 text-xs leading-5 text-muted">
-                <span className="font-medium text-text-primary">Execution hint:</span>{' '}
-                {activeView.executionHints[0]?.description}
+                <div className="font-medium text-text-primary">Adapter note</div>
+                <div className="mt-1">{preview.queryRequest.notes.join(' ')}</div>
+              </div>
+            ) : activeView.executionHints?.length ? (
+              <div className="mt-3 rounded-xl border border-white/70 bg-white/80 px-3 py-3 text-xs leading-5 text-muted">
+                <div className="font-medium text-text-primary">Execution hint</div>
+                <div className="mt-1">{activeView.executionHints[0]?.description}</div>
+              </div>
+            ) : null}
+            <div className="mt-3 space-y-2">
+              {previewQuery.isLoading && !preview ? (
+                <div className="space-y-2">
+                  {[0, 1, 2].map(index => (
+                    <div key={`preview-loading-${index}`} className="rounded-xl border border-white/70 bg-white/80 px-3 py-3">
+                      <div className="h-2.5 w-20 animate-pulse rounded-full bg-accent/10" />
+                      <div className="mt-2 h-3 w-3/4 animate-pulse rounded-full bg-accent/10" />
+                      <div className="mt-2 h-3 w-1/2 animate-pulse rounded-full bg-accent/10" />
+                    </div>
+                  ))}
+                </div>
+              ) : previewBlocks.length > 0 ? (
+                previewBlocks.map((block, index) => (
+                  <div key={`${block.type}-${index}`} className="rounded-xl border border-white/70 bg-white/85 px-3 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="rounded-full border border-accent/15 bg-accent/[0.05] px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-accent">
+                        {previewBlockTypeLabel(block)}
+                      </span>
+                      {block.type === 'table' ? (
+                        <span className="text-[10px] uppercase tracking-[0.08em] text-text-faint">
+                          {block.rows.length} rows
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 text-xs font-medium text-text-primary">
+                      {'title' in block && typeof block.title === 'string' && block.title.trim().length > 0
+                        ? block.title
+                        : previewSummary}
+                    </div>
+                    <div className="mt-1 text-xs leading-5 text-muted">
+                      {previewBlockLead(block)}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl border border-white/70 bg-white/80 px-3 py-3 text-xs leading-5 text-muted">
+                  The adapter preview is ready, but this surface did not return a compact block scaffold yet.
+                </div>
+              )}
+            </div>
+            {previewQuery.error ? (
+              <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-3 text-xs leading-5 text-rose-700">
+                {(previewQuery.error as Error).message}
               </div>
             ) : null}
             <button

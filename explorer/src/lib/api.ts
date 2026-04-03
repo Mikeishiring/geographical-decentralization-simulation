@@ -1,5 +1,7 @@
 import type { Block } from '../types/blocks'
 import { parseBlocks } from '../types/blocks'
+import type { AskPlanData } from './ask-artifact'
+import type { AskLaunchContext } from './ask-launch'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api`
@@ -30,6 +32,14 @@ export interface ExploreResponse {
 export interface ExploreError {
   readonly error: string
   readonly status: number
+}
+
+export interface StructuredQueryPreview {
+  readonly route: 'structured-results'
+  readonly description: string
+  readonly queryView?: AskPlanData['queryView']
+  readonly queryRequest: NonNullable<AskPlanData['queryRequest']>
+  readonly response: ExploreResponse
 }
 
 export interface ApiHealth {
@@ -70,6 +80,43 @@ async function parseApiError(res: Response, fallback: string): Promise<Error> {
   return new Error(typeof body.error === 'string' ? body.error : fallback)
 }
 
+function parseExploreResponse(raw: Record<string, unknown>): ExploreResponse {
+  const blocks = parseBlocks((raw.blocks as unknown[]) ?? [])
+
+  return {
+    summary: typeof raw.summary === 'string' ? raw.summary : '',
+    blocks,
+    followUps: Array.isArray(raw.followUps)
+      ? raw.followUps.filter((value): value is string => typeof value === 'string')
+      : [],
+    model: typeof raw.model === 'string' ? raw.model : '',
+    cached: typeof raw.cached === 'boolean' ? raw.cached : false,
+    provenance: {
+      source: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).source === 'string'
+        ? ((raw.provenance as Record<string, unknown>).source as ExploreSource)
+        : 'generated',
+      label: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).label === 'string'
+        ? ((raw.provenance as Record<string, unknown>).label as string)
+        : 'Fresh response',
+      detail: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).detail === 'string'
+        ? ((raw.provenance as Record<string, unknown>).detail as string)
+        : '',
+      canonical: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).canonical === 'boolean'
+        ? ((raw.provenance as Record<string, unknown>).canonical as boolean)
+        : false,
+      topicId: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).topicId === 'string'
+        ? ((raw.provenance as Record<string, unknown>).topicId as string)
+        : undefined,
+      explorationId: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).explorationId === 'string'
+        ? ((raw.provenance as Record<string, unknown>).explorationId as string)
+        : undefined,
+      similarityScore: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).similarityScore === 'number'
+        ? ((raw.provenance as Record<string, unknown>).similarityScore as number)
+        : undefined,
+    },
+  }
+}
+
 export async function explore(
   query: string,
   history: readonly HistoryEntry[] = [],
@@ -90,42 +137,10 @@ export async function explore(
     }
 
     const raw = await res.json().catch(() => ({})) as Record<string, unknown>
-    const blocks = parseBlocks((raw.blocks as unknown[]) ?? [])
 
     return {
       ok: true,
-      data: {
-        summary: typeof raw.summary === 'string' ? raw.summary : '',
-        blocks,
-        followUps: Array.isArray(raw.followUps)
-          ? raw.followUps.filter((value): value is string => typeof value === 'string')
-          : [],
-        model: typeof raw.model === 'string' ? raw.model : '',
-        cached: typeof raw.cached === 'boolean' ? raw.cached : false,
-        provenance: {
-          source: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).source === 'string'
-            ? ((raw.provenance as Record<string, unknown>).source as ExploreSource)
-            : 'generated',
-          label: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).label === 'string'
-            ? ((raw.provenance as Record<string, unknown>).label as string)
-            : 'Fresh response',
-          detail: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).detail === 'string'
-            ? ((raw.provenance as Record<string, unknown>).detail as string)
-            : '',
-          canonical: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).canonical === 'boolean'
-            ? ((raw.provenance as Record<string, unknown>).canonical as boolean)
-            : false,
-          topicId: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).topicId === 'string'
-            ? ((raw.provenance as Record<string, unknown>).topicId as string)
-            : undefined,
-          explorationId: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).explorationId === 'string'
-            ? ((raw.provenance as Record<string, unknown>).explorationId as string)
-            : undefined,
-          similarityScore: raw.provenance && typeof raw.provenance === 'object' && typeof (raw.provenance as Record<string, unknown>).similarityScore === 'number'
-            ? ((raw.provenance as Record<string, unknown>).similarityScore as number)
-            : undefined,
-        },
-      },
+      data: parseExploreResponse(raw),
     }
   } catch (err) {
     return {
@@ -135,6 +150,43 @@ export async function explore(
         status: 0,
       },
     }
+  }
+}
+
+export async function previewStructuredQuery(
+  query: string,
+  launch: AskLaunchContext,
+): Promise<StructuredQueryPreview> {
+  const res = await fetch(`${API_BASE}/explore/query-preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, launch }),
+  })
+
+  if (!res.ok) {
+    throw await parseApiError(res, 'Failed to preview structured study query')
+  }
+
+  const raw = await res.json().catch(() => ({})) as Record<string, unknown>
+  const queryRequest = raw.queryRequest && typeof raw.queryRequest === 'object'
+    ? raw.queryRequest as NonNullable<AskPlanData['queryRequest']>
+    : null
+  if (!queryRequest) {
+    throw new Error('Structured query preview did not return a resolved query request.')
+  }
+
+  return {
+    route: 'structured-results',
+    description: typeof raw.description === 'string' ? raw.description : '',
+    queryView: raw.queryView && typeof raw.queryView === 'object'
+      ? raw.queryView as AskPlanData['queryView']
+      : undefined,
+    queryRequest,
+    response: parseExploreResponse(
+      raw.response && typeof raw.response === 'object'
+        ? raw.response as Record<string, unknown>
+        : {},
+    ),
   }
 }
 
