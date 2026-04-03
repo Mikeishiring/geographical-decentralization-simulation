@@ -12,7 +12,30 @@ function resolveFieldValue(
   readonly prompt: string
 } {
   const field = workflow.fields?.find(candidate => candidate.id === fieldId)
+  const resolveBinding = (): string | undefined => {
+    for (const candidateField of workflow.fields ?? []) {
+      const selected =
+        selections?.[candidateField.id]
+        ?? candidateField.defaultValue
+        ?? candidateField.options[0]?.value
+        ?? ''
+      const option = candidateField.options.find(candidate => candidate.value === selected)
+      const bound = option?.bindings?.[fieldId]
+      if (typeof bound === 'string' && bound.trim().length > 0) {
+        return bound
+      }
+    }
+    return undefined
+  }
   if (!field) {
+    const bound = resolveBinding()
+    if (bound) {
+      return {
+        raw: bound,
+        prompt: bound,
+      }
+    }
+
     const fallback = selections?.[fieldId] ?? ''
     return {
       raw: fallback,

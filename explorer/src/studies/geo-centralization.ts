@@ -658,13 +658,14 @@ const ASSISTANT: StudyPackage['assistant'] = {
       title: 'Plan a bounded run',
       description: 'Translate a what-if into an exact-mode configuration without pretending the simulation already ran.',
       prompt: 'What should I run if I want to test shorter slots with misaligned sources?',
-      promptTemplate: 'What should I run if I want to test {{slotTime}} second slots with {{sourcePlacement}} sources under {{paradigm}} block building from a {{distribution}} start and learn about {{goal}}?',
+      promptTemplate: 'What should I run if I want to test {{change}} under {{paradigm}} block building and learn about {{goal}}?',
       simulationConfigTemplate: {
         base: 'paper-reference',
         paradigm: '{{paradigm}}',
         distribution: '{{distribution}}',
         sourcePlacement: '{{sourcePlacement}}',
         slotTime: '{{slotTime}}',
+        attestationThreshold: '{{attestationThreshold}}',
       },
       mode: 'experiment',
       routeHint: 'simulation-config',
@@ -672,6 +673,54 @@ const ASSISTANT: StudyPackage['assistant'] = {
       outputs: ['exact config', 'paper preset match', 'next run recommendation'],
       bestFor: ['What should I run?', 'Preset selection', 'Near-miss published scenarios'],
       fields: [
+        {
+          id: 'change',
+          label: 'Change',
+          defaultValue: 'shorter-slots-misaligned',
+          options: [
+            {
+              value: 'shorter-slots-misaligned',
+              label: 'Shorter slots + misaligned sources',
+              promptValue: 'shorter slots with misaligned sources',
+              bindings: {
+                distribution: 'homogeneous',
+                sourcePlacement: 'latency-misaligned',
+                slotTime: '6',
+              },
+            },
+            {
+              value: 'higher-gamma',
+              label: 'Higher gamma',
+              promptValue: 'a higher gamma',
+              bindings: {
+                distribution: 'homogeneous',
+                sourcePlacement: 'homogeneous',
+                slotTime: '12',
+                attestationThreshold: '0.8',
+              },
+            },
+            {
+              value: 'aligned-sources',
+              label: 'Aligned sources',
+              promptValue: 'latency-aligned sources',
+              bindings: {
+                distribution: 'homogeneous',
+                sourcePlacement: 'latency-aligned',
+                slotTime: '12',
+              },
+            },
+            {
+              value: 'heterogeneous-start',
+              label: 'Heterogeneous',
+              promptValue: 'a heterogeneous validator start',
+              bindings: {
+                distribution: 'heterogeneous',
+                sourcePlacement: 'homogeneous',
+                slotTime: '12',
+              },
+            },
+          ],
+        },
         {
           id: 'paradigm',
           label: 'Paradigm',
@@ -686,72 +735,6 @@ const ASSISTANT: StudyPackage['assistant'] = {
               value: 'MSP',
               label: 'Local',
               promptValue: 'local',
-            },
-          ],
-        },
-        {
-          id: 'sourcePlacement',
-          label: 'Source placement',
-          defaultValue: 'latency-misaligned',
-          options: [
-            {
-              value: 'latency-misaligned',
-              label: 'Latency-misaligned',
-              promptValue: 'latency-misaligned',
-            },
-            {
-              value: 'latency-aligned',
-              label: 'Latency-aligned',
-              promptValue: 'latency-aligned',
-            },
-            {
-              value: 'homogeneous',
-              label: 'Homogeneous',
-              promptValue: 'homogeneous',
-            },
-          ],
-        },
-        {
-          id: 'distribution',
-          label: 'Start distribution',
-          defaultValue: 'homogeneous',
-          options: [
-            {
-              value: 'homogeneous',
-              label: 'Homogeneous',
-              promptValue: 'homogeneous',
-            },
-            {
-              value: 'heterogeneous',
-              label: 'Heterogeneous',
-              promptValue: 'heterogeneous',
-            },
-            {
-              value: 'homogeneous-gcp',
-              label: 'Equal per-GCP',
-              promptValue: 'equal per-GCP',
-            },
-          ],
-        },
-        {
-          id: 'slotTime',
-          label: 'Slot time',
-          defaultValue: '6',
-          options: [
-            {
-              value: '6',
-              label: '6 seconds',
-              promptValue: '6',
-            },
-            {
-              value: '8',
-              label: '8 seconds',
-              promptValue: '8',
-            },
-            {
-              value: '12',
-              label: '12 seconds',
-              promptValue: '12',
             },
           ],
         },

@@ -322,10 +322,8 @@ async function main() {
         workflowId: 'plan-a-bounded-run',
         routeHint: 'simulation-config',
         workflowValues: {
+          change: 'shorter-slots-misaligned',
           paradigm: 'SSP',
-          sourcePlacement: 'latency-misaligned',
-          distribution: 'homogeneous',
-          slotTime: '6',
           goal: 'fairness-pressure',
         },
       },
