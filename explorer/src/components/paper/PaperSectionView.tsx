@@ -4,6 +4,7 @@ import { Link2, Quote, Check, Lightbulb, MessageSquare, Users } from 'lucide-rea
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { PaperChartBlock } from '../blocks/PaperChartBlock'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
+import { MacroRegionSnapshot } from './MacroRegionSnapshot'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_POPUP, SECTION_CATEGORY_STYLE } from '../../lib/theme'
 import { getActiveStudy } from '../../studies'
@@ -348,6 +349,7 @@ function SectionCard({
   const inlineSupportingBlocks = shouldInlineSupportingBlocks(supportingBlocks)
   const showInlineSupporting = hasSupportingBlocks && inlineSupportingBlocks
   const showSidebarSupporting = hasSupportingBlocks && !inlineSupportingBlocks
+  const showMacroRegionSnapshot = section.id === 'se2-distribution'
 
   const handleHighlightClick = () => {
     const sectionEl = document.getElementById(section.id)
@@ -416,6 +418,12 @@ function SectionCard({
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {showMacroRegionSnapshot && (
+        <div className="mb-6">
+          <MacroRegionSnapshot />
         </div>
       )}
 

@@ -8,7 +8,7 @@ import {
   readPublishedEvidenceSelectionFromSearch,
   writePublishedEvidenceSelectionToHistory,
 } from '../../lib/published-evidence-url'
-import { SPRING, SPRING_CRISP } from '../../lib/theme'
+import { SPRING_CRISP } from '../../lib/theme'
 import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
 import type { Block } from '../../types/blocks'
 import { formatNumber, paradigmLabel } from './simulation-constants'
@@ -270,33 +270,30 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
   }, [catalog, onSelect])
 
   return (
-    <div className="space-y-2.5">
-      <div className="grid gap-2 xl:grid-cols-[minmax(220px,260px)_minmax(0,1fr)_auto]">
-        <div className="rounded-[14px] border border-black/[0.06] bg-white px-3 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <div className="text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint">Scenario</div>
-          <div className="relative mt-1.5">
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-1.5 rounded-[14px] border border-black/[0.05] bg-white/75 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-sm">
+        <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-[11px] border border-black/[0.05] bg-[#FCFBFA] px-2.5 py-1.5">
+          <span className={filterLabel}>Scenario</span>
+          <div className="relative min-w-0 flex-1">
             <select
               value={selectedEvaluation}
               onChange={e => findAndSelect(e.target.value, selectedParadigm)}
-              className="w-full appearance-none rounded-[11px] border border-black/[0.06] bg-[#FBFAF9] pl-3 pr-8 py-2 text-[11px] font-medium text-stone-800 cursor-pointer hover:border-stone-300 focus:border-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-200 transition-all duration-150"
+              className="w-full appearance-none bg-transparent pl-0 pr-7 py-0 text-[11px] font-medium text-stone-800 cursor-pointer focus:outline-none"
             >
               {evaluations.map(evaluation => (
                 <option key={evaluation} value={evaluation}>{evaluation}</option>
               ))}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted" />
+            <ChevronDown className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 text-muted" />
           </div>
         </div>
 
-        {hasCostDimension ? (
-          <div className="rounded-[14px] border border-black/[0.06] bg-white px-3 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-2">
-              <span className={filterLabel} title="ETH migration cost charged when a validator relocates between regions. Higher cost = stronger geographic lock-in.">
-                Migration cost
-              </span>
-              <span className="text-[10px] text-text-faint">Switch the paper assumption</span>
-            </div>
-            <div className="mt-1.5 flex flex-wrap gap-1">
+        {hasCostDimension && (
+          <div className="flex min-w-[320px] flex-[1.6] items-center gap-2 rounded-[11px] border border-black/[0.05] bg-[#FCFBFA] px-2.5 py-1.5">
+            <span className={filterLabel} title="ETH migration cost charged when a validator relocates between regions. Higher cost = stronger geographic lock-in.">
+              Migration cost
+            </span>
+            <div className="flex flex-wrap gap-1">
               {costResults.map(({ result, cost }) => {
                 const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
                 const costTooltips: Record<string, string> = {
@@ -319,10 +316,6 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
               })}
             </div>
           </div>
-        ) : (
-          <div className="rounded-[14px] border border-dashed border-black/[0.06] bg-[#FBFAF9] px-3 py-2 text-[11px] text-text-faint">
-            This scenario family exposes a single migration-cost assumption.
-          </div>
         )}
 
         {hasSecondaryFilters ? (
@@ -330,10 +323,10 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
             type="button"
             onClick={() => setFiltersOpen(prev => !prev)}
             className={cn(
-              'inline-flex items-center justify-center gap-1.5 rounded-[14px] border px-3 py-2 text-[11px] font-medium transition-colors xl:min-w-[140px]',
+              'inline-flex items-center justify-center gap-1.5 rounded-[11px] border px-3 py-1.5 text-[11px] font-medium transition-colors',
               filtersOpen
                 ? 'border-accent/15 bg-accent/8 text-accent'
-                : 'border-black/[0.06] bg-white text-muted hover:border-stone-300 hover:text-text-secondary',
+                : 'border-black/[0.05] bg-[#FCFBFA] text-muted hover:border-stone-300 hover:text-text-secondary',
             )}
           >
             <SlidersHorizontal className="h-3 w-3" />
@@ -342,7 +335,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
         ) : null}
       </div>
 
-      {hasSecondaryFilters && !filtersOpen && filterSummary.length > 0 && (
+      {hasSecondaryFilters && !filtersOpen && filterSummary.length > 1 && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint">Active filters</span>
           {filterSummary.map(({ label, value }) => (
@@ -358,13 +351,13 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="rounded-[16px] border border-black/[0.05] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-              <div className="mb-2 flex items-center gap-2">
+            <div className="rounded-[14px] border border-black/[0.05] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
                 <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint">Expanded filters</span>
-                <span className="text-[10px] text-text-faint">Refine the paradigm or result variant without changing the atlas frame.</span>
+                <span className="text-[10px] text-text-faint">Refine the paradigm or variant without changing the atlas frame.</span>
               </div>
               <div className="flex items-center gap-2.5 flex-wrap">
               {/* Source paradigm */}
@@ -543,58 +536,52 @@ export function PrecomputedEvidenceSurface({
       {/* ── Compact filter toolbar ── */}
       <motion.section
         className="lab-stage overflow-hidden"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={SPRING}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
       >
-        <div className="px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="px-4 py-3.5 sm:px-5">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2.5">
                 <span className="h-2 w-2 shrink-0 rounded-full bg-accent dot-pulse" />
-                <h2 className="text-lg font-semibold tracking-tight text-text-primary">
+                <h2 className="text-[1.05rem] font-semibold tracking-tight text-text-primary">
                   Simulation Results
                 </h2>
                 <span className="rounded-full border border-accent/10 bg-accent/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-accent/85">
                   Published atlas
                 </span>
-              </div>
-              <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-muted">
-                Published scenarios, atlas controls, and evidence views are consolidated here so the result
-                surface reads like one product instead of stacked wrappers.
-              </p>
-              <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 <span className="lab-chip bg-white/90 text-2xs">
-                  {catalog.datasets.length} scenario{catalog.datasets.length !== 1 ? 's' : ''}
+                  {catalog.datasets.length} scenarios
                 </span>
                 {totalSlots > 0 && (
                   <span className="lab-chip bg-white/90 text-2xs tabular-nums">
                     {totalSlots.toLocaleString()} slots
                   </span>
                 )}
-                {selectedEntry && (
-                  <span className="lab-chip bg-white/90 text-2xs">
-                    {paradigmLabel(selectedEntry.paradigm)}
-                  </span>
-                )}
               </div>
+              <p className="mt-0.5 max-w-2xl text-[10px] leading-relaxed text-muted">
+                Published scenarios, atlas controls, and evidence views in one surface.
+              </p>
             </div>
 
             <SimulationModeToggle
               value="evidence"
               onChange={next => onModeChange?.(next)}
-              className="self-start"
+              className="shrink-0 self-start xl:self-center"
             />
           </div>
 
           {selectedEntry && (
-            <div className="mt-4 rounded-[18px] border border-black/[0.05] bg-[#FBFAF9] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+            <div className="mt-3 border-t border-rule/70 pt-3">
               <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] text-text-faint">
                 <span className="font-semibold uppercase tracking-[0.1em] text-text-faint">Atlas controls</span>
                 <span className="rounded-full border border-black/[0.06] bg-white px-2 py-0.5 font-medium text-text-secondary">
                   {selectedEntry.evaluation}
                 </span>
-                <span className="text-text-faint">Choose the paper slice, then inspect the geography and metrics below.</span>
+                <span className="rounded-full border border-black/[0.06] bg-white px-2 py-0.5 font-medium text-text-secondary">
+                  {paradigmLabel(selectedEntry.paradigm)}
+                </span>
               </div>
               <ScenarioSelector
                 catalog={catalog}
