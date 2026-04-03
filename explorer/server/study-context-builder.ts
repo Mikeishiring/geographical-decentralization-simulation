@@ -51,10 +51,27 @@ function formatAssistantPromptTips(study: StudyPackage): string[] {
 function formatAssistantQueryViews(study: StudyPackage): string[] {
   return (study.assistant.queryViews ?? []).map(view => {
     const dashboards = view.dashboardIds?.length ? ` Dashboards: ${formatInlineList(view.dashboardIds)}.` : ''
+    const surface = view.surface ? ` Surface: ${view.surface}.` : ''
+    const bestFor = view.bestFor?.length ? ` Best for: ${formatInlineList(view.bestFor)}.` : ''
     const metrics = view.defaultMetrics?.length ? ` Default metrics: ${formatInlineList(view.defaultMetrics)}.` : ''
     const dimensions = view.defaultDimensions?.length ? ` Default dimensions: ${formatInlineList(view.defaultDimensions)}.` : ''
+    const defaultLimit = typeof view.defaultLimit === 'number' ? ` Default limit: ${view.defaultLimit}.` : ''
+    const allowedDimensions = view.constraints?.dimensions?.length ? ` Allowed dimensions: ${formatInlineList(view.constraints.dimensions)}.` : ''
+    const allowedMetrics = view.constraints?.metrics?.length ? ` Allowed metrics: ${formatInlineList(view.constraints.metrics)}.` : ''
+    const allowedOrderBy = view.constraints?.orderBy?.length ? ` Allowed orderBy keys: ${formatInlineList(view.constraints.orderBy)}.` : ''
+    const allowedSlots = view.constraints?.slots?.length ? ` Supported slots: ${formatInlineList(view.constraints.slots)}.` : ''
+    const filterHints = view.constraints?.filters
+      ? [
+          view.constraints.filters.evaluation?.length ? `Evaluations: ${formatInlineList(view.constraints.filters.evaluation)}.` : '',
+          view.constraints.filters.paradigm?.length ? `Paradigms: ${formatInlineList(view.constraints.filters.paradigm)}.` : '',
+          view.constraints.filters.result?.length ? `Results: ${formatInlineList(view.constraints.filters.result)}.` : '',
+        ].filter(Boolean).join(' ')
+      : ''
+    const executionHints = view.executionHints?.length
+      ? ` Execution hints: ${view.executionHints.map(hint => `${hint.label} — ${hint.description}`).join(' | ')}.`
+      : ''
     const prompts = view.prompts?.length ? ` Example prompts: ${formatInlineList(view.prompts)}.` : ''
-    return `- ${view.title} (${view.id}): ${view.description}${dashboards}${dimensions}${metrics}${prompts}`
+    return `- ${view.title} (${view.id}): ${view.description}${surface}${dashboards}${bestFor}${dimensions}${metrics}${defaultLimit}${allowedDimensions}${allowedMetrics}${allowedOrderBy}${allowedSlots}${filterHints ? ` Allowed filters: ${filterHints}` : ''}${executionHints}${prompts}`
   })
 }
 
@@ -140,6 +157,7 @@ ${study.assistant.promptTips?.length ? `\n## Prompt Guidance\n${formatAssistantP
 - Retrieve full topic cards or explorations before reusing them so you can inspect the actual blocks.
 - Use query_cached_results when pre-computed results can answer the question without running a new simulation.
 - Use query_results_table for ranked, listed, tabulated, or SQL-style questions over published Results rows, and prefer the matching study query view when one is available.
+- Respect the matched query view's allowed dimensions, metrics, sort keys, slots, and filter values. If the user asks for an unsupported field, keep the request inside the declared surface and make that narrowing explicit.
 - If the user explicitly names more than one Results family or alias, retrieve each matching family before calling render_blocks.
 - Use build_simulation_config when the user asks what to run, how to encode a scenario, or wants a paper-style preset.
 - Use suggest_underexplored_topics only for idea generation or follow-up exploration prompts.

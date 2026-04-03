@@ -2215,6 +2215,28 @@ const publishedResultsQueryDimensionValues = [
   'totalSlots',
 ] as const satisfies readonly PublishedResultsQueryDimension[]
 
+type PublishedResultsQueryFilterKey = 'evaluation' | 'paradigm' | 'result'
+type PublishedCatalogParadigm = 'External' | 'Local'
+
+interface StructuredResultsQueryFilters {
+  readonly evaluation?: string
+  readonly paradigm?: PublishedCatalogParadigm
+  readonly result?: string
+}
+
+interface StructuredResultsQueryPlan {
+  readonly view: StudyAssistantQueryView | null
+  readonly dimensions: readonly PublishedResultsQueryDimension[]
+  readonly metrics: readonly PublishedExploreMetricKey[]
+  readonly filters: StructuredResultsQueryFilters
+  readonly slot: 'initial' | 'final'
+  readonly orderBy: string | null
+  readonly order: 'asc' | 'desc'
+  readonly limit: number
+  readonly notes: readonly string[]
+  readonly coerced: boolean
+}
+
 interface PublishedExploreDominantRegion {
   readonly regionId: string
   readonly city: string | null
@@ -2814,24 +2836,13 @@ async function queryPublishedResultsTable(input: {
     }
   }
 
-  const queryView = findStudyQueryView(input.viewId) ?? resolveStudyQueryView(input.queryHint ?? '')
-  const dimensions = (input.dimensions?.length
-    ? input.dimensions
-    : queryView?.defaultDimensions?.length
-      ? queryView.defaultDimensions.filter((value): value is PublishedResultsQueryDimension =>
-          publishedResultsQueryDimensionValues.includes(value as PublishedResultsQueryDimension),
-        )
-      : ['evaluation', 'paradigm', 'result']) as readonly PublishedResultsQueryDimension[]
-  const metrics = (input.metrics?.length
-    ? input.metrics
-    : queryView?.defaultMetrics?.length
-      ? queryView.defaultMetrics.filter((value): value is PublishedExploreMetricKey =>
-          publishedExploreMetricValues.includes(value as PublishedExploreMetricKey),
-        )
-      : ['gini']) as readonly PublishedExploreMetricKey[]
-  const normalizedParadigm = normalizePublishedCatalogParadigm(input.filters?.paradigm ?? queryView?.filterPreset?.paradigm)
-  const normalizedEvaluation = normalizePublishedEvaluationFilter(input.filters?.evaluation ?? queryView?.filterPreset?.evaluation)
-  const normalizedResult = input.filters?.result?.trim() || queryView?.filterPreset?.result || undefined
+  const queryPlan = resolveStructuredResultsQueryPlan(input)
+  const queryView = queryPlan.view
+  const dimensions = queryPlan.dimensions
+  const metrics = queryPlan.metrics
+  const normalizedParadigm = queryPlan.filters.paradigm
+  const normalizedEvaluation = queryPlan.filters.evaluation
+  const normalizedResult = queryPlan.filters.result
   const queryViewChartKeys = resolveQueryViewChartKeys(queryView)
   const chartMatch = findStudyPaperChartMatch(normalizedResult)
     ?? findStudyPaperChartMatch(input.filters?.evaluation)
@@ -2891,7 +2902,7 @@ async function queryPublishedResultsTable(input: {
     }
   }
 
-  const slotMode = input.slot === 'initial' ? 'initial' : 'final'
+  const slotMode = queryPlan.slot
   const hydratedEntries = await Promise.all(dedupedMatchedEntries.map(async entry => {
     const datasetPath = normalizePublishedDatasetPath(entry.path)
     if (!datasetPath) return null
@@ -2940,12 +2951,12 @@ async function queryPublishedResultsTable(input: {
     }
   }
 
-  const orderByValue = input.orderBy ?? queryView?.defaultOrderBy
+  const orderByValue = queryPlan.orderBy
   const orderByMetric = normalizePublishedMetricKey(orderByValue)
   const orderByDimension = publishedResultsQueryDimensionValues.includes((orderByValue ?? '') as PublishedResultsQueryDimension)
     ? orderByValue as PublishedResultsQueryDimension
     : null
-  const orderDirection = (input.order ?? queryView?.defaultOrder) === 'asc' ? 1 : -1
+  const orderDirection = queryPlan.order === 'asc' ? 1 : -1
   const sorted = results
     .slice()
     .sort((left, right) => {
@@ -2965,8 +2976,7 @@ async function queryPublishedResultsTable(input: {
       return left.label.localeCompare(right.label)
     })
 
-  const limit = Math.max(1, Math.min(20, input.limit ?? 8))
-  const visibleRows = sorted.slice(0, limit)
+  const visibleRows = sorted.slice(0, queryPlan.limit)
   const cite = buildPublishedResultsQueryCite(visibleRows)
   const headers = [
     ...dimensions.map(resultsQueryDimensionLabel),
@@ -3002,10 +3012,17 @@ async function queryPublishedResultsTable(input: {
     type: 'insight',
     title: 'Structured query result',
     text: orderByMetric
-      ? `${buildResultsQueryLabel(topEntry, dimensions)} is currently ${input.order === 'asc' ? 'lowest' : 'highest'} on ${publishedMetricTitle(orderByMetric)} in the returned published rows.`
+      ? `${buildResultsQueryLabel(topEntry, dimensions)} is currently ${queryPlan.order === 'asc' ? 'lowest' : 'highest'} on ${publishedMetricTitle(orderByMetric)} in the returned published rows.`
       : `Showing ${visibleRows.length} published result row${visibleRows.length === 1 ? '' : 's'} from the study-owned Results catalog at the ${slotMode} snapshot.`,
     cite,
   })
+  if (queryPlan.notes.length > 0) {
+    blocks.push({
+      type: 'caveat',
+      text: `Structured query interpretation: ${queryPlan.notes.join(' ')}`,
+      cite,
+    })
+  }
   blocks.push({
     type: 'table',
     title: input.title ?? queryView?.title ?? 'Published results query',
@@ -3029,8 +3046,8 @@ async function queryPublishedResultsTable(input: {
       ? `${queryView.title}: ${visibleRows.length} published row${visibleRows.length === 1 ? '' : 's'}`
       : `Structured query over ${visibleRows.length} published row${visibleRows.length === 1 ? '' : 's'}`,
     description: queryView
-      ? `${queryView.description} Returned ${visibleRows.length} of ${results.length} published Results row${results.length === 1 ? '' : 's'} from the ${slotMode} snapshot.`
-      : `Returned ${visibleRows.length} of ${results.length} published Results row${results.length === 1 ? '' : 's'} from the ${slotMode} snapshot.`,
+      ? `${queryView.description} Returned ${visibleRows.length} of ${results.length} published Results row${results.length === 1 ? '' : 's'} from the ${slotMode} snapshot.${queryPlan.notes.length > 0 ? ` ${queryPlan.notes.join(' ')}` : ''}`
+      : `Returned ${visibleRows.length} of ${results.length} published Results row${results.length === 1 ? '' : 's'} from the ${slotMode} snapshot.${queryPlan.notes.length > 0 ? ` ${queryPlan.notes.join(' ')}` : ''}`,
     blocks,
     followUps: [
       ...(queryView?.prompts?.filter(prompt => prompt.trim().toLowerCase() !== (input.queryHint ?? '').trim().toLowerCase()).slice(0, 1) ?? []),
@@ -3467,6 +3484,220 @@ function findStudyQueryView(
   return ACTIVE_STUDY_QUERY_VIEWS.find(view => view.id === viewId) ?? null
 }
 
+function resolveQueryViewAllowedDimensions(
+  view: StudyAssistantQueryView | null,
+): readonly PublishedResultsQueryDimension[] {
+  const source = view?.constraints?.dimensions ?? view?.defaultDimensions ?? publishedResultsQueryDimensionValues
+  const allowed = source.filter((value): value is PublishedResultsQueryDimension =>
+    publishedResultsQueryDimensionValues.includes(value as PublishedResultsQueryDimension),
+  )
+  return allowed.length > 0 ? allowed : [...publishedResultsQueryDimensionValues]
+}
+
+function resolveQueryViewAllowedMetrics(
+  view: StudyAssistantQueryView | null,
+): readonly PublishedExploreMetricKey[] {
+  const source = view?.constraints?.metrics ?? view?.defaultMetrics ?? publishedExploreMetricValues
+  const allowed = source.filter((value): value is PublishedExploreMetricKey =>
+    publishedExploreMetricValues.includes(value as PublishedExploreMetricKey),
+  )
+  return allowed.length > 0 ? allowed : [...publishedExploreMetricValues]
+}
+
+function resolveQueryViewAllowedOrderBy(
+  view: StudyAssistantQueryView | null,
+): readonly string[] {
+  const source = view?.constraints?.orderBy ?? [
+    ...resolveQueryViewAllowedMetrics(view),
+    ...resolveQueryViewAllowedDimensions(view),
+  ]
+  const allowed = source
+    .map(value => value.trim())
+    .filter(Boolean)
+    .filter((value, index, all) => all.indexOf(value) === index)
+  return allowed.length > 0 ? allowed : ['gini']
+}
+
+function resolveQueryViewSupportedSlots(
+  view: StudyAssistantQueryView | null,
+): readonly ('initial' | 'final')[] {
+  const source = view?.constraints?.slots ?? ['final', 'initial']
+  const allowed = source.filter((value): value is 'initial' | 'final' =>
+    value === 'initial' || value === 'final',
+  )
+  return allowed.length > 0 ? allowed : ['final', 'initial']
+}
+
+function resolveQueryViewFilterOptions(
+  view: StudyAssistantQueryView | null,
+  key: PublishedResultsQueryFilterKey,
+): readonly string[] {
+  const source = view?.constraints?.filters?.[key]
+  if (!source?.length) return []
+  return source
+    .map(value => value.trim())
+    .filter(Boolean)
+    .filter((value, index, all) => all.indexOf(value) === index)
+}
+
+function normalizeQueryViewParadigmOptions(
+  view: StudyAssistantQueryView | null,
+): readonly PublishedCatalogParadigm[] {
+  return resolveQueryViewFilterOptions(view, 'paradigm')
+    .map(value => normalizePublishedCatalogParadigm(value))
+    .filter((value): value is PublishedCatalogParadigm => value !== null)
+}
+
+function normalizeQueryViewEvaluationOptions(
+  view: StudyAssistantQueryView | null,
+): readonly string[] {
+  return resolveQueryViewFilterOptions(view, 'evaluation')
+    .map(value => normalizePublishedEvaluationFilter(value))
+    .filter((value): value is string => Boolean(value))
+}
+
+function normalizeQueryViewResultOptions(
+  view: StudyAssistantQueryView | null,
+): readonly string[] {
+  return resolveQueryViewFilterOptions(view, 'result')
+    .map(value => value.trim())
+    .filter(Boolean)
+}
+
+function describeStructuredQueryConstraintList(
+  values: readonly string[],
+): string {
+  return values.join(', ')
+}
+
+function resolveStructuredResultsQueryPlan(input: {
+  readonly queryHint?: string
+  readonly viewId?: string
+  readonly dimensions?: readonly PublishedResultsQueryDimension[]
+  readonly metrics?: readonly PublishedExploreMetricKey[]
+  readonly filters?: {
+    readonly evaluation?: string
+    readonly paradigm?: string
+    readonly result?: string
+  }
+  readonly slot?: 'initial' | 'final'
+  readonly orderBy?: string
+  readonly order?: 'asc' | 'desc'
+  readonly limit?: number
+}): StructuredResultsQueryPlan {
+  const queryView = findStudyQueryView(input.viewId) ?? resolveStudyQueryView(input.queryHint ?? '')
+  const notes: string[] = []
+
+  const allowedDimensions = resolveQueryViewAllowedDimensions(queryView)
+  const requestedDimensions = (input.dimensions ?? [])
+    .filter((value): value is PublishedResultsQueryDimension =>
+      publishedResultsQueryDimensionValues.includes(value as PublishedResultsQueryDimension),
+    )
+  const filteredDimensions = requestedDimensions.filter(value => allowedDimensions.includes(value))
+  const dimensions = filteredDimensions.length > 0
+    ? filteredDimensions
+    : queryView?.defaultDimensions?.filter((value): value is PublishedResultsQueryDimension =>
+        allowedDimensions.includes(value as PublishedResultsQueryDimension),
+      ) ?? allowedDimensions.slice(0, 3)
+  if (requestedDimensions.length > 0 && filteredDimensions.length !== requestedDimensions.length) {
+    const unsupported = requestedDimensions.filter(value => !allowedDimensions.includes(value))
+    notes.push(`Dropped unsupported dimensions: ${describeStructuredQueryConstraintList(unsupported)}.`)
+  }
+
+  const allowedMetrics = resolveQueryViewAllowedMetrics(queryView)
+  const requestedMetrics = (input.metrics ?? [])
+    .filter((value): value is PublishedExploreMetricKey =>
+      publishedExploreMetricValues.includes(value as PublishedExploreMetricKey),
+    )
+  const filteredMetrics = requestedMetrics.filter(value => allowedMetrics.includes(value))
+  const metrics = filteredMetrics.length > 0
+    ? filteredMetrics
+    : queryView?.defaultMetrics?.filter((value): value is PublishedExploreMetricKey =>
+        allowedMetrics.includes(value as PublishedExploreMetricKey),
+      ) ?? allowedMetrics.slice(0, 2)
+  if (requestedMetrics.length > 0 && filteredMetrics.length !== requestedMetrics.length) {
+    const unsupported = requestedMetrics.filter(value => !allowedMetrics.includes(value))
+    notes.push(`Dropped unsupported metrics: ${describeStructuredQueryConstraintList(unsupported)}.`)
+  }
+
+  const supportedSlots = resolveQueryViewSupportedSlots(queryView)
+  const slot = input.slot && supportedSlots.includes(input.slot)
+    ? input.slot
+    : supportedSlots[0] ?? 'final'
+  if (input.slot && slot !== input.slot) {
+    notes.push(`Used the ${slot} snapshot because this study surface does not support ${input.slot}.`)
+  }
+
+  const allowedOrderBy = resolveQueryViewAllowedOrderBy(queryView)
+  const defaultOrderBy = (() => {
+    const candidate = queryView?.defaultOrderBy?.trim()
+    return candidate && allowedOrderBy.includes(candidate) ? candidate : allowedOrderBy[0] ?? null
+  })()
+  const requestedOrderBy = input.orderBy?.trim() || null
+  const orderBy = requestedOrderBy && allowedOrderBy.includes(requestedOrderBy)
+    ? requestedOrderBy
+    : defaultOrderBy
+  if (requestedOrderBy && orderBy !== requestedOrderBy) {
+    notes.push(`Sorted by ${orderBy ?? 'the default key'} because ${requestedOrderBy} is outside this study surface.`)
+  }
+
+  const evaluationOptions = normalizeQueryViewEvaluationOptions(queryView)
+  const requestedEvaluation = normalizePublishedEvaluationFilter(input.filters?.evaluation ?? queryView?.filterPreset?.evaluation)
+  const evaluation = evaluationOptions.length > 0
+    ? requestedEvaluation && evaluationOptions.includes(requestedEvaluation)
+      ? requestedEvaluation
+      : normalizePublishedEvaluationFilter(queryView?.filterPreset?.evaluation)
+        ?? evaluationOptions[0]
+    : requestedEvaluation
+  if (requestedEvaluation && evaluation !== requestedEvaluation && evaluationOptions.length > 0) {
+    notes.push(`Kept the query inside ${queryView?.title ?? 'the matched view'} by using ${evaluation}.`)
+  }
+
+  const paradigmOptions = normalizeQueryViewParadigmOptions(queryView)
+  const requestedParadigm = normalizePublishedCatalogParadigm(input.filters?.paradigm ?? queryView?.filterPreset?.paradigm)
+  const paradigm = paradigmOptions.length > 0
+    ? requestedParadigm && paradigmOptions.includes(requestedParadigm)
+      ? requestedParadigm
+      : normalizePublishedCatalogParadigm(queryView?.filterPreset?.paradigm)
+        ?? paradigmOptions[0]
+    : requestedParadigm
+  if (requestedParadigm && paradigm !== requestedParadigm && paradigmOptions.length > 0) {
+    notes.push(`Used ${paradigm} because the matched query view only exposes ${describeStructuredQueryConstraintList(paradigmOptions)}.`)
+  }
+
+  const resultOptions = normalizeQueryViewResultOptions(queryView)
+  const requestedResult = input.filters?.result?.trim() || queryView?.filterPreset?.result?.trim() || undefined
+  const result = resultOptions.length > 0
+    ? requestedResult && resultOptions.includes(requestedResult)
+      ? requestedResult
+      : queryView?.filterPreset?.result?.trim()
+        ?? undefined
+    : requestedResult
+  if (requestedResult && result !== requestedResult && resultOptions.length > 0) {
+    notes.push(`Ignored the unsupported result filter "${requestedResult}" for this study surface.`)
+  }
+
+  const limit = Math.max(1, Math.min(20, input.limit ?? queryView?.defaultLimit ?? 8))
+  const coerced = notes.length > 0
+
+  return {
+    view: queryView,
+    dimensions: dimensions.length > 0 ? dimensions : allowedDimensions.slice(0, 3),
+    metrics: metrics.length > 0 ? metrics : allowedMetrics.slice(0, 1),
+    filters: {
+      evaluation: evaluation ?? undefined,
+      paradigm: paradigm ?? undefined,
+      result: result ?? undefined,
+    },
+    slot,
+    orderBy,
+    order: (input.order ?? queryView?.defaultOrder) === 'asc' ? 'asc' : 'desc',
+    limit,
+    notes,
+    coerced,
+  }
+}
+
 function resolveQueryViewChartKeys(
   view: StudyAssistantQueryView | null,
 ): string[] {
@@ -3495,6 +3726,11 @@ function scoreStudyQueryViewQuery(
     const normalizedPrompt = prompt.trim().toLowerCase()
     if (!normalizedPrompt) continue
     if (normalized.includes(normalizedPrompt)) score += 3
+  }
+  for (const useCase of view.bestFor ?? []) {
+    const normalizedUseCase = useCase.trim().toLowerCase()
+    if (!normalizedUseCase) continue
+    if (normalized.includes(normalizedUseCase)) score += 1.5
   }
   for (const dashboardId of view.dashboardIds ?? []) {
     const dashboard = ACTIVE_STUDY.dashboards.find(candidate => candidate.id === dashboardId)
@@ -5560,11 +5796,60 @@ function buildAskPlanModules(
   }
 }
 
+function buildAskPlanQueryViewData(
+  view: StudyAssistantQueryView | null,
+): AskPlanData['queryView'] | undefined {
+  if (!view) return undefined
+  return {
+    id: view.id,
+    title: view.title,
+    description: view.description,
+    surface: view.surface,
+    bestFor: view.bestFor ? [...view.bestFor] : undefined,
+    allowedDimensions: [...resolveQueryViewAllowedDimensions(view)],
+    allowedMetrics: [...resolveQueryViewAllowedMetrics(view)],
+    allowedOrderBy: [...resolveQueryViewAllowedOrderBy(view)],
+    supportedSlots: [...resolveQueryViewSupportedSlots(view)],
+    filters: {
+      evaluation: [...normalizeQueryViewEvaluationOptions(view)],
+      paradigm: [...normalizeQueryViewParadigmOptions(view)],
+      result: [...normalizeQueryViewResultOptions(view)],
+    },
+    executionHints: view.executionHints?.map(hint => ({
+      label: hint.label,
+      description: hint.description,
+    })),
+  }
+}
+
+function buildAskPlanQueryRequestData(
+  request: StructuredResultsQueryPlan | null,
+): AskPlanData['queryRequest'] | undefined {
+  if (!request) return undefined
+  return {
+    viewId: request.view?.id,
+    dimensions: [...request.dimensions],
+    metrics: [...request.metrics],
+    filters: {
+      evaluation: request.filters.evaluation,
+      paradigm: request.filters.paradigm,
+      result: request.filters.result,
+    },
+    slot: request.slot,
+    orderBy: request.orderBy,
+    order: request.order,
+    limit: request.limit,
+    notes: [...request.notes],
+    coerced: request.coerced,
+  }
+}
+
 function buildAskPlanData(
   query: string,
   options?: {
     readonly status?: AskPlanData['status']
     readonly latestCachedResults?: unknown
+    readonly latestStructuredQuery?: StructuredResultsQueryPlan | null
   },
 ): AskPlanData {
   const status = options?.status ?? 'planned'
@@ -5574,8 +5859,11 @@ function buildAskPlanData(
     isStructuredResultsQuery(query) ? 'structured-results' :
     isPrecomputedResultsExploreQuery(query) ? 'results' :
     'hybrid'
+  const queryRequest = route === 'structured-results'
+    ? options?.latestStructuredQuery ?? resolveStructuredResultsQueryPlan({ queryHint: query })
+    : null
   const queryView = route === 'structured-results'
-    ? resolveStudyQueryView(query)
+    ? queryRequest?.view ?? null
     : null
 
   const expectedTemplates =
@@ -5630,20 +5918,18 @@ function buildAskPlanData(
         title: 'Structured published Results query',
         route,
         rationale: 'This question is asking for a ranking, list, or table over the frozen Results catalog, so the assistant should query rows first and narrate second.',
-        queryView: queryView
-          ? {
-              id: queryView.id,
-              title: queryView.title,
-              description: queryView.description,
-            }
-          : undefined,
+        queryView: buildAskPlanQueryViewData(queryView),
+        queryRequest: buildAskPlanQueryRequestData(queryRequest),
         modules,
         templates,
         nextSteps: [
+          queryRequest?.coerced
+            ? `Keep the query inside ${queryView?.title ?? 'the matched study surface'} and make any narrowing explicit.`
+            : '',
           hasTemplateMatch ? `Use the matching Results family${templates.length === 1 ? '' : 'ies'} as an anchor.` : 'Query the published Results catalog for the strongest matching rows.',
           'Lay out a compact chart and table before adding interpretation.',
           'Explain the ranking in plain language and suggest the next comparison.',
-        ],
+        ].filter(Boolean),
       }
     case 'simulation-config':
       return {
@@ -5695,12 +5981,14 @@ function buildExploreChatTools(
   query: string,
   options?: {
     onCachedResults?: (result: unknown) => void
+    onStructuredQuery?: (query: StructuredResultsQueryPlan) => void
     onArtifact?: (artifact: AskArtifactData) => void
     onPlan?: (plan: AskPlanData) => void
     onStatus?: (status: AskStatusData) => void
   },
 ) {
   let latestCachedResults: unknown = null
+  let latestStructuredQuery: StructuredResultsQueryPlan | null = null
   let cachedResultsHistory: PublishedResultsToolResponse[] = []
   const storeCachedResults = (result: unknown) => {
     const normalizedResult = normalizePublishedResultsToolResponse(result)
@@ -5832,6 +6120,7 @@ function buildExploreChatTools(
         options?.onPlan?.(buildAskPlanData(query, {
           status: 'active',
           latestCachedResults,
+          latestStructuredQuery,
         }))
         options?.onStatus?.(buildAskStatus(
           'evidence',
@@ -5871,6 +6160,7 @@ function buildExploreChatTools(
         options?.onPlan?.(buildAskPlanData(query, {
           status: 'active',
           latestCachedResults,
+          latestStructuredQuery,
         }))
         options?.onStatus?.(buildAskStatus(
           'evidence',
@@ -5899,26 +6189,58 @@ function buildExploreChatTools(
         title: z.string().optional(),
       }),
       execute: async (input) => {
+        const resolvedQuery = resolveStructuredResultsQueryPlan({
+          ...(input as Record<string, unknown>),
+          viewId: input.viewId,
+          dimensions: input.dimensions,
+          metrics: input.metrics,
+          filters: input.filters,
+          slot: input.slot,
+          orderBy: input.orderBy,
+          order: input.order,
+          limit: input.limit,
+          queryHint: query,
+        })
+        latestStructuredQuery = resolvedQuery
+        options?.onStructuredQuery?.(resolvedQuery)
+        options?.onPlan?.(buildAskPlanData(query, {
+          status: 'active',
+          latestCachedResults,
+          latestStructuredQuery: resolvedQuery,
+        }))
         options?.onStatus?.(buildAskStatus(
-          'evidence',
+          'plan',
           'active',
-          'Running structured data query',
-          'Ranking or tabulating published Results rows against the study-owned catalog.',
+          resolvedQuery.view ? `Matched ${resolvedQuery.view.title}` : 'Preparing structured data query',
+          resolvedQuery.view
+            ? `Using the ${resolvedQuery.view.title} surface with ${resolvedQuery.metrics.join(', ')} over ${resolvedQuery.dimensions.join(', ')} at the ${resolvedQuery.slot} snapshot.`
+            : 'Interpreting the request as a safe structured query over the study-owned published Results catalog.',
         ))
         const result = await executeExploreChatToolCall('query_results_table', {
-          ...(input as Record<string, unknown>),
+          viewId: resolvedQuery.view?.id,
+          dimensions: resolvedQuery.dimensions,
+          metrics: resolvedQuery.metrics,
+          filters: resolvedQuery.filters,
+          slot: resolvedQuery.slot,
+          orderBy: resolvedQuery.orderBy ?? undefined,
+          order: resolvedQuery.order,
+          limit: resolvedQuery.limit,
+          title: input.title,
           queryHint: query,
         })
         streamReferencedArtifact(result, 'Structured results query ready')
         options?.onPlan?.(buildAskPlanData(query, {
           status: 'active',
           latestCachedResults,
+          latestStructuredQuery: resolvedQuery,
         }))
         options?.onStatus?.(buildAskStatus(
           'evidence',
           'done',
           'Structured query ready',
-          'A compact chart and table scaffold is now available from the published Results catalog.',
+          resolvedQuery.coerced
+            ? `A compact chart and table scaffold is ready. The query was narrowed to the ${resolvedQuery.view?.title ?? 'matched study surface'} to stay inside supported fields.`
+            : 'A compact chart and table scaffold is now available from the published Results catalog.',
         ))
         return result
       },
@@ -5945,6 +6267,7 @@ function buildExploreChatTools(
         options?.onPlan?.(buildAskPlanData(query, {
           status: 'ready',
           latestCachedResults,
+          latestStructuredQuery,
         }))
         options?.onArtifact?.(buildExploreArtifactData('ready', 'Answer ready', response))
         options?.onStatus?.(buildAskStatus(
@@ -5990,6 +6313,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
       : ''
     const systemPrompt = buildExploreChatSystemPrompt(trimmedQuery, sessionContext)
     let latestCachedResults: unknown = null
+    let latestStructuredQuery: StructuredResultsQueryPlan | null = null
     const stream = createUIMessageStream<AskUIMessage>({
       originalMessages,
       execute: ({ writer }) => {
@@ -6015,7 +6339,10 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
           })
         }
 
-        writePlan(buildAskPlanData(trimmedQuery, { status: 'planned' }))
+        writePlan(buildAskPlanData(trimmedQuery, {
+          status: 'planned',
+          latestStructuredQuery,
+        }))
         writeStatus(buildAskStatus(
           'plan',
           'done',
@@ -6026,6 +6353,9 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
         const exploreChatTools = buildExploreChatTools(trimmedQuery, {
           onCachedResults: (result) => {
             latestCachedResults = result
+          },
+          onStructuredQuery: (queryPlan) => {
+            latestStructuredQuery = queryPlan
           },
           onArtifact: writeArtifact,
           onPlan: writePlan,
@@ -6046,6 +6376,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
               writePlan(buildAskPlanData(trimmedQuery, {
                 status: 'active',
                 latestCachedResults,
+                latestStructuredQuery,
               }))
               writeStatus(buildAskStatus(
                 'plan',
@@ -6060,27 +6391,31 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
               }
             }
             if (stepNumber === 0 && isStructuredResultsQuery(trimmedQuery)) {
-              const queryView = resolveStudyQueryView(trimmedQuery)
+              const resolvedQuery = resolveStructuredResultsQueryPlan({ queryHint: trimmedQuery })
               writePlan(buildAskPlanData(trimmedQuery, {
                 status: 'active',
                 latestCachedResults,
+                latestStructuredQuery: resolvedQuery,
               }))
               writeStatus(buildAskStatus(
                 'plan',
                 'active',
                 'Routing to structured results query',
-                'This question wants a ranked or tabulated view over the published Results catalog before synthesis.',
+                resolvedQuery.view
+                  ? `This question maps onto ${resolvedQuery.view.title}, so the assistant is starting with that bounded study surface.`
+                  : 'This question wants a ranked or tabulated view over the published Results catalog before synthesis.',
               ))
               return {
                 activeTools: ['query_results_table'],
                 toolChoice: { type: 'tool', toolName: 'query_results_table' },
-                system: `${systemPrompt}\n\n## Structured Results Retrieval\nThis question is asking for a structured view over study-owned Results rows. Start by calling query_results_table. Prefer a compact ranking, chart, or table grounded in the published Results catalog. ${queryView ? `The best matching study query view is "${queryView.title}" (${queryView.id}). Reuse its defaults unless the user's wording clearly overrides them.` : 'Choose the closest study query view when one is available.'} Do not search topic cards or prior explorations before the structured query returns.`,
+                system: `${systemPrompt}\n\n## Structured Results Retrieval\nThis question is asking for a structured view over study-owned Results rows. Start by calling query_results_table. Prefer a compact ranking, chart, or table grounded in the published Results catalog. ${resolvedQuery.view ? `The best matching study query view is "${resolvedQuery.view.title}" (${resolvedQuery.view.id}). Reuse its defaults and stay inside its allowed dimensions, metrics, sort keys, and filters unless the user's wording clearly overrides them with another supported choice.` : 'Choose the closest study query view when one is available.'} Do not search topic cards or prior explorations before the structured query returns.`,
               }
             }
             if (stepNumber === 0 && isPrecomputedResultsExploreQuery(trimmedQuery) && expectedTemplates.length > 0) {
               writePlan(buildAskPlanData(trimmedQuery, {
                 status: 'active',
                 latestCachedResults,
+                latestStructuredQuery,
               }))
               writeStatus(buildAskStatus(
                 'plan',
@@ -6098,6 +6433,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
               writePlan(buildAskPlanData(trimmedQuery, {
                 status: 'active',
                 latestCachedResults,
+                latestStructuredQuery,
               }))
               writeStatus(buildAskStatus(
                 'compose',
@@ -6115,6 +6451,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
               writePlan(buildAskPlanData(trimmedQuery, {
                 status: 'active',
                 latestCachedResults,
+                latestStructuredQuery,
               }))
               writeStatus(buildAskStatus(
                 'compose',
@@ -6133,6 +6470,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
               writePlan(buildAskPlanData(trimmedQuery, {
                 status: 'active',
                 latestCachedResults,
+                latestStructuredQuery,
               }))
               const normalizedResponses = normalizePublishedResultsCollection(latestCachedResults)
               const loadedTemplates = resolveStudyResultsTemplatesForResponses(trimmedQuery, normalizedResponses)
@@ -6181,6 +6519,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
             writePlan(buildAskPlanData(trimmedQuery, {
               status: 'active',
               latestCachedResults,
+              latestStructuredQuery,
             }))
             writeStatus(buildAskStatus(
               'compose',

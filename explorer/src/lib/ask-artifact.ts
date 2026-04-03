@@ -46,10 +46,44 @@ export const askPlanTemplateSchema = z.object({
   state: z.enum(['target', 'loaded']),
 })
 
+const askPlanQueryFilterOptionsSchema = z.object({
+  evaluation: z.array(z.string()).optional(),
+  paradigm: z.array(z.string()).optional(),
+  result: z.array(z.string()).optional(),
+})
+
 export const askPlanQueryViewSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
+  surface: z.string().optional(),
+  bestFor: z.array(z.string()).optional(),
+  allowedDimensions: z.array(z.string()).optional(),
+  allowedMetrics: z.array(z.string()).optional(),
+  allowedOrderBy: z.array(z.string()).optional(),
+  supportedSlots: z.array(z.enum(['initial', 'final'])).optional(),
+  filters: askPlanQueryFilterOptionsSchema.optional(),
+  executionHints: z.array(z.object({
+    label: z.string(),
+    description: z.string(),
+  })).optional(),
+})
+
+export const askPlanQueryRequestSchema = z.object({
+  viewId: z.string().optional(),
+  dimensions: z.array(z.string()),
+  metrics: z.array(z.string()),
+  filters: z.object({
+    evaluation: z.string().optional(),
+    paradigm: z.string().optional(),
+    result: z.string().optional(),
+  }).optional(),
+  slot: z.enum(['initial', 'final']),
+  orderBy: z.string().nullable().optional(),
+  order: z.enum(['asc', 'desc']),
+  limit: z.number().int().min(1).max(20),
+  notes: z.array(z.string()),
+  coerced: z.boolean(),
 })
 
 export const askPlanDataSchema = z.object({
@@ -58,6 +92,7 @@ export const askPlanDataSchema = z.object({
   route: askPlanRouteSchema,
   rationale: z.string(),
   queryView: askPlanQueryViewSchema.optional(),
+  queryRequest: askPlanQueryRequestSchema.optional(),
   modules: z.array(askPlanModuleSchema),
   templates: z.array(askPlanTemplateSchema),
   nextSteps: z.array(z.string()),

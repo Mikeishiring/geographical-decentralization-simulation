@@ -173,6 +173,14 @@ async function main() {
       'Expected SQL-style Ask prompts to resolve onto the study-owned published-runs query view',
     )
     assert(
+      structuredQueryStream.body.includes('"queryRequest":{"viewId":"published-runs"'),
+      'Expected SQL-style Ask prompts to expose the resolved structured query request in the live plan',
+    )
+    assert(
+      structuredQueryStream.body.includes('"allowedMetrics":["gini","hhi","liveness","proposal_times","attestations","clusters","failed_block_proposals"]'),
+      'Expected the published-runs query view to surface its allowed metrics in the live plan',
+    )
+    assert(
       structuredQueryStream.body.includes('Published Runs Leaderboard')
         || structuredQueryStream.body.includes('Published results query')
         || structuredQueryStream.body.includes('Structured query over'),
@@ -181,6 +189,24 @@ async function main() {
     assert(
       !structuredQueryStream.body.includes('toolName":"search_topic_cards'),
       'Expected structured results queries to avoid topic-card search before querying the Results catalog',
+    )
+
+    const gammaSweepStream = await captureAskStream('Show me the higher-gamma runs sorted by final Gini.')
+    assert(
+      gammaSweepStream.body.includes('"queryView":{"id":"gamma-sweep"'),
+      'Expected gamma-sweep Ask prompts to resolve onto the study-owned gamma-sweep query view',
+    )
+    assert(
+      gammaSweepStream.body.includes('"allowedMetrics":["gini","hhi","attestations","proposal_times"]'),
+      'Expected the gamma-sweep query view to surface its constrained metric set',
+    )
+    assert(
+      gammaSweepStream.body.includes('"queryRequest":{"viewId":"gamma-sweep"'),
+      'Expected gamma-sweep Ask prompts to expose the resolved structured query request',
+    )
+    assert(
+      gammaSweepStream.body.includes('"slot":"final"'),
+      'Expected gamma-sweep Ask prompts to default to the final snapshot in the live query plan',
     )
 
     const experimentSetupStream = await captureAskStream('What should I run if I want to test shorter slots with misaligned sources?')
