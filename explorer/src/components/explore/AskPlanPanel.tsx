@@ -110,6 +110,16 @@ export function AskPlanPanel({ plan, compact = false }: AskPlanPanelProps) {
           <p className="mt-2 max-w-3xl text-xs leading-5 text-muted">
             {plan.rationale}
           </p>
+          {plan.launch && (
+            <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-accent/15 bg-accent/[0.04] px-3 py-1.5 text-11 text-accent">
+              <span className="font-medium uppercase tracking-[0.08em]">
+                {plan.launch.source === 'workflow' ? 'Workflow launch' : 'Typed launch'}
+              </span>
+              <span className="truncate text-muted">
+                {plan.launch.label}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -205,6 +215,11 @@ export function AskPlanPanel({ plan, compact = false }: AskPlanPanelProps) {
                   {plan.queryRequest.filters.evaluation ? `Filter: ${plan.queryRequest.filters.evaluation}` : ''}
                   {plan.queryRequest.filters.paradigm ? `${plan.queryRequest.filters.evaluation ? ' • ' : 'Filter: '}${plan.queryRequest.filters.paradigm}` : ''}
                   {plan.queryRequest.filters.result ? `${plan.queryRequest.filters.evaluation || plan.queryRequest.filters.paradigm ? ' • ' : 'Filter: '}${plan.queryRequest.filters.result}` : ''}
+                </div>
+              )}
+              {!compact && plan.launch?.detail && (
+                <div className="mt-2 text-11 leading-5 text-muted">
+                  {plan.launch.detail}
                 </div>
               )}
             </div>

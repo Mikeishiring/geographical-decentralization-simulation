@@ -86,11 +86,19 @@ export const askPlanQueryRequestSchema = z.object({
   coerced: z.boolean(),
 })
 
+export const askPlanLaunchSchema = z.object({
+  source: z.enum(['workflow', 'query-workbench']),
+  label: z.string(),
+  detail: z.string(),
+  workflowId: z.string().optional(),
+})
+
 export const askPlanDataSchema = z.object({
   status: askPlanStatusSchema,
   title: z.string(),
   route: askPlanRouteSchema,
   rationale: z.string(),
+  launch: askPlanLaunchSchema.optional(),
   queryView: askPlanQueryViewSchema.optional(),
   queryRequest: askPlanQueryRequestSchema.optional(),
   modules: z.array(askPlanModuleSchema),

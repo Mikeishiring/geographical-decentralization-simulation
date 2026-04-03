@@ -50,7 +50,7 @@ import {
   type SimulationViewSpec,
 } from '../src/types/simulation-view.ts'
 import { getActiveStudy } from '../src/studies/index.ts'
-import type { StudyAssistantQueryView, StudyDashboardSpec, TopicCard } from '../src/studies/types.ts'
+import type { StudyAssistantQueryView, StudyAssistantWorkflow, StudyDashboardSpec, TopicCard } from '../src/studies/types.ts'
 import type { AskArtifactData, AskPlanData, AskStatusData } from '../src/lib/ask-artifact.ts'
 import type { AskUIMessage } from '../src/lib/ask-chat.ts'
 import { askLaunchContextSchema, type AskLaunchContext } from '../src/lib/ask-launch.ts'
@@ -848,13 +848,56 @@ function buildExploreSimulationPlanningModeContext(query: string): string {
   return '\n\n## Experiment Planning Mode\nThis question is asking what to run, how to encode a bounded test, or which preset to use. Use build_simulation_config first. Return the recommended exact-mode configuration as a compact plan with the proposed config, why it matches the question, and what the user would learn by running it. Do not pretend the simulation has already been executed.'
 }
 
-function buildExploreChatSystemPrompt(query: string, sessionContext: string): string {
+function findStudyWorkflow(workflowId: string | undefined): StudyAssistantWorkflow | null {
+  if (!workflowId) return null
+  return ACTIVE_STUDY.assistant.workflows?.find(workflow => workflow.id === workflowId) ?? null
+}
+
+function buildAskLaunchPromptContext(launch: AskLaunchContext | null | undefined): string {
+  if (!launch) return ''
+
+  const parts: string[] = ['\n\n## Explicit Launch Context']
+  const workflow = findStudyWorkflow(launch.workflowId)
+
+  if (launch.source === 'workflow') {
+    parts.push(`This request was launched from the study workflow "${workflow?.title ?? launch.workflowId ?? 'workflow'}".`)
+    if (workflow?.description) {
+      parts.push(`Workflow intent: ${workflow.description}`)
+    }
+  } else if (launch.source === 'query-workbench') {
+    parts.push('This request was launched from the typed structured-query workbench, not from free-form text alone.')
+  }
+
+  if (launch.routeHint) {
+    parts.push(`Treat the preferred route as "${launch.routeHint}".`)
+  }
+
+  if (launch.structuredQuery) {
+    const queryBits = [
+      launch.structuredQuery.viewId ? `view ${launch.structuredQuery.viewId}` : '',
+      launch.structuredQuery.metrics?.length ? `metrics ${launch.structuredQuery.metrics.join(', ')}` : '',
+      launch.structuredQuery.dimensions?.length ? `dimensions ${launch.structuredQuery.dimensions.join(', ')}` : '',
+      launch.structuredQuery.slot ? `${launch.structuredQuery.slot} snapshot` : '',
+      launch.structuredQuery.orderBy ? `sort by ${launch.structuredQuery.orderBy} ${launch.structuredQuery.order ?? 'desc'}` : '',
+      launch.structuredQuery.limit ? `limit ${launch.structuredQuery.limit}` : '',
+    ].filter(Boolean)
+
+    if (queryBits.length > 0) {
+      parts.push(`Use this structured launch shape unless the user explicitly narrows further: ${queryBits.join('; ')}.`)
+    }
+  }
+
+  return parts.join('\n')
+}
+
+function buildExploreChatSystemPrompt(query: string, sessionContext: string, launch?: AskLaunchContext | null): string {
   return STUDY_CONTEXT
     + sessionContext
     + buildExploreQueryModeContext(query)
     + buildExploreResultsModeContext(query)
     + buildExploreStructuredResultsModeContext(query)
     + buildExploreSimulationPlanningModeContext(query)
+    + buildAskLaunchPromptContext(launch)
 }
 
 function shouldForceExploreRenderStep(stepNumber: number, toolCalls: readonly { toolName: string }[]): boolean {
@@ -5877,6 +5920,23 @@ function buildAskPlanData(
   const queryView = route === 'structured-results'
     ? queryRequest?.view ?? null
     : null
+  const workflow = findStudyWorkflow(options?.launch?.workflowId)
+  const launch = options?.launch
+    ? {
+      source: options.launch.source ?? 'workflow',
+      label:
+        options.launch.source === 'workflow'
+          ? (workflow?.title ?? options.launch.workflowId ?? 'Workflow launch')
+          : (queryView?.title ?? 'Structured query workbench'),
+      detail:
+        options.launch.source === 'workflow'
+          ? (workflow?.description ?? 'Study-owned workflow launch')
+          : queryView
+            ? `Pinned to the ${queryView.title} study surface before the assistant started reasoning.`
+            : 'Pinned to a typed structured query launch before the assistant started reasoning.',
+      workflowId: options.launch.workflowId,
+    } satisfies NonNullable<AskPlanData['launch']>
+    : undefined
 
   const expectedTemplates =
     route === 'results' || route === 'structured-results'
@@ -5916,6 +5976,7 @@ function buildAskPlanData(
         title: 'Reading guide route',
         route,
         rationale: 'This looks like an overview or mechanism question, so the assistant should explain the study clearly before narrowing into one figure or metric.',
+        launch,
         modules,
         templates,
         nextSteps: [
@@ -5930,6 +5991,7 @@ function buildAskPlanData(
         title: 'Structured published Results query',
         route,
         rationale: 'This question is asking for a ranking, list, or table over the frozen Results catalog, so the assistant should query rows first and narrate second.',
+        launch,
         queryView: buildAskPlanQueryViewData(queryView),
         queryRequest: buildAskPlanQueryRequestData(queryRequest),
         modules,
@@ -5949,6 +6011,7 @@ function buildAskPlanData(
         title: 'Experiment setup route',
         route,
         rationale: 'This question is asking what to run or how to encode a bounded test, so the assistant should propose an exact-mode configuration before making any claims about outcomes.',
+        launch,
         modules,
         templates,
         nextSteps: [
@@ -5963,6 +6026,7 @@ function buildAskPlanData(
         title: 'Published Results replay',
         route,
         rationale: 'This question names metrics, scenarios, or comparisons that map onto the study-owned Results families, so the assistant should load those families before drafting.',
+        launch,
         modules,
         templates,
         nextSteps: [
@@ -5978,6 +6042,7 @@ function buildAskPlanData(
         title: 'Mixed reading route',
         route,
         rationale: 'This question is best answered with a compact mix of explanation and grounded retrieval, so the assistant will follow the most specific evidence path it can support.',
+        launch,
         modules,
         templates,
         nextSteps: [
@@ -6204,16 +6269,17 @@ function buildExploreChatTools(
         title: z.string().optional(),
       }),
       execute: async (input) => {
+        const launchStructuredQuery = options?.launch?.structuredQuery
         const resolvedQuery = resolveStructuredResultsQueryPlan({
           ...(input as Record<string, unknown>),
-          viewId: input.viewId,
-          dimensions: input.dimensions,
-          metrics: input.metrics,
-          filters: input.filters,
-          slot: input.slot,
-          orderBy: input.orderBy,
-          order: input.order,
-          limit: input.limit,
+          viewId: input.viewId ?? launchStructuredQuery?.viewId,
+          dimensions: input.dimensions ?? launchStructuredQuery?.dimensions,
+          metrics: input.metrics ?? launchStructuredQuery?.metrics,
+          filters: input.filters ?? launchStructuredQuery?.filters,
+          slot: input.slot ?? launchStructuredQuery?.slot,
+          orderBy: input.orderBy ?? launchStructuredQuery?.orderBy,
+          order: input.order ?? launchStructuredQuery?.order,
+          limit: input.limit ?? launchStructuredQuery?.limit,
           queryHint: query,
         })
         latestStructuredQuery = resolvedQuery
@@ -6331,7 +6397,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
     const sessionContext = sessionHistory.length
       ? `\n\n## Session Context\nPrevious queries this session:\n${sessionHistory.map((entry, index) => `${index + 1}. "${entry.query}" -> ${entry.summary}`).join('\n')}\n\nBuild on prior context where relevant.`
       : ''
-    const systemPrompt = buildExploreChatSystemPrompt(trimmedQuery, sessionContext)
+    const systemPrompt = buildExploreChatSystemPrompt(trimmedQuery, sessionContext, askLaunch)
     let latestCachedResults: unknown = null
     let latestStructuredQuery: StructuredResultsQueryPlan | null =
       askLaunch?.routeHint === 'structured-results' || askLaunch?.structuredQuery
