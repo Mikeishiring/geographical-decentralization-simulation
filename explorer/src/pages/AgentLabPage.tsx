@@ -19,6 +19,7 @@ import { cn } from '../lib/cn'
 import { SPRING, SPRING_SNAPPY } from '../lib/theme'
 import { explore, getApiHealth, createExploration, publishExploration, type ExploreResponse, type ExploreError } from '../lib/api'
 import { ASK_DATA_PART_SCHEMAS, type AskArtifactData } from '../lib/ask-artifact'
+import type { AskLaunchContext } from '../lib/ask-launch'
 import {
   type AskUIMessage,
   extractLatestAskPlan,
@@ -148,15 +149,21 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
   const [askProgressClock, setAskProgressClock] = useState(() => Date.now())
   const historyRef = useRef(history)
   const pendingAskQueryRef = useRef<string | null>(null)
+  const pendingAskLaunchRef = useRef<AskLaunchContext | null>(null)
   const askProgressSignalRef = useRef('')
   const askTransportRef = useRef(new DefaultChatTransport<AskUIMessage>({
     api: '/api/explore/chat',
-    prepareSendMessagesRequest: async ({ body }) => ({
-      body: {
-        ...(body ?? {}),
-        history: historyRef.current,
-      },
-    }),
+    prepareSendMessagesRequest: async ({ body }) => {
+      const launch = pendingAskLaunchRef.current
+      pendingAskLaunchRef.current = null
+      return {
+        body: {
+          ...(body ?? {}),
+          history: historyRef.current,
+          launch,
+        },
+      }
+    },
   }))
 
   // ── Experiment mode state ──
@@ -320,7 +327,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
   })
 
   // ── Ask mode handlers ──
-  const handleAskSubmit = useCallback(async (text: string) => {
+  const handleAskSubmit = useCallback(async (text: string, launch?: AskLaunchContext) => {
     const trimmed = text.trim()
     if (!trimmed) return
 
@@ -332,10 +339,12 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
     setAskProgressMeta({ startedAt, lastSignalAt: startedAt })
     setAskProgressClock(startedAt)
     askProgressSignalRef.current = ''
+    pendingAskLaunchRef.current = null
     publishMutation.reset()
 
     if (anthropicEnabled) {
       pendingAskQueryRef.current = trimmed
+      pendingAskLaunchRef.current = launch ?? null
       clearAskChatError()
       setAskMessages([])
       await sendMessage({ text: trimmed })
@@ -421,10 +430,10 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
     setQuestionDraft('')
   }, [])
 
-  const handleSuggestionClick = (prompt: string) => {
+  const handleSuggestionClick = (prompt: string, launch?: AskLaunchContext) => {
     if (mode === 'ask') {
       setQuery(prompt)
-      handleAskSubmit(prompt)
+      handleAskSubmit(prompt, launch)
     } else {
       setQuestionDraft(prompt)
     }

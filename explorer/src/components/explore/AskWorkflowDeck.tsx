@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { BarChart3, Compass, Database, FlaskConical, Sparkles, Wand2 } from 'lucide-react'
+import type { AskLaunchContext } from '../../lib/ask-launch'
 import { cn } from '../../lib/cn'
 import { SPRING } from '../../lib/theme'
 import type {
@@ -15,7 +16,7 @@ interface AskWorkflowDeckProps {
   readonly mode: Exclude<StudyAssistantMode, 'both'>
   readonly activeRoute?: StudyAssistantRouteHint | null
   readonly activePrompt?: string | null
-  readonly onPromptSelect: (prompt: string) => void
+  readonly onPromptSelect: (prompt: string, launch?: AskLaunchContext) => void
   readonly busy?: boolean
 }
 
@@ -148,6 +149,18 @@ export function AskWorkflowDeck({
         {visibleWorkflows.map((workflow, index) => {
           const Icon = routeIcon(workflow.routeHint)
           const resolvedPrompt = composeWorkflowPrompt(workflow, selections[workflow.id])
+          const launchContext: AskLaunchContext | undefined = workflow.routeHint
+            ? {
+                source: 'workflow',
+                workflowId: workflow.id,
+                routeHint: workflow.routeHint,
+              }
+            : workflow.id
+              ? {
+                  source: 'workflow',
+                  workflowId: workflow.id,
+                }
+              : undefined
           const isPromptActive = normalizePrompt(activePrompt) === normalizePrompt(resolvedPrompt)
           const isRouteActive = !isPromptActive && workflow.routeHint != null && workflow.routeHint === activeRoute
           const isActive = isPromptActive || isRouteActive
@@ -257,7 +270,7 @@ export function AskWorkflowDeck({
               <button
                 type="button"
                 disabled={busy}
-                onClick={() => onPromptSelect(resolvedPrompt)}
+                onClick={() => onPromptSelect(resolvedPrompt, launchContext)}
                 className={cn(
                   'mt-3 rounded-full border px-3 py-1.5 text-11 font-medium transition-colors',
                   busy

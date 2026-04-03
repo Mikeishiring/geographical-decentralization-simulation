@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { ArrowUpDown, Database, Filter, SlidersHorizontal } from 'lucide-react'
 import type { AskPlanData } from '../../lib/ask-artifact'
+import type { AskLaunchContext } from '../../lib/ask-launch'
 import { cn } from '../../lib/cn'
 import type { StudyAssistantQueryView } from '../../studies/types'
 
 interface AskQueryWorkbenchProps {
   readonly queryViews: readonly StudyAssistantQueryView[]
-  readonly onLaunch: (prompt: string) => void
+  readonly onLaunch: (prompt: string, launch?: AskLaunchContext) => void
   readonly activeViewId?: string | null
   readonly activeRequest?: AskPlanData['queryRequest']
   readonly busy?: boolean
@@ -205,6 +206,24 @@ export function AskQueryWorkbench({
   if (!activeView || !state) return null
 
   const prompt = buildPrompt(activeView, state)
+  const launchContext: AskLaunchContext = {
+    source: 'query-workbench',
+    routeHint: 'structured-results',
+    structuredQuery: {
+      viewId: activeView.id,
+      dimensions: [...state.dimensions],
+      metrics: [...state.metrics],
+      filters: {
+        evaluation: state.evaluation,
+        paradigm: state.paradigm,
+        result: state.result,
+      },
+      slot: state.slot,
+      orderBy: state.orderBy,
+      order: state.order,
+      limit: state.limit,
+    },
+  }
 
   const setView = (viewId: string) => {
     const nextView = queryViews.find(view => view.id === viewId)
@@ -505,7 +524,7 @@ export function AskQueryWorkbench({
             <button
               type="button"
               disabled={busy}
-              onClick={() => onLaunch(prompt)}
+              onClick={() => onLaunch(prompt, launchContext)}
               className={cn(
                 'mt-4 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors',
                 busy
