@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { formatNumber, paradigmLabel } from './simulation-constants'
+import { InteractiveInspector } from '../ui/InteractiveInspector'
 import {
   totalSlotsFromPayload,
   topRegionsForSlot,
@@ -36,9 +37,18 @@ function withAlpha(color: string, alpha: number): string {
   return color
 }
 
-function Sparkline({ data, color, width = 72, height = 24 }: {
-  readonly data: readonly number[]; readonly color: string; readonly width?: number; readonly height?: number
-}) {
+interface SparklineGeometry {
+  readonly coords: ReadonlyArray<{ x: number; y: number; value: number }>
+  readonly points: string
+  readonly areaD: string
+  readonly baselineY: number
+}
+
+function buildSparklineGeometry(
+  data: readonly number[],
+  width: number,
+  height: number,
+): SparklineGeometry | null {
   if (data.length < 2) return null
   const min = Math.min(...data)
   const max = Math.max(...data)
@@ -47,17 +57,39 @@ function Sparkline({ data, color, width = 72, height = 24 }: {
   const coords = data.map((value, index) => ({
     x: Number((index * step).toFixed(1)),
     y: Number((height - 1 - ((value - min) / range) * (height - 4)).toFixed(1)),
+    value,
   }))
   const points = coords.map(coord => `${coord.x},${coord.y}`).join(' ')
   const last = coords[coords.length - 1]!
   const baselineY = height - 1
   const areaD = `${coords.map((coord, index) => `${index === 0 ? 'M' : 'L'} ${coord.x} ${coord.y}`).join(' ')} L ${last.x} ${baselineY} L ${coords[0]!.x} ${baselineY} Z`
+  return { coords, points, areaD, baselineY }
+}
+
+function Sparkline({
+  data,
+  color,
+  width = 72,
+  height = 24,
+  highlightIndex = null,
+}: {
+  readonly data: readonly number[]
+  readonly color: string
+  readonly width?: number
+  readonly height?: number
+  readonly highlightIndex?: number | null
+}) {
+  const geometry = buildSparklineGeometry(data, width, height)
+  if (!geometry) return null
+  const { coords, points, areaD, baselineY } = geometry
+  const highlight = coords[Math.max(0, Math.min(coords.length - 1, highlightIndex ?? (coords.length - 1)))] ?? coords[coords.length - 1]!
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0" aria-hidden>
       <line x1={0} y1={baselineY} x2={width} y2={baselineY} stroke={withAlpha(color, 0.16)} strokeWidth={1} />
       <path d={areaD} fill={withAlpha(color, 0.11)} />
       <polyline points={points} fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={last.x} cy={last.y} r={2.4} fill="white" stroke={color} strokeWidth={1.5} />
+      <line x1={highlight.x} y1={2} x2={highlight.x} y2={baselineY} stroke={withAlpha(color, 0.22)} strokeWidth={1} />
+      <circle cx={highlight.x} cy={highlight.y} r={2.8} fill="white" stroke={color} strokeWidth={1.7} />
     </svg>
   )
 }
@@ -87,6 +119,9 @@ interface KpiCard {
   readonly detail: string
   readonly sentiment: MetricSentiment
   readonly sparkData: readonly number[]
+  readonly series: readonly number[]
+  readonly totalSlots: number
+  readonly formatSeriesValue: (value: number) => string
   readonly sparkColor: string
   readonly linkedCategory: PlotCategory
 }
@@ -112,6 +147,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   const metrics = payload.metrics ?? {}
   const totalSlots = totalSlotsFromPayload(payload)
   const finalSlot = Math.max(0, totalSlots - 1)
+  const activeRegionSeries = Array.from({ length: totalSlots }, (_, slotIndex) => activeRegionCountAtSlot(payload, slotIndex))
   const cards: KpiCard[] = []
 
   // Gini — inequality index
@@ -134,6 +170,9 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       detail: 'Gini coefficient (0 = perfectly equal, 1 = maximally concentrated). Measures geographic validator distribution.',
       sentiment: giniSentiment,
       sparkData: sampleForSpark(metrics.gini),
+      series: metrics.gini ?? [],
+      totalSlots,
+      formatSeriesValue: value => formatNumber(value, 3),
       sparkColor: CHART_COLORS.gini,
       linkedCategory: 'decentralization',
     })
@@ -159,6 +198,9 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       detail: 'Herfindahl-Hirschman Index — sum of squared shares. Higher values indicate more concentrated markets.',
       sentiment: hhiSentiment,
       sparkData: sampleForSpark(metrics.hhi),
+      series: metrics.hhi ?? [],
+      totalSlots,
+      formatSeriesValue: value => formatNumber(value, 4),
       sparkColor: CHART_COLORS.hhi,
       linkedCategory: 'decentralization',
     })
@@ -185,6 +227,9 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       detail: 'Percentage of GCP regions with active validators. Higher means broader geographic spread.',
       sentiment: livenessSentiment,
       sparkData: sampleForSpark(metrics.liveness),
+      series: metrics.liveness ?? [],
+      totalSlots,
+      formatSeriesValue: value => `${formatNumber(value, 1)}%`,
       sparkColor: CHART_COLORS.liveness,
       linkedCategory: 'coverage',
     })
@@ -210,6 +255,9 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       detail: 'Average attestation count per slot. Measures validator coordination and network health.',
       sentiment: attestationSentiment,
       sparkData: sampleForSpark(metrics.attestations),
+      series: metrics.attestations ?? [],
+      totalSlots,
+      formatSeriesValue: value => formatNumber(value, 1),
       sparkColor: CHART_COLORS.attestation,
       linkedCategory: 'economics',
     })
@@ -235,6 +283,9 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       detail: 'Average time in milliseconds for block proposals to propagate. Lower = faster consensus.',
       sentiment: proposalSentiment,
       sparkData: sampleForSpark(metrics.proposal_times),
+      series: metrics.proposal_times ?? [],
+      totalSlots,
+      formatSeriesValue: value => `${formatNumber(value, 1)} ms`,
       sparkColor: CHART_COLORS.proposalTime,
       linkedCategory: 'latency',
     })
@@ -258,7 +309,10 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
           : `Only ${activeEnd} regions still carry stake at the finish.`,
       detail: 'Number of distinct GCP regions with at least one active validator in the final slot.',
       sentiment: regionSentiment,
-      sparkData: [],
+      sparkData: sampleForSpark(activeRegionSeries),
+      series: activeRegionSeries,
+      totalSlots,
+      formatSeriesValue: value => formatNumber(value, 0),
       sparkColor: CHART_COLORS.activeRegions,
       linkedCategory: 'topology',
     })
@@ -282,6 +336,159 @@ const DELTA_COLOR: Record<MetricSentiment, string> = {
   negative: 'bg-rose-50 text-rose-600 ring-1 ring-rose-500/15',
 }
 
+function clampIndex(length: number, index: number): number {
+  if (length <= 0) return 0
+  return Math.max(0, Math.min(length - 1, Math.floor(index)))
+}
+
+function formatSignedSeriesDelta(
+  value: number | undefined,
+  baseline: number | undefined,
+  formatter: (value: number) => string,
+): string {
+  if (value == null || baseline == null || !Number.isFinite(value) || !Number.isFinite(baseline)) return 'N/A'
+  const delta = value - baseline
+  const prefix = delta > 0 ? '+' : ''
+  return `${prefix}${formatter(delta)}`
+}
+
+function EvidenceKpiCard({
+  card,
+  active,
+  onActivate,
+}: {
+  readonly card: KpiCard
+  readonly active: boolean
+  readonly onActivate: () => void
+}) {
+  const [hovered, setHovered] = useState(false)
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
+  const sparklineRef = useRef<HTMLDivElement | null>(null)
+  const effectiveIndex = hoverIndex ?? Math.max(0, card.series.length - 1)
+  const currentValue = card.series[effectiveIndex]
+  const startValue = card.series[0]
+  const previousValue = card.series[Math.max(0, effectiveIndex - 1)]
+  const hoverRatio = card.series.length > 1
+    ? Math.round((effectiveIndex / Math.max(1, card.series.length - 1)) * 100)
+    : 100
+  const showInspector = hovered || hoverIndex != null
+
+  const handleSparklinePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const width = sparklineRef.current?.getBoundingClientRect().width ?? 0
+    if (width <= 0 || card.series.length <= 1) return
+    const clampedX = Math.max(0, Math.min(width, event.clientX - event.currentTarget.getBoundingClientRect().left))
+    const progress = clampedX / width
+    setHoverIndex(clampIndex(card.series.length, progress * Math.max(0, card.series.length - 1)))
+  }
+
+  return (
+    <motion.button
+      variants={STAGGER_ITEM}
+      onClick={onActivate}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => {
+        setHovered(false)
+        setHoverIndex(null)
+      }}
+      aria-pressed={active}
+      className={cn(
+        'group relative overflow-hidden rounded-[18px] border border-black/[0.06] bg-white px-3.5 py-3 text-left transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(15,23,42,0.07)]',
+        active && 'border-stone-300 shadow-[0_10px_22px_rgba(15,23,42,0.08)]',
+      )}
+      style={{
+        backgroundImage: `linear-gradient(180deg, ${withAlpha(card.sparkColor, active ? 0.12 : 0.08)} 0%, rgba(255,255,255,0) 52%)`,
+      }}
+      title={`${card.detail} Click to filter ${card.linkedCategory} charts.`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
+            <span className="text-[9px] uppercase tracking-[0.1em] text-stone-500 font-semibold truncate">{card.label}</span>
+          </div>
+          <div className="mt-2 flex flex-wrap items-end gap-x-2 gap-y-1">
+            <div className="text-[18px] font-semibold text-stone-900 tabular-nums leading-none tracking-tight">
+              {hoverIndex != null && currentValue != null ? card.formatSeriesValue(currentValue) : card.value}
+            </div>
+            {card.delta && (
+              <div className={cn('inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums', DELTA_COLOR[card.deltaSentiment])}>
+                <span>{DELTA_ARROW[card.direction]}</span>
+                <span>{card.delta}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {card.sparkData.length > 1 ? (
+          <div
+            ref={sparklineRef}
+            className="relative rounded-[14px] border border-white/70 bg-white/80 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+            onPointerMove={handleSparklinePointerMove}
+            onPointerLeave={() => setHoverIndex(null)}
+          >
+            {hoverIndex != null && currentValue != null ? (
+              <div className="pointer-events-none absolute inset-x-1 top-1 z-10 rounded-md border border-rule/70 bg-white/96 px-1.5 py-1 text-[9px] leading-tight text-stone-600 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+                <div className="font-medium text-stone-900">Slot {(effectiveIndex + 1).toLocaleString()}</div>
+                <div className="mt-0.5 tabular-nums">{card.formatSeriesValue(currentValue)}</div>
+              </div>
+            ) : null}
+            <Sparkline data={card.sparkData} color={card.sparkColor} highlightIndex={hoverIndex != null && card.sparkData.length > 1 ? Math.round((hoverIndex / Math.max(1, card.series.length - 1)) * Math.max(0, card.sparkData.length - 1)) : null} />
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-2 text-[11px] font-medium leading-[1.45] text-stone-700 line-clamp-2">
+        {hoverIndex != null
+          ? `Inspecting slot ${(effectiveIndex + 1).toLocaleString()} of ${card.totalSlots.toLocaleString()}.`
+          : card.insight}
+      </div>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <div className="min-w-0 text-[10px] text-stone-400 leading-snug line-clamp-2">
+          {hoverIndex != null ? card.detail : card.note}
+        </div>
+        <span className={cn(
+          'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em]',
+          active ? 'bg-stone-900 text-white' : 'bg-white/80 text-stone-500 ring-1 ring-black/[0.05]',
+        )}>
+          {active ? 'Filtered' : 'Filter'}
+        </span>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {showInspector && card.series.length > 0 ? (
+          <InteractiveInspector
+            eyebrow="Chart inspection"
+            title={`${card.label} at slot ${(effectiveIndex + 1).toLocaleString()}`}
+            subtitle={hoverIndex != null ? `${hoverRatio}% through the run.` : 'Hover the sparkline to inspect a slot-level reading.'}
+            hint={`${card.linkedCategory} lens`}
+            metrics={[
+              {
+                label: 'Value',
+                value: currentValue == null ? 'N/A' : card.formatSeriesValue(currentValue),
+                tone: 'accent',
+              },
+              {
+                label: 'Vs start',
+                value: formatSignedSeriesDelta(currentValue, startValue, card.formatSeriesValue),
+              },
+              {
+                label: 'Vs prev',
+                value: formatSignedSeriesDelta(currentValue, previousValue, card.formatSeriesValue),
+              },
+              {
+                label: 'Finish',
+                value: card.value,
+                tone: active ? 'accent' : 'default',
+              },
+            ]}
+            className="mt-3"
+          />
+        ) : null}
+      </AnimatePresence>
+    </motion.button>
+  )
+}
+
 interface KpiStripProps {
   readonly payload: PublishedAnalyticsPayload
   readonly activeCategory: PlotCategory
@@ -302,55 +509,12 @@ export function EvidenceKpiStrip({ payload, activeCategory, onCategoryChange }: 
       {cards.map(card => {
         const isActive = activeCategory === card.linkedCategory
         return (
-          <motion.button
+          <EvidenceKpiCard
             key={card.label}
-            variants={STAGGER_ITEM}
-            onClick={() => onCategoryChange(isActive ? 'all' : card.linkedCategory)}
-            title={`${card.detail} Click to filter ${card.linkedCategory} charts.`}
-            aria-pressed={isActive}
-            className={cn(
-              'group relative overflow-hidden rounded-[18px] border border-black/[0.06] bg-white px-3.5 py-3 text-left transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(15,23,42,0.07)]',
-              isActive && 'border-stone-300 shadow-[0_10px_22px_rgba(15,23,42,0.08)]',
-            )}
-            style={{
-              backgroundImage: `linear-gradient(180deg, ${withAlpha(card.sparkColor, isActive ? 0.12 : 0.08)} 0%, rgba(255,255,255,0) 52%)`,
-            }}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
-                  <span className="text-[9px] uppercase tracking-[0.1em] text-stone-500 font-semibold truncate">{card.label}</span>
-                </div>
-                <div className="mt-2 flex flex-wrap items-end gap-x-2 gap-y-1">
-                  <div className="text-[18px] font-semibold text-stone-900 tabular-nums leading-none tracking-tight">{card.value}</div>
-                  {card.delta && (
-                    <div className={cn('inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums', DELTA_COLOR[card.deltaSentiment])}>
-                      <span>{DELTA_ARROW[card.direction]}</span>
-                      <span>{card.delta}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {card.sparkData.length > 1 && (
-                <div className="rounded-[14px] border border-white/70 bg-white/80 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-                  <Sparkline data={card.sparkData} color={card.sparkColor} />
-                </div>
-              )}
-            </div>
-            <div className="mt-2 text-[11px] font-medium leading-[1.45] text-stone-700 line-clamp-2">
-              {card.insight}
-            </div>
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <div className="min-w-0 text-[10px] text-stone-400 leading-snug line-clamp-2">{card.note}</div>
-              <span className={cn(
-                'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em]',
-                isActive ? 'bg-stone-900 text-white' : 'bg-white/80 text-stone-500 ring-1 ring-black/[0.05]',
-              )}>
-                {isActive ? 'Filtered' : 'Filter'}
-              </span>
-            </div>
-          </motion.button>
+            card={card}
+            active={isActive}
+            onActivate={() => onCategoryChange(isActive ? 'all' : card.linkedCategory)}
+          />
         )
       })}
     </motion.div>

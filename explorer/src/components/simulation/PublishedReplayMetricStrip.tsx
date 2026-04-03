@@ -8,6 +8,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING_CRISP } from '../../lib/theme'
+import { InteractiveInspector } from '../ui/InteractiveInspector'
 
 const SPARKLINE_WIDTH = 220
 const SPARKLINE_HEIGHT = 58
@@ -40,6 +41,11 @@ interface SparklineGeometry {
   readonly areaPath: string
   readonly currentX: number
   readonly currentY: number
+}
+
+interface SeriesExtreme {
+  readonly value: number
+  readonly slotIndex: number
 }
 
 function clampIndex(length: number, index: number): number {
@@ -114,6 +120,27 @@ function comparisonDeltaLabel(
   return `${prefix}${formatSeriesValue(delta)}`
 }
 
+function resolveSeriesExtreme(
+  values: readonly number[],
+  direction: 'max' | 'min',
+): SeriesExtreme | null {
+  if (values.length === 0) return null
+
+  let slotIndex = 0
+  let bestValue = values[0]!
+
+  for (let index = 1; index < values.length; index += 1) {
+    const nextValue = values[index]!
+    const isBetter = direction === 'max' ? nextValue > bestValue : nextValue < bestValue
+    if (isBetter) {
+      bestValue = nextValue
+      slotIndex = index
+    }
+  }
+
+  return { value: bestValue, slotIndex }
+}
+
 function resolveSlotIndexFromPointer(
   event: ReactPointerEvent<HTMLDivElement>,
   width: number,
@@ -159,15 +186,22 @@ function PublishedReplayMetricCard({
 
   const currentValue = readSeriesValue(card.series, effectiveSlotIndex)
   const baselineValue = readSeriesValue(card.series, 0)
-  const peakValue = card.series.length > 0 ? Math.max(...card.series) : null
+  const previousValue = readSeriesValue(card.series, Math.max(0, effectiveSlotIndex - 1))
+  const peak = useMemo(() => resolveSeriesExtreme(card.series, 'max'), [card.series])
+  const trough = useMemo(() => resolveSeriesExtreme(card.series, 'min'), [card.series])
   const comparisonValue = card.comparisonSeries?.length
     ? readSeriesValue(card.comparisonSeries, effectiveComparisonSlotIndex ?? effectiveSlotIndex)
     : null
   const effectiveSlotNumber = effectiveSlotIndex + 1
   const showExpanded = hovered || active || previewSlotIndex != null
+  const showSparkTooltip = previewSlotIndex != null || hovered
   const headlineValue = previewSlotIndex != null && currentValue != null
     ? card.formatSeriesValue(currentValue)
     : card.value
+  const scrubProgress = card.series.length > 1
+    ? Math.round((effectiveSlotIndex / Math.max(1, card.series.length - 1)) * 100)
+    : 100
+  const sparkTooltipLeft = `${(primarySpark.currentX / SPARKLINE_WIDTH) * 100}%`
 
   const commitPreviewSlot = (slotIndexToCommit: number | null) => {
     if (slotIndexToCommit == null) return
@@ -240,7 +274,7 @@ function PublishedReplayMetricCard({
 
       <div
         ref={sparklineRef}
-        className="mt-4 cursor-crosshair overflow-hidden rounded-xl border border-rule bg-surface-active/70 px-3 py-3"
+        className="relative mt-4 cursor-crosshair overflow-hidden rounded-xl border border-rule bg-surface-active/70 px-3 py-3"
         onClick={event => {
           event.stopPropagation()
           commitPreviewSlot(previewSlotIndex ?? card.currentSlotIndex)
@@ -249,6 +283,37 @@ function PublishedReplayMetricCard({
         onPointerMove={handleSparklinePointerMove}
         onPointerLeave={handleSparklinePointerLeave}
       >
+        <AnimatePresence initial={false}>
+          {showSparkTooltip && currentValue != null ? (
+            <motion.div
+              key="spark-tooltip"
+              className="pointer-events-none absolute top-2 z-10"
+              style={{
+                left: sparkTooltipLeft,
+                transform: 'translateX(-50%)',
+              }}
+              initial={{ opacity: 0, y: 4, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 4, scale: 0.96 }}
+              transition={SPRING_CRISP}
+            >
+              <div className="rounded-lg border border-rule/80 bg-white/96 px-2.5 py-2 shadow-[0_14px_28px_rgba(15,23,42,0.1)]">
+                <div className="text-[0.625rem] font-medium uppercase tracking-[0.08em] text-text-faint">
+                  Slot {effectiveSlotNumber.toLocaleString()}
+                </div>
+                <div className="mt-1 text-xs font-medium tabular-nums text-text-primary">
+                  {card.formatSeriesValue(currentValue)}
+                </div>
+                <div className="mt-1 text-[0.625rem] text-muted">
+                  {card.comparisonSeries?.length
+                    ? `vs ${card.comparisonLabel ?? 'comparison'} ${comparisonDeltaLabel(currentValue, comparisonValue, card.formatSeriesValue)}`
+                    : `vs prev ${deltaLabel(currentValue, previousValue, card.formatSeriesValue)}`}
+                </div>
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
         {card.series.length > 0 ? (
           <svg viewBox={`0 0 ${SPARKLINE_WIDTH} ${SPARKLINE_HEIGHT}`} className="w-full" preserveAspectRatio="none" aria-hidden="true">
             <defs>
@@ -302,49 +367,61 @@ function PublishedReplayMetricCard({
       </div>
 
       <div className="mt-1 flex items-center justify-between gap-3 text-[0.625rem] uppercase tracking-[0.08em] text-text-faint">
-        <span>{previewSlotIndex != null ? 'Previewing replay cursor' : active ? 'Pinned to viewer focus' : 'Tap or drag to scrub'}</span>
-        {previewSlotIndex != null ? <span>slot {effectiveSlotNumber.toLocaleString()}</span> : null}
+        <span>
+          {previewSlotIndex != null
+            ? 'Previewing replay cursor'
+            : active
+              ? 'Pinned to viewer focus'
+              : 'Hover, drag, or tap to inspect'}
+        </span>
+        <span>{scrubProgress}% through replay</span>
       </div>
 
       <AnimatePresence initial={false}>
         {showExpanded ? (
-          <motion.div
-            key="hover-details"
-            className="mt-3 grid gap-2 sm:grid-cols-3"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={SPRING_CRISP}
-          >
-            <div className="rounded-lg border border-rule bg-white/90 px-2.5 py-2">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.08em] text-text-faint">vs slot 1</div>
-              <div className="mt-1 text-xs font-medium tabular-nums text-text-primary">
-                {deltaLabel(currentValue, baselineValue, card.formatSeriesValue)}
-              </div>
-            </div>
-            <div className="rounded-lg border border-rule bg-white/90 px-2.5 py-2">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.08em] text-text-faint">Peak</div>
-              <div className="mt-1 text-xs font-medium tabular-nums text-text-primary">
-                {peakValue == null ? 'N/A' : card.formatSeriesValue(peakValue)}
-              </div>
-            </div>
-            <div className="rounded-lg border border-rule bg-white/90 px-2.5 py-2">
-              <div className="text-[0.625rem] font-medium uppercase tracking-[0.08em] text-text-faint">
-                {card.comparisonSeries?.length
-                  ? `vs ${card.comparisonLabel ?? 'comparison'}`
-                  : previewSlotIndex != null
-                    ? 'Preview slot'
-                    : 'Current slot'}
-              </div>
-              <div className="mt-1 text-xs font-medium tabular-nums text-text-primary">
-                {card.comparisonSeries?.length
+          <InteractiveInspector
+            eyebrow="Replay inspection"
+            title={`${card.label} at slot ${effectiveSlotNumber.toLocaleString()}`}
+            subtitle={
+              previewSlotIndex != null
+                ? `Scrubbing ${scrubProgress}% through the replay timeline.`
+                : active
+                  ? 'Pinned to the current viewer slot for side-by-side reading.'
+                  : 'Hover the sparkline to inspect turning points and slot-level changes.'
+            }
+            hint={card.comparisonSeries?.length ? 'Compare ready' : 'Slot scrub'}
+            metrics={[
+              {
+                label: 'Value',
+                value: currentValue == null ? 'N/A' : card.formatSeriesValue(currentValue),
+                tone: 'accent',
+              },
+              {
+                label: 'Vs slot 1',
+                value: deltaLabel(currentValue, baselineValue, card.formatSeriesValue),
+              },
+              {
+                label: card.comparisonSeries?.length ? `Vs ${card.comparisonLabel ?? 'comparison'}` : 'Vs prev',
+                value: card.comparisonSeries?.length
                   ? comparisonDeltaLabel(currentValue, comparisonValue, card.formatSeriesValue)
-                  : currentValue == null
-                    ? 'N/A'
-                    : card.formatSeriesValue(currentValue)}
-              </div>
-            </div>
-          </motion.div>
+                  : deltaLabel(currentValue, previousValue, card.formatSeriesValue),
+                tone: card.comparisonSeries?.length ? 'muted' : 'default',
+              },
+              {
+                label: 'Peak',
+                value: peak
+                  ? `${card.formatSeriesValue(peak.value)} · slot ${(peak.slotIndex + 1).toLocaleString()}`
+                  : 'N/A',
+              },
+              {
+                label: 'Low',
+                value: trough
+                  ? `${card.formatSeriesValue(trough.value)} · slot ${(trough.slotIndex + 1).toLocaleString()}`
+                  : 'N/A',
+              },
+            ]}
+            className="mt-3"
+          />
         ) : null}
       </AnimatePresence>
     </motion.div>
