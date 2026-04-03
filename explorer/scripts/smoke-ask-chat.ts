@@ -122,6 +122,38 @@ async function captureAskStream(query: string): Promise<{
   }
 }
 
+async function captureAskLaunchStream(
+  query: string,
+  launch: Record<string, unknown>,
+): Promise<{
+  readonly body: string
+  readonly stages: readonly string[]
+}> {
+  const response = await fetch(`${BASE_URL}/api/explore/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messages: [
+        {
+          id: 'user-1',
+          role: 'user',
+          parts: [{ type: 'text', text: query }],
+        },
+      ],
+      history: [],
+      launch,
+    }),
+  })
+
+  assert(response.ok, `Expected /api/explore/chat to succeed for launched "${query}" (${response.status} ${response.statusText})`)
+  const body = await response.text()
+
+  return {
+    body,
+    stages: extractStages(body),
+  }
+}
+
 async function main() {
   const server = startServer()
 
@@ -189,6 +221,44 @@ async function main() {
     assert(
       !structuredQueryStream.body.includes('toolName":"search_topic_cards'),
       'Expected structured results queries to avoid topic-card search before querying the Results catalog',
+    )
+
+    const typedWorkbenchStream = await captureAskLaunchStream(
+      'Show me published runs sorted by final Gini.',
+      {
+        source: 'query-workbench',
+        routeHint: 'structured-results',
+        structuredQuery: {
+          viewId: 'published-runs',
+          metrics: ['gini'],
+          slot: 'final',
+          orderBy: 'gini',
+          order: 'desc',
+          limit: 8,
+        },
+      },
+    )
+    assert(
+      typedWorkbenchStream.body.includes('"source":"query-workbench"'),
+      'Expected typed structured launches to preserve their launch source in the live plan',
+    )
+    assert(
+      typedWorkbenchStream.stages.includes('Structured query prefetched'),
+      'Expected typed structured launches to stream the prefetched scaffold stage before finalization',
+    )
+    assert(
+      !typedWorkbenchStream.body.includes('toolName":"query_results_table'),
+      'Expected typed structured launches to skip the extra structured query tool round-trip after prefetch',
+    )
+    assert(
+      typedWorkbenchStream.body.includes('toolName":"render_blocks'),
+      'Expected typed structured launches to proceed directly to final render after prefetch',
+    )
+    assert(
+      typedWorkbenchStream.body.includes('Published Runs Leaderboard')
+        || typedWorkbenchStream.body.includes('Structured query over')
+        || typedWorkbenchStream.body.includes('Published results query'),
+      'Expected typed structured launches to keep the structured chart/table scaffold in the final artifact',
     )
 
     const gammaSweepStream = await captureAskStream('Show me the higher-gamma runs sorted by final Gini.')

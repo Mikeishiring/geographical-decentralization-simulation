@@ -2355,6 +2355,11 @@ interface PublishedResultsToolResponse {
   readonly pairedComparison: PublishedExploreCompanionEntry | null
 }
 
+interface StructuredResultsExecution {
+  readonly queryPlan: StructuredResultsQueryPlan
+  readonly result: Awaited<ReturnType<typeof queryPublishedResultsTable>>
+}
+
 function normalizePublishedCatalogParadigm(
   rawParadigm: string | undefined,
 ): PublishedResearchDatasetEntry['paradigm'] | undefined {
@@ -2885,6 +2890,7 @@ async function queryPublishedResultsTable(input: {
   readonly order?: 'asc' | 'desc'
   readonly limit?: number
   readonly title?: string
+  readonly queryPlan?: StructuredResultsQueryPlan
 }): Promise<{
   readonly summary: string
   readonly description: string
@@ -2904,7 +2910,7 @@ async function queryPublishedResultsTable(input: {
     }
   }
 
-  const queryPlan = resolveStructuredResultsQueryPlan(input)
+  const queryPlan = input.queryPlan ?? resolveStructuredResultsQueryPlan(input)
   const queryView = queryPlan.view
   const dimensions = queryPlan.dimensions
   const metrics = queryPlan.metrics
@@ -3123,6 +3129,40 @@ async function queryPublishedResultsTable(input: {
       'Narrow this to one evaluation or paradigm and compare the remaining rows.',
     ].slice(0, 3),
   }
+}
+
+async function executeStructuredResultsQuery(input: {
+  readonly queryHint?: string
+  readonly viewId?: string
+  readonly dimensions?: readonly PublishedResultsQueryDimension[]
+  readonly metrics?: readonly PublishedExploreMetricKey[]
+  readonly filters?: {
+    readonly evaluation?: string
+    readonly paradigm?: string
+    readonly result?: string
+  }
+  readonly slot?: 'initial' | 'final'
+  readonly orderBy?: string
+  readonly order?: 'asc' | 'desc'
+  readonly limit?: number
+  readonly title?: string
+  readonly queryPlan?: StructuredResultsQueryPlan
+}): Promise<StructuredResultsExecution> {
+  const queryPlan = input.queryPlan ?? resolveStructuredResultsQueryPlan(input)
+  const result = await queryPublishedResultsTable({
+    queryHint: input.queryHint,
+    viewId: queryPlan.view?.id,
+    dimensions: queryPlan.dimensions,
+    metrics: queryPlan.metrics,
+    filters: queryPlan.filters,
+    slot: queryPlan.slot,
+    orderBy: queryPlan.orderBy ?? undefined,
+    order: queryPlan.order,
+    limit: queryPlan.limit,
+    title: input.title,
+    queryPlan,
+  })
+  return { queryPlan, result }
 }
 
 function normalizePublishedResultsToolResponse(
@@ -4345,6 +4385,66 @@ function normalizePublishedResultsCollection(
 
   const response = normalizePublishedResultsToolResponse(cachedResults)
   return response ? [response] : []
+}
+
+function extractArtifactBlocks(
+  value: unknown,
+): Block[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return []
+  const candidate = value as { blocks?: unknown }
+  return parseBlocks(Array.isArray(candidate.blocks) ? candidate.blocks : [])
+}
+
+function structuredResultsQueryPlanSignature(
+  queryPlan: StructuredResultsQueryPlan,
+): string {
+  return JSON.stringify({
+    viewId: queryPlan.view?.id ?? null,
+    dimensions: [...queryPlan.dimensions],
+    metrics: [...queryPlan.metrics],
+    filters: queryPlan.filters,
+    slot: queryPlan.slot,
+    orderBy: queryPlan.orderBy,
+    order: queryPlan.order,
+    limit: queryPlan.limit,
+  })
+}
+
+function clampPromptSnippet(
+  value: string | undefined,
+  limit = 320,
+): string {
+  const normalized = value?.replace(/\s+/g, ' ').trim() ?? ''
+  if (!normalized) return ''
+  if (normalized.length <= limit) return normalized
+  return `${normalized.slice(0, Math.max(0, limit - 1)).trimEnd()}...`
+}
+
+function buildStructuredResultsPrefetchContext(
+  execution: StructuredResultsExecution | null,
+): string {
+  if (!execution) return ''
+
+  const { queryPlan, result } = execution
+  const chartLabels = extractArtifactBlocks(result)
+    .flatMap(block =>
+      block.type === 'chart' || block.type === 'paperChart' || block.type === 'table'
+        ? [block.title?.trim() || block.type]
+        : [],
+    )
+    .slice(0, 3)
+  const queryViewLabel = queryPlan.view
+    ? `${queryPlan.view.title} (${queryPlan.view.id})`
+    : 'direct structured Results view'
+  const dimensions = queryPlan.dimensions.join(', ')
+  const metrics = queryPlan.metrics.map(metric => publishedMetricTitle(metric)).join(', ')
+  const filters = [
+    queryPlan.filters.evaluation,
+    queryPlan.filters.paradigm,
+    queryPlan.filters.result,
+  ].filter(Boolean).join(' / ')
+
+  return `\n\n## Prefetched Structured Results\nA typed study query already ran before reasoning began.\n- View: ${queryViewLabel}\n- Dimensions: ${dimensions || 'default'}\n- Metrics: ${metrics || 'default'}\n- Snapshot: ${queryPlan.slot}\n${filters ? `- Filters: ${filters}\n` : ''}- Summary: ${clampPromptSnippet(result.summary, 180)}\n- Detail: ${clampPromptSnippet(result.description, 220)}\n${chartLabels.length > 0 ? `- Streamed scaffold: ${chartLabels.join(' | ')}\n` : ''}Reuse that canonical chart/table scaffold unless you need a materially different supported query.`
 }
 
 function selectScenarioComparisonBlocks(
@@ -5646,7 +5746,7 @@ async function executeExploreChatToolCall(
   input: Record<string, unknown>,
 ): Promise<unknown> {
   if (name === 'query_results_table') {
-    return await queryPublishedResultsTable({
+    return (await executeStructuredResultsQuery({
       queryHint: typeof input.queryHint === 'string' ? input.queryHint : undefined,
       viewId: typeof input.viewId === 'string' ? input.viewId : undefined,
       dimensions: Array.isArray(input.dimensions)
@@ -5678,7 +5778,7 @@ async function executeExploreChatToolCall(
       order: input.order === 'asc' ? 'asc' : 'desc',
       limit: typeof input.limit === 'number' && Number.isFinite(input.limit) ? input.limit : undefined,
       title: typeof input.title === 'string' ? input.title : undefined,
-    })
+    })).result
   }
 
   if (name === 'query_cached_results') {
@@ -5923,6 +6023,7 @@ function buildAskPlanData(
     readonly status?: AskPlanData['status']
     readonly latestCachedResults?: unknown
     readonly latestStructuredQuery?: StructuredResultsQueryPlan | null
+    readonly latestArtifactBlocks?: readonly Block[]
     readonly launch?: AskLaunchContext | null
   },
 ): AskPlanData {
@@ -5971,7 +6072,9 @@ function buildAskPlanData(
   const loadedResponses = normalizePublishedResultsCollection(options?.latestCachedResults)
   const loadedTemplates = loadedResponses.length > 0
     ? resolveStudyResultsTemplatesForResponses(query, loadedResponses)
-    : []
+    : options?.latestArtifactBlocks?.length
+      ? resolveStudyResultsTemplatesForBlocks(query, options.latestArtifactBlocks)
+      : []
   const loadedTemplateIds = new Set(loadedTemplates.map(template => template.id))
   const templates = [
     ...expectedTemplates.map(template => ({
@@ -6084,6 +6187,10 @@ function buildExploreChatTools(
   query: string,
   options?: {
     launch?: AskLaunchContext | null
+    initialCachedResults?: unknown
+    initialStructuredQuery?: StructuredResultsQueryPlan | null
+    initialArtifactBlocks?: readonly Block[]
+    initialStructuredExecution?: StructuredResultsExecution | null
     onCachedResults?: (result: unknown) => void
     onStructuredQuery?: (query: StructuredResultsQueryPlan) => void
     onArtifact?: (artifact: AskArtifactData) => void
@@ -6091,9 +6198,27 @@ function buildExploreChatTools(
     onStatus?: (status: AskStatusData) => void
   },
 ) {
-  let latestCachedResults: unknown = null
-  let latestStructuredQuery: StructuredResultsQueryPlan | null = null
+  let latestCachedResults: unknown = options?.initialCachedResults ?? null
+  let latestStructuredQuery: StructuredResultsQueryPlan | null = options?.initialStructuredQuery ?? null
+  let latestArtifactBlocks: Block[] = options?.initialArtifactBlocks ? [...options.initialArtifactBlocks] : []
+  let latestStructuredExecution: StructuredResultsExecution | null = options?.initialStructuredExecution ?? null
   let cachedResultsHistory: PublishedResultsToolResponse[] = []
+  const emitPlan = (status: AskPlanData['status']) => {
+    options?.onPlan?.(buildAskPlanData(query, {
+      status,
+      latestCachedResults,
+      latestStructuredQuery,
+      latestArtifactBlocks,
+      launch: options?.launch,
+    }))
+  }
+  const updateArtifactBlocks = (blocks: readonly Block[]) => {
+    latestArtifactBlocks = [...blocks]
+  }
+  const canonicalBlocksForRender = (): Block[] => {
+    const scaffoldFromResults = buildExploreArtifactScaffold(query, latestCachedResults)
+    return scaffoldFromResults.length > 0 ? scaffoldFromResults : [...latestArtifactBlocks]
+  }
   const storeCachedResults = (result: unknown) => {
     const normalizedResult = normalizePublishedResultsToolResponse(result)
     if (normalizedResult) {
@@ -6107,6 +6232,7 @@ function buildExploreChatTools(
     } else {
       latestCachedResults = result
     }
+    updateArtifactBlocks(buildExploreArtifactScaffold(query, latestCachedResults))
     options?.onCachedResults?.(latestCachedResults)
   }
   const streamReferencedArtifact = (result: unknown, stage: string) => {
@@ -6119,6 +6245,7 @@ function buildExploreChatTools(
     const blocks = parseBlocks(Array.isArray(candidate.blocks) ? candidate.blocks : [])
     if (blocks.length === 0) return
 
+    updateArtifactBlocks(blocks)
     options.onArtifact(buildExploreArtifactData(
       'streaming',
       stage,
@@ -6221,12 +6348,7 @@ function buildExploreChatTools(
         if (artifact) {
           streamReferencedArtifact(artifact, 'Experiment setup ready')
         }
-        options?.onPlan?.(buildAskPlanData(query, {
-          status: 'active',
-          latestCachedResults,
-          latestStructuredQuery,
-          launch: options?.launch,
-        }))
+        emitPlan('active')
         options?.onStatus?.(buildAskStatus(
           'evidence',
           'done',
@@ -6260,14 +6382,10 @@ function buildExploreChatTools(
           'Loaded pre-computed results',
         )
         if (liveArtifact) {
+          updateArtifactBlocks(liveArtifact.response.blocks)
           options?.onArtifact?.(liveArtifact)
         }
-        options?.onPlan?.(buildAskPlanData(query, {
-          status: 'active',
-          latestCachedResults,
-          latestStructuredQuery,
-          launch: options?.launch,
-        }))
+        emitPlan('active')
         options?.onStatus?.(buildAskStatus(
           'evidence',
           'done',
@@ -6310,12 +6428,7 @@ function buildExploreChatTools(
         })
         latestStructuredQuery = resolvedQuery
         options?.onStructuredQuery?.(resolvedQuery)
-        options?.onPlan?.(buildAskPlanData(query, {
-          status: 'active',
-          latestCachedResults,
-          latestStructuredQuery: resolvedQuery,
-          launch: options?.launch,
-        }))
+        emitPlan('active')
         options?.onStatus?.(buildAskStatus(
           'plan',
           'active',
@@ -6324,7 +6437,11 @@ function buildExploreChatTools(
             ? `Using the ${resolvedQuery.view.title} surface with ${resolvedQuery.metrics.join(', ')} over ${resolvedQuery.dimensions.join(', ')} at the ${resolvedQuery.slot} snapshot.`
             : 'Interpreting the request as a safe structured query over the study-owned published Results catalog.',
         ))
-        const result = await executeExploreChatToolCall('query_results_table', {
+        const cachedExecution = latestStructuredExecution
+          && structuredResultsQueryPlanSignature(latestStructuredExecution.queryPlan) === structuredResultsQueryPlanSignature(resolvedQuery)
+          ? latestStructuredExecution
+          : null
+        const execution = cachedExecution ?? await executeStructuredResultsQuery({
           viewId: resolvedQuery.view?.id,
           dimensions: resolvedQuery.dimensions,
           metrics: resolvedQuery.metrics,
@@ -6335,21 +6452,23 @@ function buildExploreChatTools(
           limit: resolvedQuery.limit,
           title: input.title,
           queryHint: query,
+          queryPlan: resolvedQuery,
         })
+        latestStructuredExecution = execution
+        latestStructuredQuery = execution.queryPlan
+        updateArtifactBlocks(extractArtifactBlocks(execution.result))
+        const result = execution.result
         streamReferencedArtifact(result, 'Structured results query ready')
-        options?.onPlan?.(buildAskPlanData(query, {
-          status: 'active',
-          latestCachedResults,
-          latestStructuredQuery: resolvedQuery,
-          launch: options?.launch,
-        }))
+        emitPlan('active')
         options?.onStatus?.(buildAskStatus(
           'evidence',
           'done',
           'Structured query ready',
-          resolvedQuery.coerced
-            ? `A compact chart and table scaffold is ready. The query was narrowed to the ${resolvedQuery.view?.title ?? 'matched study surface'} to stay inside supported fields.`
-            : 'A compact chart and table scaffold is now available from the published Results catalog.',
+          execution.queryPlan.coerced
+            ? `A compact chart and table scaffold is ready. The query was narrowed to the ${execution.queryPlan.view?.title ?? 'matched study surface'} to stay inside supported fields.`
+            : cachedExecution
+              ? 'Reused the prefetched chart and table scaffold from the published Results catalog.'
+              : 'A compact chart and table scaffold is now available from the published Results catalog.',
         ))
         return result
       },
@@ -6371,14 +6490,9 @@ function buildExploreChatTools(
         }, {
           model: anthropicModel,
           cached: false,
-          canonicalBlocks: buildExploreArtifactScaffold(query, latestCachedResults),
+          canonicalBlocks: canonicalBlocksForRender(),
         })
-        options?.onPlan?.(buildAskPlanData(query, {
-          status: 'ready',
-          latestCachedResults,
-          latestStructuredQuery,
-          launch: options?.launch,
-        }))
+        emitPlan('ready')
         options?.onArtifact?.(buildExploreArtifactData('ready', 'Answer ready', response))
         options?.onStatus?.(buildAskStatus(
           'render',
@@ -6428,10 +6542,19 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
     let latestStructuredQuery: StructuredResultsQueryPlan | null =
       askLaunch?.routeHint === 'structured-results' || askLaunch?.structuredQuery
         ? resolveStructuredResultsQueryPlan({
-          queryHint: trimmedQuery,
-          ...(askLaunch?.structuredQuery ?? {}),
-        })
+            queryHint: trimmedQuery,
+            ...(askLaunch?.structuredQuery ?? {}),
+          })
         : null
+    const prefetchedStructuredExecution = latestStructuredQuery
+      ? await executeStructuredResultsQuery({
+          queryHint: trimmedQuery,
+          queryPlan: latestStructuredQuery,
+        })
+      : null
+    const prefetchedArtifactBlocks = prefetchedStructuredExecution
+      ? extractArtifactBlocks(prefetchedStructuredExecution.result)
+      : []
     const stream = createUIMessageStream<AskUIMessage>({
       originalMessages,
       execute: ({ writer }) => {
@@ -6460,6 +6583,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
         writePlan(buildAskPlanData(trimmedQuery, {
           status: 'planned',
           latestStructuredQuery,
+          latestArtifactBlocks: prefetchedArtifactBlocks,
           launch: askLaunch,
         }))
         writeStatus(buildAskStatus(
@@ -6468,9 +6592,37 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
           'Question received',
           'Using the active study package, current query, and recent session context to plan the answer.',
         ))
+        if (prefetchedStructuredExecution && prefetchedArtifactBlocks.length > 0) {
+          writeArtifact(buildExploreArtifactData(
+            'streaming',
+            'Structured query prefetched',
+            {
+              summary: prefetchedStructuredExecution.result.summary,
+              blocks: prefetchedArtifactBlocks,
+              followUps: [...prefetchedStructuredExecution.result.followUps],
+              model: anthropicModel,
+              cached: false,
+              provenance: {
+                source: 'generated',
+                label: 'Prefetched structured query',
+                detail: 'A typed structured Results launch was executed before the model began its final synthesis step.',
+                canonical: false,
+              },
+            },
+          ))
+          writeStatus(buildAskStatus(
+            'evidence',
+            'done',
+            'Structured query prefetched',
+            'A compact chart and table scaffold is already loaded from the pinned study surface.',
+          ))
+        }
 
         const exploreChatTools = buildExploreChatTools(trimmedQuery, {
           launch: askLaunch,
+          initialStructuredQuery: latestStructuredQuery,
+          initialArtifactBlocks: prefetchedArtifactBlocks,
+          initialStructuredExecution: prefetchedStructuredExecution,
           onCachedResults: (result) => {
             latestCachedResults = result
           },
@@ -6535,8 +6687,24 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
                 status: 'active',
                 latestCachedResults,
                 latestStructuredQuery: resolvedQuery,
+                latestArtifactBlocks: prefetchedArtifactBlocks,
                 launch: askLaunch,
               }))
+              if (prefetchedStructuredExecution && prefetchedArtifactBlocks.length > 0) {
+                writeStatus(buildAskStatus(
+                  'compose',
+                  'active',
+                  'Using prefetched structured scaffold',
+                  resolvedQuery.view
+                    ? `The ${resolvedQuery.view.title} surface is already loaded, so the assistant can move straight into composition.`
+                    : 'The pinned structured Results view is already loaded, so the assistant can move straight into composition.',
+                ))
+                return {
+                  activeTools: ['render_blocks'],
+                  toolChoice: { type: 'tool', toolName: 'render_blocks' },
+                  system: `${systemPrompt}${buildStructuredResultsPrefetchContext(prefetchedStructuredExecution)}\n\n## Finalization\nA typed structured Results query has already been executed for this question and the canonical chart/table scaffold is already loaded. Do not call query_results_table again unless you need a materially different supported query. Call render_blocks now and preserve the prefetched chart/table evidence as the backbone of the page.`,
+                }
+              }
               writeStatus(buildAskStatus(
                 'plan',
                 'active',
@@ -6753,6 +6921,7 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
     const MAX_TOOL_ROUNDS = 3
     let finalResponse: Anthropic.Messages.Message | null = null
     let latestCachedResults: unknown = null
+    let latestArtifactBlocks: Block[] = []
     const cacheCachedResult = (result: unknown) => {
       const normalizedResult = normalizePublishedResultsToolResponse(result)
       if (normalizedResult) {
@@ -6763,9 +6932,11 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
         )
         next.push(normalizedResult)
         latestCachedResults = next.slice(-3)
-        return
+      } else {
+        latestCachedResults = result
       }
-      latestCachedResults = result
+      const scaffoldFromResults = buildExploreArtifactScaffold(trimmedQuery, latestCachedResults)
+      latestArtifactBlocks = scaffoldFromResults.length > 0 ? scaffoldFromResults : latestArtifactBlocks
     }
 
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
@@ -6815,6 +6986,11 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
         const result = await executeExploreChatToolCall(call.name, call.input as Record<string, unknown>)
         if (call.name === 'query_cached_results') {
           cacheCachedResult(result)
+        } else {
+          const blocks = extractArtifactBlocks(result)
+          if (blocks.length > 0) {
+            latestArtifactBlocks = blocks
+          }
         }
         return {
           type: 'tool_result' as const,
@@ -6849,7 +7025,10 @@ app.post('/api/explore', exploreRateLimit, async (req, res) => {
       cached: finalResponse.usage?.cache_read_input_tokens
         ? finalResponse.usage.cache_read_input_tokens > 0
         : false,
-      canonicalBlocks: buildExploreArtifactScaffold(trimmedQuery, latestCachedResults),
+      canonicalBlocks: (() => {
+        const scaffoldFromResults = buildExploreArtifactScaffold(trimmedQuery, latestCachedResults)
+        return scaffoldFromResults.length > 0 ? scaffoldFromResults : latestArtifactBlocks
+      })(),
     })
     res.json(result)
   } catch (error) {
