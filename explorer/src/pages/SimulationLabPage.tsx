@@ -9,6 +9,10 @@ import { PrecomputedEvidenceSurface } from '../components/simulation/Precomputed
 import { SimConfigPanel } from '../components/simulation/SimConfigPanel'
 import { SimCopilotPanel } from '../components/simulation/SimCopilotPanel'
 import { SimJobStatus } from '../components/simulation/SimJobStatus'
+import {
+  SimulationModeToggle,
+  type SimulationSurfaceMode,
+} from '../components/simulation/SimulationModeToggle'
 import { SimResultsPanel } from '../components/simulation/SimResultsPanel'
 import { useSimulationArtifactView } from '../components/simulation/useSimulationArtifactView'
 import { useSimulationLabExports } from '../components/simulation/useSimulationLabExports'
@@ -22,7 +26,6 @@ import {
   paperScenarioLabels,
   readOrCreateClientId,
 } from '../components/simulation/simulation-constants'
-import { cn } from '../lib/cn'
 import { SPRING, SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../lib/theme'
 import type { TabId } from '../components/layout/TabNav'
 import {
@@ -34,8 +37,6 @@ import {
   PendingRunSurface,
 } from '../components/simulation/PendingRunSurface'
 
-type ResultsMode = 'evidence' | 'engine'
-
 export function SimulationLabPage({
   onOpenCommunityExploration,
   onTabChange,
@@ -46,7 +47,7 @@ export function SimulationLabPage({
   const routeState = useSimulationLabRouteState()
   const [config, setConfig] = useState<SimulationConfig>({ ...DEFAULT_CONFIG })
   const [clientId] = useState(readOrCreateClientId)
-  const [resultsMode, setResultsMode] = useState<ResultsMode>('evidence')
+  const [resultsMode, setResultsMode] = useState<SimulationSurfaceMode>('evidence')
   useSimulationJobStream(routeState.currentJobId)
 
   const updateConfig = <K extends keyof SimulationConfig>(key: K, value: SimulationConfig[K]) => {
@@ -130,62 +131,39 @@ export function SimulationLabPage({
 
   return (
     <div>
-      {/* ── Page header with mode switcher ── */}
-      <motion.div
-        className="relative mb-5 overflow-hidden rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6"
-        style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)' }}
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={SPRING}
-      >
-        <div className="pointer-events-none absolute -right-4 -top-2 h-28 w-28 opacity-20 sm:h-36 sm:w-36" aria-hidden="true">
-          <GlobeNetwork className="h-full w-full text-muted" />
-        </div>
-        <div className="relative flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <span className="h-2 w-2 shrink-0 rounded-full bg-accent dot-pulse" />
-              <h1 className="text-lg font-semibold tracking-tight text-text-primary">Simulation Results</h1>
+      {resultsMode === 'engine' && (
+        <motion.div
+          className="relative mb-5 overflow-hidden rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6"
+          style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)' }}
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={SPRING}
+        >
+          <div className="pointer-events-none absolute -right-4 -top-2 h-28 w-28 opacity-20 sm:h-36 sm:w-36" aria-hidden="true">
+            <GlobeNetwork className="h-full w-full text-muted" />
+          </div>
+          <div className="relative flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-accent dot-pulse" />
+                <h1 className="text-lg font-semibold tracking-tight text-text-primary">Simulation Results</h1>
+              </div>
+              <p className="mt-1.5 max-w-lg text-xs leading-relaxed text-muted">
+                Run your own experiments and compare geographic decentralization outcomes.
+              </p>
             </div>
-            <p className="mt-1.5 max-w-lg text-xs leading-relaxed text-muted">
-              {resultsMode === 'evidence'
-                ? 'Pre-computed results from published paper scenarios, rendered in our block style.'
-                : 'Run your own experiments and compare geographic decentralization outcomes.'}
-            </p>
-          </div>
 
-          <div className="flex shrink-0 items-center rounded-[14px] border border-black/[0.06] bg-[#F6F5F4] p-[3px] gap-[3px]" style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}>
-            <button
-              onClick={() => setResultsMode('evidence')}
-              className={cn(
-                'rounded-[11px] px-3.5 py-1.5 text-[11px] font-medium transition-all duration-150',
-                resultsMode === 'evidence'
-                  ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
-                  : 'text-stone-400 hover:text-stone-600',
-              )}
-            >
-              Evidence
-            </button>
-            <button
-              onClick={() => setResultsMode('engine')}
-              className={cn(
-                'rounded-[11px] px-3.5 py-1.5 text-[11px] font-medium transition-all duration-150',
-                resultsMode === 'engine'
-                  ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
-                  : 'text-stone-400 hover:text-stone-600',
-              )}
-            >
-              Engine
-            </button>
+            <SimulationModeToggle value={resultsMode} onChange={setResultsMode} />
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
 
       {/* ── Mode: Evidence — pre-computed published results ── */}
       {resultsMode === 'evidence' && (
         <PrecomputedEvidenceSurface
           catalogScriptUrl={routeState.researchCatalogScriptUrl}
           viewerBaseUrl={routeState.researchViewerBaseUrl}
+          onModeChange={setResultsMode}
         />
       )}
 
