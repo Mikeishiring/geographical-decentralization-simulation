@@ -30,6 +30,10 @@ import {
   type TaggedChartBlock,
 } from './EvidenceSurfacePanels'
 import { EvidenceMapSurface } from './EvidenceMapSurface'
+import {
+  SimulationModeToggle,
+  type SimulationSurfaceMode,
+} from './SimulationModeToggle'
 
 // ── Catalog loader ──────────────────────────────────────────────────────────
 
@@ -266,29 +270,33 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
   }, [catalog, onSelect])
 
   return (
-    <div className="space-y-1.5">
-      {/* Primary row: scenario dropdown + filter summary + customize toggle */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className={filterLabel}>Scenario</span>
-        {/* Scenario selector — styled native select for clean UX */}
-        <div className="relative">
-          <select
-            value={selectedEvaluation}
-            onChange={e => findAndSelect(e.target.value, selectedParadigm)}
-            className="appearance-none rounded-[12px] border border-black/[0.06] bg-white pl-3 pr-8 py-1.5 text-[11px] font-medium text-stone-800 cursor-pointer hover:border-stone-300 focus:border-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-200 transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-          >
-            {evaluations.map(evaluation => (
-              <option key={evaluation} value={evaluation}>{evaluation}</option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted" />
+    <div className="space-y-2.5">
+      <div className="grid gap-2 xl:grid-cols-[minmax(220px,260px)_minmax(0,1fr)_auto]">
+        <div className="rounded-[14px] border border-black/[0.06] bg-white px-3 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint">Scenario</div>
+          <div className="relative mt-1.5">
+            <select
+              value={selectedEvaluation}
+              onChange={e => findAndSelect(e.target.value, selectedParadigm)}
+              className="w-full appearance-none rounded-[11px] border border-black/[0.06] bg-[#FBFAF9] pl-3 pr-8 py-2 text-[11px] font-medium text-stone-800 cursor-pointer hover:border-stone-300 focus:border-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-200 transition-all duration-150"
+            >
+              {evaluations.map(evaluation => (
+                <option key={evaluation} value={evaluation}>{evaluation}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted" />
+          </div>
         </div>
 
-        {/* Cost chips — always visible when cost dimension exists */}
-        {hasCostDimension && (
-          <div className="flex items-center gap-1.5 rounded-full border border-black/[0.05] bg-[#FBFAF9] px-2 py-1">
-            <span className={filterLabel} title="ETH migration cost charged when a validator relocates between regions. Higher cost = stronger geographic lock-in.">Cost</span>
-            <div className="flex gap-1">
+        {hasCostDimension ? (
+          <div className="rounded-[14px] border border-black/[0.06] bg-white px-3 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className={filterLabel} title="ETH migration cost charged when a validator relocates between regions. Higher cost = stronger geographic lock-in.">
+                Migration cost
+              </span>
+              <span className="text-[10px] text-text-faint">Switch the paper assumption</span>
+            </div>
+            <div className="mt-1.5 flex flex-wrap gap-1">
               {costResults.map(({ result, cost }) => {
                 const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
                 const costTooltips: Record<string, string> = {
@@ -300,6 +308,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
                 return (
                   <button
                     key={result}
+                    type="button"
                     onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
                     title={costTooltips[formatCostLabel(cost)] ?? `Migration cost: ${formatCostLabel(cost)} ETH per relocation`}
                     className={cn(chipBase, 'tabular-nums', selectedResult === result ? chipActive : chipInactive)}
@@ -310,33 +319,37 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
               })}
             </div>
           </div>
-        )}
-
-        {/* Active filter summary pills — collapsed view */}
-        {hasSecondaryFilters && !filtersOpen && filterSummary.length > 0 && (
-          <div className="flex items-center gap-1.5">
-            {filterSummary.map(({ label, value }) => (
-              <FilterPill key={label} label={label} value={value} />
-            ))}
+        ) : (
+          <div className="rounded-[14px] border border-dashed border-black/[0.06] bg-[#FBFAF9] px-3 py-2 text-[11px] text-text-faint">
+            This scenario family exposes a single migration-cost assumption.
           </div>
         )}
 
-        {/* Customize toggle — only for paradigm/variant (cost is always shown) */}
-        {hasSecondaryFilters && (
+        {hasSecondaryFilters ? (
           <button
+            type="button"
             onClick={() => setFiltersOpen(prev => !prev)}
             className={cn(
-              'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors',
+              'inline-flex items-center justify-center gap-1.5 rounded-[14px] border px-3 py-2 text-[11px] font-medium transition-colors xl:min-w-[140px]',
               filtersOpen
                 ? 'border-accent/15 bg-accent/8 text-accent'
-                : 'border-black/[0.05] bg-[#F6F5F4] text-muted hover:border-stone-300 hover:bg-white hover:text-text-secondary',
+                : 'border-black/[0.06] bg-white text-muted hover:border-stone-300 hover:text-text-secondary',
             )}
           >
             <SlidersHorizontal className="h-3 w-3" />
-            <span className="hidden sm:inline">{filtersOpen ? 'Collapse' : 'Customize'}</span>
+            <span>{filtersOpen ? 'Hide filters' : 'More filters'}</span>
           </button>
-        )}
+        ) : null}
       </div>
+
+      {hasSecondaryFilters && !filtersOpen && filterSummary.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint">Active filters</span>
+          {filterSummary.map(({ label, value }) => (
+            <FilterPill key={label} label={label} value={value} />
+          ))}
+        </div>
+      )}
 
       {/* Secondary filters — collapsible tray */}
       <AnimatePresence>
@@ -348,7 +361,12 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
             transition={{ type: 'spring', stiffness: 400, damping: 32 }}
             className="overflow-hidden"
           >
-            <div className="mt-1.5 flex items-center gap-2.5 flex-wrap rounded-[16px] border border-black/[0.05] bg-[#FBFAF9] px-3 py-2.5">
+            <div className="rounded-[16px] border border-black/[0.05] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint">Expanded filters</span>
+                <span className="text-[10px] text-text-faint">Refine the paradigm or result variant without changing the atlas frame.</span>
+              </div>
+              <div className="flex items-center gap-2.5 flex-wrap">
               {/* Source paradigm */}
               {paradigms.length > 1 && (
                 <>
@@ -357,6 +375,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
                     {paradigms.map(paradigm => (
                       <button
                         key={paradigm}
+                        type="button"
                         onClick={() => findAndSelect(selectedEvaluation, paradigm)}
                         className={cn(chipBase, selectedParadigm === paradigm ? chipActive : chipInactive)}
                       >
@@ -376,6 +395,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
                     {otherResults.map(result => (
                       <button
                         key={result}
+                        type="button"
                         onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
                         className={cn(chipBase, selectedResult === result ? chipActive : chipInactive)}
                       >
@@ -385,6 +405,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
                   </div>
                 </>
               )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -428,9 +449,14 @@ function ScrollRevealBlock({ block }: { block: import('../../types/blocks').Bloc
 interface PrecomputedEvidenceSurfaceProps {
   readonly catalogScriptUrl: string
   readonly viewerBaseUrl: string
+  readonly onModeChange?: (mode: SimulationSurfaceMode) => void
 }
 
-export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: PrecomputedEvidenceSurfaceProps) {
+export function PrecomputedEvidenceSurface({
+  catalogScriptUrl,
+  viewerBaseUrl,
+  onModeChange,
+}: PrecomputedEvidenceSurfaceProps) {
   const { catalog, error: catalogError } = useResearchCatalog(catalogScriptUrl)
   const [selectedEntry, setSelectedEntry] = useState<ResearchDatasetEntry | null>(null)
   const [activeCategory, setActiveCategory] = useState<PlotCategory>('all')
@@ -521,33 +547,63 @@ export function PrecomputedEvidenceSurface({ catalogScriptUrl, viewerBaseUrl }: 
         animate={{ opacity: 1, y: 0 }}
         transition={SPRING}
       >
-        <div className="px-4 py-3 space-y-2">
-          {/* Title row with badges */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5">
-            <h2 className="text-xs font-semibold tracking-tight text-text-primary">
-              Geographical Decentralization Atlas
-            </h2>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="lab-chip bg-white/90 text-2xs">
-                {catalog.datasets.length} scenario{catalog.datasets.length !== 1 ? 's' : ''}
-              </span>
-              {totalSlots > 0 && (
-                <span className="lab-chip bg-white/90 text-2xs tabular-nums">
-                  {totalSlots.toLocaleString()} slots
+        <div className="px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-accent dot-pulse" />
+                <h2 className="text-lg font-semibold tracking-tight text-text-primary">
+                  Simulation Results
+                </h2>
+                <span className="rounded-full border border-accent/10 bg-accent/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-accent/85">
+                  Published atlas
                 </span>
-              )}
+              </div>
+              <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-muted">
+                Published scenarios, atlas controls, and evidence views are consolidated here so the result
+                surface reads like one product instead of stacked wrappers.
+              </p>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                <span className="lab-chip bg-white/90 text-2xs">
+                  {catalog.datasets.length} scenario{catalog.datasets.length !== 1 ? 's' : ''}
+                </span>
+                {totalSlots > 0 && (
+                  <span className="lab-chip bg-white/90 text-2xs tabular-nums">
+                    {totalSlots.toLocaleString()} slots
+                  </span>
+                )}
+                {selectedEntry && (
+                  <span className="lab-chip bg-white/90 text-2xs">
+                    {paradigmLabel(selectedEntry.paradigm)}
+                  </span>
+                )}
+              </div>
             </div>
+
+            <SimulationModeToggle
+              value="evidence"
+              onChange={next => onModeChange?.(next)}
+              className="self-start"
+            />
           </div>
 
-          {/* Inline filters */}
           {selectedEntry && (
-            <ScenarioSelector
-              catalog={catalog}
-              selectedEvaluation={selectedEntry.evaluation}
-              selectedParadigm={selectedEntry.paradigm}
-              selectedResult={selectedEntry.result}
-              onSelect={setSelectedEntry}
-            />
+            <div className="mt-4 rounded-[18px] border border-black/[0.05] bg-[#FBFAF9] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+              <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] text-text-faint">
+                <span className="font-semibold uppercase tracking-[0.1em] text-text-faint">Atlas controls</span>
+                <span className="rounded-full border border-black/[0.06] bg-white px-2 py-0.5 font-medium text-text-secondary">
+                  {selectedEntry.evaluation}
+                </span>
+                <span className="text-text-faint">Choose the paper slice, then inspect the geography and metrics below.</span>
+              </div>
+              <ScenarioSelector
+                catalog={catalog}
+                selectedEvaluation={selectedEntry.evaluation}
+                selectedParadigm={selectedEntry.paradigm}
+                selectedResult={selectedEntry.result}
+                onSelect={setSelectedEntry}
+              />
+            </div>
           )}
         </div>
       </motion.section>

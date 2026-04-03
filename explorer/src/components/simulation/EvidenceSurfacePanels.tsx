@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { formatNumber, paradigmLabel } from './simulation-constants'
-import { InteractiveInspector } from '../ui/InteractiveInspector'
 import {
   totalSlotsFromPayload,
   topRegionsForSlot,
@@ -366,12 +365,7 @@ function EvidenceKpiCard({
   const sparklineRef = useRef<HTMLDivElement | null>(null)
   const effectiveIndex = hoverIndex ?? Math.max(0, card.series.length - 1)
   const currentValue = card.series[effectiveIndex]
-  const startValue = card.series[0]
   const previousValue = card.series[Math.max(0, effectiveIndex - 1)]
-  const hoverRatio = card.series.length > 1
-    ? Math.round((effectiveIndex / Math.max(1, card.series.length - 1)) * 100)
-    : 100
-  const showInspector = hovered || hoverIndex != null
 
   const handleSparklinePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const width = sparklineRef.current?.getBoundingClientRect().width ?? 0
@@ -390,16 +384,49 @@ function EvidenceKpiCard({
         setHovered(false)
         setHoverIndex(null)
       }}
+      onFocus={() => setHovered(true)}
+      onBlur={() => {
+        setHovered(false)
+        setHoverIndex(null)
+      }}
       aria-pressed={active}
       className={cn(
-        'group relative overflow-hidden rounded-[18px] border border-black/[0.06] bg-white px-3.5 py-3 text-left transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(15,23,42,0.07)]',
-        active && 'border-stone-300 shadow-[0_10px_22px_rgba(15,23,42,0.08)]',
+        'group relative z-0 min-h-[176px] h-full overflow-visible rounded-[18px] border border-black/[0.06] bg-white px-3.5 py-3 text-left transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(15,23,42,0.07)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20',
+        active && 'z-10 border-stone-300 shadow-[0_10px_22px_rgba(15,23,42,0.08)]',
+        hovered && 'z-20',
       )}
       style={{
         backgroundImage: `linear-gradient(180deg, ${withAlpha(card.sparkColor, active ? 0.12 : 0.08)} 0%, rgba(255,255,255,0) 52%)`,
       }}
       title={`${card.detail} Click to filter ${card.linkedCategory} charts.`}
     >
+      <AnimatePresence initial={false}>
+        {hovered && hoverIndex == null ? (
+          <motion.div
+            className="pointer-events-none absolute inset-x-3 top-0 z-30 -translate-y-[calc(100%+10px)]"
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.98 }}
+            transition={SPRING_CRISP}
+          >
+            <div className="rounded-xl border border-black/[0.08] bg-white/98 px-3 py-2.5 shadow-[0_18px_34px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+              <div className="text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint">
+                {card.label}
+              </div>
+              <div className="mt-1 text-[11px] leading-relaxed text-text-secondary">
+                {card.detail}
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-2 text-[10px]">
+                <span className="text-text-faint">Hover the sparkline for slot details.</span>
+                <span className="rounded-full border border-black/[0.06] bg-[#FBFAF9] px-2 py-0.5 font-medium text-text-secondary">
+                  {card.linkedCategory}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
@@ -422,7 +449,7 @@ function EvidenceKpiCard({
         {card.sparkData.length > 1 ? (
           <div
             ref={sparklineRef}
-            className="relative rounded-[14px] border border-white/70 bg-white/80 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+            className="relative shrink-0 rounded-[14px] border border-white/70 bg-white/85 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
             onPointerMove={handleSparklinePointerMove}
             onPointerLeave={() => setHoverIndex(null)}
           >
@@ -435,56 +462,27 @@ function EvidenceKpiCard({
             <Sparkline data={card.sparkData} color={card.sparkColor} highlightIndex={hoverIndex != null && card.sparkData.length > 1 ? Math.round((hoverIndex / Math.max(1, card.series.length - 1)) * Math.max(0, card.sparkData.length - 1)) : null} />
           </div>
         ) : null}
-      </div>
+        </div>
 
-      <div className="mt-2 text-[11px] font-medium leading-[1.45] text-stone-700 line-clamp-2">
+      <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-faint">
+        {hoverIndex != null ? 'Slot inspection' : 'Run summary'}
+      </div>
+      <div className="mt-1 min-h-[2.5rem] text-[11px] font-medium leading-[1.45] text-stone-700 line-clamp-2">
         {hoverIndex != null
           ? `Inspecting slot ${(effectiveIndex + 1).toLocaleString()} of ${card.totalSlots.toLocaleString()}.`
           : card.insight}
       </div>
-      <div className="mt-1 flex items-center justify-between gap-2">
+      <div className="mt-1 flex items-end justify-between gap-2">
         <div className="min-w-0 text-[10px] text-stone-400 leading-snug line-clamp-2">
-          {hoverIndex != null ? card.detail : card.note}
+          {hoverIndex != null ? `${formatSignedSeriesDelta(currentValue, previousValue, card.formatSeriesValue)} vs previous slot.` : card.note}
         </div>
         <span className={cn(
           'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em]',
           active ? 'bg-stone-900 text-white' : 'bg-white/80 text-stone-500 ring-1 ring-black/[0.05]',
         )}>
-          {active ? 'Filtered' : 'Filter'}
+          {active ? 'Lens on' : 'Filter'}
         </span>
       </div>
-
-      <AnimatePresence initial={false}>
-        {showInspector && card.series.length > 0 ? (
-          <InteractiveInspector
-            eyebrow="Chart inspection"
-            title={`${card.label} at slot ${(effectiveIndex + 1).toLocaleString()}`}
-            subtitle={hoverIndex != null ? `${hoverRatio}% through the run.` : 'Hover the sparkline to inspect a slot-level reading.'}
-            hint={`${card.linkedCategory} lens`}
-            metrics={[
-              {
-                label: 'Value',
-                value: currentValue == null ? 'N/A' : card.formatSeriesValue(currentValue),
-                tone: 'accent',
-              },
-              {
-                label: 'Vs start',
-                value: formatSignedSeriesDelta(currentValue, startValue, card.formatSeriesValue),
-              },
-              {
-                label: 'Vs prev',
-                value: formatSignedSeriesDelta(currentValue, previousValue, card.formatSeriesValue),
-              },
-              {
-                label: 'Finish',
-                value: card.value,
-                tone: active ? 'accent' : 'default',
-              },
-            ]}
-            className="mt-3"
-          />
-        ) : null}
-      </AnimatePresence>
     </motion.button>
   )
 }
@@ -501,7 +499,7 @@ export function EvidenceKpiStrip({ payload, activeCategory, onCategoryChange }: 
 
   return (
     <motion.div
-      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2"
+      className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
       initial="hidden"
       animate="visible"
       variants={STAGGER_CONTAINER}
