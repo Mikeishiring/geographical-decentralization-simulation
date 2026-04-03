@@ -201,18 +201,36 @@ export interface StudyAssistantQueryView {
   readonly id: string
   readonly title: string
   readonly description: string
+  readonly surface?: 'leaderboard' | 'comparison-table' | 'parameter-sweep' | 'results-catalog'
   readonly prompts?: readonly string[]
   readonly aliases?: readonly string[]
   readonly dashboardIds?: readonly string[]
+  readonly bestFor?: readonly string[]
   readonly defaultDimensions?: readonly string[]
   readonly defaultMetrics?: readonly string[]
   readonly defaultOrderBy?: string
   readonly defaultOrder?: 'asc' | 'desc'
+  readonly defaultLimit?: number
   readonly filterPreset?: Readonly<{
     evaluation?: string
     paradigm?: string
     result?: string
   }>
+  readonly constraints?: Readonly<{
+    dimensions?: readonly string[]
+    metrics?: readonly string[]
+    orderBy?: readonly string[]
+    slots?: readonly ('initial' | 'final')[]
+    filters?: Readonly<{
+      evaluation?: readonly string[]
+      paradigm?: readonly string[]
+      result?: readonly string[]
+    }>
+  }>
+  readonly executionHints?: readonly Readonly<{
+    label: string
+    description: string
+  }>[]
 }
 
 export interface StudyAssistantConfig {

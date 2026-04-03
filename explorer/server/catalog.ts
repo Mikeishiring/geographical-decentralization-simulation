@@ -485,7 +485,8 @@ export function buildTools(): Anthropic.Messages.Tool[] {
       description:
         'Run a constrained structured query over the study-owned published Results catalog. ' +
         'Use this for ranking, list, table, sorted, or SQL-style questions about published result rows. ' +
-        'Prefer it when the user wants a compact tabular or leaderboard-like view rather than a single narrative comparison.',
+        'Prefer it when the user wants a compact tabular or leaderboard-like view rather than a single narrative comparison. ' +
+        'When a study-owned query view matches, stay inside its declared dimensions, metrics, sort keys, slots, and filter values.',
       input_schema: {
         type: 'object' as const,
         properties: {

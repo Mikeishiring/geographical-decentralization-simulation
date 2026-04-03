@@ -46,6 +46,20 @@ function capabilityStateClass(state: StudyAssistantCapability['state']): string 
   }
 }
 
+function querySurfaceLabel(surface: StudyAssistantQueryView['surface']): string {
+  switch (surface) {
+    case 'comparison-table':
+      return 'Comparison'
+    case 'parameter-sweep':
+      return 'Sweep'
+    case 'results-catalog':
+      return 'Catalog'
+    case 'leaderboard':
+    default:
+      return 'Leaderboard'
+  }
+}
+
 export function AskCapabilityPanel({
   capabilities,
   promptTips,
@@ -134,13 +148,18 @@ export function AskCapabilityPanel({
           </div>
           <div className="mt-3 grid gap-3 xl:grid-cols-2">
             {queryViews.map(view => {
-              const primaryPrompt = view.prompts?.[0]
+              const prompts = view.prompts?.slice(0, 2) ?? []
               return (
                 <div key={view.id} className="rounded-xl border border-rule bg-white/90 px-3.5 py-3 shadow-sm">
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="text-xs font-medium text-text-primary">
                       {view.title}
                     </div>
+                    {view.surface && (
+                      <div className="rounded-full border border-accent/15 bg-accent/[0.04] px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-accent">
+                        {querySurfaceLabel(view.surface)}
+                      </div>
+                    )}
                     <div className="rounded-full border border-rule bg-surface-active px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-text-faint">
                       {view.id}
                     </div>
@@ -148,34 +167,98 @@ export function AskCapabilityPanel({
                   <p className="mt-1 text-xs leading-5 text-muted">
                     {view.description}
                   </p>
-                  {(view.defaultMetrics?.length || view.defaultDimensions?.length) && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {view.defaultMetrics?.map(metric => (
-                        <span key={`${view.id}-${metric}`} className="rounded-full border border-accent/15 bg-accent/[0.04] px-2 py-0.5 text-11 text-accent">
-                          {metric}
-                        </span>
-                      ))}
-                      {view.defaultDimensions?.slice(0, 2).map(dimension => (
-                        <span key={`${view.id}-${dimension}`} className="rounded-full border border-rule bg-surface-active px-2 py-0.5 text-11 text-text-faint">
-                          {dimension}
+                  {view.bestFor?.length ? (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {view.bestFor.slice(0, 3).map(bestFor => (
+                        <span key={`${view.id}-${bestFor}`} className="rounded-full border border-rule bg-surface-active px-2 py-0.5 text-11 text-text-faint">
+                          {bestFor}
                         </span>
                       ))}
                     </div>
-                  )}
-                  {primaryPrompt && (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => onPromptSelect(primaryPrompt)}
-                      className={cn(
-                        'mt-3 rounded-full border px-3 py-1 text-11 font-medium transition-colors',
-                        busy
-                          ? 'cursor-not-allowed border-rule bg-surface-active text-muted'
-                          : 'border-accent/20 bg-white text-accent hover:border-accent/30 hover:bg-accent/[0.04]',
-                      )}
-                    >
-                      {primaryPrompt}
-                    </button>
+                  ) : null}
+                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    {(view.constraints?.metrics?.length || view.defaultMetrics?.length) && (
+                      <div className="rounded-lg border border-rule bg-surface-active/70 px-2.5 py-2">
+                        <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
+                          Metrics
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {(view.constraints?.metrics ?? view.defaultMetrics ?? []).slice(0, 4).map(metric => (
+                            <span key={`${view.id}-${metric}`} className="rounded-full border border-accent/15 bg-accent/[0.04] px-2 py-0.5 text-11 text-accent">
+                              {metric}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {(view.constraints?.dimensions?.length || view.defaultDimensions?.length) && (
+                      <div className="rounded-lg border border-rule bg-surface-active/70 px-2.5 py-2">
+                        <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
+                          Columns
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {(view.constraints?.dimensions ?? view.defaultDimensions ?? []).slice(0, 4).map(dimension => (
+                            <span key={`${view.id}-${dimension}`} className="rounded-full border border-rule bg-white px-2 py-0.5 text-11 text-text-faint">
+                              {dimension}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {view.constraints?.orderBy?.length && (
+                      <div className="rounded-lg border border-rule bg-surface-active/70 px-2.5 py-2">
+                        <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
+                          Sort keys
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {view.constraints.orderBy.slice(0, 4).map(orderBy => (
+                            <span key={`${view.id}-${orderBy}`} className="rounded-full border border-rule bg-white px-2 py-0.5 text-11 text-text-faint">
+                              {orderBy}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {view.constraints?.slots?.length && (
+                      <div className="rounded-lg border border-rule bg-surface-active/70 px-2.5 py-2">
+                        <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
+                          Snapshots
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {view.constraints.slots.map(slot => (
+                            <span key={`${view.id}-${slot}`} className="rounded-full border border-rule bg-white px-2 py-0.5 text-11 text-text-faint">
+                              {slot}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {view.executionHints?.length ? (
+                    <div className="mt-3 rounded-lg border border-accent/10 bg-accent/[0.03] px-2.5 py-2 text-11 leading-5 text-muted">
+                      <span className="font-medium text-text-primary">How to use it:</span>{' '}
+                      {view.executionHints[0]?.description}
+                    </div>
+                  ) : null}
+                  {prompts.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {prompts.map(prompt => (
+                        <button
+                          key={`${view.id}-${prompt}`}
+                          type="button"
+                          disabled={busy}
+                          onClick={() => onPromptSelect(prompt)}
+                          className={cn(
+                            'rounded-full border px-3 py-1 text-11 font-medium transition-colors',
+                            busy
+                              ? 'cursor-not-allowed border-rule bg-surface-active text-muted'
+                              : 'border-accent/20 bg-white text-accent hover:border-accent/30 hover:bg-accent/[0.04]',
+                          )}
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               )
