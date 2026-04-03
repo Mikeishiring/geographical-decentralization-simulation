@@ -315,6 +315,43 @@ async function main() {
       'Expected sweep workflow launches to reuse the direct adapter path instead of calling query_results_table again',
     )
 
+    const typedExperimentWorkflowStream = await captureAskLaunchStream(
+      'What should I run if I want to test 6 second slots with latency-misaligned sources under external block building from a homogeneous start and learn about fairness pressure?',
+      {
+        source: 'workflow',
+        workflowId: 'plan-a-bounded-run',
+        routeHint: 'simulation-config',
+        workflowValues: {
+          paradigm: 'SSP',
+          sourcePlacement: 'latency-misaligned',
+          distribution: 'homogeneous',
+          slotTime: '6',
+          goal: 'fairness-pressure',
+        },
+      },
+    )
+    assert(
+      typedExperimentWorkflowStream.body.includes('"workflowId":"plan-a-bounded-run"'),
+      'Expected typed experiment workflow launches to preserve the workflow id in the live plan',
+    )
+    assert(
+      typedExperimentWorkflowStream.stages.includes('Experiment plan prefetched'),
+      'Expected typed experiment workflow launches to stream the prefetched experiment scaffold before final render',
+    )
+    assert(
+      !typedExperimentWorkflowStream.body.includes('toolName":"build_simulation_config'),
+      'Expected typed experiment workflow launches to skip the extra build_simulation_config round-trip after prefetch',
+    )
+    assert(
+      typedExperimentWorkflowStream.body.includes('toolName":"render_blocks'),
+      'Expected typed experiment workflow launches to proceed directly to final render after prefetch',
+    )
+    assert(
+      typedExperimentWorkflowStream.body.includes('Exact simulation config')
+        || typedExperimentWorkflowStream.body.includes('Suggested exact run'),
+      'Expected typed experiment workflow launches to keep the exact configuration scaffold in the final artifact',
+    )
+
     const gammaSweepStream = await captureAskStream('Show me the higher-gamma runs sorted by final Gini.')
     assert(
       gammaSweepStream.body.includes('"queryView":{"id":"gamma-sweep"'),

@@ -42,6 +42,14 @@ export interface StructuredQueryPreview {
   readonly response: ExploreResponse
 }
 
+export interface AskLaunchPreview {
+  readonly route: AskPlanData['route']
+  readonly description: string
+  readonly queryView?: AskPlanData['queryView']
+  readonly queryRequest?: NonNullable<AskPlanData['queryRequest']>
+  readonly response: ExploreResponse
+}
+
 export interface ApiHealth {
   readonly status: 'ok'
   readonly tools: number
@@ -157,31 +165,47 @@ export async function previewStructuredQuery(
   query: string,
   launch: AskLaunchContext,
 ): Promise<StructuredQueryPreview> {
-  const res = await fetch(`${API_BASE}/explore/query-preview`, {
+  const preview = await previewAskLaunch(query, launch)
+  if (preview.route !== 'structured-results' || !preview.queryRequest) {
+    throw new Error('Structured query preview did not return a structured-results launch.')
+  }
+
+  return {
+    route: 'structured-results',
+    description: preview.description,
+    queryView: preview.queryView,
+    queryRequest: preview.queryRequest,
+    response: preview.response,
+  }
+}
+
+export async function previewAskLaunch(
+  query: string,
+  launch: AskLaunchContext,
+): Promise<AskLaunchPreview> {
+  const res = await fetch(`${API_BASE}/explore/launch-preview`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, launch }),
   })
 
   if (!res.ok) {
-    throw await parseApiError(res, 'Failed to preview structured study query')
+    throw await parseApiError(res, 'Failed to preview direct study launch')
   }
 
   const raw = await res.json().catch(() => ({})) as Record<string, unknown>
-  const queryRequest = raw.queryRequest && typeof raw.queryRequest === 'object'
-    ? raw.queryRequest as NonNullable<AskPlanData['queryRequest']>
-    : null
-  if (!queryRequest) {
-    throw new Error('Structured query preview did not return a resolved query request.')
-  }
 
   return {
-    route: 'structured-results',
+    route: raw.route && typeof raw.route === 'string'
+      ? raw.route as AskPlanData['route']
+      : 'hybrid',
     description: typeof raw.description === 'string' ? raw.description : '',
     queryView: raw.queryView && typeof raw.queryView === 'object'
       ? raw.queryView as AskPlanData['queryView']
       : undefined,
-    queryRequest,
+    queryRequest: raw.queryRequest && typeof raw.queryRequest === 'object'
+      ? raw.queryRequest as NonNullable<AskPlanData['queryRequest']>
+      : undefined,
     response: parseExploreResponse(
       raw.response && typeof raw.response === 'object'
         ? raw.response as Record<string, unknown>

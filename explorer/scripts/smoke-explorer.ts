@@ -280,6 +280,33 @@ async function main() {
       const workflowQueryRequest = workflowQueryPreview.queryRequest as Record<string, unknown> | undefined
       assert(workflowQueryRequest?.viewId === 'slot-time-runs', 'Expected direct workflow previews to resolve the selected study query view')
 
+      const experimentLaunchPreviewResponse = await fetch(`${BASE_URL}/api/explore/launch-preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: 'What should I run if I want to test 6 second slots with latency-misaligned sources under external block building from a homogeneous start and learn about fairness pressure?',
+          launch: {
+            source: 'workflow',
+            workflowId: 'plan-a-bounded-run',
+            routeHint: 'simulation-config',
+            workflowValues: {
+              paradigm: 'SSP',
+              sourcePlacement: 'latency-misaligned',
+              distribution: 'homogeneous',
+              slotTime: '6',
+              goal: 'fairness-pressure',
+            },
+          },
+        }),
+      })
+      await assertOk(experimentLaunchPreviewResponse, 'Expected /api/explore/launch-preview to resolve a typed experiment workflow launch')
+      const experimentLaunchPreview = await experimentLaunchPreviewResponse.json() as Record<string, unknown>
+      assert(experimentLaunchPreview.route === 'simulation-config', 'Expected direct experiment launch preview to advertise the simulation-config route')
+      const experimentLaunchResponse = experimentLaunchPreview.response as Record<string, unknown> | undefined
+      assert(Array.isArray(experimentLaunchResponse?.blocks) && experimentLaunchResponse.blocks.length > 0, 'Expected direct experiment launch preview to return a bounded config artifact scaffold')
+      const experimentLaunchProvenance = experimentLaunchResponse?.provenance as Record<string, unknown> | undefined
+      assert(experimentLaunchProvenance?.label === 'Study experiment adapter', 'Expected direct experiment launch preview to expose experiment adapter provenance')
+
       const readingResponse = await fetch(`${BASE_URL}/api/explore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

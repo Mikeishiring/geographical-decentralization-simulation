@@ -54,7 +54,10 @@ import type { StudyAssistantQueryView, StudyAssistantWorkflow, StudyDashboardSpe
 import type { AskArtifactData, AskPlanData, AskStatusData } from '../src/lib/ask-artifact.ts'
 import type { AskUIMessage } from '../src/lib/ask-chat.ts'
 import { askLaunchContextSchema, type AskLaunchContext } from '../src/lib/ask-launch.ts'
-import { resolveWorkflowStructuredQuery } from '../src/lib/workflow-launch.ts'
+import {
+  resolveWorkflowSimulationConfig,
+  resolveWorkflowStructuredQuery,
+} from '../src/lib/workflow-launch.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXPLORER_ROOT = path.resolve(__dirname, '..')
@@ -857,16 +860,18 @@ function findStudyWorkflow(workflowId: string | undefined): StudyAssistantWorkfl
 function resolveWorkflowLaunchContext(
   launch: AskLaunchContext | null | undefined,
 ): AskLaunchContext | null | undefined {
-  if (!launch?.workflowId || launch.structuredQuery) return launch
+  if (!launch?.workflowId) return launch
   const workflow = findStudyWorkflow(launch.workflowId)
   if (!workflow) return launch
-  const structuredQuery = resolveWorkflowStructuredQuery(workflow, launch.workflowValues)
-  if (!structuredQuery) return launch
+  const structuredQuery = launch.structuredQuery ?? resolveWorkflowStructuredQuery(workflow, launch.workflowValues)
+  const simulationConfig = launch.simulationConfig ?? resolveWorkflowSimulationConfig(workflow, launch.workflowValues)
+  if (!launch.routeHint && !structuredQuery && !simulationConfig) return launch
 
   return {
     ...launch,
     routeHint: launch.routeHint ?? workflow.routeHint,
     structuredQuery,
+    simulationConfig,
   }
 }
 
@@ -925,6 +930,25 @@ function buildAskLaunchPromptContext(launch: AskLaunchContext | null | undefined
 
     if (queryBits.length > 0) {
       parts.push(`Use this structured launch shape unless the user explicitly narrows further: ${queryBits.join('; ')}.`)
+    }
+  }
+
+  if (launch.simulationConfig) {
+    const configBits = [
+      launch.simulationConfig.base ? `base ${launch.simulationConfig.base}` : '',
+      launch.simulationConfig.preset ? `preset ${launch.simulationConfig.preset}` : '',
+      launch.simulationConfig.paradigm ? `paradigm ${launch.simulationConfig.paradigm}` : '',
+      launch.simulationConfig.distribution ? `distribution ${launch.simulationConfig.distribution}` : '',
+      launch.simulationConfig.sourcePlacement ? `source placement ${launch.simulationConfig.sourcePlacement}` : '',
+      typeof launch.simulationConfig.slotTime === 'number' ? `slot time ${launch.simulationConfig.slotTime}s` : '',
+      typeof launch.simulationConfig.validators === 'number' ? `validators ${launch.simulationConfig.validators}` : '',
+      typeof launch.simulationConfig.slots === 'number' ? `slots ${launch.simulationConfig.slots}` : '',
+      typeof launch.simulationConfig.migrationCost === 'number' ? `migration cost ${launch.simulationConfig.migrationCost}` : '',
+      typeof launch.simulationConfig.attestationThreshold === 'number' ? `gamma ${launch.simulationConfig.attestationThreshold}` : '',
+    ].filter(Boolean)
+
+    if (configBits.length > 0) {
+      parts.push(`Use this bounded experiment launch shape unless the user explicitly asks to change it: ${configBits.join('; ')}.`)
     }
   }
 
@@ -1694,9 +1718,13 @@ function coerceNumber(value: unknown): number | undefined {
 function buildSimulationConfig(input: Record<string, unknown>) {
   const presetName = typeof input.preset === 'string' ? input.preset : null
   const preset = presetName ? SIMULATION_PRESETS[presetName as keyof typeof SIMULATION_PRESETS] : undefined
+  const base = input.base === 'paper-reference' || input.paperReference === true
+    ? 'paper-reference'
+    : 'default'
 
   const candidate = {
     ...DEFAULT_SIMULATION_CONFIG,
+    ...(base === 'paper-reference' ? PAPER_REFERENCE_OVERRIDES : {}),
     ...(preset ?? {}),
   } satisfies SimulationRequest
 
@@ -1764,11 +1792,15 @@ function buildSimulationConfig(input: Record<string, unknown>) {
   return {
     valid: true,
     exactMode: true,
+    base,
     config: parsed,
     preset: presetName,
     attestationCutoffMs: attestationCutoffMs(parsed.slotTime),
     scenarioLabels: paperScenarioLabels(parsed),
     notes: [
+      base === 'paper-reference'
+        ? "This plan starts from the study's paper-reference defaults before applying your selected overrides."
+        : 'This plan starts from the exact-mode defaults before applying your selected overrides.',
       'Named study presets use the paper-style 10,000-slot and 0.002 ETH reference setup unless you override fields.',
       'It composes a run configuration only; it does not execute the simulation.',
       'Scenario labels are paper references for orientation, not standalone evidence.',
@@ -6232,6 +6264,70 @@ function buildStructuredQueryPreviewResponse(
   }
 }
 
+function buildSimulationConfigPreviewResponse(
+  result: unknown,
+): {
+  readonly route: 'simulation-config'
+  readonly description: string
+  readonly response: ExploreResponse
+} {
+  const artifact = buildSimulationConfigArtifact(result) ?? {
+    summary: 'Suggested run is outside exact bounds',
+    description: 'The requested configuration is outside the exact-mode bounds.',
+    blocks: [{
+      type: 'caveat' as const,
+      text: 'The requested configuration is outside the exact-mode bounds.',
+    }],
+    followUps: [
+      'Ask for a paper-like bounded variant of this run.',
+      'Ask which single parameter to change first and why.',
+    ],
+  }
+
+  return {
+    route: 'simulation-config',
+    description: artifact.description,
+    response: {
+      summary: artifact.summary,
+      blocks: [...artifact.blocks],
+      followUps: [...artifact.followUps],
+      model: 'study-experiment-adapter',
+      cached: true,
+      provenance: {
+        source: 'generated',
+        label: 'Study experiment adapter',
+        detail: 'Direct bounded execution over the study-owned experiment planning surface.',
+        canonical: true,
+      },
+    },
+  }
+}
+
+async function buildAskLaunchPreviewResponse(
+  query: string,
+  askLaunch: AskLaunchContext | null,
+): Promise<ReturnType<typeof buildStructuredQueryPreviewResponse> | ReturnType<typeof buildSimulationConfigPreviewResponse>> {
+  if (askLaunch?.structuredQuery || askLaunch?.routeHint === 'structured-results') {
+    const queryPlan = resolveStructuredResultsQueryPlan({
+      queryHint: query,
+      ...(askLaunch?.structuredQuery ?? {}),
+    })
+    const execution = await executeStructuredResultsQuery({
+      queryHint: query,
+      queryPlan,
+    })
+    return buildStructuredQueryPreviewResponse(execution)
+  }
+
+  if (askLaunch?.simulationConfig || askLaunch?.routeHint === 'simulation-config') {
+    return buildSimulationConfigPreviewResponse(
+      buildSimulationConfig((askLaunch?.simulationConfig ?? {}) as Record<string, unknown>),
+    )
+  }
+
+  throw new Error('A direct structured-results or simulation-config launch is required for launch previews.')
+}
+
 function buildExploreChatTools(
   query: string,
   options?: {
@@ -6577,16 +6673,48 @@ app.post('/api/explore/query-preview', exploreRateLimit, async (req, res) => {
       return
     }
 
-    const queryPlan = resolveStructuredResultsQueryPlan({
-      queryHint: trimmedQuery,
-      ...(askLaunch?.structuredQuery ?? {}),
-    })
-    const execution = await executeStructuredResultsQuery({
-      queryHint: trimmedQuery,
-      queryPlan,
-    })
+    const preview = await buildAskLaunchPreviewResponse(trimmedQuery, askLaunch)
+    if (preview.route !== 'structured-results') {
+      res.status(400).json({
+        error: 'A structured-results launch is required for direct study query previews.',
+      })
+      return
+    }
 
-    res.json(buildStructuredQueryPreviewResponse(execution))
+    res.json(preview)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    const status =
+      message.includes('rate_limit') ? 429 :
+      message.includes('authentication') ? 401 :
+      500
+    res.status(status).json({ error: message })
+  }
+})
+
+app.post('/api/explore/launch-preview', exploreRateLimit, async (req, res) => {
+  const { query, launch } = req.body as {
+    query?: string
+    launch?: AskLaunchContext
+  }
+  const trimmedQuery = typeof query === 'string' ? query.trim() : ''
+  if (trimmedQuery.length > MAX_EXPLORE_QUERY_LENGTH) {
+    res.status(400).json({
+      error: `Query is too long. Keep it under ${MAX_EXPLORE_QUERY_LENGTH} characters and narrow the ask.`,
+    })
+    return
+  }
+
+  try {
+    const askLaunch = normalizeAskLaunchContext(launch)
+    if (!askLaunch?.structuredQuery && !askLaunch?.simulationConfig && !askLaunch?.routeHint) {
+      res.status(400).json({
+        error: 'A direct structured-results or simulation-config launch is required for launch previews.',
+      })
+      return
+    }
+
+    res.json(await buildAskLaunchPreviewResponse(trimmedQuery, askLaunch))
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     const status =
@@ -6643,9 +6771,17 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
           queryPlan: latestStructuredQuery,
         })
       : null
+    const prefetchedSimulationArtifact =
+      askLaunch?.routeHint === 'simulation-config' || askLaunch?.simulationConfig
+        ? buildSimulationConfigArtifact(
+            buildSimulationConfig((askLaunch?.simulationConfig ?? {}) as Record<string, unknown>),
+          )
+        : null
     const prefetchedArtifactBlocks = prefetchedStructuredExecution
       ? extractArtifactBlocks(prefetchedStructuredExecution.result)
-      : []
+      : prefetchedSimulationArtifact
+        ? [...prefetchedSimulationArtifact.blocks]
+        : []
     const stream = createUIMessageStream<AskUIMessage>({
       originalMessages,
       execute: ({ writer }) => {
@@ -6707,6 +6843,30 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
             'Structured query prefetched',
             'A compact chart and table scaffold is already loaded from the pinned study surface.',
           ))
+        } else if (prefetchedSimulationArtifact && prefetchedArtifactBlocks.length > 0) {
+          writeArtifact(buildExploreArtifactData(
+            'streaming',
+            'Experiment plan prefetched',
+            {
+              summary: prefetchedSimulationArtifact.summary,
+              blocks: prefetchedArtifactBlocks,
+              followUps: [...prefetchedSimulationArtifact.followUps],
+              model: anthropicModel,
+              cached: false,
+              provenance: {
+                source: 'generated',
+                label: 'Prefetched experiment plan',
+                detail: 'A typed experiment launch was resolved into a bounded exact-mode configuration before the model began its final synthesis step.',
+                canonical: false,
+              },
+            },
+          ))
+          writeStatus(buildAskStatus(
+            'evidence',
+            'done',
+            'Experiment plan prefetched',
+            'A bounded exact-mode configuration is already loaded from the pinned study surface.',
+          ))
         }
 
         const exploreChatTools = buildExploreChatTools(trimmedQuery, {
@@ -6753,8 +6913,22 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
                 status: 'active',
                 latestCachedResults,
                 latestStructuredQuery,
+                latestArtifactBlocks: prefetchedArtifactBlocks,
                 launch: askLaunch,
               }))
+              if (prefetchedSimulationArtifact && prefetchedArtifactBlocks.length > 0) {
+                writeStatus(buildAskStatus(
+                  'compose',
+                  'active',
+                  'Using prefetched experiment plan',
+                  'The typed launch already resolved to a bounded exact-mode configuration, so the assistant can move straight into composition.',
+                ))
+                return {
+                  activeTools: ['render_blocks'],
+                  toolChoice: { type: 'tool', toolName: 'render_blocks' },
+                  system: `${systemPrompt}\n\n## Prefetched Experiment Plan\nA typed experiment launch already resolved to a bounded exact-mode configuration before reasoning began.\n- Summary: ${clampPromptSnippet(prefetchedSimulationArtifact.summary, 180)}\n- Detail: ${clampPromptSnippet(prefetchedSimulationArtifact.description, 220)}\n\n## Finalization\nA typed experiment launch already has a canonical config scaffold loaded. Do not call build_simulation_config again unless you need a materially different bounded run. Call render_blocks now and preserve the prefetched config table, setup rationale, and caveats as the backbone of the page.`,
+                }
+              }
               writeStatus(buildAskStatus(
                 'plan',
                 'active',
