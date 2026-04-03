@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { BarChart3, Compass, Database, FlaskConical, Loader2, Sparkles, Wand2 } from 'lucide-react'
 import type { AskLaunchContext } from '../../lib/ask-launch'
 import { cn } from '../../lib/cn'
-import { previewStructuredQuery, type StructuredQueryPreview } from '../../lib/api'
+import { previewAskLaunch, type AskLaunchPreview } from '../../lib/api'
 import { buildWorkflowLaunchContext, composeWorkflowPrompt } from '../../lib/workflow-launch'
 import { SPRING } from '../../lib/theme'
 import type {
@@ -65,6 +65,39 @@ function labelizeWorkflowValue(value: string): string {
     .replace(/\bmsp\b/gi, 'Local')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+function describeDirectLaunch(launch: AskLaunchContext | undefined): string | null {
+  if (launch?.structuredQuery?.viewId) {
+    return [
+      labelizeWorkflowValue(launch.structuredQuery.viewId),
+      launch.structuredQuery.metrics?.length
+        ? launch.structuredQuery.metrics.map(labelizeWorkflowValue).join(', ')
+        : null,
+      launch.structuredQuery.slot ?? null,
+    ].filter(Boolean).join(' · ')
+  }
+
+  if (launch?.simulationConfig) {
+    return [
+      launch.simulationConfig.paradigm === 'SSP'
+        ? 'External'
+        : launch.simulationConfig.paradigm === 'MSP'
+          ? 'Local'
+          : null,
+      typeof launch.simulationConfig.slotTime === 'number'
+        ? `${launch.simulationConfig.slotTime}s slots`
+        : null,
+      typeof launch.simulationConfig.sourcePlacement === 'string'
+        ? labelizeWorkflowValue(launch.simulationConfig.sourcePlacement)
+        : null,
+      typeof launch.simulationConfig.distribution === 'string'
+        ? labelizeWorkflowValue(launch.simulationConfig.distribution)
+        : null,
+    ].filter(Boolean).join(' · ')
+  }
+
+  return null
 }
 
 function matchesMode(
@@ -136,11 +169,16 @@ export function AskWorkflowDeck({
   })
   const workflowPreviewQueries = useQueries({
     queries: workflowCards.map(card => ({
-      queryKey: ['ask-workflow-preview', card.workflow.id, card.launchContext?.structuredQuery ?? null],
-      enabled: mode === 'ask' && Boolean(card.launchContext?.structuredQuery),
+      queryKey: [
+        'ask-workflow-preview',
+        card.workflow.id,
+        card.launchContext?.structuredQuery ?? null,
+        card.launchContext?.simulationConfig ?? null,
+      ],
+      enabled: Boolean(card.launchContext?.structuredQuery || card.launchContext?.simulationConfig),
       staleTime: 30_000,
-      placeholderData: (previousData: StructuredQueryPreview | undefined) => previousData,
-      queryFn: async () => previewStructuredQuery(card.resolvedPrompt, card.launchContext!),
+      placeholderData: (previousData: AskLaunchPreview | undefined) => previousData,
+      queryFn: async () => previewAskLaunch(card.resolvedPrompt, card.launchContext!),
     })),
   })
 
@@ -200,7 +238,7 @@ export function AskWorkflowDeck({
                       {workflow.badge}
                     </span>
                   )}
-                  {launchContext?.structuredQuery?.viewId && (
+                  {(launchContext?.structuredQuery?.viewId || launchContext?.simulationConfig) && (
                     <span className="rounded-full border border-accent/15 bg-white px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-accent">
                       Direct surface
                     </span>
@@ -281,19 +319,15 @@ export function AskWorkflowDeck({
                     <span className="font-medium text-text-primary">Launch preview:</span>{' '}
                     {resolvedPrompt}
                   </div>
-                  {launchContext?.structuredQuery?.viewId ? (
+                  {describeDirectLaunch(launchContext) ? (
                     <div className="mt-2 rounded-xl border border-rule bg-white/90 px-3 py-2 text-11 leading-5 text-muted">
-                      <span className="font-medium text-text-primary">Direct query:</span>{' '}
-                      {labelizeWorkflowValue(launchContext.structuredQuery.viewId)}
-                      {launchContext.structuredQuery.metrics?.length
-                        ? ` · ${launchContext.structuredQuery.metrics.map(labelizeWorkflowValue).join(', ')}`
-                        : ''}
-                      {launchContext.structuredQuery.slot
-                        ? ` · ${launchContext.structuredQuery.slot}`
-                        : ''}
+                      <span className="font-medium text-text-primary">
+                        {launchContext?.structuredQuery ? 'Direct query:' : 'Direct plan:'}
+                      </span>{' '}
+                      {describeDirectLaunch(launchContext)}
                     </div>
                   ) : null}
-                  {launchContext?.structuredQuery?.viewId ? (
+                  {(launchContext?.structuredQuery?.viewId || launchContext?.simulationConfig) ? (
                     <div className="mt-2 rounded-xl border border-rule bg-white/90 px-3 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
@@ -312,7 +346,9 @@ export function AskWorkflowDeck({
                       ) : preview ? (
                         <>
                           <div className="mt-2 text-xs font-medium text-text-primary">
-                            {preview.queryView?.title ?? labelizeWorkflowValue(launchContext.structuredQuery.viewId)}
+                            {preview.queryView?.title
+                              ?? describeDirectLaunch(launchContext)
+                              ?? workflow.title}
                           </div>
                           <div className="mt-1 text-11 leading-5 text-muted">
                             {preview.response.summary}
@@ -326,7 +362,7 @@ export function AskWorkflowDeck({
                               </span>
                             ))}
                           </div>
-                          {preview.queryRequest.notes.length ? (
+                          {preview.queryRequest?.notes?.length ? (
                             <div className="mt-2 text-11 leading-5 text-text-faint">
                               {preview.queryRequest.notes.join(' ')}
                             </div>

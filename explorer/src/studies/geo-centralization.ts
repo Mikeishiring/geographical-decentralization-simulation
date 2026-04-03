@@ -658,7 +658,14 @@ const ASSISTANT: StudyPackage['assistant'] = {
       title: 'Plan a bounded run',
       description: 'Translate a what-if into an exact-mode configuration without pretending the simulation already ran.',
       prompt: 'What should I run if I want to test shorter slots with misaligned sources?',
-      promptTemplate: 'What should I run if I want to test {{change}} and learn about {{goal}}?',
+      promptTemplate: 'What should I run if I want to test {{slotTime}} second slots with {{sourcePlacement}} sources under {{paradigm}} block building from a {{distribution}} start and learn about {{goal}}?',
+      simulationConfigTemplate: {
+        base: 'paper-reference',
+        paradigm: '{{paradigm}}',
+        distribution: '{{distribution}}',
+        sourcePlacement: '{{sourcePlacement}}',
+        slotTime: '{{slotTime}}',
+      },
       mode: 'experiment',
       routeHint: 'simulation-config',
       badge: 'Experiment',
@@ -666,29 +673,85 @@ const ASSISTANT: StudyPackage['assistant'] = {
       bestFor: ['What should I run?', 'Preset selection', 'Near-miss published scenarios'],
       fields: [
         {
-          id: 'change',
-          label: 'Change',
-          defaultValue: 'shorter-slots-misaligned',
+          id: 'paradigm',
+          label: 'Paradigm',
+          defaultValue: 'SSP',
           options: [
             {
-              value: 'shorter-slots-misaligned',
-              label: 'Shorter slots + misaligned sources',
-              promptValue: 'shorter slots with misaligned sources',
+              value: 'SSP',
+              label: 'External',
+              promptValue: 'external',
             },
             {
-              value: 'higher-gamma-local',
-              label: 'Higher gamma under local block building',
-              promptValue: 'higher gamma under local block building',
+              value: 'MSP',
+              label: 'Local',
+              promptValue: 'local',
+            },
+          ],
+        },
+        {
+          id: 'sourcePlacement',
+          label: 'Source placement',
+          defaultValue: 'latency-misaligned',
+          options: [
+            {
+              value: 'latency-misaligned',
+              label: 'Latency-misaligned',
+              promptValue: 'latency-misaligned',
             },
             {
-              value: 'aligned-external',
-              label: 'Aligned sources under external block building',
-              promptValue: 'latency-aligned sources under external block building',
+              value: 'latency-aligned',
+              label: 'Latency-aligned',
+              promptValue: 'latency-aligned',
             },
             {
-              value: 'heterogeneous-start',
-              label: 'Heterogeneous validator start',
-              promptValue: 'a heterogeneous validator start',
+              value: 'homogeneous',
+              label: 'Homogeneous',
+              promptValue: 'homogeneous',
+            },
+          ],
+        },
+        {
+          id: 'distribution',
+          label: 'Start distribution',
+          defaultValue: 'homogeneous',
+          options: [
+            {
+              value: 'homogeneous',
+              label: 'Homogeneous',
+              promptValue: 'homogeneous',
+            },
+            {
+              value: 'heterogeneous',
+              label: 'Heterogeneous',
+              promptValue: 'heterogeneous',
+            },
+            {
+              value: 'homogeneous-gcp',
+              label: 'Equal per-GCP',
+              promptValue: 'equal per-GCP',
+            },
+          ],
+        },
+        {
+          id: 'slotTime',
+          label: 'Slot time',
+          defaultValue: '6',
+          options: [
+            {
+              value: '6',
+              label: '6 seconds',
+              promptValue: '6',
+            },
+            {
+              value: '8',
+              label: '8 seconds',
+              promptValue: '8',
+            },
+            {
+              value: '12',
+              label: '12 seconds',
+              promptValue: '12',
             },
           ],
         },

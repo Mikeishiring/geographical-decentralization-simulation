@@ -210,6 +210,7 @@ export interface StudyAssistantWorkflow {
   readonly prompt: string
   readonly promptTemplate?: string
   readonly structuredQueryTemplate?: StudyAssistantStructuredQueryTemplate
+  readonly simulationConfigTemplate?: StudyAssistantSimulationConfigTemplate
   readonly mode?: StudyAssistantMode
   readonly routeHint?: StudyAssistantRouteHint
   readonly badge?: string
@@ -231,6 +232,20 @@ export interface StudyAssistantStructuredQueryTemplate {
   readonly orderBy?: string
   readonly order?: 'asc' | 'desc'
   readonly limit?: number
+}
+
+export interface StudyAssistantSimulationConfigTemplate {
+  readonly base?: 'default' | 'paper-reference'
+  readonly preset?: string
+  readonly paradigm?: 'SSP' | 'MSP' | string
+  readonly distribution?: StudySimulationConfig['distribution'] | string
+  readonly sourcePlacement?: StudySimulationConfig['sourcePlacement'] | string
+  readonly validators?: number | string
+  readonly slots?: number | string
+  readonly migrationCost?: number | string
+  readonly attestationThreshold?: number | string
+  readonly slotTime?: StudySimulationConfig['slotTime'] | string
+  readonly seed?: number | string
 }
 
 export interface StudyAssistantWorkflowFieldOption {

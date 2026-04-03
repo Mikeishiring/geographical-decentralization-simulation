@@ -51,6 +51,22 @@ export function composeWorkflowPrompt(
   return composed && composed.length > 0 ? composed : workflow.prompt
 }
 
+function resolveRawTemplateValue(
+  workflow: StudyAssistantWorkflow,
+  template: string | number | undefined,
+  selections: WorkflowSelectionValues,
+): string | number | undefined {
+  if (typeof template === 'number') return template
+
+  const resolved = interpolateWorkflowTemplate(workflow, template, selections, 'raw')?.trim()
+  if (!resolved) return undefined
+  if (/^-?\d+(\.\d+)?$/.test(resolved)) {
+    const parsed = Number(resolved)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return resolved
+}
+
 export function resolveWorkflowStructuredQuery(
   workflow: StudyAssistantWorkflow,
   selections: WorkflowSelectionValues,
@@ -89,12 +105,60 @@ export function resolveWorkflowStructuredQuery(
   }
 }
 
+export function resolveWorkflowSimulationConfig(
+  workflow: StudyAssistantWorkflow,
+  selections: WorkflowSelectionValues,
+): AskLaunchContext['simulationConfig'] | undefined {
+  const template = workflow.simulationConfigTemplate
+  if (!template) return undefined
+
+  const pickString = (value: string | number | undefined): string | undefined =>
+    typeof value === 'string' && value.trim().length > 0 ? value : undefined
+  const pickNumber = (value: string | number | undefined): number | undefined =>
+    typeof value === 'number' && Number.isFinite(value) ? value : undefined
+
+  const resolvedBase = resolveRawTemplateValue(workflow, template.base, selections)
+  const resolvedSlotTime = resolveRawTemplateValue(workflow, template.slotTime, selections)
+
+  return {
+    base: resolvedBase === 'default' || resolvedBase === 'paper-reference' ? resolvedBase : undefined,
+    preset: pickString(resolveRawTemplateValue(workflow, template.preset, selections)),
+    paradigm: resolveRawTemplateValue(workflow, template.paradigm, selections) === 'MSP' ? 'MSP'
+      : resolveRawTemplateValue(workflow, template.paradigm, selections) === 'SSP' ? 'SSP'
+      : undefined,
+    distribution: (() => {
+      const value = resolveRawTemplateValue(workflow, template.distribution, selections)
+      return value === 'homogeneous'
+        || value === 'homogeneous-gcp'
+        || value === 'heterogeneous'
+        || value === 'random'
+        ? value
+        : undefined
+    })(),
+    sourcePlacement: (() => {
+      const value = resolveRawTemplateValue(workflow, template.sourcePlacement, selections)
+      return value === 'homogeneous'
+        || value === 'latency-aligned'
+        || value === 'latency-misaligned'
+        ? value
+        : undefined
+    })(),
+    validators: pickNumber(resolveRawTemplateValue(workflow, template.validators, selections)),
+    slots: pickNumber(resolveRawTemplateValue(workflow, template.slots, selections)),
+    migrationCost: pickNumber(resolveRawTemplateValue(workflow, template.migrationCost, selections)),
+    attestationThreshold: pickNumber(resolveRawTemplateValue(workflow, template.attestationThreshold, selections)),
+    slotTime: resolvedSlotTime === 6 || resolvedSlotTime === 8 || resolvedSlotTime === 12 ? resolvedSlotTime : undefined,
+    seed: pickNumber(resolveRawTemplateValue(workflow, template.seed, selections)),
+  }
+}
+
 export function buildWorkflowLaunchContext(
   workflow: StudyAssistantWorkflow,
   selections: WorkflowSelectionValues,
 ): AskLaunchContext | undefined {
   const structuredQuery = resolveWorkflowStructuredQuery(workflow, selections)
-  if (!workflow.routeHint && !workflow.id && !structuredQuery) return undefined
+  const simulationConfig = resolveWorkflowSimulationConfig(workflow, selections)
+  if (!workflow.routeHint && !workflow.id && !structuredQuery && !simulationConfig) return undefined
 
   return {
     source: 'workflow',
@@ -102,5 +166,6 @@ export function buildWorkflowLaunchContext(
     workflowValues: selections ? { ...selections } : undefined,
     routeHint: workflow.routeHint,
     structuredQuery,
+    simulationConfig,
   }
 }
