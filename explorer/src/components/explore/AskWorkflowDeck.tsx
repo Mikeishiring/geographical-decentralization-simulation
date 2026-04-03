@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useQueries } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { BarChart3, Compass, Database, FlaskConical, Sparkles, Wand2 } from 'lucide-react'
+import { BarChart3, Compass, Database, FlaskConical, Loader2, Sparkles, Wand2 } from 'lucide-react'
 import type { AskLaunchContext } from '../../lib/ask-launch'
 import { cn } from '../../lib/cn'
+import { previewStructuredQuery, type StructuredQueryPreview } from '../../lib/api'
+import { buildWorkflowLaunchContext, composeWorkflowPrompt } from '../../lib/workflow-launch'
 import { SPRING } from '../../lib/theme'
 import type {
   StudyAssistantMode,
@@ -54,6 +57,16 @@ function routeLabel(routeHint: StudyAssistantWorkflow['routeHint']): string {
   }
 }
 
+function labelizeWorkflowValue(value: string): string {
+  return value
+    .replace(/_/g, ' ')
+    .replace(/-/g, ' ')
+    .replace(/\bssp\b/gi, 'External')
+    .replace(/\bmsp\b/gi, 'Local')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function matchesMode(
   workflow: StudyAssistantWorkflow,
   mode: Exclude<StudyAssistantMode, 'both'>,
@@ -95,20 +108,6 @@ function syncWorkflowSelections(
   return next
 }
 
-function composeWorkflowPrompt(
-  workflow: StudyAssistantWorkflow,
-  selections: Record<string, string> | undefined,
-): string {
-  if (!workflow.promptTemplate || !workflow.fields?.length) return workflow.prompt
-
-  return workflow.fields.reduce((prompt, field) => {
-    const selectedValue = selections?.[field.id] ?? field.defaultValue ?? field.options[0]?.value ?? ''
-    const option = field.options.find(candidate => candidate.value === selectedValue)
-    const replacement = option?.promptValue ?? option?.label ?? selectedValue
-    return prompt.replaceAll(`{{${field.id}}}`, replacement)
-  }, workflow.promptTemplate)
-}
-
 export function AskWorkflowDeck({
   workflows,
   mode,
@@ -125,6 +124,25 @@ export function AskWorkflowDeck({
   }, [mode, workflows])
 
   if (visibleWorkflows.length === 0) return null
+
+  const workflowCards = visibleWorkflows.map(workflow => {
+    const resolvedPrompt = composeWorkflowPrompt(workflow, selections[workflow.id])
+    const launchContext = buildWorkflowLaunchContext(workflow, selections[workflow.id])
+    return {
+      workflow,
+      resolvedPrompt,
+      launchContext,
+    }
+  })
+  const workflowPreviewQueries = useQueries({
+    queries: workflowCards.map(card => ({
+      queryKey: ['ask-workflow-preview', card.workflow.id, card.launchContext?.structuredQuery ?? null],
+      enabled: mode === 'ask' && Boolean(card.launchContext?.structuredQuery),
+      staleTime: 30_000,
+      placeholderData: (previousData: StructuredQueryPreview | undefined) => previousData,
+      queryFn: async () => previewStructuredQuery(card.resolvedPrompt, card.launchContext!),
+    })),
+  })
 
   return (
     <div className="rounded-2xl border border-rule bg-white px-5 py-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
@@ -146,26 +164,18 @@ export function AskWorkflowDeck({
       </div>
 
       <div className="mt-4 grid gap-3 xl:grid-cols-3 md:grid-cols-2">
-        {visibleWorkflows.map((workflow, index) => {
+        {workflowCards.map(({ workflow, resolvedPrompt, launchContext }, index) => {
           const Icon = routeIcon(workflow.routeHint)
-          const resolvedPrompt = composeWorkflowPrompt(workflow, selections[workflow.id])
-          const launchContext: AskLaunchContext | undefined = workflow.routeHint
-            ? {
-                source: 'workflow',
-                workflowId: workflow.id,
-                workflowValues: selections[workflow.id] ? { ...selections[workflow.id] } : undefined,
-                routeHint: workflow.routeHint,
-              }
-            : workflow.id
-              ? {
-                  source: 'workflow',
-                  workflowId: workflow.id,
-                  workflowValues: selections[workflow.id] ? { ...selections[workflow.id] } : undefined,
-                }
-              : undefined
           const isPromptActive = normalizePrompt(activePrompt) === normalizePrompt(resolvedPrompt)
           const isRouteActive = !isPromptActive && workflow.routeHint != null && workflow.routeHint === activeRoute
           const isActive = isPromptActive || isRouteActive
+          const previewQuery = workflowPreviewQueries[index]
+          const preview = previewQuery?.data
+          const previewLabel = previewQuery?.isLoading && !preview
+            ? 'Loading preview'
+            : previewQuery?.isFetching
+              ? 'Refreshing preview'
+              : 'Direct preview ready'
 
           return (
             <motion.div
@@ -188,6 +198,11 @@ export function AskWorkflowDeck({
                   {workflow.badge && (
                     <span className="rounded-full border border-accent/15 bg-white px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-accent">
                       {workflow.badge}
+                    </span>
+                  )}
+                  {launchContext?.structuredQuery?.viewId && (
+                    <span className="rounded-full border border-accent/15 bg-white px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-accent">
+                      Direct surface
                     </span>
                   )}
                   <span className="rounded-full border border-rule bg-white px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-text-faint">
@@ -266,6 +281,68 @@ export function AskWorkflowDeck({
                     <span className="font-medium text-text-primary">Launch preview:</span>{' '}
                     {resolvedPrompt}
                   </div>
+                  {launchContext?.structuredQuery?.viewId ? (
+                    <div className="mt-2 rounded-xl border border-rule bg-white/90 px-3 py-2 text-11 leading-5 text-muted">
+                      <span className="font-medium text-text-primary">Direct query:</span>{' '}
+                      {labelizeWorkflowValue(launchContext.structuredQuery.viewId)}
+                      {launchContext.structuredQuery.metrics?.length
+                        ? ` · ${launchContext.structuredQuery.metrics.map(labelizeWorkflowValue).join(', ')}`
+                        : ''}
+                      {launchContext.structuredQuery.slot
+                        ? ` · ${launchContext.structuredQuery.slot}`
+                        : ''}
+                    </div>
+                  ) : null}
+                  {launchContext?.structuredQuery?.viewId ? (
+                    <div className="mt-2 rounded-xl border border-rule bg-white/90 px-3 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
+                          Adapter preview
+                        </div>
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-surface-active px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-text-faint">
+                          {previewQuery?.isLoading && !preview ? <Loader2 className="h-3 w-3 animate-spin" /> : <Database className="h-3 w-3" />}
+                          {previewLabel}
+                        </div>
+                      </div>
+                      {previewQuery?.isLoading && !preview ? (
+                        <div className="mt-2 space-y-2">
+                          <div className="h-3 w-2/3 animate-pulse rounded-full bg-accent/10" />
+                          <div className="h-3 w-1/2 animate-pulse rounded-full bg-accent/10" />
+                        </div>
+                      ) : preview ? (
+                        <>
+                          <div className="mt-2 text-xs font-medium text-text-primary">
+                            {preview.queryView?.title ?? labelizeWorkflowValue(launchContext.structuredQuery.viewId)}
+                          </div>
+                          <div className="mt-1 text-11 leading-5 text-muted">
+                            {preview.response.summary}
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {preview.response.blocks.slice(0, 2).map((block, blockIndex) => (
+                              <span key={`${workflow.id}-preview-${block.type}-${blockIndex}`} className="rounded-full border border-accent/15 bg-accent/[0.04] px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-accent">
+                                {'title' in block && typeof block.title === 'string' && block.title.trim().length > 0
+                                  ? block.title
+                                  : block.type}
+                              </span>
+                            ))}
+                          </div>
+                          {preview.queryRequest.notes.length ? (
+                            <div className="mt-2 text-11 leading-5 text-text-faint">
+                              {preview.queryRequest.notes.join(' ')}
+                            </div>
+                          ) : null}
+                        </>
+                      ) : previewQuery?.error ? (
+                        <div className="mt-2 text-11 leading-5 text-rose-700">
+                          {(previewQuery.error as Error).message}
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-11 leading-5 text-muted">
+                          Launch this workflow to load the study-owned surface directly.
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 

@@ -259,6 +259,27 @@ async function main() {
       const directQueryProvenance = directQueryResponse?.provenance as Record<string, unknown> | undefined
       assert(directQueryProvenance?.label === 'Study query adapter', 'Expected direct structured query preview to expose adapter provenance')
 
+      const workflowQueryPreviewResponse = await fetch(`${BASE_URL}/api/explore/query-preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: 'Show me the shorter-slot runs sorted by final proposal time.',
+          launch: {
+            source: 'workflow',
+            workflowId: 'inspect-a-sweep',
+            routeHint: 'structured-results',
+            workflowValues: {
+              family: 'slot-time-runs',
+              metric: 'proposal_times',
+            },
+          },
+        }),
+      })
+      await assertOk(workflowQueryPreviewResponse, 'Expected /api/explore/query-preview to resolve a structured workflow launch')
+      const workflowQueryPreview = await workflowQueryPreviewResponse.json() as Record<string, unknown>
+      const workflowQueryRequest = workflowQueryPreview.queryRequest as Record<string, unknown> | undefined
+      assert(workflowQueryRequest?.viewId === 'slot-time-runs', 'Expected direct workflow previews to resolve the selected study query view')
+
       const readingResponse = await fetch(`${BASE_URL}/api/explore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

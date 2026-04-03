@@ -209,12 +209,28 @@ export interface StudyAssistantWorkflow {
   readonly description: string
   readonly prompt: string
   readonly promptTemplate?: string
+  readonly structuredQueryTemplate?: StudyAssistantStructuredQueryTemplate
   readonly mode?: StudyAssistantMode
   readonly routeHint?: StudyAssistantRouteHint
   readonly badge?: string
   readonly outputs?: readonly string[]
   readonly bestFor?: readonly string[]
   readonly fields?: readonly StudyAssistantWorkflowField[]
+}
+
+export interface StudyAssistantStructuredQueryTemplate {
+  readonly viewId?: string
+  readonly dimensions?: readonly string[]
+  readonly metrics?: readonly string[]
+  readonly filters?: Readonly<{
+    evaluation?: string
+    paradigm?: string
+    result?: string
+  }>
+  readonly slot?: 'initial' | 'final' | string
+  readonly orderBy?: string
+  readonly order?: 'asc' | 'desc'
+  readonly limit?: number
 }
 
 export interface StudyAssistantWorkflowFieldOption {

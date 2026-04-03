@@ -54,6 +54,7 @@ import type { StudyAssistantQueryView, StudyAssistantWorkflow, StudyDashboardSpe
 import type { AskArtifactData, AskPlanData, AskStatusData } from '../src/lib/ask-artifact.ts'
 import type { AskUIMessage } from '../src/lib/ask-chat.ts'
 import { askLaunchContextSchema, type AskLaunchContext } from '../src/lib/ask-launch.ts'
+import { resolveWorkflowStructuredQuery } from '../src/lib/workflow-launch.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXPLORER_ROOT = path.resolve(__dirname, '..')
@@ -851,6 +852,22 @@ function buildExploreSimulationPlanningModeContext(query: string): string {
 function findStudyWorkflow(workflowId: string | undefined): StudyAssistantWorkflow | null {
   if (!workflowId) return null
   return ACTIVE_STUDY.assistant.workflows?.find(workflow => workflow.id === workflowId) ?? null
+}
+
+function resolveWorkflowLaunchContext(
+  launch: AskLaunchContext | null | undefined,
+): AskLaunchContext | null | undefined {
+  if (!launch?.workflowId || launch.structuredQuery) return launch
+  const workflow = findStudyWorkflow(launch.workflowId)
+  if (!workflow) return launch
+  const structuredQuery = resolveWorkflowStructuredQuery(workflow, launch.workflowValues)
+  if (!structuredQuery) return launch
+
+  return {
+    ...launch,
+    routeHint: launch.routeHint ?? workflow.routeHint,
+    structuredQuery,
+  }
 }
 
 function buildWorkflowLaunchInputs(
@@ -5825,7 +5842,7 @@ function normalizeExploreHistory(
 
 function normalizeAskLaunchContext(input: unknown): AskLaunchContext | null {
   const parsed = askLaunchContextSchema.safeParse(input)
-  return parsed.success ? parsed.data : null
+  return parsed.success ? (resolveWorkflowLaunchContext(parsed.data) ?? null) : null
 }
 
 function extractTextFromUiMessage(message: UIMessage | undefined): string {
