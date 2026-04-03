@@ -3,9 +3,30 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
 import type { ChartBlock as ChartBlockType } from '../../types/blocks'
 import { BlockEmptyState } from './BlockEmptyState'
+import { InteractiveInspector } from '../ui/InteractiveInspector'
 
 interface ChartBlockProps {
   block: ChartBlockType
+}
+
+function formatChartValue(value: number, unit?: string): string {
+  const abs = Math.abs(value)
+  const digits = abs >= 100 ? 0 : abs >= 10 ? 1 : abs >= 1 ? 2 : 3
+  return `${value.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: digits,
+  })}${unit ?? ''}`
+}
+
+function formatSignedChartDelta(
+  current: number | null,
+  baseline: number | null,
+  unit?: string,
+): string {
+  if (current == null || baseline == null) return 'N/A'
+  const delta = current - baseline
+  const prefix = delta > 0 ? '+' : ''
+  return `${prefix}${formatChartValue(delta, unit)}`
 }
 
 export function ChartBlock({ block }: ChartBlockProps) {
@@ -199,28 +220,46 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
       {/* Hover tooltip — spring entrance */}
       <AnimatePresence>
         {hoveredPoint && (
-          <motion.div
-            className="mt-2 flex gap-4 text-xs text-muted"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 2 }}
-            transition={CHART.tooltipSpring}
-          >
-            <span>
-              <span className="text-text-primary font-medium tabular-nums">{hoveredPoint.label}</span>
-              {' '}{hoveredPoint.value}{unit ?? ''}
-            </span>
-          </motion.div>
+          <InteractiveInspector
+            eyebrow="Point inspection"
+            title={hoveredPoint.label}
+            subtitle="Hover across the line to compare this point against the opening and the latest value."
+            hint="Line chart"
+            metrics={[
+              {
+                label: 'Value',
+                value: formatChartValue(hoveredPoint.value, unit),
+                tone: 'accent',
+              },
+              {
+                label: 'Vs start',
+                value: formatSignedChartDelta(hoveredPoint.value, points[0]?.value ?? null, unit),
+              },
+              {
+                label: 'Vs prev',
+                value: formatSignedChartDelta(
+                  hoveredPoint.value,
+                  hoverIdx != null && hoverIdx > 0 ? points[hoverIdx - 1]?.value ?? null : hoveredPoint.value,
+                  unit,
+                ),
+              },
+              {
+                label: 'Peak',
+                value: highestPoint ? `${highestPoint.label} · ${formatChartValue(highestPoint.value, unit)}` : 'N/A',
+              },
+            ]}
+            className="mt-3"
+          />
         )}
       </AnimatePresence>
 
       {!hoveredPoint && (
         <div className="mt-2 flex gap-4 text-xs text-muted">
           {highestPoint && (
-            <span>Peak: <span className="text-text-primary font-medium tabular-nums">{highestPoint.label} {highestPoint.value}{unit ?? ''}</span></span>
+            <span>Peak: <span className="text-text-primary font-medium tabular-nums">{highestPoint.label} {formatChartValue(highestPoint.value, unit)}</span></span>
           )}
           {latestPoint && (
-            <span>Latest: <span className="text-text-primary font-medium tabular-nums">{latestPoint.label} {latestPoint.value}{unit ?? ''}</span></span>
+            <span>Latest: <span className="text-text-primary font-medium tabular-nums">{latestPoint.label} {formatChartValue(latestPoint.value, unit)}</span></span>
           )}
         </div>
       )}
@@ -240,6 +279,15 @@ function BarChart({
   categoryColors: Map<string, string>
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const totalMagnitude = data.reduce((sum, datum) => sum + Math.abs(datum.value), 0)
+  const sortedByMagnitude = [...data]
+    .map((datum, index) => ({ datum, index }))
+    .toSorted((left, right) => Math.abs(right.datum.value) - Math.abs(left.datum.value))
+  const hoveredDatum = hoveredIndex !== null ? data[hoveredIndex] ?? null : null
+  const hoveredRank = hoveredIndex !== null
+    ? sortedByMagnitude.findIndex(entry => entry.index === hoveredIndex)
+    : -1
+  const leadingDatum = sortedByMagnitude[0]?.datum ?? null
 
   return (
     <div className="space-y-2">
@@ -284,6 +332,48 @@ function BarChart({
           </motion.div>
         )
       })}
+
+      <AnimatePresence initial={false}>
+        {hoveredDatum ? (
+          <InteractiveInspector
+            eyebrow="Bar inspection"
+            title={hoveredDatum.label}
+            subtitle={hoveredDatum.category ? `Category: ${hoveredDatum.category}` : 'Inspect how this row contributes to the chart total.'}
+            hint="Bar chart"
+            metrics={[
+              {
+                label: 'Value',
+                value: formatChartValue(hoveredDatum.value, unit),
+                tone: 'accent',
+              },
+              {
+                label: 'Rank',
+                value: hoveredRank >= 0 ? `#${hoveredRank + 1} of ${data.length}` : 'N/A',
+              },
+              {
+                label: 'Share',
+                value: totalMagnitude > 0 ? `${((Math.abs(hoveredDatum.value) / totalMagnitude) * 100).toFixed(1)}%` : 'N/A',
+              },
+              {
+                label: 'Gap to leader',
+                value: leadingDatum ? formatSignedChartDelta(hoveredDatum.value, leadingDatum.value, unit) : 'N/A',
+              },
+            ]}
+            className="pt-1"
+          />
+        ) : (
+          <motion.div
+            key="bar-hint"
+            className="pt-1 text-xs text-muted"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={CHART.tooltipSpring}
+          >
+            Hover a bar to inspect its rank, share of the total, and gap to the leader.
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
