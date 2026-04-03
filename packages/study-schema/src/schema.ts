@@ -208,11 +208,28 @@ export interface StudyAssistantWorkflow {
   readonly title: string
   readonly description: string
   readonly prompt: string
+  readonly promptTemplate?: string
   readonly mode?: StudyAssistantMode
   readonly routeHint?: StudyAssistantRouteHint
   readonly badge?: string
   readonly outputs?: readonly string[]
   readonly bestFor?: readonly string[]
+  readonly fields?: readonly StudyAssistantWorkflowField[]
+}
+
+export interface StudyAssistantWorkflowFieldOption {
+  readonly value: string
+  readonly label: string
+  readonly promptValue?: string
+}
+
+export interface StudyAssistantWorkflowField {
+  readonly id: string
+  readonly label: string
+  readonly description?: string
+  readonly type?: 'select'
+  readonly defaultValue?: string
+  readonly options: readonly StudyAssistantWorkflowFieldOption[]
 }
 
 export interface StudyAssistantQueryView {

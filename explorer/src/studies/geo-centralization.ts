@@ -524,22 +524,81 @@ const ASSISTANT: StudyPackage['assistant'] = {
       title: 'Compare paper results',
       description: 'Pull a canonical Results family into the page and explain what changes across scenarios.',
       prompt: 'Compare the baseline result with the higher gamma result and explain what changes.',
+      promptTemplate: 'Compare the {{leftScenario}} result with the {{rightScenario}} result and explain what changes in {{lens}}.',
       mode: 'ask',
       routeHint: 'results',
       badge: 'Results',
       outputs: ['canonical figure', 'comparison blocks', 'paper caveat'],
       bestFor: ['Two-scenario comparisons', 'Figure-led answers', 'Cross-family Results questions'],
+      fields: [
+        {
+          id: 'leftScenario',
+          label: 'First family',
+          defaultValue: 'baseline',
+          options: [
+            { value: 'baseline', label: 'Baseline', promptValue: 'baseline' },
+            { value: 'source-placement', label: 'Source placement', promptValue: 'source placement' },
+            { value: 'higher-gamma', label: 'Higher gamma', promptValue: 'higher gamma' },
+            { value: 'shorter-slots', label: 'Shorter slots', promptValue: 'shorter slots' },
+          ],
+        },
+        {
+          id: 'rightScenario',
+          label: 'Second family',
+          defaultValue: 'higher-gamma',
+          options: [
+            { value: 'higher-gamma', label: 'Higher gamma', promptValue: 'higher gamma' },
+            { value: 'baseline', label: 'Baseline', promptValue: 'baseline' },
+            { value: 'source-placement', label: 'Source placement', promptValue: 'source placement' },
+            { value: 'shorter-slots', label: 'Shorter slots', promptValue: 'shorter slots' },
+          ],
+        },
+        {
+          id: 'lens',
+          label: 'Focus',
+          defaultValue: 'gini',
+          options: [
+            { value: 'gini', label: 'Gini', promptValue: 'Gini' },
+            { value: 'fairness-pressure', label: 'Fairness pressure', promptValue: 'fairness pressure' },
+            { value: 'proposal-time', label: 'Proposal time', promptValue: 'proposal time' },
+            { value: 'attestations', label: 'Attestations', promptValue: 'attestations' },
+          ],
+        },
+      ],
     },
     {
       id: 'query-the-leaderboard',
       title: 'Query the leaderboard',
       description: 'Use a bounded structured query over the frozen published Results catalog instead of a prose-only answer.',
       prompt: 'Show me a table of published runs sorted by final Gini.',
+      promptTemplate: 'Show me a table of published runs sorted by {{metric}} at the {{snapshot}} snapshot.',
       mode: 'ask',
       routeHint: 'structured-results',
       badge: 'Query',
       outputs: ['chart + table', 'ranked rows', 'grounded insight'],
       bestFor: ['Ranking asks', 'SQL-style questions', 'Catalog-wide comparisons'],
+      fields: [
+        {
+          id: 'metric',
+          label: 'Sort metric',
+          defaultValue: 'gini',
+          options: [
+            { value: 'gini', label: 'Gini', promptValue: 'Gini' },
+            { value: 'hhi', label: 'HHI', promptValue: 'HHI' },
+            { value: 'proposal-times', label: 'Proposal time', promptValue: 'proposal time' },
+            { value: 'attestations', label: 'Attestations', promptValue: 'attestations' },
+          ],
+        },
+        {
+          id: 'snapshot',
+          label: 'Snapshot',
+          defaultValue: 'final',
+          options: [
+            { value: 'final', label: 'Final', promptValue: 'final' },
+            { value: 'initial', label: 'Initial', promptValue: 'initial' },
+          ],
+        },
+      ],
     },
     {
       id: 'inspect-a-sweep',
@@ -557,11 +616,68 @@ const ASSISTANT: StudyPackage['assistant'] = {
       title: 'Plan a bounded run',
       description: 'Translate a what-if into an exact-mode configuration without pretending the simulation already ran.',
       prompt: 'What should I run if I want to test shorter slots with misaligned sources?',
+      promptTemplate: 'What should I run if I want to test {{change}} and learn about {{goal}}?',
       mode: 'experiment',
       routeHint: 'simulation-config',
       badge: 'Experiment',
       outputs: ['exact config', 'paper preset match', 'next run recommendation'],
       bestFor: ['What should I run?', 'Preset selection', 'Near-miss published scenarios'],
+      fields: [
+        {
+          id: 'change',
+          label: 'Change',
+          defaultValue: 'shorter-slots-misaligned',
+          options: [
+            {
+              value: 'shorter-slots-misaligned',
+              label: 'Shorter slots + misaligned sources',
+              promptValue: 'shorter slots with misaligned sources',
+            },
+            {
+              value: 'higher-gamma-local',
+              label: 'Higher gamma under local block building',
+              promptValue: 'higher gamma under local block building',
+            },
+            {
+              value: 'aligned-external',
+              label: 'Aligned sources under external block building',
+              promptValue: 'latency-aligned sources under external block building',
+            },
+            {
+              value: 'heterogeneous-start',
+              label: 'Heterogeneous validator start',
+              promptValue: 'a heterogeneous validator start',
+            },
+          ],
+        },
+        {
+          id: 'goal',
+          label: 'Goal',
+          defaultValue: 'geographic-concentration',
+          options: [
+            {
+              value: 'geographic-concentration',
+              label: 'Geographic concentration',
+              promptValue: 'geographic concentration',
+            },
+            {
+              value: 'fairness-pressure',
+              label: 'Fairness pressure',
+              promptValue: 'fairness pressure',
+            },
+            {
+              value: 'proposal-latency',
+              label: 'proposal latency',
+              promptValue: 'proposal latency',
+            },
+            {
+              value: 'attestation-health',
+              label: 'Attestation health',
+              promptValue: 'attestation health',
+            },
+          ],
+        },
+      ],
     },
   ],
   queryViews: [

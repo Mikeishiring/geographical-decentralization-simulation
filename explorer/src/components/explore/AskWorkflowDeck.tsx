@@ -1,8 +1,14 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { BarChart3, Compass, Database, FlaskConical, Sparkles } from 'lucide-react'
-import type { StudyAssistantMode, StudyAssistantRouteHint, StudyAssistantWorkflow } from '../../studies/types'
+import { BarChart3, Compass, Database, FlaskConical, Sparkles, Wand2 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING } from '../../lib/theme'
+import type {
+  StudyAssistantMode,
+  StudyAssistantRouteHint,
+  StudyAssistantWorkflow,
+  StudyAssistantWorkflowField,
+} from '../../studies/types'
 
 interface AskWorkflowDeckProps {
   readonly workflows: readonly StudyAssistantWorkflow[]
@@ -12,6 +18,8 @@ interface AskWorkflowDeckProps {
   readonly onPromptSelect: (prompt: string) => void
   readonly busy?: boolean
 }
+
+type WorkflowSelections = Readonly<Record<string, Readonly<Record<string, string>>>>
 
 function routeIcon(routeHint: StudyAssistantWorkflow['routeHint']) {
   switch (routeHint) {
@@ -56,6 +64,50 @@ function normalizePrompt(value: string | null | undefined): string {
   return value?.trim().toLowerCase() ?? ''
 }
 
+function buildDefaultSelections(fields: readonly StudyAssistantWorkflowField[] | undefined): Record<string, string> {
+  if (!fields?.length) return {}
+
+  return Object.fromEntries(fields.map(field => {
+    const defaultValue = field.defaultValue ?? field.options[0]?.value ?? ''
+    return [field.id, defaultValue]
+  }))
+}
+
+function syncWorkflowSelections(
+  workflows: readonly StudyAssistantWorkflow[],
+  current: WorkflowSelections,
+): WorkflowSelections {
+  const next: Record<string, Record<string, string>> = {}
+
+  for (const workflow of workflows) {
+    if (!workflow.fields?.length) continue
+    const defaults = buildDefaultSelections(workflow.fields)
+    const existing = current[workflow.id] ?? {}
+
+    next[workflow.id] = Object.fromEntries(workflow.fields.map(field => {
+      const selected = existing[field.id]
+      const allowedValues = new Set(field.options.map(option => option.value))
+      return [field.id, selected && allowedValues.has(selected) ? selected : defaults[field.id] ?? '']
+    }))
+  }
+
+  return next
+}
+
+function composeWorkflowPrompt(
+  workflow: StudyAssistantWorkflow,
+  selections: Record<string, string> | undefined,
+): string {
+  if (!workflow.promptTemplate || !workflow.fields?.length) return workflow.prompt
+
+  return workflow.fields.reduce((prompt, field) => {
+    const selectedValue = selections?.[field.id] ?? field.defaultValue ?? field.options[0]?.value ?? ''
+    const option = field.options.find(candidate => candidate.value === selectedValue)
+    const replacement = option?.promptValue ?? option?.label ?? selectedValue
+    return prompt.replaceAll(`{{${field.id}}}`, replacement)
+  }, workflow.promptTemplate)
+}
+
 export function AskWorkflowDeck({
   workflows,
   mode,
@@ -65,6 +117,12 @@ export function AskWorkflowDeck({
   busy = false,
 }: AskWorkflowDeckProps) {
   const visibleWorkflows = workflows.filter(workflow => matchesMode(workflow, mode))
+  const [selections, setSelections] = useState<WorkflowSelections>(() => syncWorkflowSelections(visibleWorkflows, {}))
+
+  useEffect(() => {
+    setSelections(current => syncWorkflowSelections(workflows.filter(workflow => matchesMode(workflow, mode)), current))
+  }, [mode, workflows])
+
   if (visibleWorkflows.length === 0) return null
 
   return (
@@ -78,7 +136,7 @@ export function AskWorkflowDeck({
             Start from a concrete research action
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">
-            These are study-owned workflows, not generic prompt chips. Each one starts the assistant on a bounded surface with a clearer output shape.
+            These are study-owned workflows, not generic prompt chips. Papers can define fixed launches or small typed forms that steer the assistant toward the right surface.
           </p>
         </div>
         <div className="rounded-full border border-rule bg-surface-active px-3 py-1.5 text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
@@ -89,7 +147,8 @@ export function AskWorkflowDeck({
       <div className="mt-4 grid gap-3 xl:grid-cols-3 md:grid-cols-2">
         {visibleWorkflows.map((workflow, index) => {
           const Icon = routeIcon(workflow.routeHint)
-          const isPromptActive = normalizePrompt(activePrompt) === normalizePrompt(workflow.prompt)
+          const resolvedPrompt = composeWorkflowPrompt(workflow, selections[workflow.id])
+          const isPromptActive = normalizePrompt(activePrompt) === normalizePrompt(resolvedPrompt)
           const isRouteActive = !isPromptActive && workflow.routeHint != null && workflow.routeHint === activeRoute
           const isActive = isPromptActive || isRouteActive
 
@@ -146,10 +205,59 @@ export function AskWorkflowDeck({
                 </div>
               ) : null}
 
+              {workflow.fields?.length ? (
+                <div className="mt-3 rounded-xl border border-rule bg-white/90 px-3 py-3">
+                  <div className="mb-2 inline-flex items-center gap-1.5 text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
+                    <Wand2 className="h-3.5 w-3.5" />
+                    Typed launch
+                  </div>
+                  <div className="grid gap-2">
+                    {workflow.fields.map(field => {
+                      const selectedValue = selections[workflow.id]?.[field.id] ?? field.defaultValue ?? field.options[0]?.value ?? ''
+                      return (
+                        <label key={`${workflow.id}-${field.id}`} className="text-xs text-muted">
+                          <div className="mb-1 font-medium text-text-primary">{field.label}</div>
+                          <select
+                            value={selectedValue}
+                            disabled={busy}
+                            onChange={event => {
+                              const nextValue = event.target.value
+                              setSelections(current => ({
+                                ...current,
+                                [workflow.id]: {
+                                  ...(current[workflow.id] ?? buildDefaultSelections(workflow.fields)),
+                                  [field.id]: nextValue,
+                                },
+                              }))
+                            }}
+                            className="w-full rounded-xl border border-rule bg-white px-3 py-2 text-xs text-text-primary outline-none focus:border-accent/25"
+                          >
+                            {field.options.map(option => (
+                              <option key={`${workflow.id}-${field.id}-${option.value}`} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          {field.description ? (
+                            <div className="mt-1 text-11 leading-5 text-text-faint">
+                              {field.description}
+                            </div>
+                          ) : null}
+                        </label>
+                      )
+                    })}
+                  </div>
+                  <div className="mt-3 rounded-xl border border-accent/10 bg-accent/[0.03] px-3 py-2 text-11 leading-5 text-muted">
+                    <span className="font-medium text-text-primary">Launch preview:</span>{' '}
+                    {resolvedPrompt}
+                  </div>
+                </div>
+              ) : null}
+
               <button
                 type="button"
                 disabled={busy}
-                onClick={() => onPromptSelect(workflow.prompt)}
+                onClick={() => onPromptSelect(resolvedPrompt)}
                 className={cn(
                   'mt-3 rounded-full border px-3 py-1.5 text-11 font-medium transition-colors',
                   busy
@@ -159,7 +267,9 @@ export function AskWorkflowDeck({
                       : 'border-accent/20 bg-white text-accent hover:border-accent/30 hover:bg-accent/[0.04]',
                 )}
               >
-                {mode === 'experiment' ? 'Use this run plan' : 'Launch workflow'}
+                {workflow.fields?.length
+                  ? (mode === 'experiment' ? 'Compose run plan' : 'Compose workflow')
+                  : (mode === 'experiment' ? 'Use this run plan' : 'Launch workflow')}
               </button>
             </motion.div>
           )
