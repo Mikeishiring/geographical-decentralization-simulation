@@ -54,7 +54,9 @@
     "vite": "^8.0.1"
   },
   "optionalDependencies": {
+    "@napi-rs/canvas-linux-x64-gnu": "^0.1.97",
     "@rolldown/binding-linux-x64-gnu": "^1.0.0-rc.12",
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.2.2",
     "lightningcss-linux-x64-gnu": "^1.32.0"
   }
 }
