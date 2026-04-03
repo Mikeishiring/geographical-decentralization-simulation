@@ -6183,6 +6183,38 @@ function buildAskPlanData(
   }
 }
 
+function buildStructuredQueryPreviewResponse(
+  execution: StructuredResultsExecution,
+): {
+  readonly route: 'structured-results'
+  readonly description: string
+  readonly queryView: ReturnType<typeof buildAskPlanQueryViewData> | undefined
+  readonly queryRequest: NonNullable<ReturnType<typeof buildAskPlanQueryRequestData>>
+  readonly response: ExploreResponse
+} {
+  const response: ExploreResponse = {
+    summary: execution.result.summary,
+    blocks: [...execution.result.blocks],
+    followUps: [...execution.result.followUps],
+    model: 'study-query-adapter',
+    cached: true,
+    provenance: {
+      source: 'generated',
+      label: 'Study query adapter',
+      detail: 'Direct read-only execution over the study-owned published Results surface.',
+      canonical: true,
+    },
+  }
+
+  return {
+    route: 'structured-results',
+    description: execution.result.description,
+    queryView: buildAskPlanQueryViewData(execution.queryPlan.view) ?? undefined,
+    queryRequest: buildAskPlanQueryRequestData(execution.queryPlan)!,
+    response,
+  }
+}
+
 function buildExploreChatTools(
   query: string,
   options?: {
@@ -6505,6 +6537,48 @@ function buildExploreChatTools(
     }),
   }
 }
+
+app.post('/api/explore/query-preview', exploreRateLimit, async (req, res) => {
+  const { query, launch } = req.body as {
+    query?: string
+    launch?: AskLaunchContext
+  }
+  const trimmedQuery = typeof query === 'string' ? query.trim() : ''
+  if (trimmedQuery.length > MAX_EXPLORE_QUERY_LENGTH) {
+    res.status(400).json({
+      error: `Query is too long. Keep it under ${MAX_EXPLORE_QUERY_LENGTH} characters and narrow the ask.`,
+    })
+    return
+  }
+
+  try {
+    const askLaunch = normalizeAskLaunchContext(launch)
+    if (!askLaunch?.structuredQuery && askLaunch?.routeHint !== 'structured-results') {
+      res.status(400).json({
+        error: 'A structured-results launch is required for direct study query previews.',
+      })
+      return
+    }
+
+    const queryPlan = resolveStructuredResultsQueryPlan({
+      queryHint: trimmedQuery,
+      ...(askLaunch?.structuredQuery ?? {}),
+    })
+    const execution = await executeStructuredResultsQuery({
+      queryHint: trimmedQuery,
+      queryPlan,
+    })
+
+    res.json(buildStructuredQueryPreviewResponse(execution))
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    const status =
+      message.includes('rate_limit') ? 429 :
+      message.includes('authentication') ? 401 :
+      500
+    res.status(status).json({ error: message })
+  }
+})
 
 app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
   const { messages, history, launch } = req.body as {
