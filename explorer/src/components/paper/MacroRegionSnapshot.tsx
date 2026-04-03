@@ -53,7 +53,7 @@ export function MacroRegionSnapshot() {
   if (!activeSlice) return null
 
   return (
-    <section className="rounded-xl border border-rule bg-white px-5 py-5 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.35)] sm:px-6">
+    <div className="rounded-xl border border-rule bg-white px-5 py-5 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.35)] sm:px-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -157,6 +157,6 @@ export function MacroRegionSnapshot() {
           </div>
         </aside>
       </div>
-    </section>
+    </div>
   )
 }

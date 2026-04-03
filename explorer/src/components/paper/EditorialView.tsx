@@ -4,7 +4,6 @@ import { SPRING, SPRING_CRISP, PAGE_TRANSITION, STAGGER_CONTAINER, STAGGER_ITEM 
 import type { TopicCard } from '../../studies/types'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { PaperHero } from './PaperHero'
-import { MacroRegionSnapshot } from './MacroRegionSnapshot'
 import { TopicCardGrid } from './TopicCardGrid'
 import { CommunityPreview } from './CommunityPreview'
 import { PaperSectionView } from './PaperSectionView'
@@ -61,10 +60,6 @@ export function EditorialView({
       className="min-w-0 overflow-x-hidden"
     >
       <PaperHero />
-
-      <div className="mt-5">
-        <MacroRegionSnapshot />
-      </div>
 
       <div className="mt-6">
         <TopicCardGrid
