@@ -48,6 +48,16 @@ function formatAssistantPromptTips(study: StudyPackage): string[] {
   )
 }
 
+function formatAssistantWorkflows(study: StudyPackage): string[] {
+  return (study.assistant.workflows ?? []).map(workflow => {
+    const mode = workflow.mode ? ` Mode: ${workflow.mode}.` : ''
+    const route = workflow.routeHint ? ` Route hint: ${workflow.routeHint}.` : ''
+    const outputs = workflow.outputs?.length ? ` Outputs: ${formatInlineList(workflow.outputs)}.` : ''
+    const bestFor = workflow.bestFor?.length ? ` Best for: ${formatInlineList(workflow.bestFor)}.` : ''
+    return `- ${workflow.title} (${workflow.id}): ${workflow.description}${mode}${route}${outputs}${bestFor} Prompt: ${workflow.prompt}`
+  })
+}
+
 function formatAssistantQueryViews(study: StudyPackage): string[] {
   return (study.assistant.queryViews ?? []).map(view => {
     const dashboards = view.dashboardIds?.length ? ` Dashboards: ${formatInlineList(view.dashboardIds)}.` : ''
@@ -126,6 +136,8 @@ ${study.dashboardMetrics
 ${formatResultsTemplates(study).join('\n')}
 
 ${study.assistant.capabilities?.length ? `\n## Assistant Capabilities\n${formatAssistantCapabilities(study).join('\n')}` : ''}
+
+${study.assistant.workflows?.length ? `\n## Workspace Workflows\n${formatAssistantWorkflows(study).join('\n')}` : ''}
 
 ${study.assistant.queryViews?.length ? `\n## Structured Query Views\n${formatAssistantQueryViews(study).join('\n')}` : ''}
 
