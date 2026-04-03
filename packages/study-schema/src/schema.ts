@@ -175,6 +175,12 @@ export interface StudyRuntimeConfig {
 
 export type StudyAssistantMode = 'ask' | 'experiment' | 'both'
 export type StudyAssistantCapabilityState = 'live' | 'exact' | 'guided' | 'planned'
+export type StudyAssistantRouteHint =
+  | 'orientation'
+  | 'results'
+  | 'structured-results'
+  | 'simulation-config'
+  | 'hybrid'
 
 export interface StudyAssistantSuggestedPrompt {
   readonly label: string
@@ -195,6 +201,18 @@ export interface StudyAssistantPromptTip {
   readonly label: string
   readonly description: string
   readonly example?: string
+}
+
+export interface StudyAssistantWorkflow {
+  readonly id: string
+  readonly title: string
+  readonly description: string
+  readonly prompt: string
+  readonly mode?: StudyAssistantMode
+  readonly routeHint?: StudyAssistantRouteHint
+  readonly badge?: string
+  readonly outputs?: readonly string[]
+  readonly bestFor?: readonly string[]
 }
 
 export interface StudyAssistantQueryView {
@@ -240,6 +258,7 @@ export interface StudyAssistantConfig {
   readonly suggestedPrompts: readonly StudyAssistantSuggestedPrompt[]
   readonly capabilities?: readonly StudyAssistantCapability[]
   readonly promptTips?: readonly StudyAssistantPromptTip[]
+  readonly workflows?: readonly StudyAssistantWorkflow[]
   readonly queryViews?: readonly StudyAssistantQueryView[]
   readonly resultsStyleGuidance?: string
   readonly systemPromptSupplement?: string

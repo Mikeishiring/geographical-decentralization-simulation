@@ -41,7 +41,9 @@ import { AgentStepCard } from '../components/agent/AgentStepCard'
 import { AgentCostBar } from '../components/agent/AgentCostBar'
 import { AskCapabilityPanel } from '../components/explore/AskCapabilityPanel'
 import { AskPlanPanel } from '../components/explore/AskPlanPanel'
+import { AskStageRail } from '../components/explore/AskStageRail'
 import { AskStatusFeed } from '../components/explore/AskStatusFeed'
+import { AskWorkflowDeck } from '../components/explore/AskWorkflowDeck'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { AskLoadingStateCard, buildAskLoadingDescriptor } from '../components/explore/AskLoadingState'
 import { ShimmerLoading } from '../components/explore/ShimmerBlock'
@@ -103,6 +105,7 @@ const ASK_PROMPT_TIPS = ASSISTANT_CONFIG.promptTips ?? [
   },
 ]
 const ASK_QUERY_VIEWS = ASSISTANT_CONFIG.queryViews ?? []
+const ASK_WORKFLOWS = ASSISTANT_CONFIG.workflows ?? []
 
 interface AgentLabPageProps {
   readonly onTabChange?: (tab: import('../components/layout/TabNav').TabId) => void
@@ -568,6 +571,15 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
             />
           )}
 
+          <AskWorkflowDeck
+            workflows={ASK_WORKFLOWS}
+            mode="ask"
+            activeRoute={askPlan?.route ?? null}
+            activePrompt={query}
+            onPromptSelect={handleSuggestionClick}
+            busy={askLoading}
+          />
+
           <AskCapabilityPanel
             capabilities={ASK_CAPABILITIES}
             promptTips={ASK_PROMPT_TIPS}
@@ -581,6 +593,9 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
             {askLoading && !displayedArtifact ? (
               <motion.div key="loading" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={SPRING}>
                 <div className="space-y-4">
+                  {askStatusHistory.length > 0 && (
+                    <AskStageRail statuses={askStatusHistory} />
+                  )}
                   {askStatusHistory.length > 0 && (
                     <AskStatusFeed statuses={askStatusHistory} />
                   )}
@@ -626,7 +641,8 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                 </div>
 
                 {askStatusHistory.length > 0 && !aiResponse && (
-                  <div className="mb-4">
+                  <div className="mb-4 space-y-4">
+                    <AskStageRail statuses={askStatusHistory} />
                     <AskStatusFeed statuses={askStatusHistory} compact />
                   </div>
                 )}
@@ -862,25 +878,33 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
       )}
 
       {!hasExperiment && mode === 'experiment' && !isCreating && (
-        <div className="relative overflow-hidden rounded-xl border border-dashed border-rule bg-white px-5 py-8">
-          {/* Node-arc motif — globe DNA */}
-          <div className="absolute left-4 bottom-2 w-[120px] h-[60px] opacity-[0.4] pointer-events-none select-none" aria-hidden="true">
-            <NodeArc className="w-full h-full text-muted" />
-          </div>
+        <div className="space-y-4">
+          <AskWorkflowDeck
+            workflows={ASK_WORKFLOWS}
+            mode="experiment"
+            onPromptSelect={handleSuggestionClick}
+            busy={isCreating}
+          />
+          <div className="relative overflow-hidden rounded-xl border border-dashed border-rule bg-white px-5 py-8">
+            {/* Node-arc motif — globe DNA */}
+            <div className="absolute left-4 bottom-2 w-[120px] h-[60px] opacity-[0.4] pointer-events-none select-none" aria-hidden="true">
+              <NodeArc className="w-full h-full text-muted" />
+            </div>
 
-          <div className="relative text-center text-sm text-muted mb-4">
-            Describe a hypothesis and the AI will configure a simulation, run it, and interpret the results for you
-          </div>
-          <div className="relative flex flex-wrap justify-center gap-2 stagger-reveal">
-            {EXPERIMENT_SUGGESTIONS.map(s => (
-              <button
-                key={s.prompt}
-                onClick={() => handleSuggestionClick(s.prompt)}
-                className="rounded-full border border-rule bg-surface-active/60 px-3.5 py-1.5 text-xs font-medium text-text-primary transition-all hover:border-border-hover hover:bg-white hover:shadow-sm"
-              >
-                {s.prompt}
-              </button>
-            ))}
+            <div className="relative text-center text-sm text-muted mb-4">
+              Describe a hypothesis and the AI will configure a simulation, run it, and interpret the results for you
+            </div>
+            <div className="relative flex flex-wrap justify-center gap-2 stagger-reveal">
+              {EXPERIMENT_SUGGESTIONS.map(s => (
+                <button
+                  key={s.prompt}
+                  onClick={() => handleSuggestionClick(s.prompt)}
+                  className="rounded-full border border-rule bg-surface-active/60 px-3.5 py-1.5 text-xs font-medium text-text-primary transition-all hover:border-border-hover hover:bg-white hover:shadow-sm"
+                >
+                  {s.prompt}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
