@@ -61,6 +61,7 @@ export type AskToolSet = Record<string, GenericAskTool> & {
   }
   readonly query_results_table: {
     readonly input: {
+      readonly viewId?: string
       readonly dimensions?: readonly string[]
       readonly metrics?: readonly string[]
       readonly filters?: {

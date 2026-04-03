@@ -46,11 +46,18 @@ export const askPlanTemplateSchema = z.object({
   state: z.enum(['target', 'loaded']),
 })
 
+export const askPlanQueryViewSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+})
+
 export const askPlanDataSchema = z.object({
   status: askPlanStatusSchema,
   title: z.string(),
   route: askPlanRouteSchema,
   rationale: z.string(),
+  queryView: askPlanQueryViewSchema.optional(),
   modules: z.array(askPlanModuleSchema),
   templates: z.array(askPlanTemplateSchema),
   nextSteps: z.array(z.string()),

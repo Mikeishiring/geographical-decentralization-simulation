@@ -197,6 +197,24 @@ export interface StudyAssistantPromptTip {
   readonly example?: string
 }
 
+export interface StudyAssistantQueryView {
+  readonly id: string
+  readonly title: string
+  readonly description: string
+  readonly prompts?: readonly string[]
+  readonly aliases?: readonly string[]
+  readonly dashboardIds?: readonly string[]
+  readonly defaultDimensions?: readonly string[]
+  readonly defaultMetrics?: readonly string[]
+  readonly defaultOrderBy?: string
+  readonly defaultOrder?: 'asc' | 'desc'
+  readonly filterPreset?: Readonly<{
+    evaluation?: string
+    paradigm?: string
+    result?: string
+  }>
+}
+
 export interface StudyAssistantConfig {
   readonly askHeading?: string
   readonly askDescription?: string
@@ -204,6 +222,7 @@ export interface StudyAssistantConfig {
   readonly suggestedPrompts: readonly StudyAssistantSuggestedPrompt[]
   readonly capabilities?: readonly StudyAssistantCapability[]
   readonly promptTips?: readonly StudyAssistantPromptTip[]
+  readonly queryViews?: readonly StudyAssistantQueryView[]
   readonly resultsStyleGuidance?: string
   readonly systemPromptSupplement?: string
 }

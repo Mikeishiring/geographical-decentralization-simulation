@@ -169,7 +169,13 @@ async function main() {
       'Expected SQL-style Ask prompts to advertise the structured-results route in the live query plan',
     )
     assert(
-      structuredQueryStream.body.includes('Published results query') || structuredQueryStream.body.includes('Structured query over'),
+      structuredQueryStream.body.includes('"queryView":{"id":"published-runs"'),
+      'Expected SQL-style Ask prompts to resolve onto the study-owned published-runs query view',
+    )
+    assert(
+      structuredQueryStream.body.includes('Published Runs Leaderboard')
+        || structuredQueryStream.body.includes('Published results query')
+        || structuredQueryStream.body.includes('Structured query over'),
       'Expected structured results queries to surface a table-oriented artifact',
     )
     assert(
