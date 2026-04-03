@@ -53,6 +53,7 @@ import { getActiveStudy } from '../src/studies/index.ts'
 import type { StudyAssistantQueryView, StudyDashboardSpec, TopicCard } from '../src/studies/types.ts'
 import type { AskArtifactData, AskPlanData, AskStatusData } from '../src/lib/ask-artifact.ts'
 import type { AskUIMessage } from '../src/lib/ask-chat.ts'
+import { askLaunchContextSchema, type AskLaunchContext } from '../src/lib/ask-launch.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXPLORER_ROOT = path.resolve(__dirname, '..')
@@ -5655,6 +5656,11 @@ function normalizeExploreHistory(
     : []
 }
 
+function normalizeAskLaunchContext(input: unknown): AskLaunchContext | null {
+  const parsed = askLaunchContextSchema.safeParse(input)
+  return parsed.success ? parsed.data : null
+}
+
 function extractTextFromUiMessage(message: UIMessage | undefined): string {
   if (!message) return ''
 
@@ -5850,17 +5856,23 @@ function buildAskPlanData(
     readonly status?: AskPlanData['status']
     readonly latestCachedResults?: unknown
     readonly latestStructuredQuery?: StructuredResultsQueryPlan | null
+    readonly launch?: AskLaunchContext | null
   },
 ): AskPlanData {
   const status = options?.status ?? 'planned'
   const route: AskPlanData['route'] =
-    isOrientationExploreQuery(query) ? 'orientation' :
-    isSimulationPlanningExploreQuery(query) ? 'simulation-config' :
-    isStructuredResultsQuery(query) ? 'structured-results' :
-    isPrecomputedResultsExploreQuery(query) ? 'results' :
-    'hybrid'
+    options?.launch?.routeHint
+    ?? (isOrientationExploreQuery(query) ? 'orientation' :
+      isSimulationPlanningExploreQuery(query) ? 'simulation-config' :
+      isStructuredResultsQuery(query) ? 'structured-results' :
+      isPrecomputedResultsExploreQuery(query) ? 'results' :
+      'hybrid')
   const queryRequest = route === 'structured-results'
-    ? options?.latestStructuredQuery ?? resolveStructuredResultsQueryPlan({ queryHint: query })
+    ? options?.latestStructuredQuery
+      ?? resolveStructuredResultsQueryPlan({
+        queryHint: query,
+        ...(options?.launch?.structuredQuery ?? {}),
+      })
     : null
   const queryView = route === 'structured-results'
     ? queryRequest?.view ?? null
@@ -5980,6 +5992,7 @@ function buildAskPlanData(
 function buildExploreChatTools(
   query: string,
   options?: {
+    launch?: AskLaunchContext | null
     onCachedResults?: (result: unknown) => void
     onStructuredQuery?: (query: StructuredResultsQueryPlan) => void
     onArtifact?: (artifact: AskArtifactData) => void
@@ -6121,6 +6134,7 @@ function buildExploreChatTools(
           status: 'active',
           latestCachedResults,
           latestStructuredQuery,
+          launch: options?.launch,
         }))
         options?.onStatus?.(buildAskStatus(
           'evidence',
@@ -6161,6 +6175,7 @@ function buildExploreChatTools(
           status: 'active',
           latestCachedResults,
           latestStructuredQuery,
+          launch: options?.launch,
         }))
         options?.onStatus?.(buildAskStatus(
           'evidence',
@@ -6207,6 +6222,7 @@ function buildExploreChatTools(
           status: 'active',
           latestCachedResults,
           latestStructuredQuery: resolvedQuery,
+          launch: options?.launch,
         }))
         options?.onStatus?.(buildAskStatus(
           'plan',
@@ -6233,6 +6249,7 @@ function buildExploreChatTools(
           status: 'active',
           latestCachedResults,
           latestStructuredQuery: resolvedQuery,
+          launch: options?.launch,
         }))
         options?.onStatus?.(buildAskStatus(
           'evidence',
@@ -6268,6 +6285,7 @@ function buildExploreChatTools(
           status: 'ready',
           latestCachedResults,
           latestStructuredQuery,
+          launch: options?.launch,
         }))
         options?.onArtifact?.(buildExploreArtifactData('ready', 'Answer ready', response))
         options?.onStatus?.(buildAskStatus(
@@ -6283,9 +6301,10 @@ function buildExploreChatTools(
 }
 
 app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
-  const { messages, history } = req.body as {
+  const { messages, history, launch } = req.body as {
     messages?: AskUIMessage[]
     history?: Array<{ query: string; summary: string }>
+    launch?: AskLaunchContext
   }
   const originalMessages = Array.isArray(messages) ? messages : []
   const lastUserMessage = [...originalMessages].reverse().find(message => message?.role === 'user')
@@ -6307,13 +6326,20 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
   }
 
   try {
+    const askLaunch = normalizeAskLaunchContext(launch)
     const sessionHistory = normalizeExploreHistory(history)
     const sessionContext = sessionHistory.length
       ? `\n\n## Session Context\nPrevious queries this session:\n${sessionHistory.map((entry, index) => `${index + 1}. "${entry.query}" -> ${entry.summary}`).join('\n')}\n\nBuild on prior context where relevant.`
       : ''
     const systemPrompt = buildExploreChatSystemPrompt(trimmedQuery, sessionContext)
     let latestCachedResults: unknown = null
-    let latestStructuredQuery: StructuredResultsQueryPlan | null = null
+    let latestStructuredQuery: StructuredResultsQueryPlan | null =
+      askLaunch?.routeHint === 'structured-results' || askLaunch?.structuredQuery
+        ? resolveStructuredResultsQueryPlan({
+          queryHint: trimmedQuery,
+          ...(askLaunch?.structuredQuery ?? {}),
+        })
+        : null
     const stream = createUIMessageStream<AskUIMessage>({
       originalMessages,
       execute: ({ writer }) => {
@@ -6342,6 +6368,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
         writePlan(buildAskPlanData(trimmedQuery, {
           status: 'planned',
           latestStructuredQuery,
+          launch: askLaunch,
         }))
         writeStatus(buildAskStatus(
           'plan',
@@ -6351,6 +6378,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
         ))
 
         const exploreChatTools = buildExploreChatTools(trimmedQuery, {
+          launch: askLaunch,
           onCachedResults: (result) => {
             latestCachedResults = result
           },
@@ -6371,12 +6399,26 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
           stopWhen: hasToolCall('render_blocks'),
           prepareStep: ({ steps, stepNumber }) => {
             const allToolCalls = steps.flatMap(step => step.toolCalls)
-            const expectedTemplates = resolveExpectedStudyResultsTemplates(trimmedQuery)
-            if (stepNumber === 0 && isSimulationPlanningExploreQuery(trimmedQuery)) {
+            const route = askLaunch?.routeHint
+              ?? (isSimulationPlanningExploreQuery(trimmedQuery)
+                ? 'simulation-config'
+                : isStructuredResultsQuery(trimmedQuery)
+                  ? 'structured-results'
+                  : isPrecomputedResultsExploreQuery(trimmedQuery)
+                    ? 'results'
+                    : isOrientationExploreQuery(trimmedQuery)
+                      ? 'orientation'
+                      : 'hybrid')
+            const expectedTemplates =
+              route === 'results' || route === 'structured-results'
+                ? resolveExpectedStudyResultsTemplates(trimmedQuery)
+                : []
+            if (stepNumber === 0 && route === 'simulation-config') {
               writePlan(buildAskPlanData(trimmedQuery, {
                 status: 'active',
                 latestCachedResults,
                 latestStructuredQuery,
+                launch: askLaunch,
               }))
               writeStatus(buildAskStatus(
                 'plan',
@@ -6390,12 +6432,18 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
                 system: `${systemPrompt}\n\n## Experiment Planning\nThis question is asking for a bounded run plan. Start by calling build_simulation_config. Use paper-style defaults or presets unless the user asked to override them. Do not claim simulation outcomes yet. After the config is drafted, call render_blocks to present it clearly.`,
               }
             }
-            if (stepNumber === 0 && isStructuredResultsQuery(trimmedQuery)) {
-              const resolvedQuery = resolveStructuredResultsQueryPlan({ queryHint: trimmedQuery })
+            if (stepNumber === 0 && route === 'structured-results') {
+              const resolvedQuery = latestStructuredQuery
+                ?? resolveStructuredResultsQueryPlan({
+                  queryHint: trimmedQuery,
+                  ...(askLaunch?.structuredQuery ?? {}),
+                })
+              latestStructuredQuery = resolvedQuery
               writePlan(buildAskPlanData(trimmedQuery, {
                 status: 'active',
                 latestCachedResults,
                 latestStructuredQuery: resolvedQuery,
+                launch: askLaunch,
               }))
               writeStatus(buildAskStatus(
                 'plan',
@@ -6411,11 +6459,12 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
                 system: `${systemPrompt}\n\n## Structured Results Retrieval\nThis question is asking for a structured view over study-owned Results rows. Start by calling query_results_table. Prefer a compact ranking, chart, or table grounded in the published Results catalog. ${resolvedQuery.view ? `The best matching study query view is "${resolvedQuery.view.title}" (${resolvedQuery.view.id}). Reuse its defaults and stay inside its allowed dimensions, metrics, sort keys, and filters unless the user's wording clearly overrides them with another supported choice.` : 'Choose the closest study query view when one is available.'} Do not search topic cards or prior explorations before the structured query returns.`,
               }
             }
-            if (stepNumber === 0 && isPrecomputedResultsExploreQuery(trimmedQuery) && expectedTemplates.length > 0) {
+            if (stepNumber === 0 && route === 'results' && expectedTemplates.length > 0) {
               writePlan(buildAskPlanData(trimmedQuery, {
                 status: 'active',
                 latestCachedResults,
                 latestStructuredQuery,
+                launch: askLaunch,
               }))
               writeStatus(buildAskStatus(
                 'plan',
@@ -6434,6 +6483,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
                 status: 'active',
                 latestCachedResults,
                 latestStructuredQuery,
+                launch: askLaunch,
               }))
               writeStatus(buildAskStatus(
                 'compose',
@@ -6452,6 +6502,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
                 status: 'active',
                 latestCachedResults,
                 latestStructuredQuery,
+                launch: askLaunch,
               }))
               writeStatus(buildAskStatus(
                 'compose',
@@ -6466,11 +6517,12 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
               }
             }
             const hasPublishedResults = normalizePublishedResultsCollection(latestCachedResults).length > 0
-            if (hasPublishedResults && isPrecomputedResultsExploreQuery(trimmedQuery) && stepNumber >= 1) {
+            if (hasPublishedResults && route === 'results' && stepNumber >= 1) {
               writePlan(buildAskPlanData(trimmedQuery, {
                 status: 'active',
                 latestCachedResults,
                 latestStructuredQuery,
+                launch: askLaunch,
               }))
               const normalizedResponses = normalizePublishedResultsCollection(latestCachedResults)
               const loadedTemplates = resolveStudyResultsTemplatesForResponses(trimmedQuery, normalizedResponses)
@@ -6520,6 +6572,7 @@ app.post('/api/explore/chat', exploreRateLimit, async (req, res) => {
               status: 'active',
               latestCachedResults,
               latestStructuredQuery,
+              launch: askLaunch,
             }))
             writeStatus(buildAskStatus(
               'compose',
