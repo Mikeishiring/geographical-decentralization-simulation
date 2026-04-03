@@ -41,6 +41,7 @@ import { AgentStepCard } from '../components/agent/AgentStepCard'
 import { AgentCostBar } from '../components/agent/AgentCostBar'
 import { AskCapabilityPanel } from '../components/explore/AskCapabilityPanel'
 import { AskPlanPanel } from '../components/explore/AskPlanPanel'
+import { AskQueryWorkbench } from '../components/explore/AskQueryWorkbench'
 import { AskStageRail } from '../components/explore/AskStageRail'
 import { AskStatusFeed } from '../components/explore/AskStatusFeed'
 import { AskWorkflowDeck } from '../components/explore/AskWorkflowDeck'
@@ -571,19 +572,33 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
             />
           )}
 
-          <AskWorkflowDeck
-            workflows={ASK_WORKFLOWS}
-            mode="ask"
-            activeRoute={askPlan?.route ?? null}
-            activePrompt={query}
-            onPromptSelect={handleSuggestionClick}
-            busy={askLoading}
-          />
+          <div className={cn(
+            'grid gap-4',
+            ASK_QUERY_VIEWS.length > 0 && '2xl:grid-cols-[1.05fr_0.95fr]',
+          )}>
+            <AskWorkflowDeck
+              workflows={ASK_WORKFLOWS}
+              mode="ask"
+              activeRoute={askPlan?.route ?? null}
+              activePrompt={query}
+              onPromptSelect={handleSuggestionClick}
+              busy={askLoading}
+            />
+
+            {ASK_QUERY_VIEWS.length > 0 && (
+              <AskQueryWorkbench
+                queryViews={ASK_QUERY_VIEWS}
+                activeViewId={askPlan?.route === 'structured-results' ? askPlan.queryView?.id ?? null : null}
+                activeRequest={askPlan?.route === 'structured-results' ? askPlan.queryRequest : undefined}
+                onLaunch={handleSuggestionClick}
+                busy={askLoading}
+              />
+            )}
+          </div>
 
           <AskCapabilityPanel
             capabilities={ASK_CAPABILITIES}
             promptTips={ASK_PROMPT_TIPS}
-            queryViews={ASK_QUERY_VIEWS}
             onPromptSelect={handleSuggestionClick}
             busy={askLoading}
           />
