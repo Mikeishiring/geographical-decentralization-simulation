@@ -261,6 +261,60 @@ async function main() {
       'Expected typed structured launches to keep the structured chart/table scaffold in the final artifact',
     )
 
+    const workflowLeaderboardStream = await captureAskLaunchStream(
+      'Show me a table of published runs sorted by final Gini.',
+      {
+        source: 'workflow',
+        workflowId: 'query-the-leaderboard',
+        routeHint: 'structured-results',
+        workflowValues: {
+          metric: 'gini',
+          snapshot: 'final',
+        },
+      },
+    )
+    assert(
+      workflowLeaderboardStream.body.includes('"workflowId":"query-the-leaderboard"'),
+      'Expected workflow structured launches to preserve the workflow id in the live plan',
+    )
+    assert(
+      workflowLeaderboardStream.stages.includes('Structured query prefetched'),
+      'Expected structured workflow launches to prefetch the query scaffold before final render',
+    )
+    assert(
+      !workflowLeaderboardStream.body.includes('toolName":"query_results_table'),
+      'Expected structured workflow launches to resolve onto the direct study query adapter without a second query tool call',
+    )
+    assert(
+      workflowLeaderboardStream.body.includes('"queryView":{"id":"published-runs"'),
+      'Expected structured workflow launches to resolve onto the published-runs study view',
+    )
+
+    const workflowSweepStream = await captureAskLaunchStream(
+      'Show me the shorter-slot runs sorted by final proposal time.',
+      {
+        source: 'workflow',
+        workflowId: 'inspect-a-sweep',
+        routeHint: 'structured-results',
+        workflowValues: {
+          family: 'slot-time-runs',
+          metric: 'proposal_times',
+        },
+      },
+    )
+    assert(
+      workflowSweepStream.body.includes('"queryView":{"id":"slot-time-runs"'),
+      'Expected sweep workflow launches to resolve onto the selected study query view',
+    )
+    assert(
+      workflowSweepStream.body.includes('"metrics":["proposal_times"]'),
+      'Expected sweep workflow launches to preserve the selected metric in the resolved query request',
+    )
+    assert(
+      !workflowSweepStream.body.includes('toolName":"query_results_table'),
+      'Expected sweep workflow launches to reuse the direct adapter path instead of calling query_results_table again',
+    )
+
     const gammaSweepStream = await captureAskStream('Show me the higher-gamma runs sorted by final Gini.')
     assert(
       gammaSweepStream.body.includes('"queryView":{"id":"gamma-sweep"'),
