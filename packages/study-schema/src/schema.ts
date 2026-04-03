@@ -252,6 +252,7 @@ export interface StudyAssistantWorkflowFieldOption {
   readonly value: string
   readonly label: string
   readonly promptValue?: string
+  readonly bindings?: Readonly<Record<string, string>>
 }
 
 export interface StudyAssistantWorkflowField {
