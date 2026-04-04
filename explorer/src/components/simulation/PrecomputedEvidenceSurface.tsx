@@ -203,16 +203,16 @@ interface ScenarioSelectorProps {
   readonly onSelect: (entry: ResearchDatasetEntry) => void
 }
 
-const chipBase = 'rounded-full border px-2.5 py-1 text-[10px] font-medium cursor-pointer transition-all duration-150'
-const chipActive = 'border-black/[0.08] bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.05)]'
-const chipInactive = 'border-black/[0.04] bg-[#F6F5F4] text-stone-500 hover:border-stone-300 hover:bg-white hover:text-stone-700'
+const chipBase = 'rounded-[8px] border px-2 py-1 text-[10px] font-medium cursor-pointer transition-all duration-150'
+const chipActive = 'border-black/[0.08] bg-white text-stone-900 shadow-[0_1px_1px_rgba(0,0,0,0.04)]'
+const chipInactive = 'border-transparent bg-transparent text-stone-500 hover:border-black/[0.05] hover:bg-white/78 hover:text-stone-700'
 const filterLabel = 'text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint shrink-0'
 const filterDivider = 'hidden sm:block w-px h-4 bg-rule/60 shrink-0'
 
 /** Compact summary pill showing active secondary filter value */
 function FilterPill({ label, value }: { readonly label: string; readonly value: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-black/[0.06] bg-white px-2 py-0.5 text-[10px] text-muted shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <span className="inline-flex items-center gap-1 rounded-[7px] bg-black/[0.03] px-2 py-0.5 text-[10px] text-muted">
       <span className="text-text-faint">{label}</span>
       <span className="font-medium text-text-secondary">{value}</span>
     </span>
@@ -270,9 +270,9 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
   }, [catalog, onSelect])
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-1.5 rounded-[14px] border border-black/[0.05] bg-white/75 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-sm">
-        <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-[11px] border border-black/[0.05] bg-[#FCFBFA] px-2.5 py-1.5">
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap items-stretch overflow-hidden rounded-[12px] border border-black/[0.05] bg-[#FAF9F7]/96 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+        <div className="flex min-w-[220px] flex-1 items-center gap-2 px-3 py-2">
           <span className={filterLabel}>Scenario</span>
           <div className="relative min-w-0 flex-1">
             <select
@@ -289,7 +289,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
         </div>
 
         {hasCostDimension && (
-          <div className="flex min-w-[320px] flex-[1.6] items-center gap-2 rounded-[11px] border border-black/[0.05] bg-[#FCFBFA] px-2.5 py-1.5">
+          <div className="flex min-w-[320px] flex-[1.6] items-center gap-2 border-t border-black/[0.05] px-3 py-2 sm:border-t-0 sm:border-l">
             <span className={filterLabel} title="ETH migration cost charged when a validator relocates between regions. Higher cost = stronger geographic lock-in.">
               Migration cost
             </span>
@@ -323,10 +323,10 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
             type="button"
             onClick={() => setFiltersOpen(prev => !prev)}
             className={cn(
-              'inline-flex items-center justify-center gap-1.5 rounded-[11px] border px-3 py-1.5 text-[11px] font-medium transition-colors',
+              'inline-flex items-center justify-center gap-1.5 border-t border-black/[0.05] px-3 py-2 text-[11px] font-medium transition-colors sm:border-t-0 sm:border-l',
               filtersOpen
-                ? 'border-accent/15 bg-accent/8 text-accent'
-                : 'border-black/[0.05] bg-[#FCFBFA] text-muted hover:border-stone-300 hover:text-text-secondary',
+                ? 'bg-accent/6 text-accent'
+                : 'text-muted hover:bg-white/72 hover:text-text-secondary',
             )}
           >
             <SlidersHorizontal className="h-3 w-3" />
@@ -354,10 +354,10 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="rounded-[14px] border border-black/[0.05] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint">Expanded filters</span>
-                <span className="text-[10px] text-text-faint">Refine the paradigm or variant without changing the atlas frame.</span>
+            <div className="rounded-[12px] border border-black/[0.05] bg-[#FCFBFA] px-3 py-3">
+              <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] text-text-faint">
+                <span className="font-semibold uppercase tracking-[0.1em] text-text-faint">More filters</span>
+                <span>Refine the paradigm or variant without changing the atlas frame.</span>
               </div>
               <div className="flex items-center gap-2.5 flex-wrap">
               {/* Source paradigm */}
@@ -533,36 +533,41 @@ export function PrecomputedEvidenceSurface({
 
   return (
     <div>
-      {/* ── Compact filter toolbar ── */}
+      {/* ── Unified top surface: title → controls → KPI rail → map ── */}
       <motion.section
         className="lab-stage overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.18, ease: 'easeOut' }}
       >
-        <div className="px-4 py-3.5 sm:px-5">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="px-4 py-3 sm:px-5">
+          <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="h-2 w-2 shrink-0 rounded-full bg-accent dot-pulse" />
                 <h2 className="text-[1.05rem] font-semibold tracking-tight text-text-primary">
                   Simulation Results
                 </h2>
-                <span className="rounded-full border border-accent/10 bg-accent/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-accent/85">
-                  Published atlas
-                </span>
-                <span className="lab-chip bg-white/90 text-2xs">
-                  {catalog.datasets.length} scenarios
-                </span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+                <span>Published atlas</span>
+                <span className="text-black/20">·</span>
+                <span>{catalog.datasets.length} scenarios</span>
                 {totalSlots > 0 && (
-                  <span className="lab-chip bg-white/90 text-2xs tabular-nums">
-                    {totalSlots.toLocaleString()} slots
-                  </span>
+                  <>
+                    <span className="text-black/20">·</span>
+                    <span className="tabular-nums">{totalSlots.toLocaleString()} slots</span>
+                  </>
+                )}
+                {selectedEntry && (
+                  <>
+                    <span className="text-black/20">·</span>
+                    <span className="font-medium text-text-secondary">{selectedEntry.evaluation}</span>
+                    <span className="text-black/20">·</span>
+                    <span>{paradigmLabel(selectedEntry.paradigm)}</span>
+                  </>
                 )}
               </div>
-              <p className="mt-0.5 max-w-2xl text-[10px] leading-relaxed text-muted">
-                Published scenarios, atlas controls, and evidence views in one surface.
-              </p>
             </div>
 
             <SimulationModeToggle
@@ -574,15 +579,6 @@ export function PrecomputedEvidenceSurface({
 
           {selectedEntry && (
             <div className="mt-3 border-t border-rule/70 pt-3">
-              <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] text-text-faint">
-                <span className="font-semibold uppercase tracking-[0.1em] text-text-faint">Atlas controls</span>
-                <span className="rounded-full border border-black/[0.06] bg-white px-2 py-0.5 font-medium text-text-secondary">
-                  {selectedEntry.evaluation}
-                </span>
-                <span className="rounded-full border border-black/[0.06] bg-white px-2 py-0.5 font-medium text-text-secondary">
-                  {paradigmLabel(selectedEntry.paradigm)}
-                </span>
-              </div>
               <ScenarioSelector
                 catalog={catalog}
                 selectedEvaluation={selectedEntry.evaluation}
@@ -592,157 +588,163 @@ export function PrecomputedEvidenceSurface({
               />
             </div>
           )}
+
+          {(payloadQuery.isLoading || payloadQuery.isError || payloadQuery.data) && (
+            <div className="mt-3 border-t border-rule/70 pt-3">
+              {payloadQuery.isLoading && (
+                <div className="space-y-3">
+                  <div className="overflow-hidden rounded-[14px] border border-black/[0.05] bg-black/[0.05]">
+                    <div className="grid grid-cols-2 gap-px sm:grid-cols-3 lg:grid-cols-5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="bg-white/92 px-3 py-3 animate-pulse">
+                          <div className="h-2 w-16 rounded bg-meridian/40 mb-2" />
+                          <div className="h-5 w-12 rounded bg-meridian/30" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="overflow-hidden rounded-[14px] border border-black/[0.06] bg-white animate-pulse">
+                    <div className="border-b border-rule px-5 py-3">
+                      <div className="h-3 w-32 rounded bg-meridian/40" />
+                    </div>
+                    <div className="aspect-[960/500] bg-gradient-to-b from-[#0E1520] to-[#0B0F14]" />
+                  </div>
+                </div>
+              )}
+
+              {payloadQuery.isError && (
+                <div className="rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+                  {(payloadQuery.error as Error).message}
+                </div>
+              )}
+
+              {payloadQuery.data && (
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SPRING_CRISP}>
+                  <EvidenceKpiStrip payload={payloadQuery.data} activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+                  <EvidenceMapSurface
+                    payload={payloadQuery.data}
+                    scenarioLabel={selectedEntry ? `${selectedEntry.evaluation}-${selectedEntry.paradigm}-${selectedEntry.result}` : undefined}
+                    embedded
+                    className="mt-3 border-t border-black/[0.05] pt-3"
+                  />
+                </motion.div>
+              )}
+            </div>
+          )}
         </div>
       </motion.section>
 
-      {/* ── Loading skeleton — matches KPI → Map hero order ── */}
-      {payloadQuery.isLoading && (
-        <div className="mt-3 space-y-3">
-          {/* KPI shimmer row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="lab-option-card px-3 py-2.5 animate-pulse">
-                <div className="h-2 w-16 rounded bg-meridian/40 mb-2" />
-                <div className="h-5 w-12 rounded bg-meridian/30" />
-              </div>
-            ))}
-          </div>
-          {/* Map shimmer — hero position */}
-          <div className="lab-stage overflow-hidden animate-pulse">
-            <div className="border-b border-rule px-5 py-3">
-              <div className="h-3 w-32 rounded bg-meridian/40" />
-            </div>
-            <div className="aspect-[960/500] bg-gradient-to-b from-[#0E1520] to-[#0B0F14]" />
-          </div>
-        </div>
-      )}
-      {payloadQuery.isError && (
-        <div className="mt-3 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
-          {(payloadQuery.error as Error).message}
-        </div>
-      )}
-
-      {/* ── Loaded surface: Filter → KPI → Map (hero) → Lens → Charts ── */}
+      {/* ── Analytical lens and chart deck below the hero surface ── */}
       {payloadQuery.data && (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SPRING_CRISP}>
-          {/* KPI analytics strip — first thing after filters */}
-          <div className="mt-2">
-            <EvidenceKpiStrip payload={payloadQuery.data} activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
-          </div>
-
-          {/* Map hero — the primary visual */}
-          <div className="mt-2.5">
-            <EvidenceMapSurface
-              payload={payloadQuery.data}
-              scenarioLabel={selectedEntry ? `${selectedEntry.evaluation}-${selectedEntry.paradigm}-${selectedEntry.result}` : undefined}
-            />
-          </div>
-
-          {/* Analytical lens — directly above the charts it filters */}
-          <div className="mt-2.5">
+        <motion.div className="mt-3" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SPRING_CRISP}>
+          <div className="lab-stage overflow-hidden">
             <EvidenceCategoryBar
               activeCategory={activeCategory}
               onCategoryChange={setActiveCategory}
               counts={categoryCounts}
               chartGridRef={chartGridRef}
+              embedded
             />
-          </div>
 
-          {/* Config snapshot + slot narrative — collapsible detail below lens */}
-          <details className="mt-3 group/details">
-            <summary className="lab-stage-soft px-4 py-2.5 cursor-pointer select-none flex items-center gap-2 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors">
-              <ChevronDown className="h-3 w-3 transition-transform duration-150 group-open/details:rotate-180" />
-              Scenario details
-              {selectedEntry && (
-                <span className="text-2xs text-text-faint font-normal ml-1">
-                  {selectedEntry.paradigm} · {totalSlots.toLocaleString()} slots
-                </span>
-              )}
-            </summary>
-            <div className="mt-1 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
-              {selectedEntry && (
-                <EvidenceConfigSnapshot
-                  metadata={selectedEntry.metadata}
-                  description={payloadQuery.data.description}
-                  paradigm={selectedEntry.paradigm}
-                  totalSlots={totalSlots}
-                />
-              )}
-              <SlotMetricsGrid payload={payloadQuery.data} />
-            </div>
-          </details>
-
-          {/* Chart panels — layout-aware grid */}
-          <div ref={chartGridRef}>
-            {taggedBlocks.length > 0 && (
-              <div className="lab-stage px-5 py-3.5">
-                <div className="flex items-center gap-2 mb-2.5">
-                  <div className="lab-section-title">Charts</div>
-                  {activeCategory !== 'all' && (
-                    <span className="lab-chip bg-accent/8 text-accent text-2xs">{activeCategory}</span>
-                  )}
-                  <span className="text-2xs text-text-faint tabular-nums ml-auto">
-                    {visibleBlocks.length} of {taggedBlocks.length}
+            {/* Config snapshot + slot narrative — integrated into the chart section */}
+            <details className="group/details border-b border-black/[0.05]">
+              <summary className="flex cursor-pointer select-none items-center gap-2 px-4 py-3 text-[11px] font-medium text-text-secondary transition-colors hover:text-text-primary sm:px-5">
+                <ChevronDown className="h-3 w-3 transition-transform duration-150 group-open/details:rotate-180" />
+                Scenario details
+                {selectedEntry && (
+                  <span className="ml-1 text-2xs font-normal text-text-faint">
+                    {selectedEntry.paradigm} · {totalSlots.toLocaleString()} slots
                   </span>
+                )}
+              </summary>
+              <div className="border-t border-black/[0.05] bg-[#FCFBFA] px-4 py-3 sm:px-5">
+                <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
+                  {selectedEntry && (
+                    <EvidenceConfigSnapshot
+                      metadata={selectedEntry.metadata}
+                      description={payloadQuery.data.description}
+                      paradigm={selectedEntry.paradigm}
+                      totalSlots={totalSlots}
+                    />
+                  )}
+                  <SlotMetricsGrid payload={payloadQuery.data} />
                 </div>
-                <AnimatePresence mode="popLayout">
-                  {visibleBlocks.length > 0 ? (
-                    <motion.div
-                      key="grid"
-                      className="grid grid-cols-1 lg:grid-cols-2 gap-3"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={SPRING_CRISP}
-                    >
-                      {visibleBlocks.map(({ key, block }) => (
-                        <ScrollRevealBlock key={key} block={block} />
-                      ))}
-                    </motion.div>
-                  ) : activeCategory !== 'all' ? (
-                    <motion.div
-                      key="empty"
-                      className="py-10 text-center"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={SPRING_CRISP}
-                    >
-                      <div className="text-sm text-muted">No {activeCategory} charts in this scenario.</div>
+              </div>
+            </details>
+
+            {/* Chart panels — layout-aware grid */}
+            <div ref={chartGridRef} className="px-4 py-4 sm:px-5">
+              {taggedBlocks.length > 0 && (
+                <>
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <div className="text-[10px] font-medium text-muted">
+                      {activeCategory === 'all'
+                        ? 'All chart panels'
+                        : `${activeCategory[0]?.toUpperCase()}${activeCategory.slice(1)} panels`}
+                    </div>
+                    <span className="text-black/20">·</span>
+                    <span className="text-[10px] tabular-nums text-text-faint">
+                      {visibleBlocks.length} of {taggedBlocks.length}
+                    </span>
+                    {activeCategory !== 'all' && (
                       <button
                         onClick={() => setActiveCategory('all')}
-                        className="mt-2 text-xs text-accent hover:underline"
+                        className="ml-auto text-[10px] font-medium text-accent hover:underline"
                       >
-                        Show all panels
+                        Clear lens
                       </button>
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
-                {/* Chart count footer */}
-                <div className="mt-3 pt-2.5 border-t border-rule/50 text-center">
-                  <span className="text-2xs text-text-faint">
-                    {activeCategory !== 'all'
-                      ? `Showing ${visibleBlocks.length} ${activeCategory} panel${visibleBlocks.length !== 1 ? 's' : ''} of ${taggedBlocks.length} total`
-                      : `${taggedBlocks.length} panel${taggedBlocks.length !== 1 ? 's' : ''} total`}
-                  </span>
-                  {activeCategory !== 'all' && (
-                    <>
-                      <span className="text-2xs text-text-faint mx-1.5">\u00b7</span>
-                      <button onClick={() => setActiveCategory('all')} className="text-2xs text-accent hover:underline">
-                        Clear
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+                    )}
+                  </div>
+                  <AnimatePresence mode="popLayout">
+                    {visibleBlocks.length > 0 ? (
+                      <motion.div
+                        key="grid"
+                        className="grid grid-cols-1 gap-3 lg:grid-cols-2"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={SPRING_CRISP}
+                      >
+                        {visibleBlocks.map(({ key, block }) => (
+                          <ScrollRevealBlock key={key} block={block} />
+                        ))}
+                      </motion.div>
+                    ) : activeCategory !== 'all' ? (
+                      <motion.div
+                        key="empty"
+                        className="py-10 text-center"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={SPRING_CRISP}
+                      >
+                        <div className="text-sm text-muted">No {activeCategory} charts in this scenario.</div>
+                        <button
+                          onClick={() => setActiveCategory('all')}
+                          className="mt-2 text-xs text-accent hover:underline"
+                        >
+                          Show all panels
+                        </button>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                  <div className="mt-4 border-t border-rule/50 pt-2.5 text-center">
+                    <span className="text-2xs text-text-faint">
+                      {activeCategory !== 'all'
+                        ? `Showing ${visibleBlocks.length} ${activeCategory} panel${visibleBlocks.length !== 1 ? 's' : ''} of ${taggedBlocks.length} total`
+                        : `${taggedBlocks.length} panel${taggedBlocks.length !== 1 ? 's' : ''} total`}
+                    </span>
+                  </div>
+                </>
+              )}
 
-            {taggedBlocks.length === 0 && (
-              <div className="lab-stage-soft p-10 text-center">
-                <div className="text-sm text-muted">No visualization data available for this scenario.</div>
-                <div className="mt-1 text-2xs text-text-faint">Try selecting a different scenario or paradigm above.</div>
-              </div>
-            )}
+              {taggedBlocks.length === 0 && (
+                <div className="py-10 text-center">
+                  <div className="text-sm text-muted">No visualization data available for this scenario.</div>
+                  <div className="mt-1 text-2xs text-text-faint">Try selecting a different scenario or paradigm above.</div>
+                </div>
+              )}
+            </div>
           </div>
         </motion.div>
       )}

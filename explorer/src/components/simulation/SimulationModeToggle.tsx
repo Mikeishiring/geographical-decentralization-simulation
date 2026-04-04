@@ -12,19 +12,19 @@ export function SimulationModeToggle({ value, onChange, className }: SimulationM
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center gap-[3px] rounded-[14px] border border-black/[0.06] bg-[#F6F5F4] p-[3px]',
+        'flex shrink-0 items-center gap-[2px] rounded-[12px] border border-black/[0.05] bg-[#FAF9F7] p-[2px]',
         className,
       )}
-      style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}
+      style={{ boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.03)' }}
     >
       <button
         type="button"
         aria-pressed={value === 'evidence'}
         onClick={() => onChange('evidence')}
         className={cn(
-          'rounded-[11px] px-3.5 py-1.5 text-[11px] font-medium transition-all duration-150',
+          'rounded-[10px] px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
           value === 'evidence'
-            ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
+            ? 'bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_0_0_0.5px_rgba(0,0,0,0.04)]'
             : 'text-stone-400 hover:text-stone-600',
         )}
       >
@@ -35,9 +35,9 @@ export function SimulationModeToggle({ value, onChange, className }: SimulationM
         aria-pressed={value === 'engine'}
         onClick={() => onChange('engine')}
         className={cn(
-          'rounded-[11px] px-3.5 py-1.5 text-[11px] font-medium transition-all duration-150',
+          'rounded-[10px] px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
           value === 'engine'
-            ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
+            ? 'bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_0_0_0.5px_rgba(0,0,0,0.04)]'
             : 'text-stone-400 hover:text-stone-600',
         )}
       >

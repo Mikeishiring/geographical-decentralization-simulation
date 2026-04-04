@@ -39,9 +39,10 @@ interface EvidenceMapSurfaceProps {
   readonly payload: PublishedAnalyticsPayload
   readonly className?: string
   readonly scenarioLabel?: string
+  readonly embedded?: boolean
 }
 
-export function EvidenceMapSurface({ payload, className, scenarioLabel }: EvidenceMapSurfaceProps) {
+export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded = false }: EvidenceMapSurfaceProps) {
   const idPrefix = useId()
   const totalSlots = totalSlotsFromPayload(payload)
   const lastSlot = Math.max(0, totalSlots - 1)
@@ -259,6 +260,11 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel }: Eviden
   }, [playing])
 
   const progress = lastSlot > 0 ? (slot / lastSlot) * 100 : 100
+  const overlayDescription = overlay === 'latency'
+    ? `Latency arcs ${LATENCY_MIN.toFixed(0)}–${LATENCY_MAX.toFixed(0)} ms`
+    : overlay === 'sources'
+      ? 'Source placement across regions'
+      : 'Live validator distribution'
 
   useEffect(() => {
     const container = mapContainerRef.current
@@ -277,9 +283,13 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel }: Eviden
   }, [])
 
   return (
-    <div className={cn('lab-stage overflow-hidden', className)}>
+    <div className={cn(embedded ? 'overflow-hidden' : 'lab-stage overflow-hidden', className)}>
       {/* ── Hero header ── */}
-      <div className="border-b border-black/[0.06] px-4 py-3 sm:px-5">
+      <div className={cn(
+        'border-b border-black/[0.06] px-4 py-3 sm:px-5',
+        embedded && 'px-0 py-0',
+      )}>
+        <div className={cn(embedded && 'px-4 py-3 sm:px-5')}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -287,51 +297,50 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel }: Eviden
               <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">
                 Validator Geography
               </h3>
-              {overlay === 'validators' && (
-                <div className="flex min-w-0 items-center gap-1.5">
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+              {overlay === 'validators' ? (
+                <>
                   <motion.span
                     key={`regions-${displayNodes.length}`}
-                    className="inline-flex items-center gap-1 rounded-md bg-stone-900 px-2 py-0.5 text-[10px] font-medium text-white tabular-nums"
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
+                    className="tabular-nums"
+                    initial={{ opacity: 0, y: 2 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={SPRING_SNAPPY}
                     title="Distinct GCP regions with at least one validator at this slot"
                   >
                     {displayNodes.length} regions
                   </motion.span>
+                  <span className="text-black/20">·</span>
                   <motion.span
                     key={`validators-${totalValidators}`}
-                    className="inline-flex items-center gap-1 rounded-md border border-black/[0.06] bg-white px-2 py-0.5 text-[10px] font-medium text-stone-600 tabular-nums shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
+                    className="tabular-nums"
+                    initial={{ opacity: 0, y: 2 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ ...SPRING_SNAPPY, delay: 0.05 }}
                     title="Total validator agents distributed across regions"
                   >
                     {totalValidators.toLocaleString()} validators
                   </motion.span>
-                  <motion.span
-                    key={`slot-${slot}`}
-                    className="inline-flex items-center gap-1 rounded-md border border-black/[0.06] bg-white px-2 py-0.5 text-[10px] font-mono text-stone-400 tabular-nums shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ ...SPRING_SNAPPY, delay: 0.1 }}
-                    title="Current consensus round in the simulation timeline"
-                  >
-                    slot {(slot + 1).toLocaleString()}
-                  </motion.span>
-                </div>
-              )}
+                  <span className="text-black/20">·</span>
+                </>
+              ) : null}
+              <motion.span
+                key={`slot-${slot}`}
+                className="font-mono tabular-nums text-text-faint"
+                initial={{ opacity: 0, y: 2 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...SPRING_SNAPPY, delay: 0.1 }}
+                title="Current consensus round in the simulation timeline"
+              >
+                slot {(slot + 1).toLocaleString()}
+              </motion.span>
+              <span className="text-black/20">·</span>
+              <span>{overlayDescription}</span>
             </div>
-            <p className="mt-1 text-2xs text-muted">
-              {overlay === 'latency'
-                ? `Inter-region latency arcs (${LATENCY_MIN.toFixed(0)}–${LATENCY_MAX.toFixed(0)} ms). Color = round-trip time.`
-                : overlay === 'sources'
-                  ? 'Information source placement across GCP regions.'
-                  : 'Live geographic distribution of validator stake across GCP regions.'}
-            </p>
           </div>
 
-          <div className="rounded-[16px] border border-black/[0.06] bg-[#F6F5F4] p-[3px] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="rounded-[12px] border border-black/[0.05] bg-[#FAF9F7] p-[2px] shadow-[inset_0_1px_1px_rgba(0,0,0,0.03)]">
             <div className="flex items-center gap-[3px]">
               {([
                 { mode: 'validators' as const, icon: Radio, label: 'Validators', detail: 'Show validator stake distribution across regions' },
@@ -343,9 +352,9 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel }: Eviden
                   onClick={() => setOverlay(mode)}
                   title={detail}
                   className={cn(
-                    'flex items-center gap-1.5 rounded-[11px] px-2.5 py-1.5 text-[11px] font-medium transition-all duration-150',
+                    'flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.25 text-[11px] font-medium transition-all duration-150',
                     overlay === mode
-                      ? 'bg-white text-stone-900 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.04)]'
+                      ? 'bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_0_0_0.5px_rgba(0,0,0,0.04)]'
                       : 'text-stone-400 hover:text-stone-600',
                   )}
                 >
@@ -365,7 +374,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel }: Eviden
                   setCopied(true)
                   setTimeout(() => setCopied(false), 2000)
                 }}
-                className="flex items-center justify-center h-7 w-7 rounded-lg border border-black/[0.06] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                className="flex items-center justify-center h-7 w-7 rounded-[10px] border border-black/[0.05] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all duration-150"
                 title={copied ? 'Copied!' : 'Copy share link with current slot and overlay'}
               >
                 <Link2 className={cn('h-3 w-3 transition-colors', copied && 'text-emerald-500')} />
@@ -384,13 +393,14 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel }: Eviden
                   a.click()
                   URL.revokeObjectURL(a.href)
                 }}
-                className="flex items-center justify-center h-7 w-7 rounded-lg border border-black/[0.06] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                className="flex items-center justify-center h-7 w-7 rounded-[10px] border border-black/[0.05] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all duration-150"
                 title="Download snapshot data as JSON"
               >
                 <Download className="h-3 w-3" />
               </button>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
