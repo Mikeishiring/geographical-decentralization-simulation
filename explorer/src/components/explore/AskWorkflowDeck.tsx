@@ -18,6 +18,7 @@ import type {
   StudyAssistantWorkflow,
   StudyAssistantWorkflowField,
   StudyAssistantWorkflowSection,
+  StudyAssistantWorkflowSectionPreviewMode,
   StudyAssistantWorkflowSectionSurface,
 } from '../../studies/types'
 
@@ -43,6 +44,7 @@ type WorkflowSectionGroup = {
     readonly id: string
     readonly title: string
     readonly description?: string
+    readonly previewMode?: StudyAssistantWorkflowSectionPreviewMode
     readonly workflowIds: readonly string[]
     readonly surface?: StudyAssistantWorkflowSectionSurface
   }
@@ -65,6 +67,7 @@ interface WorkflowPanelProps {
   readonly busy: boolean
   readonly selections: WorkflowSelections
   readonly setSelections: Dispatch<SetStateAction<WorkflowSelections>>
+  readonly previewEnabled: boolean
   readonly previewState?: WorkflowPreviewState
   readonly onPromptSelect: (prompt: string, launch?: AskLaunchContext) => void
 }
@@ -223,6 +226,24 @@ function sectionSurfaceCopy(surface: StudyAssistantWorkflowSectionSurface): stri
   }
 }
 
+function resolveSectionPreviewMode(
+  section: WorkflowSectionGroup['section'],
+  surface: StudyAssistantWorkflowSectionSurface,
+): StudyAssistantWorkflowSectionPreviewMode {
+  if (section.previewMode) return section.previewMode
+  return surface === 'cards' ? 'all' : 'featured'
+}
+
+function sectionPreviewCopy(previewMode: StudyAssistantWorkflowSectionPreviewMode): string {
+  switch (previewMode) {
+    case 'featured':
+      return 'Featured preview'
+    case 'all':
+    default:
+      return 'All previews'
+  }
+}
+
 function renderOutputs(workflow: StudyAssistantWorkflow) {
   if (!workflow.outputs?.length) return null
 
@@ -294,10 +315,29 @@ function renderLaunchSummary(
 function renderAdapterPreview(
   workflow: StudyAssistantWorkflow,
   launchContext: AskLaunchContext | undefined,
+  previewEnabled: boolean,
   previewState: WorkflowPreviewState | undefined,
   compact = false,
 ) {
   if (!launchContext?.structuredQuery?.viewId && !launchContext?.simulationConfig) return null
+
+  if (!previewEnabled) {
+    return (
+      <div className="rounded-xl border border-rule bg-white/90 px-3 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
+            Adapter preview
+          </div>
+          <div className="rounded-full border border-rule bg-surface-active px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-text-faint">
+            Focus to preview
+          </div>
+        </div>
+        <div className="mt-2 text-11 leading-5 text-muted">
+          This section only preloads the featured workflow. Focus or launch this item to load its study-owned surface.
+        </div>
+      </div>
+    )
+  }
 
   const previewLabel = previewState?.isLoading && !previewState.preview
     ? 'Loading preview'
@@ -516,6 +556,7 @@ function WorkflowPanel({
   selections,
   setSelections,
   previewState,
+  previewEnabled,
   onPromptSelect,
 }: WorkflowPanelProps) {
   const { workflow, activePresetId, resolvedPrompt, launchContext } = card
@@ -612,11 +653,11 @@ function WorkflowPanel({
               layout,
             )}
             {renderLaunchSummary(resolvedPrompt, launchContext, true)}
-            {renderAdapterPreview(workflow, launchContext, previewState, true)}
+            {renderAdapterPreview(workflow, launchContext, previewEnabled, previewState, true)}
           </div>
         ) : (
           <div className="mt-3 space-y-3">
-            {renderAdapterPreview(workflow, launchContext, previewState, layout !== 'cards')}
+            {renderAdapterPreview(workflow, launchContext, previewEnabled, previewState, layout !== 'cards')}
           </div>
         )}
       </div>
@@ -634,6 +675,16 @@ function WorkflowPanel({
       </div>
     </motion.div>
   )
+}
+
+function isCardActive(
+  card: WorkflowCard,
+  activePrompt?: string | null,
+  activeRoute?: StudyAssistantRouteHint | null,
+): boolean {
+  const isPromptActive = normalizePrompt(activePrompt) === normalizePrompt(card.resolvedPrompt)
+  const isRouteActive = !isPromptActive && card.workflow.routeHint != null && card.workflow.routeHint === activeRoute
+  return isPromptActive || isRouteActive
 }
 
 export function AskWorkflowDeck({
@@ -705,6 +756,24 @@ export function AskWorkflowDeck({
         cards: workflowCards,
       }]
 
+  const previewEnabledWorkflowIds = groupedSections.reduce<Set<string>>((acc, group) => {
+    const surface = resolveSectionSurface(group.section, mode)
+    const previewMode = resolveSectionPreviewMode(group.section, surface)
+    const previewableCards = group.cards.filter(card =>
+      Boolean(card.launchContext?.structuredQuery || card.launchContext?.simulationConfig),
+    )
+
+    if (previewMode === 'all') {
+      for (const card of previewableCards) acc.add(card.workflow.id)
+      return acc
+    }
+
+    const featuredCard = previewableCards.find(card => isCardActive(card, activePrompt, activeRoute))
+      ?? previewableCards[0]
+    if (featuredCard) acc.add(featuredCard.workflow.id)
+    return acc
+  }, new Set<string>())
+
   const workflowPreviewQueries = useQueries({
     queries: workflowCards.map(card => ({
       queryKey: [
@@ -713,7 +782,7 @@ export function AskWorkflowDeck({
         card.launchContext?.structuredQuery ?? null,
         card.launchContext?.simulationConfig ?? null,
       ],
-      enabled: Boolean(card.launchContext?.structuredQuery || card.launchContext?.simulationConfig),
+      enabled: previewEnabledWorkflowIds.has(card.workflow.id),
       staleTime: 30_000,
       placeholderData: (previousData: AskLaunchPreview | undefined) => previousData,
       queryFn: async () => previewAskLaunch(card.resolvedPrompt, card.launchContext!),
@@ -748,6 +817,7 @@ export function AskWorkflowDeck({
       <div className="mt-4 space-y-4">
         {groupedSections.map(({ section, cards }) => {
           const surface = resolveSectionSurface(section, mode)
+          const previewMode = resolveSectionPreviewMode(section, surface)
 
           return (
             <section key={section.id} className="space-y-3">
@@ -763,8 +833,13 @@ export function AskWorkflowDeck({
                   )}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
-                      {section.title}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
+                        {section.title}
+                      </div>
+                      <div className="rounded-full border border-rule bg-white px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-text-faint">
+                        {sectionPreviewCopy(previewMode)}
+                      </div>
                     </div>
                     <div className="rounded-full border border-rule bg-white px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-text-faint">
                       {sectionSurfaceCopy(surface)}
@@ -799,6 +874,7 @@ export function AskWorkflowDeck({
                       busy={busy}
                       selections={selections}
                       setSelections={setSelections}
+                      previewEnabled={previewEnabledWorkflowIds.has(card.workflow.id)}
                       previewState={workflowPreviewStates[index]}
                       onPromptSelect={onPromptSelect}
                     />

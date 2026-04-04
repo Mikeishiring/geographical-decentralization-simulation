@@ -187,6 +187,10 @@ export type StudyAssistantWorkflowSectionSurface =
   | 'compact-list'
   | 'preset-strip'
 
+export type StudyAssistantWorkflowSectionPreviewMode =
+  | 'all'
+  | 'featured'
+
 export interface StudyAssistantSuggestedPrompt {
   readonly label: string
   readonly prompt: string
@@ -239,6 +243,7 @@ export interface StudyAssistantWorkflowSection {
   readonly description?: string
   readonly mode?: StudyAssistantMode
   readonly surface?: StudyAssistantWorkflowSectionSurface
+  readonly previewMode?: StudyAssistantWorkflowSectionPreviewMode
   readonly workflowIds: readonly string[]
 }
 
