@@ -530,6 +530,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
       badge: 'Results',
       outputs: ['canonical figure', 'comparison blocks', 'paper caveat'],
       bestFor: ['Two-scenario comparisons', 'Figure-led answers', 'Cross-family Results questions'],
+      defaultPresetId: 'baseline-vs-gamma',
       presets: [
         {
           id: 'baseline-vs-gamma',
@@ -608,6 +609,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
       badge: 'Query',
       outputs: ['chart + table', 'ranked rows', 'grounded insight'],
       bestFor: ['Ranking asks', 'SQL-style questions', 'Catalog-wide comparisons'],
+      defaultPresetId: 'top-final-gini',
       presets: [
         {
           id: 'top-final-gini',
@@ -671,6 +673,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
       badge: 'Sweep',
       outputs: ['parameter sweep table', 'bounded chart', 'supported filters'],
       bestFor: ['Gamma sweep questions', 'SE1/SE4 family inspection', 'Constrained structured analysis'],
+      defaultPresetId: 'gamma-concentration',
       presets: [
         {
           id: 'gamma-concentration',
@@ -743,6 +746,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
       badge: 'Experiment',
       outputs: ['exact config', 'paper preset match', 'next run recommendation'],
       bestFor: ['What should I run?', 'Preset selection', 'Near-miss published scenarios'],
+      defaultPresetId: 'external-slots-misaligned',
       presets: [
         {
           id: 'external-slots-misaligned',
