@@ -16,11 +16,13 @@ import type {
   StudyAssistantMode,
   StudyAssistantRouteHint,
   StudyAssistantWorkflow,
+  StudyAssistantWorkflowSection,
   StudyAssistantWorkflowField,
 } from '../../studies/types'
 
 interface AskWorkflowDeckProps {
   readonly workflows: readonly StudyAssistantWorkflow[]
+  readonly sections?: readonly StudyAssistantWorkflowSection[]
   readonly mode: Exclude<StudyAssistantMode, 'both'>
   readonly activeRoute?: StudyAssistantRouteHint | null
   readonly activePrompt?: string | null
@@ -29,6 +31,21 @@ interface AskWorkflowDeckProps {
 }
 
 type WorkflowSelections = Readonly<Record<string, Readonly<Record<string, string>>>>
+type WorkflowCard = {
+  readonly workflow: StudyAssistantWorkflow
+  readonly activePresetId: string | undefined
+  readonly resolvedPrompt: string
+  readonly launchContext: AskLaunchContext | undefined
+}
+type WorkflowSectionGroup = {
+  readonly section: {
+    readonly id: string
+    readonly title: string
+    readonly description?: string
+    readonly workflowIds: readonly string[]
+  }
+  readonly cards: readonly WorkflowCard[]
+}
 
 function routeIcon(routeHint: StudyAssistantWorkflow['routeHint']) {
   switch (routeHint) {
@@ -112,6 +129,13 @@ function matchesMode(
   return workflow.mode == null || workflow.mode === 'both' || workflow.mode === mode
 }
 
+function matchesSectionMode(
+  section: StudyAssistantWorkflowSection,
+  mode: Exclude<StudyAssistantMode, 'both'>,
+): boolean {
+  return section.mode == null || section.mode === 'both' || section.mode === mode
+}
+
 function normalizePrompt(value: string | null | undefined): string {
   return value?.trim().toLowerCase() ?? ''
 }
@@ -159,6 +183,7 @@ function detectActivePresetId(
 
 export function AskWorkflowDeck({
   workflows,
+  sections = [],
   mode,
   activeRoute,
   activePrompt,
@@ -183,8 +208,44 @@ export function AskWorkflowDeck({
       activePresetId,
       resolvedPrompt,
       launchContext,
-    }
+    } satisfies WorkflowCard
   })
+  const workflowCardById = new Map<string, WorkflowCard>(workflowCards.map(card => [card.workflow.id, card]))
+  const workflowCardIndexById = new Map<string, number>(workflowCards.map((card, index) => [card.workflow.id, index]))
+  const explicitSections: WorkflowSectionGroup[] = sections
+    .filter(section => matchesSectionMode(section, mode))
+    .map(section => ({
+      section,
+      cards: section.workflowIds.reduce<WorkflowCard[]>((acc, workflowId) => {
+        const card = workflowCardById.get(workflowId)
+        if (card) acc.push(card)
+        return acc
+      }, []),
+    }))
+    .filter(group => group.cards.length > 0)
+  const explicitlyAssignedIds = new Set(explicitSections.flatMap(group => group.cards.map(card => card.workflow.id)))
+  const remainingCards = workflowCards.filter(card => !explicitlyAssignedIds.has(card.workflow.id))
+  const groupedSections: WorkflowSectionGroup[] = explicitSections.length > 0
+    ? [
+        ...explicitSections,
+        ...(remainingCards.length > 0 ? [{
+          section: {
+            id: 'more-workflows',
+            title: 'More Flows',
+            description: 'Additional study-owned launches that are still available for this mode.',
+            workflowIds: remainingCards.map(card => card.workflow.id),
+          },
+          cards: remainingCards,
+        }] : []),
+      ]
+    : [{
+        section: {
+          id: 'all-workflows',
+          title: 'All Flows',
+          workflowIds: workflowCards.map(card => card.workflow.id),
+        },
+        cards: workflowCards,
+      }]
   const workflowPreviewQueries = useQueries({
     queries: workflowCards.map(card => ({
       queryKey: [
@@ -219,64 +280,82 @@ export function AskWorkflowDeck({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 xl:grid-cols-3 md:grid-cols-2">
-        {workflowCards.map(({ workflow, activePresetId, resolvedPrompt, launchContext }, index) => {
-          const Icon = routeIcon(workflow.routeHint)
-          const isPromptActive = normalizePrompt(activePrompt) === normalizePrompt(resolvedPrompt)
-          const isRouteActive = !isPromptActive && workflow.routeHint != null && workflow.routeHint === activeRoute
-          const isActive = isPromptActive || isRouteActive
-          const previewQuery = workflowPreviewQueries[index]
-          const preview = previewQuery?.data
-          const previewLabel = previewQuery?.isLoading && !preview
-            ? 'Loading preview'
-            : previewQuery?.isFetching
-              ? 'Refreshing preview'
-              : 'Direct preview ready'
-
-          return (
-            <motion.div
-              key={workflow.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...SPRING, delay: index * 0.03 }}
-              className={cn(
-                'rounded-2xl border px-4 py-4 shadow-sm transition-colors',
-                isActive
-                  ? 'border-accent/25 bg-accent/[0.04]'
-                  : 'border-rule bg-surface-active/60',
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-rule bg-white text-text-primary shadow-sm">
-                  <Icon className="h-4 w-4" />
+      <div className="mt-4 space-y-4">
+        {groupedSections.map(({ section, cards }) => (
+          <section key={section.id} className="space-y-3">
+            {explicitSections.length > 0 && (
+              <div className="rounded-2xl border border-rule bg-surface-active/60 px-4 py-3">
+                <div className="text-11 font-medium uppercase tracking-[0.08em] text-text-faint">
+                  {section.title}
                 </div>
-                <div className="flex flex-wrap justify-end gap-2">
-                  {workflow.badge && (
-                    <span className="rounded-full border border-accent/15 bg-white px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-accent">
-                      {workflow.badge}
-                    </span>
-                  )}
-                  {(launchContext?.structuredQuery?.viewId || launchContext?.simulationConfig) && (
-                    <span className="rounded-full border border-accent/15 bg-white px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-accent">
-                      Direct surface
-                    </span>
-                  )}
-                  <span className="rounded-full border border-rule bg-white px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-text-faint">
-                    {routeLabel(workflow.routeHint)}
-                  </span>
-                </div>
+                {section.description ? (
+                  <div className="mt-1 text-xs leading-5 text-muted">
+                    {section.description}
+                  </div>
+                ) : null}
               </div>
+            )}
 
-              <div className="mt-3 text-sm font-medium text-text-primary">
-                {workflow.title}
-              </div>
-              <p className="mt-1 text-xs leading-5 text-muted">
-                {workflow.description}
-              </p>
+            <div className="grid gap-3 xl:grid-cols-3 md:grid-cols-2">
+              {cards.map(card => {
+                const { workflow, activePresetId, resolvedPrompt, launchContext } = card
+                const index = workflowCardIndexById.get(workflow.id) ?? -1
+                const Icon = routeIcon(workflow.routeHint)
+                const isPromptActive = normalizePrompt(activePrompt) === normalizePrompt(resolvedPrompt)
+                const isRouteActive = !isPromptActive && workflow.routeHint != null && workflow.routeHint === activeRoute
+                const isActive = isPromptActive || isRouteActive
+                const previewQuery = index >= 0 ? workflowPreviewQueries[index] : undefined
+                const preview = previewQuery?.data
+                const previewLabel = previewQuery?.isLoading && !preview
+                  ? 'Loading preview'
+                  : previewQuery?.isFetching
+                    ? 'Refreshing preview'
+                    : 'Direct preview ready'
+
+                return (
+                  <motion.div
+                    key={workflow.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...SPRING, delay: index * 0.03 }}
+                    className={cn(
+                      'rounded-2xl border px-4 py-4 shadow-sm transition-colors',
+                      isActive
+                        ? 'border-accent/25 bg-accent/[0.04]'
+                        : 'border-rule bg-surface-active/60',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-rule bg-white text-text-primary shadow-sm">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {workflow.badge && (
+                          <span className="rounded-full border border-accent/15 bg-white px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-accent">
+                            {workflow.badge}
+                          </span>
+                        )}
+                        {(launchContext?.structuredQuery?.viewId || launchContext?.simulationConfig) && (
+                          <span className="rounded-full border border-accent/15 bg-white px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-accent">
+                            Direct surface
+                          </span>
+                        )}
+                        <span className="rounded-full border border-rule bg-white px-2 py-0.5 text-11 uppercase tracking-[0.08em] text-text-faint">
+                          {routeLabel(workflow.routeHint)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 text-sm font-medium text-text-primary">
+                      {workflow.title}
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-muted">
+                      {workflow.description}
+                    </p>
 
               {workflow.outputs?.length ? (
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {workflow.outputs.slice(0, 3).map(output => (
+                  {workflow.outputs.slice(0, 3).map((output: string) => (
                     <span key={`${workflow.id}-${output}`} className="rounded-full border border-rule bg-white px-2 py-0.5 text-11 text-text-faint">
                       {output}
                     </span>
@@ -303,7 +382,7 @@ export function AskWorkflowDeck({
                         Quick presets
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {workflow.presets.map(preset => (
+                        {workflow.presets.map((preset) => (
                           <button
                             key={`${workflow.id}-${preset.id}`}
                             type="button"
@@ -326,15 +405,15 @@ export function AskWorkflowDeck({
                           </button>
                         ))}
                       </div>
-                      {workflow.presets.find(preset => preset.id === activePresetId)?.description ? (
+                      {workflow.presets.find((preset) => preset.id === activePresetId)?.description ? (
                         <div className="mt-2 text-11 leading-5 text-muted">
-                          {workflow.presets.find(preset => preset.id === activePresetId)?.description}
+                          {workflow.presets.find((preset) => preset.id === activePresetId)?.description}
                         </div>
                       ) : null}
                     </div>
                   ) : null}
                   <div className="grid gap-2">
-                    {workflow.fields.map(field => {
+                    {workflow.fields.map((field) => {
                       const selectedValue = selections[workflow.id]?.[field.id] ?? field.defaultValue ?? field.options[0]?.value ?? ''
                       return (
                         <label key={`${workflow.id}-${field.id}`} className="text-xs text-muted">
@@ -354,7 +433,7 @@ export function AskWorkflowDeck({
                             }}
                             className="w-full rounded-xl border border-rule bg-white px-3 py-2 text-xs text-text-primary outline-none focus:border-accent/25"
                           >
-                            {field.options.map(option => (
+                            {field.options.map((option) => (
                               <option key={`${workflow.id}-${field.id}-${option.value}`} value={option.value}>
                                 {option.label}
                               </option>
@@ -453,9 +532,12 @@ export function AskWorkflowDeck({
                   ? (mode === 'experiment' ? 'Compose run plan' : 'Compose workflow')
                   : (mode === 'experiment' ? 'Use this run plan' : 'Launch workflow')}
               </button>
-            </motion.div>
-          )
-        })}
+                  </motion.div>
+                )
+              })}
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   )

@@ -108,6 +108,7 @@ const ASK_PROMPT_TIPS = ASSISTANT_CONFIG.promptTips ?? [
 ]
 const ASK_QUERY_VIEWS = ASSISTANT_CONFIG.queryViews ?? []
 const ASK_WORKFLOWS = ASSISTANT_CONFIG.workflows ?? []
+const ASK_WORKFLOW_SECTIONS = ASSISTANT_CONFIG.workflowSections ?? []
 
 interface AgentLabPageProps {
   readonly onTabChange?: (tab: import('../components/layout/TabNav').TabId) => void
@@ -587,6 +588,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
           )}>
             <AskWorkflowDeck
               workflows={ASK_WORKFLOWS}
+              sections={ASK_WORKFLOW_SECTIONS}
               mode="ask"
               activeRoute={askPlan?.route ?? null}
               activePrompt={query}
@@ -905,6 +907,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
         <div className="space-y-4">
           <AskWorkflowDeck
             workflows={ASK_WORKFLOWS}
+            sections={ASK_WORKFLOW_SECTIONS}
             mode="experiment"
             onPromptSelect={handleSuggestionClick}
             busy={isCreating}

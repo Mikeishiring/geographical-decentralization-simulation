@@ -228,6 +228,14 @@ export interface StudyAssistantWorkflowPreset {
   readonly values?: Readonly<Record<string, string>>
 }
 
+export interface StudyAssistantWorkflowSection {
+  readonly id: string
+  readonly title: string
+  readonly description?: string
+  readonly mode?: StudyAssistantMode
+  readonly workflowIds: readonly string[]
+}
+
 export interface StudyAssistantStructuredQueryTemplate {
   readonly viewId?: string
   readonly dimensions?: readonly string[]
@@ -317,6 +325,7 @@ export interface StudyAssistantConfig {
   readonly capabilities?: readonly StudyAssistantCapability[]
   readonly promptTips?: readonly StudyAssistantPromptTip[]
   readonly workflows?: readonly StudyAssistantWorkflow[]
+  readonly workflowSections?: readonly StudyAssistantWorkflowSection[]
   readonly queryViews?: readonly StudyAssistantQueryView[]
   readonly resultsStyleGuidance?: string
   readonly systemPromptSupplement?: string
