@@ -221,6 +221,7 @@ export interface StudyAssistantWorkflow {
   readonly structuredQueryTemplate?: StudyAssistantStructuredQueryTemplate
   readonly simulationConfigTemplate?: StudyAssistantSimulationConfigTemplate
   readonly presets?: readonly StudyAssistantWorkflowPreset[]
+  readonly defaultPresetId?: string
   readonly mode?: StudyAssistantMode
   readonly routeHint?: StudyAssistantRouteHint
   readonly badge?: string

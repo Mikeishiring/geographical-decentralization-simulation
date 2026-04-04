@@ -16,7 +16,6 @@ import type {
   StudyAssistantMode,
   StudyAssistantRouteHint,
   StudyAssistantWorkflow,
-  StudyAssistantWorkflowField,
   StudyAssistantWorkflowSection,
   StudyAssistantWorkflowSectionPreviewMode,
   StudyAssistantWorkflowSectionSurface,
@@ -165,13 +164,23 @@ function normalizePrompt(value: string | null | undefined): string {
   return value?.trim().toLowerCase() ?? ''
 }
 
-function buildDefaultSelections(fields: readonly StudyAssistantWorkflowField[] | undefined): Record<string, string> {
-  if (!fields?.length) return {}
+function buildDefaultSelections(workflow: StudyAssistantWorkflow): Record<string, string> {
+  if (!workflow.fields?.length) return {}
 
-  return Object.fromEntries(fields.map(field => {
+  const fieldDefaults = Object.fromEntries(workflow.fields.map(field => {
     const defaultValue = field.defaultValue ?? field.options[0]?.value ?? ''
     return [field.id, defaultValue]
   }))
+
+  if (!workflow.defaultPresetId || !workflow.presets?.length) {
+    return fieldDefaults
+  }
+
+  const presetDefaults = workflow.presets.find(preset => preset.id === workflow.defaultPresetId)?.values ?? {}
+  return {
+    ...fieldDefaults,
+    ...presetDefaults,
+  }
 }
 
 function syncWorkflowSelections(
@@ -182,7 +191,7 @@ function syncWorkflowSelections(
 
   for (const workflow of workflows) {
     if (!workflow.fields?.length) continue
-    const defaults = buildDefaultSelections(workflow.fields)
+    const defaults = buildDefaultSelections(workflow)
     const existing = current[workflow.id] ?? {}
 
     next[workflow.id] = Object.fromEntries(workflow.fields.map(field => {
@@ -489,7 +498,7 @@ function renderWorkflowControls(
                   setSelections(current => ({
                     ...current,
                     [workflow.id]: {
-                      ...(current[workflow.id] ?? buildDefaultSelections(workflow.fields)),
+                      ...(current[workflow.id] ?? buildDefaultSelections(workflow)),
                       [field.id]: nextValue,
                     },
                   }))
