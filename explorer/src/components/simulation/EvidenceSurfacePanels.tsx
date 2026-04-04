@@ -330,9 +330,9 @@ const SENTIMENT_DOT: Record<string, string> = {
 
 const DELTA_ARROW: Record<string, string> = { up: '↑', down: '↓', flat: '→' }
 const DELTA_COLOR: Record<MetricSentiment, string> = {
-  positive: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/15',
-  neutral: 'bg-stone-100 text-stone-600 ring-1 ring-black/[0.05]',
-  negative: 'bg-rose-50 text-rose-600 ring-1 ring-rose-500/15',
+  positive: 'text-emerald-700',
+  neutral: 'text-stone-500',
+  negative: 'text-rose-600',
 }
 
 function clampIndex(length: number, index: number): number {
@@ -367,6 +367,15 @@ function EvidenceKpiCard({
   const currentValue = card.series[effectiveIndex]
   const previousValue = card.series[Math.max(0, effectiveIndex - 1)]
   const slotLabel = hoverIndex != null ? `Slot ${(effectiveIndex + 1).toLocaleString()}` : 'Final slot'
+  const compactSummary = hoverIndex != null
+    ? `${slotLabel} of ${card.totalSlots.toLocaleString()}`
+    : card.insight
+  const popoverHeadline = hoverIndex != null
+    ? `${card.label} at ${slotLabel.toLowerCase()}`
+    : card.insight
+  const popoverDetail = hoverIndex != null
+    ? `${formatSignedSeriesDelta(currentValue, previousValue, card.formatSeriesValue)} vs previous slot.`
+    : card.note
   const hoverProgress = card.series.length > 1
     ? effectiveIndex / Math.max(1, card.series.length - 1)
     : 1
@@ -401,54 +410,78 @@ function EvidenceKpiCard({
       aria-pressed={active}
       aria-label={`${card.label}: ${card.value}. ${card.detail}`}
       className={cn(
-        'group relative z-0 min-h-[140px] h-full overflow-visible rounded-[18px] border border-black/[0.05] bg-[#FCFBFA]/74 px-3.5 py-3 text-left transition-[border-color,background-color,box-shadow] duration-150 hover:border-black/[0.08] hover:shadow-[0_8px_18px_rgba(15,23,42,0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20',
-        active && 'z-10 border-stone-300 bg-white shadow-[0_10px_22px_rgba(15,23,42,0.07)]',
+        'group relative z-0 min-h-[118px] h-full overflow-visible bg-[#FCFBFA]/82 px-3 py-3 text-left transition-[background-color,box-shadow] duration-150 hover:bg-white/94 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20',
+        active && 'z-10 bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)]',
         hovered && 'z-20',
       )}
       style={{
-        backgroundImage: `linear-gradient(180deg, ${withAlpha(card.sparkColor, active ? 0.08 : 0.035)} 0%, rgba(255,255,255,0) 58%)`,
+        backgroundImage: `linear-gradient(180deg, ${withAlpha(card.sparkColor, active ? 0.05 : 0.018)} 0%, rgba(255,255,255,0) 62%)`,
       }}
     >
+      <span
+        aria-hidden
+        className="absolute inset-y-3 left-0 w-[2px] rounded-full"
+        style={{ backgroundColor: active ? card.sparkColor : 'transparent' }}
+      />
+
+      <AnimatePresence initial={false}>
+        {hovered && (
+          <motion.div
+            className="pointer-events-none absolute inset-x-3 bottom-full z-30 mb-2"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.14, ease: 'easeOut' }}
+          >
+            <div className="rounded-[14px] border border-black/[0.06] bg-white/96 px-3 py-2.5 shadow-[0_16px_36px_rgba(15,23,42,0.1)] backdrop-blur-sm">
+              <div className="text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint">
+                {hoverIndex != null ? 'Slot inspection' : card.label}
+              </div>
+              <div className="mt-1 text-[11px] font-medium leading-[1.45] text-stone-800">
+                {popoverHeadline}
+              </div>
+              <div className="mt-1 text-[10px] leading-snug text-stone-500">
+                {popoverDetail}
+              </div>
+              <div className="mt-2 border-t border-rule/70 pt-2 text-[10px] leading-snug text-text-faint">
+                {card.detail}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
             <span className="text-[9px] uppercase tracking-[0.1em] text-stone-500 font-semibold truncate">{card.label}</span>
           </div>
-          <div className="mt-2 flex flex-wrap items-end gap-x-2 gap-y-1">
-            <div className="text-[18px] font-semibold text-stone-900 tabular-nums leading-none tracking-tight">
+          <div className="mt-1.5 flex flex-wrap items-end gap-x-2 gap-y-1">
+            <div className="text-[19px] font-semibold text-stone-900 tabular-nums leading-none tracking-tight">
               {hoverIndex != null && currentValue != null ? card.formatSeriesValue(currentValue) : card.value}
             </div>
             {card.delta && (
-              <div className={cn('inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums', DELTA_COLOR[card.deltaSentiment])}>
+              <div className={cn('inline-flex items-center gap-1 text-[10px] font-medium tabular-nums', DELTA_COLOR[card.deltaSentiment])}>
                 <span>{DELTA_ARROW[card.direction]}</span>
                 <span>{card.delta}</span>
               </div>
             )}
           </div>
         </div>
-
-        <span className="shrink-0 rounded-full border border-black/[0.06] bg-white/75 px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-text-faint">
-          {slotLabel}
-        </span>
       </div>
 
-      <div className="mt-3 flex items-end justify-between gap-3">
+      <div className="mt-2.5 flex items-end justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-medium leading-[1.45] text-stone-700 line-clamp-2">
-            {hoverIndex != null
-              ? `${card.label} at slot ${(effectiveIndex + 1).toLocaleString()} of ${card.totalSlots.toLocaleString()}.`
-              : card.insight}
-          </div>
-          <div className="mt-1 text-[10px] leading-snug text-stone-400 line-clamp-1">
-            {hoverIndex != null ? `${formatSignedSeriesDelta(currentValue, previousValue, card.formatSeriesValue)} vs previous slot.` : card.note}
+          <div className="text-[10px] leading-[1.45] text-stone-500 line-clamp-1">
+            {compactSummary}
           </div>
         </div>
 
         {card.sparkData.length > 1 ? (
           <div
             ref={sparklineRef}
-            className="relative shrink-0 rounded-[10px] bg-black/[0.02] px-1.5 py-1"
+            className="relative shrink-0 rounded-[8px] bg-black/[0.015] px-1.5 py-1"
             onPointerMove={handleSparklinePointerMove}
             onPointerLeave={() => setHoverIndex(null)}
           >
@@ -478,15 +511,6 @@ function EvidenceKpiCard({
           </div>
         ) : null}
       </div>
-
-      <div className="mt-3 flex items-center justify-end gap-2">
-        <span className={cn(
-          'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em]',
-          active ? 'bg-stone-900 text-white' : 'bg-white/80 text-stone-500 ring-1 ring-black/[0.05]',
-        )}>
-          {active ? 'Lens on' : 'Filter charts'}
-        </span>
-      </div>
     </motion.button>
   )
 }
@@ -503,22 +527,24 @@ export function EvidenceKpiStrip({ payload, activeCategory, onCategoryChange }: 
 
   return (
     <motion.div
-      className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+      className="overflow-hidden rounded-[14px] border border-black/[0.05] bg-black/[0.05]"
       initial="hidden"
       animate="visible"
       variants={STAGGER_CONTAINER}
     >
-      {cards.map(card => {
-        const isActive = activeCategory === card.linkedCategory
-        return (
-          <EvidenceKpiCard
-            key={card.label}
-            card={card}
-            active={isActive}
-            onActivate={() => onCategoryChange(isActive ? 'all' : card.linkedCategory)}
-          />
-        )
-      })}
+      <div className="grid grid-cols-1 gap-px sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {cards.map(card => {
+          const isActive = activeCategory === card.linkedCategory
+          return (
+            <EvidenceKpiCard
+              key={card.label}
+              card={card}
+              active={isActive}
+              onActivate={() => onCategoryChange(isActive ? 'all' : card.linkedCategory)}
+            />
+          )
+        })}
+      </div>
     </motion.div>
   )
 }
@@ -643,9 +669,16 @@ interface EvidenceCategoryBarProps {
   readonly onCategoryChange: (category: PlotCategory) => void
   readonly counts: Record<PlotCategory, number>
   readonly chartGridRef?: React.RefObject<HTMLDivElement | null>
+  readonly embedded?: boolean
 }
 
-export function EvidenceCategoryBar({ activeCategory, onCategoryChange, counts, chartGridRef }: EvidenceCategoryBarProps) {
+export function EvidenceCategoryBar({
+  activeCategory,
+  onCategoryChange,
+  counts,
+  chartGridRef,
+  embedded = false,
+}: EvidenceCategoryBarProps) {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [isStuck, setIsStuck] = useState(false)
 
@@ -672,36 +705,52 @@ export function EvidenceCategoryBar({ activeCategory, onCategoryChange, counts, 
       <div ref={sentinelRef} className="h-0" aria-hidden />
       <div
         className={cn(
-          'sticky top-[4.85rem] z-20 -mx-px px-px py-2.5 transition-shadow duration-200',
-          isStuck
-            ? 'bg-white/92 backdrop-blur-md'
-            : 'bg-transparent',
+          'sticky top-[4.85rem] z-20 transition-all duration-200',
+          embedded
+            ? cn(
+                'border-b border-black/[0.05]',
+                isStuck ? 'bg-white/94 shadow-[0_8px_20px_rgba(15,23,42,0.06)] backdrop-blur-md' : 'bg-[#FCFBFA]/96',
+              )
+            : cn(
+                '-mx-px px-px py-2.5',
+                isStuck ? 'bg-white/92 backdrop-blur-md' : 'bg-transparent',
+              ),
         )}
       >
         <div className={cn(
-          'rounded-[18px] border border-black/[0.06] px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-200',
-          isStuck ? 'bg-white/92 shadow-[0_10px_24px_rgba(15,23,42,0.08)]' : 'bg-[#FBFAF9]/92',
+          embedded
+            ? 'px-4 py-3 sm:px-5'
+            : cn(
+                'rounded-[18px] border border-black/[0.06] px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-200',
+                isStuck ? 'bg-white/92 shadow-[0_10px_24px_rgba(15,23,42,0.08)]' : 'bg-[#FBFAF9]/92',
+              ),
         )}>
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <div className="text-[9px] uppercase tracking-[0.1em] text-stone-400 font-semibold">Chart lens</div>
-                <span className="rounded-full border border-black/[0.06] bg-white px-2 py-0.5 text-[10px] font-medium tabular-nums text-stone-500">
+                <span className="text-[10px] font-medium tabular-nums text-stone-500">
                   {counts[activeCategory]} panel{counts[activeCategory] !== 1 ? 's' : ''}
                 </span>
+                <span className="text-black/20">·</span>
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={`${activeCategory}-desktop`}
+                    className="text-[10px] text-stone-500"
+                    initial={{ opacity: 0, y: 3 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -3 }}
+                    transition={SPRING_CRISP}
+                  >
+                    {CATEGORY_DESCRIPTIONS[activeCategory] ?? ''}
+                  </motion.span>
+                </AnimatePresence>
               </div>
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={`${activeCategory}-desktop`}
-                  className="mt-1 hidden text-[11px] leading-relaxed text-stone-500 lg:block"
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={SPRING_CRISP}
-                >
-                  {CATEGORY_DESCRIPTIONS[activeCategory] ?? ''}
-                </motion.p>
-              </AnimatePresence>
+              {activeCategory !== 'all' && (
+                <div className="mt-1 text-[10px] text-stone-400">
+                  Selecting a lens narrows the chart deck below.
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap gap-1">
               {PLOT_CATEGORIES.map(cat => (
@@ -710,18 +759,18 @@ export function EvidenceCategoryBar({ activeCategory, onCategoryChange, counts, 
                   onClick={() => handleCategoryChange(cat.id)}
                   title={CATEGORY_DESCRIPTIONS[cat.id] ?? `Show ${cat.label.toLowerCase()} charts`}
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all duration-150',
+                    'inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[10px] font-medium transition-all duration-150',
                     activeCategory === cat.id
-                      ? 'border-stone-900 bg-stone-900 text-white shadow-[0_4px_12px_rgba(15,23,42,0.12)]'
-                      : 'border-black/[0.06] bg-white text-stone-500 hover:text-stone-800 hover:border-stone-300',
+                      ? 'border-black/[0.08] bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.05)]'
+                      : 'border-transparent bg-transparent text-stone-400 hover:bg-black/[0.035] hover:text-stone-700',
                     counts[cat.id] === 0 && cat.id !== 'all' && 'opacity-30 pointer-events-none',
                   )}
                 >
                   <span>{cat.label}</span>
                   {cat.id !== 'all' && counts[cat.id] > 0 && (
                     <span className={cn(
-                      'rounded-full px-1 py-0 text-[9px] tabular-nums',
-                      activeCategory === cat.id ? 'bg-white/15 text-white' : 'bg-stone-100 text-stone-400',
+                      'rounded-[6px] px-1 py-0 text-[9px] tabular-nums',
+                      activeCategory === cat.id ? 'bg-black/[0.05] text-stone-600' : 'bg-black/[0.04] text-stone-400',
                     )}>
                       {counts[cat.id]}
                     </span>
@@ -730,18 +779,6 @@ export function EvidenceCategoryBar({ activeCategory, onCategoryChange, counts, 
               ))}
             </div>
           </div>
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={`${activeCategory}-mobile`}
-              className="mt-2 text-[11px] leading-relaxed text-stone-500 lg:hidden"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={SPRING_CRISP}
-            >
-              {CATEGORY_DESCRIPTIONS[activeCategory] ?? ''}
-            </motion.p>
-          </AnimatePresence>
         </div>
       </div>
     </>
