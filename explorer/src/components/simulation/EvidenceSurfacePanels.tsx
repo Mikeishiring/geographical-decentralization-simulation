@@ -110,9 +110,8 @@ type DeltaDirection = 'up' | 'down' | 'flat'
 interface KpiCard {
   readonly label: string
   readonly value: string
-  readonly delta: string | null
-  readonly direction: DeltaDirection
-  readonly deltaSentiment: MetricSentiment
+  readonly showDelta: boolean
+  readonly preferredDeltaDirection: 'higher' | 'lower' | 'neutral'
   readonly note: string
   readonly insight: string
   readonly detail: string
@@ -121,6 +120,7 @@ interface KpiCard {
   readonly series: readonly number[]
   readonly totalSlots: number
   readonly formatSeriesValue: (value: number) => string
+  readonly formatDeltaValue: (value: number) => string
   readonly sparkColor: string
   readonly linkedCategory: PlotCategory
 }
@@ -142,6 +142,18 @@ function deltaTone(direction: DeltaDirection, preferredDirection: 'higher' | 'lo
   return direction === 'down' ? 'positive' : 'negative'
 }
 
+function computeSeriesDelta(
+  start: number | undefined,
+  end: number | undefined,
+  formatter: (value: number) => string,
+): { raw: number; formatted: string; direction: DeltaDirection } | null {
+  if (start == null || end == null || !Number.isFinite(start) || !Number.isFinite(end)) return null
+  const diff = end - start
+  if (Math.abs(diff) < 0.0001) return { raw: diff, formatted: formatter(0), direction: 'flat' }
+  const prefix = diff > 0 ? '+' : ''
+  return { raw: diff, formatted: `${prefix}${formatter(diff)}`, direction: diff > 0 ? 'up' : 'down' }
+}
+
 function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   const metrics = payload.metrics ?? {}
   const totalSlots = totalSlotsFromPayload(payload)
@@ -157,9 +169,8 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     cards.push({
       label: 'Inequality',
       value: formatNumber(giniEnd, 3),
-      delta: giniDelta?.formatted ?? null,
-      direction: giniDelta?.direction ?? 'flat',
-      deltaSentiment: deltaTone(giniDelta?.direction ?? 'flat', 'lower'),
+      showDelta: true,
+      preferredDeltaDirection: 'lower',
       note: giniSentiment === 'positive' ? 'Relatively balanced finish.' : giniSentiment === 'neutral' ? 'Some geographic skew remains.' : 'Stake ends in a narrow footprint.',
       insight: giniDelta?.direction === 'up'
         ? 'Stake concentrated as the run progressed.'
@@ -172,6 +183,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       series: metrics.gini ?? [],
       totalSlots,
       formatSeriesValue: value => formatNumber(value, 3),
+      formatDeltaValue: value => formatNumber(value, 4),
       sparkColor: CHART_COLORS.gini,
       linkedCategory: 'decentralization',
     })
@@ -185,9 +197,8 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     cards.push({
       label: 'Concentration',
       value: formatNumber(hhiEnd, 4),
-      delta: hhiDelta?.formatted ?? null,
-      direction: hhiDelta?.direction ?? 'flat',
-      deltaSentiment: deltaTone(hhiDelta?.direction ?? 'flat', 'lower'),
+      showDelta: true,
+      preferredDeltaDirection: 'lower',
       note: hhiSentiment === 'positive' ? 'Market power stays diffuse.' : hhiSentiment === 'neutral' ? 'Moderate concentration persists.' : 'A few regions dominate the run.',
       insight: hhiDelta?.direction === 'up'
         ? 'Market power consolidated into fewer regions.'
@@ -200,6 +211,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       series: metrics.hhi ?? [],
       totalSlots,
       formatSeriesValue: value => formatNumber(value, 4),
+      formatDeltaValue: value => formatNumber(value, 4),
       sparkColor: CHART_COLORS.hhi,
       linkedCategory: 'decentralization',
     })
@@ -214,9 +226,8 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     cards.push({
       label: 'Coverage',
       value: `${formatNumber(livenessEnd, 1)}%`,
-      delta: livenessDelta ? `${livenessDelta.formatted}%` : null,
-      direction: livenessDelta?.direction ?? 'flat',
-      deltaSentiment: deltaTone(livenessDelta?.direction ?? 'flat', 'higher'),
+      showDelta: true,
+      preferredDeltaDirection: 'higher',
       note: topRegion ? `${topRegion.label} anchors the strongest final footprint.` : 'Regional participation at the finish.',
       insight: livenessDelta?.direction === 'up'
         ? 'More regions stayed active into the close.'
@@ -229,6 +240,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       series: metrics.liveness ?? [],
       totalSlots,
       formatSeriesValue: value => `${formatNumber(value, 1)}%`,
+      formatDeltaValue: value => `${formatNumber(value, 4)}%`,
       sparkColor: CHART_COLORS.liveness,
       linkedCategory: 'coverage',
     })
@@ -242,9 +254,8 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     cards.push({
       label: 'Attestation',
       value: formatNumber(attestEnd, 1),
-      delta: attestDelta?.formatted ?? null,
-      direction: attestDelta?.direction ?? 'flat',
-      deltaSentiment: deltaTone(attestDelta?.direction ?? 'flat', 'higher'),
+      showDelta: true,
+      preferredDeltaDirection: 'higher',
       note: attestationSentiment === 'positive' ? 'Consensus closes from a healthy base.' : attestationSentiment === 'neutral' ? 'Coordination lands in a mixed zone.' : 'Coordination closes under pressure.',
       insight: attestDelta?.direction === 'up'
         ? 'Coordination improved into the final slots.'
@@ -257,6 +268,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       series: metrics.attestations ?? [],
       totalSlots,
       formatSeriesValue: value => formatNumber(value, 1),
+      formatDeltaValue: value => formatNumber(value, 4),
       sparkColor: CHART_COLORS.attestation,
       linkedCategory: 'economics',
     })
@@ -270,9 +282,8 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     cards.push({
       label: 'Proposal latency',
       value: `${formatNumber(proposalEnd, 1)} ms`,
-      delta: proposalDelta ? `${proposalDelta.formatted} ms` : null,
-      direction: proposalDelta?.direction ?? 'flat',
-      deltaSentiment: deltaTone(proposalDelta?.direction ?? 'flat', 'lower'),
+      showDelta: true,
+      preferredDeltaDirection: 'lower',
       note: proposalSentiment === 'positive' ? 'Pipeline closes in a responsive range.' : proposalSentiment === 'neutral' ? 'Pipeline lands in a watch zone.' : 'Propagation ends materially slowed.',
       insight: proposalDelta?.direction === 'up'
         ? 'Proposal delivery slowed as the run matured.'
@@ -285,6 +296,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       series: metrics.proposal_times ?? [],
       totalSlots,
       formatSeriesValue: value => `${formatNumber(value, 1)} ms`,
+      formatDeltaValue: value => `${formatNumber(value, 4)} ms`,
       sparkColor: CHART_COLORS.proposalTime,
       linkedCategory: 'latency',
     })
@@ -297,9 +309,8 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     cards.push({
       label: 'Active regions',
       value: String(activeEnd),
-      delta: null,
-      direction: 'flat',
-      deltaSentiment: 'neutral',
+      showDelta: false,
+      preferredDeltaDirection: 'higher',
       note: regionSentiment === 'positive' ? 'Final stake footprint stays broad.' : regionSentiment === 'neutral' ? 'Final stake footprint stays mixed.' : 'Final stake footprint narrows sharply.',
       insight: regionSentiment === 'positive'
         ? `${activeEnd} regions still carry stake at the finish.`
@@ -312,6 +323,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       series: activeRegionSeries,
       totalSlots,
       formatSeriesValue: value => formatNumber(value, 0),
+      formatDeltaValue: value => formatNumber(value, 0),
       sparkColor: CHART_COLORS.activeRegions,
       linkedCategory: 'topology',
     })
@@ -364,8 +376,14 @@ function EvidenceKpiCard({
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
   const sparklineRef = useRef<HTMLDivElement | null>(null)
   const effectiveIndex = hoverIndex ?? Math.max(0, card.series.length - 1)
+  const baselineValue = card.series[0]
   const currentValue = card.series[effectiveIndex]
   const previousValue = card.series[Math.max(0, effectiveIndex - 1)]
+  const seriesDelta = card.showDelta
+    ? computeSeriesDelta(baselineValue, currentValue, card.formatDeltaValue)
+    : null
+  const deltaDirection = seriesDelta?.direction ?? 'flat'
+  const deltaSentiment = deltaTone(deltaDirection, card.preferredDeltaDirection)
   const slotLabel = hoverIndex != null ? `Slot ${(effectiveIndex + 1).toLocaleString()}` : 'Final slot'
   const compactSummary = hoverIndex != null
     ? `${slotLabel} of ${card.totalSlots.toLocaleString()}`
@@ -451,8 +469,8 @@ function EvidenceKpiCard({
         )}
       </AnimatePresence>
 
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
             <span className="text-[9px] uppercase tracking-[0.1em] text-stone-500 font-semibold truncate">{card.label}</span>
@@ -461,18 +479,16 @@ function EvidenceKpiCard({
             <div className="text-[19px] font-semibold text-stone-900 tabular-nums leading-none tracking-tight">
               {hoverIndex != null && currentValue != null ? card.formatSeriesValue(currentValue) : card.value}
             </div>
-            {card.delta && (
-              <div className={cn('inline-flex items-center gap-1 text-[10px] font-medium tabular-nums', DELTA_COLOR[card.deltaSentiment])}>
-                <span>{DELTA_ARROW[card.direction]}</span>
-                <span>{card.delta}</span>
+            {seriesDelta && (
+              <div
+                className={cn('inline-flex items-center gap-1 text-[10px] font-medium tabular-nums', DELTA_COLOR[deltaSentiment])}
+                title={hoverIndex != null ? 'Change from slot 1 to the inspected slot' : 'Change from slot 1 to the final slot'}
+              >
+                <span>{DELTA_ARROW[deltaDirection]}</span>
+                <span>{seriesDelta.formatted}</span>
               </div>
             )}
           </div>
-        </div>
-      </div>
-
-      <div className="mt-2.5 flex items-end justify-between gap-3">
-        <div className="min-w-0 flex-1">
           <div className="text-[10px] leading-[1.45] text-stone-500 line-clamp-1">
             {compactSummary}
           </div>
@@ -481,7 +497,7 @@ function EvidenceKpiCard({
         {card.sparkData.length > 1 ? (
           <div
             ref={sparklineRef}
-            className="relative shrink-0 rounded-[8px] bg-black/[0.015] px-1.5 py-1"
+            className="relative shrink-0 self-center"
             onPointerMove={handleSparklinePointerMove}
             onPointerLeave={() => setHoverIndex(null)}
           >
@@ -504,8 +520,8 @@ function EvidenceKpiCard({
             <Sparkline
               data={card.sparkData}
               color={card.sparkColor}
-              width={80}
-              height={24}
+              width={88}
+              height={28}
               highlightIndex={hoverIndex != null && card.sparkData.length > 1 ? Math.round((hoverIndex / Math.max(1, card.series.length - 1)) * Math.max(0, card.sparkData.length - 1)) : null}
             />
           </div>
