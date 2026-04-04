@@ -182,6 +182,11 @@ export type StudyAssistantRouteHint =
   | 'simulation-config'
   | 'hybrid'
 
+export type StudyAssistantWorkflowSectionSurface =
+  | 'cards'
+  | 'compact-list'
+  | 'preset-strip'
+
 export interface StudyAssistantSuggestedPrompt {
   readonly label: string
   readonly prompt: string
@@ -233,6 +238,7 @@ export interface StudyAssistantWorkflowSection {
   readonly title: string
   readonly description?: string
   readonly mode?: StudyAssistantMode
+  readonly surface?: StudyAssistantWorkflowSectionSurface
   readonly workflowIds: readonly string[]
 }
 

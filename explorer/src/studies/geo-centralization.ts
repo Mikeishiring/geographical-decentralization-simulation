@@ -877,6 +877,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
       title: 'Understand',
       description: 'Start with the paper’s core mechanism and then move into its canonical comparisons.',
       mode: 'ask',
+      surface: 'compact-list',
       workflowIds: ['read-the-mechanism', 'compare-paper-results'],
     },
     {
@@ -884,6 +885,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
       title: 'Query',
       description: 'Use bounded study-owned Results surfaces when you want rankings, sweeps, or compact data views.',
       mode: 'ask',
+      surface: 'cards',
       workflowIds: ['query-the-leaderboard', 'inspect-a-sweep'],
     },
     {
@@ -891,6 +893,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
       title: 'Run',
       description: 'Translate a what-if into a bounded exact configuration without pretending the simulation already ran.',
       mode: 'experiment',
+      surface: 'preset-strip',
       workflowIds: ['plan-a-bounded-run'],
     },
   ],
