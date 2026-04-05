@@ -22,6 +22,11 @@ The current Explorer remains in place to avoid breaking deployment paths, Docker
 - classify the paper
 - choose the site shape
 - emit `study-package`, `validation-report`, and `editorial-scorecard`
+- emit an `assembly-plan` that explains how inputs become surfaces and why each layer exists
+- emit a `project-slot-map` that explains where generated pieces land in this repo and what remains manual
+- provide reusable study-class templates and scaffold starter study packs from them
+- read a structured research intake and draft a first-pass study package, validation report, and scorecard
+- emit an `explorer-adapter` bundle that scaffolds the current explorer study-module shape without touching the live site
 
 ### `packages/study-schema/`
 
