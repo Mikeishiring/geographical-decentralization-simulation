@@ -221,7 +221,7 @@ function App() {
           id="main-content"
           className={cn(
             'mx-auto px-4 sm:px-6',
-            activeTab === 'paper' ? 'max-w-[88rem] pb-8 pt-3 sm:pt-4' : 'py-8',
+            activeTab === 'paper' ? 'max-w-[96rem] pb-8 pt-3 sm:pt-4' : 'py-8',
             activeTab === 'paper'
               ? ''
               : (activeTab === 'agent' || activeTab === 'results')
