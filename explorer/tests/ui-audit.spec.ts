@@ -107,6 +107,42 @@ test('mobile paper toolbar keeps short note and guide labels in a dedicated seco
   expect((notesButtonBox?.x ?? 0)).toBeLessThan((guideButtonBox?.x ?? 0))
 })
 
+test('mobile guide keeps entry-point context within the initial viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+
+  await page.getByRole('button', { name: /Guide/ }).click()
+
+  const suggestedHeading = page.getByText('Suggested entry points').first()
+  await expect(suggestedHeading).toBeVisible()
+
+  const suggestedHeadingBox = await suggestedHeading.boundingBox()
+  expect(suggestedHeadingBox).not.toBeNull()
+  expect((suggestedHeadingBox?.y ?? 0) + (suggestedHeadingBox?.height ?? 0)).toBeLessThan(760)
+})
+
+test('mobile pdf mode keeps the explainer compact above the document', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.addInitScript(() => {
+    window.localStorage.setItem('paper-reader-mode', 'paper')
+  })
+  await page.goto('/')
+
+  const explainer = page.getByText('Public notes come from highlighted PDF text.').first()
+  const firstPage = page.locator('[data-page="1"]').first()
+
+  await expect(explainer).toBeVisible({ timeout: 60_000 })
+  await expect(firstPage).toBeVisible({ timeout: 60_000 })
+
+  const explainerBox = await explainer.boundingBox()
+  const firstPageBox = await firstPage.boundingBox()
+
+  expect(explainerBox).not.toBeNull()
+  expect(firstPageBox).not.toBeNull()
+  expect(explainerBox?.height ?? 0).toBeLessThan(70)
+  expect((firstPageBox?.y ?? 0)).toBeLessThan(630)
+})
+
 test('paper reader toolbar sits close to the tab nav on initial load', async ({ page }) => {
   await page.goto('/')
 
