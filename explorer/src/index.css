@@ -37,6 +37,8 @@
 
 :root {
   --explorer-tab-nav-height: 3.75rem;
+  --explorer-paper-mode-bar-height: 4.75rem;
+  --explorer-paper-stack-offset: calc(var(--explorer-tab-nav-height) + var(--explorer-paper-mode-bar-height) + 0.75rem);
 }
 
 * {

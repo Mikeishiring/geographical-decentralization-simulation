@@ -58,6 +58,7 @@ const ANNOTATION_COLORS: { id: Annotation['color']; label: string; cssClass: str
 
 const ZOOM_STEPS = [0.6, 0.75, 0.9, 1.0, 1.15, 1.3, 1.5] as const
 const DEFAULT_ZOOM_INDEX = 3 // 1.0
+const PDF_TOOLBAR_TOP = 'calc(var(--explorer-tab-nav-height, 3.75rem) + var(--explorer-paper-mode-bar-height, 4.75rem) + 0.5rem)'
 
 /* ── Component ────────────────────────────────── */
 
@@ -182,24 +183,26 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
   const hasAnnotations = showAnnotations && annotations.length > 0
 
   return (
-    <div ref={containerRef} className="relative space-y-4">
+    <div ref={containerRef} className="relative space-y-3 sm:space-y-4">
       {/* ── Floating toolbar ── */}
       <motion.div
+        data-testid="pdf-viewer-toolbar"
         animate={{
           opacity: chromeVisible ? 1 : 0,
           y: chromeVisible ? 0 : -12,
           pointerEvents: chromeVisible ? 'auto' as const : 'none' as const,
         }}
         transition={SPRING_CRISP}
-        className="sticky top-[7.5rem] z-30"
+        className="sticky z-30"
+        style={{ top: PDF_TOOLBAR_TOP }}
       >
         <div className={cn(
-          'flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-2.5 shadow-sm backdrop-blur-md transition-colors',
+          'grid gap-2 rounded-xl border px-3 py-2.5 shadow-sm backdrop-blur-md transition-colors sm:px-4',
           darkMode
             ? 'border-white/10 bg-slate-900/95 text-white/90'
             : 'border-rule bg-white/95 text-text-primary',
         )}>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
             {/* Dark/Light toggle */}
             <div className={cn(
               'flex items-center gap-0.5 rounded-lg border p-0.5',
@@ -289,12 +292,12 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center">
             {/* Notes toggle */}
             <button
               onClick={() => setShowAnnotations(prev => !prev)}
               className={cn(
-                'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors',
+                'flex items-center justify-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors',
                 showAnnotations
                   ? darkMode
                     ? 'border-accent/40 bg-accent/10 text-accent'
@@ -305,7 +308,9 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
               )}
             >
               <MessageSquarePlus className="h-3 w-3" />
-              Private notes ({annotations.length})
+              <span className="sm:hidden">Notes</span>
+              <span className="hidden sm:inline">Private notes</span>
+              <span className="tabular-nums">({annotations.length})</span>
             </button>
 
             {/* Add note */}
@@ -315,14 +320,15 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
                 showChrome()
               }}
               className={cn(
-                'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors',
+                'flex items-center justify-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors',
                 darkMode
                   ? 'border-white/10 opacity-60 hover:opacity-90'
                   : 'border-rule text-muted hover:text-text-primary hover:border-border-hover',
               )}
             >
               <MessageSquarePlus className="h-3 w-3" />
-              New private note
+              <span className="sm:hidden">New note</span>
+              <span className="hidden sm:inline">New private note</span>
             </button>
 
             {/* arXiv link */}
@@ -331,21 +337,22 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors shrink-0',
+                'flex items-center justify-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors shrink-0',
                 darkMode
                   ? 'border-white/10 opacity-60 hover:opacity-90'
                   : 'border-rule text-muted hover:text-text-primary hover:border-border-hover',
               )}
             >
               <ExternalLink className="h-3 w-3" />
-              arXiv
+              <span className="sm:hidden">Open</span>
+              <span className="hidden sm:inline">arXiv</span>
             </a>
           </div>
         </div>
       </motion.div>
 
       <div className={cn(
-        'rounded-xl border px-4 py-3',
+        'rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3',
         darkMode ? 'border-white/10 bg-slate-900/80 text-white/80' : 'border-accent/12 bg-accent/[0.035] text-text-primary',
       )}>
         <div className="flex items-start gap-2.5">
@@ -356,9 +363,9 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
             <Users className="h-3.5 w-3.5" />
           </span>
           <div>
-            <div className="text-xs font-medium">Public community notes vs private PDF notes</div>
+            <div className="text-[11px] font-medium sm:text-xs">Public community notes vs private PDF notes</div>
             <p className={cn(
-              'mt-1 text-xs leading-relaxed',
+              'mt-1 text-[11px] leading-relaxed sm:text-xs',
               darkMode ? 'text-white/60' : 'text-muted',
             )}>
               Highlight text anywhere in the PDF to open a public community note tied to that passage. The toolbar controls here are for private notes saved only in this browser.
@@ -480,7 +487,7 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
               ? 'border-white/10 bg-slate-950'
               : 'border-rule bg-neutral-100',
           )}
-          style={{ height: 'calc(100vh - 14rem)' }}
+          style={{ height: 'calc(100vh - clamp(13rem, 28vh, 15rem))' }}
         >
           {/* Loading state */}
           {numPages === 0 && (
@@ -498,7 +505,7 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
             file={LOCAL_PDF_URL}
             onLoadSuccess={handleDocumentLoadSuccess}
             loading={null}
-            className="flex flex-col items-center gap-4 py-6"
+            className="flex flex-col items-center gap-3 py-4 sm:gap-4 sm:py-6"
           >
             {pageNumbers.map(pageNum => (
               <div
