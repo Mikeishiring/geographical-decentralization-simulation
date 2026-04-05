@@ -10,6 +10,7 @@ import { LATENCY_MIN, LATENCY_MAX } from '../../data/gcp-latency'
 import { formatNumber } from './simulation-constants'
 import { THRESHOLDS, SENTIMENT_TEXT, sentimentLower, sentimentHigher } from './simulation-evidence-constants'
 import { regionColor, REGION_COLORS, NODE_BLUE, type RegionNode, type OverlayMode, type TooltipData } from './evidence-map-helpers'
+import { LIVENESS_DESCRIPTION, LIVENESS_LABEL, formatLivenessCount } from './simulation-analytics'
 
 interface MacroBreakdownEntry {
   readonly region: string
@@ -76,10 +77,10 @@ export function EvidenceMapSidebar({
             </div>
           )}
           {liveness != null && (
-            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]" title="Percentage of GCP regions with active validators. Higher = broader geographic spread.">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Liveness</div>
+            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]" title={LIVENESS_DESCRIPTION}>
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">{LIVENESS_LABEL}</div>
               <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentHigher(liveness, THRESHOLDS.liveness)])}>
-                {formatNumber(liveness, 1)}%
+                {formatLivenessCount(liveness)}
               </div>
             </div>
           )}

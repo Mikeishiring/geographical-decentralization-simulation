@@ -1,6 +1,16 @@
 import { expect, test, type Page } from '@playwright/test'
 
 async function mockCuratedExplore(page: Page) {
+  await page.route('**/api/health', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        anthropicEnabled: false,
+      }),
+    })
+  })
+
   await page.route('**/api/explore', async route => {
     await route.fulfill({
       status: 200,
@@ -30,7 +40,7 @@ async function mockCuratedExplore(page: Page) {
 
 async function askCuratedQuestion(page: Page) {
   const askButton = page.getByRole('button', { name: 'Ask', exact: true })
-  const queryInput = page.getByPlaceholder('Ask about a mechanism, paradox, comparison, or implication...')
+  const queryInput = page.locator('input[type="text"]').first()
 
   await expect(askButton).toBeVisible()
   await expect(askButton).toBeDisabled()
@@ -72,12 +82,84 @@ test('agent ask CTA stays visible and publish can proceed as-is', async ({ page 
   await expect(page.getByText('Publishing as-is will use the suggested title and takeaway.')).toBeVisible()
 })
 
-test('mobile paper toolbar keeps short note and guide labels', async ({ page }) => {
+test('mobile paper toolbar keeps short note and guide labels in a dedicated second row', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
 
-  await expect(page.getByRole('button', { name: /Guide/ })).toBeVisible()
-  await expect(page.getByRole('button', { name: /Notes/ })).toBeVisible()
+  const modeSwitcher = page.getByRole('tablist', { name: 'Reading mode' })
+  const guideButton = page.getByRole('button', { name: /Guide/ })
+  const notesButton = page.getByRole('button', { name: /Notes/ })
+
+  await expect(modeSwitcher).toBeVisible()
+  await expect(guideButton).toBeVisible()
+  await expect(notesButton).toBeVisible()
+
+  const modeSwitcherBox = await modeSwitcher.boundingBox()
+  const guideButtonBox = await guideButton.boundingBox()
+  const notesButtonBox = await notesButton.boundingBox()
+
+  expect(modeSwitcherBox).not.toBeNull()
+  expect(guideButtonBox).not.toBeNull()
+  expect(notesButtonBox).not.toBeNull()
+
+  expect((notesButtonBox?.y ?? 0)).toBeGreaterThanOrEqual((modeSwitcherBox?.y ?? 0) + (modeSwitcherBox?.height ?? 0) - 1)
+  expect(Math.abs((notesButtonBox?.y ?? 0) - (guideButtonBox?.y ?? 0))).toBeLessThan(3)
+  expect((notesButtonBox?.x ?? 0)).toBeLessThan((guideButtonBox?.x ?? 0))
+})
+
+test('paper reader toolbar sits close to the tab nav on initial load', async ({ page }) => {
+  await page.goto('/')
+
+  const tabNavShell = page.getByTestId('tab-nav-shell')
+  const paperToolbar = page.getByTestId('paper-view-mode-bar')
+
+  await expect(tabNavShell).toBeVisible()
+  await expect(paperToolbar).toBeVisible()
+
+  const tabNavShellBox = await tabNavShell.boundingBox()
+  const paperToolbarBox = await paperToolbar.boundingBox()
+
+  expect(tabNavShellBox).not.toBeNull()
+  expect(paperToolbarBox).not.toBeNull()
+
+  const loadGap = (paperToolbarBox?.y ?? 0) - ((tabNavShellBox?.y ?? 0) + (tabNavShellBox?.height ?? 0))
+  expect(loadGap).toBeGreaterThanOrEqual(0)
+  expect(loadGap).toBeLessThan(24)
+})
+
+test('paper reader toolbar stays docked beneath the sticky tab nav', async ({ page }) => {
+  await page.goto('/')
+  await page.mouse.wheel(0, 500)
+
+  const tabNavShell = page.getByTestId('tab-nav-shell')
+  const paperToolbar = page.getByTestId('paper-view-mode-bar')
+  const guideButton = page.getByRole('button', { name: /Reading guide|Guide/ })
+
+  await expect(tabNavShell).toBeVisible()
+  await expect(paperToolbar).toBeVisible()
+  await expect(guideButton).toBeVisible()
+
+  const tabNavShellBox = await tabNavShell.boundingBox()
+  const paperToolbarBox = await paperToolbar.boundingBox()
+
+  expect(tabNavShellBox).not.toBeNull()
+  expect(paperToolbarBox).not.toBeNull()
+
+  const stickyGap = (paperToolbarBox?.y ?? 0) - ((tabNavShellBox?.y ?? 0) + (tabNavShellBox?.height ?? 0))
+  expect(stickyGap).toBeGreaterThanOrEqual(-2)
+  expect(stickyGap).toBeLessThan(14)
+})
+
+test('results evidence labels collapse threshold as critical regions', async ({ page }) => {
+  await page.goto('/?tab=results')
+
+  const mapHeading = page.getByRole('heading', { name: 'Validator Geography' })
+  const thresholdCard = page.locator('div[title="Smallest number of regions whose outage collapses the network."]').first()
+
+  await expect(mapHeading).toBeVisible({ timeout: 60_000 })
+  await expect(thresholdCard).toBeVisible({ timeout: 60_000 })
+  await expect(thresholdCard).toContainText('Critical regions')
+  await expect(thresholdCard).not.toContainText('%')
 })
 
 test('community replies preserve author and persist after reload', async ({ page }) => {

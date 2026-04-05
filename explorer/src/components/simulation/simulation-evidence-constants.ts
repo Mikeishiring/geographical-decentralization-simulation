@@ -27,7 +27,7 @@ export const CHART_COLORS = {
 export const THRESHOLDS = {
   gini:          { good: 0.4,  moderate: 0.6 },
   hhi:           { good: 0.15, moderate: 0.25 },
-  liveness:      { good: 95,   moderate: 80 },
+  liveness:      { good: 3,    moderate: 2 },
   proposalTime:  { good: 200,  moderate: 500 },
   activeRegions: { good: 20,   moderate: 10 },
 } as const
@@ -60,7 +60,7 @@ export const SENTIMENT_TEXT: Record<MetricSentiment, string> = {
 export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   all: 'All metrics across the simulation run.',
   decentralization: 'Stake inequality and market concentration.',
-  coverage: 'Geographic liveness \u2014 regional participation.',
+  coverage: 'Collapse threshold and regional participation.',
   equity: 'Profit distribution fairness.',
   topology: 'Spatial clustering, spacing, and spread.',
   economics: 'MEV extraction and attestation health.',

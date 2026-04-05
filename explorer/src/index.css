@@ -35,6 +35,10 @@
   --font-mono: 'Menlo', Monaco, 'Courier New', monospace;
 }
 
+:root {
+  --explorer-tab-nav-height: 3.75rem;
+}
+
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

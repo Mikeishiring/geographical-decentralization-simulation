@@ -22,6 +22,7 @@ const tabs: { id: TabId; label: string; icon: typeof BookOpen; hint: string }[] 
 
 export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
   const tabRefs = React.useRef<Map<TabId, HTMLButtonElement>>(new Map())
+  const navShellRef = React.useRef<HTMLDivElement | null>(null)
   const [hoveredTab, setHoveredTab] = useState<TabId | null>(null)
   const focusTab = React.useCallback((tab: TabId) => {
     window.requestAnimationFrame(() => {
@@ -29,8 +30,33 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
     })
   }, [])
 
+  React.useLayoutEffect(() => {
+    const navShell = navShellRef.current
+    if (!navShell) return
+
+    const updateHeight = () => {
+      document.documentElement.style.setProperty('--explorer-tab-nav-height', `${Math.ceil(navShell.getBoundingClientRect().height)}px`)
+    }
+
+    updateHeight()
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateHeight)
+      return () => window.removeEventListener('resize', updateHeight)
+    }
+
+    const observer = new ResizeObserver(() => updateHeight())
+    observer.observe(navShell)
+    window.addEventListener('resize', updateHeight)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', updateHeight)
+    }
+  }, [])
+
   return (
-    <div className="sticky top-0 z-20 border-b border-rule bg-white/92 backdrop-blur-lg shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div ref={navShellRef} data-testid="tab-nav-shell" className="sticky top-0 z-20 border-b border-rule bg-white/92 backdrop-blur-lg shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       <div className={`${CONTENT_MAX_WIDTH} mx-auto px-4 sm:px-6 overflow-x-auto hide-scrollbar`}>
         <nav className="flex gap-1 min-w-max" role="tablist" aria-label="Explorer sections">
           {tabs.map(tab => {

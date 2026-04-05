@@ -4,6 +4,10 @@ import { cn } from '../../lib/cn'
 import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { formatNumber, paradigmLabel } from './simulation-constants'
 import {
+  LIVENESS_DESCRIPTION,
+  LIVENESS_LABEL,
+  formatLivenessCount,
+  formatLivenessCountWithUnit,
   totalSlotsFromPayload,
   topRegionsForSlot,
   activeRegionCountAtSlot,
@@ -217,30 +221,33 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     })
   }
 
-  // Liveness — region coverage
+  // Collapse threshold — regions required to fail the network
   const livenessEnd = metrics.liveness?.[finalSlot]
   const livenessDelta = computeDelta(metrics.liveness?.[0], livenessEnd)
-  const topRegion = topRegionsForSlot(payload, finalSlot, 1)[0]
   if (livenessEnd != null) {
     const livenessSentiment = sentimentHigher(livenessEnd, THRESHOLDS.liveness)
     cards.push({
-      label: 'Coverage',
-      value: `${formatNumber(livenessEnd, 1)}%`,
+      label: LIVENESS_LABEL,
+      value: formatLivenessCount(livenessEnd),
       showDelta: true,
       preferredDeltaDirection: 'higher',
-      note: topRegion ? `${topRegion.label} anchors the strongest final footprint.` : 'Regional participation at the finish.',
+      note: livenessSentiment === 'positive'
+        ? 'Several regional outages would be required to collapse the network.'
+        : livenessSentiment === 'neutral'
+          ? 'The network can tolerate some regional outages before collapsing.'
+          : 'Only a small number of regional outages would collapse the network.',
       insight: livenessDelta?.direction === 'up'
-        ? 'More regions stayed active into the close.'
+        ? 'The collapse threshold improved over the run.'
         : livenessDelta?.direction === 'down'
-          ? 'Regional participation narrowed by the finish.'
-          : 'Coverage stayed steady across the run.',
-      detail: 'Percentage of GCP regions with active validators. Higher means broader geographic spread.',
+          ? 'Fewer regional outages are needed to collapse the network than at the start.'
+          : 'The collapse threshold stayed steady across the run.',
+      detail: LIVENESS_DESCRIPTION,
       sentiment: livenessSentiment,
       sparkData: sampleForSpark(metrics.liveness),
       series: metrics.liveness ?? [],
       totalSlots,
-      formatSeriesValue: value => `${formatNumber(value, 1)}%`,
-      formatDeltaValue: value => `${formatNumber(value, 4)}%`,
+      formatSeriesValue: value => formatLivenessCount(value),
+      formatDeltaValue: value => formatLivenessCount(value),
       sparkColor: CHART_COLORS.liveness,
       linkedCategory: 'coverage',
     })
@@ -824,7 +831,13 @@ function buildTakeaway(payload: PublishedAnalyticsPayload): string {
   const liveness = m.liveness?.[f]
   if (liveness != null) {
     const s = sentimentHigher(liveness, THRESHOLDS.liveness)
-    parts.push(s === 'positive' ? 'and strong geographic coverage' : s === 'neutral' ? 'and adequate coverage' : 'but weak geographic coverage')
+    parts.push(
+      s === 'positive'
+        ? `and needs at least ${formatLivenessCountWithUnit(liveness)} to fail before it collapses`
+        : s === 'neutral'
+          ? `and currently collapses after ${formatLivenessCountWithUnit(liveness)} fail`
+          : `but collapses if only ${formatLivenessCountWithUnit(liveness)} fail`,
+    )
   }
 
   const activeRegions = activeRegionCountAtSlot(payload, f)
@@ -921,7 +934,7 @@ export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
 export function categorizeChart(title: string): PlotCategory {
   const t = title.toLowerCase()
   if (t.includes('gini') || t.includes('hhi') || t.includes('concentration')) return 'decentralization'
-  if (t.includes('liveness') || t.includes('coverage') || t.includes('active region')) return 'coverage'
+  if (t.includes('liveness') || t.includes('coverage') || t.includes('active region') || t.includes('critical regions') || t.includes('collapse threshold')) return 'coverage'
   if (t.includes('coefficient of variation') || t.includes('profit') || t.includes('disparity')) return 'equity'
   if (t.includes('cluster') || t.includes('nearest-neighbor') || t.includes('nearest neighbor') || t.includes('nni') || t.includes('total validator distance') || t.includes('network spread')) return 'topology'
   if (t.includes('mev') || t.includes('block value') || t.includes('attestation')) return 'economics'
