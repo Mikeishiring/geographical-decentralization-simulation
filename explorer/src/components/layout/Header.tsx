@@ -87,22 +87,22 @@ export function Header() {
   return (
     <header className="relative overflow-hidden bg-white border-b border-rule stripe-top-accent">
       {/* Globe wireframe — decorative background, right side */}
-      <div className="absolute inset-0 pointer-events-none">
-        <GlobeWireframe />
+      <div className="absolute inset-0 pointer-events-none opacity-[0.52] sm:opacity-100">
+        <GlobeWireframe className="origin-top-right scale-[0.8] translate-x-[12%] -translate-y-[3%] sm:scale-100 sm:translate-x-0 sm:translate-y-0" />
       </div>
 
       {/* Soft gradient overlay — text legibility on the left */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'linear-gradient(105deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 40%, rgba(255,255,255,0.3) 70%, transparent 100%)',
+          background: 'linear-gradient(105deg, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.87) 46%, rgba(255,255,255,0.34) 74%, transparent 100%)',
         }}
       />
 
-      <div className={`relative ${CONTENT_MAX_WIDTH} mx-auto px-4 sm:px-6 py-8 sm:py-10`}>
-        <div className="flex flex-col gap-4">
+      <div className={`relative ${CONTENT_MAX_WIDTH} mx-auto px-4 py-6 sm:px-6 sm:py-10`}>
+        <div className="flex flex-col gap-3 sm:gap-4">
           {/* Top row: edition label + arXiv badge */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-start justify-between gap-2 sm:items-center">
             <p className="text-2xs font-medium uppercase tracking-[0.14em] text-text-faint">
               Interactive paper edition
             </p>
@@ -129,7 +129,7 @@ export function Header() {
           </div>
 
           {/* Title */}
-          <h1 className="max-w-3xl font-serif text-[clamp(1.25rem,1rem+0.5vw,1.75rem)] font-semibold leading-snug text-text-primary">
+          <h1 className="max-w-3xl font-serif text-[clamp(1.15rem,4.7vw,1.75rem)] font-semibold leading-snug text-text-primary sm:text-[clamp(1.25rem,1rem+0.5vw,1.75rem)]">
             {HEADER_TITLE}
           </h1>
 
