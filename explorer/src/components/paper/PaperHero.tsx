@@ -29,10 +29,10 @@ export function PaperHero() {
         >
           {study.metadata.title}
         </motion.h1>
-        <motion.p variants={STAGGER_ITEM} className="mt-1.5 text-sm text-muted">{study.metadata.citation}</motion.p>
+        <motion.p variants={STAGGER_ITEM} className="mt-2 text-sm text-muted font-serif">{study.metadata.citation}</motion.p>
 
         {/* Key claims as inline chips */}
-        <motion.div variants={STAGGER_ITEM} className="mt-3 flex flex-wrap gap-1.5">
+        <motion.div variants={STAGGER_ITEM} className="mt-4 flex flex-wrap gap-1.5">
           {study.metadata.keyClaims.map(claim => (
             <span key={claim} className="lab-chip">
               {claim}

@@ -7,7 +7,6 @@
  */
 
 import type Anthropic from '@anthropic-ai/sdk'
-import { SIMULATION_COPILOT_CONTEXT } from './study-context.ts'
 import type { SimulationRuntime, SimulationRequest } from './simulation-runtime.ts'
 import { AgentLoopStore } from './agent-loop-store.ts'
 import {
@@ -85,6 +84,7 @@ export class AgentLoopOrchestrator {
     private readonly store: AgentLoopStore,
     private readonly simulationRuntime: SimulationRuntime,
     private readonly model: string,
+    private readonly simulationCopilotContext: string,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -112,11 +112,11 @@ export class AgentLoopOrchestrator {
         model: this.model,
         max_tokens: 2048,
         system: [
-          {
-            type: 'text',
-            text: `${SIMULATION_COPILOT_CONTEXT}\n${AGENT_LOOP_SYSTEM_EXTENSION}`,
-            cache_control: { type: 'ephemeral' },
-          },
+            {
+              type: 'text',
+              text: `${this.simulationCopilotContext}\n${AGENT_LOOP_SYSTEM_EXTENSION}`,
+              cache_control: { type: 'ephemeral' },
+            },
         ],
         messages: [{ role: 'user', content: userMessage }],
       })
@@ -251,7 +251,7 @@ export class AgentLoopOrchestrator {
         system: [
           {
             type: 'text',
-            text: `${SIMULATION_COPILOT_CONTEXT}\n${AGENT_LOOP_SYSTEM_EXTENSION}`,
+            text: `${this.simulationCopilotContext}\n${AGENT_LOOP_SYSTEM_EXTENSION}`,
             cache_control: { type: 'ephemeral' },
           },
         ],

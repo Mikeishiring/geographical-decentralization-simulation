@@ -7,6 +7,11 @@
     "build": "tsc --noEmit",
     "generate": "tsx src/cli.ts generate",
     "classify": "tsx src/cli.ts classify",
+    "explain": "tsx src/cli.ts explain",
+    "slots": "tsx src/cli.ts slots",
+    "templates": "tsx src/cli.ts templates",
+    "scaffold": "tsx src/cli.ts scaffold",
+    "draft": "tsx src/cli.ts draft",
     "validate": "tsx src/cli.ts validate"
   },
   "devDependencies": {

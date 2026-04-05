@@ -163,6 +163,15 @@ function buildStudyFrame(input: {
           url: artifact.url,
         })),
     },
+    assistant: {
+      askHeading: 'Ask about the fixture',
+      askDescription: 'Fixture assistant scaffold used to test generator outputs.',
+      askPlaceholder: 'Ask about the evidence or recommended surface...',
+      suggestedPrompts: input.claims.slice(0, 3).map(claim => ({
+        label: claim.id,
+        prompt: claim.text,
+      })),
+    },
   }
 }
 

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { Ban, ChevronRight, Clock, Play, RotateCcw, Sparkles } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import { InlineTooltip } from '../ui/Tooltip'
 import { SPRING, SPRING_CRISP } from '../../lib/theme'
 import type { SimulationConfig } from '../../lib/simulation-api'
 import {
@@ -117,7 +118,6 @@ export function SimConfigPanel({
               {(['SSP', 'MSP'] as const).map(paradigm => (
                 <button
                   key={paradigm}
-                  title={paradigm === 'SSP' ? 'External block building — proposers outsource block construction to specialized suppliers (PBS/ePBS)' : 'Local block building — proposers self-construct blocks from distributed signal sources'}
                   onClick={() => onConfigChange('paradigm', paradigm)}
                   className={cn(
                     segmentButtonClassName,
@@ -128,18 +128,25 @@ export function SimConfigPanel({
                       : 'text-muted',
                   )}
                 >
-                  <div className="text-sm font-medium">{describeParadigm(paradigm)}</div>
+                  <div className="text-sm font-medium">
+                    <InlineTooltip label={paradigm === 'SSP' ? 'External block building' : 'Local block building'} detail={paradigm === 'SSP' ? 'Proposers outsource block construction to specialized suppliers (PBS/ePBS)' : 'Proposers self-construct blocks from distributed signal sources'}>
+                      {describeParadigm(paradigm)}
+                    </InlineTooltip>
+                  </div>
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="text-xs text-muted mb-1.5 block">Validator Distribution</label>
+            <label className="text-xs text-muted mb-1.5 block">
+              <InlineTooltip label="How validators are spread across GCP regions" detail="Heterogeneous uses real Ethereum stake distribution.">
+                Validator Distribution
+              </InlineTooltip>
+            </label>
             <select
               value={config.distribution}
               onChange={event => onConfigChange('distribution', event.target.value as SimulationConfig['distribution'])}
-              title="How validators are spread across GCP regions. Heterogeneous uses real Ethereum stake distribution."
               className={inputClassName}
             >
               <option value="homogeneous">Homogeneous (upstream baseline default)</option>
@@ -150,11 +157,14 @@ export function SimConfigPanel({
           </div>
 
           <div className="sm:col-span-2 sm:max-w-[calc(50%-0.375rem)]">
-            <label className="text-xs text-muted mb-1.5 block">Information Source Placement</label>
+            <label className="text-xs text-muted mb-1.5 block">
+              <InlineTooltip label="Where block-building information sources are located relative to validators">
+                Information Source Placement
+              </InlineTooltip>
+            </label>
             <select
               value={config.sourcePlacement}
               onChange={event => onConfigChange('sourcePlacement', event.target.value as SimulationConfig['sourcePlacement'])}
-              title="Where block-building information sources are located relative to validators"
               className={inputClassName}
             >
               <option value="homogeneous">Homogeneous</option>
@@ -171,10 +181,13 @@ export function SimConfigPanel({
           <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
             Scale — how much to compute
           </div>
+          <InlineTooltip
+            label={isCached ? 'Pre-computed paper scenario' : `Estimated runtime: ${runtime.label}`}
+            detail={isCached
+              ? 'Results will be instant from cache.'
+              : `Based on ${config.validators.toLocaleString()} validators x ${config.slots.toLocaleString()} slots x ${Math.round((config.slotTime * 1000) / 100)} steps/slot.`}
+          >
           <div
-            title={isCached
-              ? 'This config matches a pre-computed paper scenario — results will be instant from cache.'
-              : `Estimated runtime: ${runtime.label}. Based on ${config.validators.toLocaleString()} validators × ${config.slots.toLocaleString()} slots × ${Math.round((config.slotTime * 1000) / 100)} steps/slot.`}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-11 font-medium',
               isCached && 'border-emerald-300/40 bg-emerald-50 text-emerald-700',
@@ -187,6 +200,7 @@ export function SimConfigPanel({
             {isCached ? <Sparkles className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
             {isCached ? 'Cached · instant' : runtime.label}
           </div>
+          </InlineTooltip>
         </div>
 
         {(runtime.tier === 'long' || runtime.tier === 'very-long') && (
@@ -211,7 +225,9 @@ export function SimConfigPanel({
           <div>
             <div className="flex items-center justify-between gap-3 mb-1.5">
               <label className="text-xs text-muted block">Validators</label>
-              <div title="Total validator agents in simulation. Paper baseline: 1,000" className="text-11 text-text-faint">{config.validators.toLocaleString()}</div>
+              <InlineTooltip label="Total validator agents in simulation" detail="Paper baseline: 1,000">
+                <span className="text-11 text-text-faint">{config.validators.toLocaleString()}</span>
+              </InlineTooltip>
             </div>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
               {VALIDATOR_ANCHORS.map(option => (
@@ -251,7 +267,9 @@ export function SimConfigPanel({
           <div>
             <div className="flex items-center justify-between gap-3 mb-1.5">
               <label className="text-xs text-muted block">Slots</label>
-              <div title="Total consensus rounds to simulate. Paper baseline: 10,000" className="text-11 text-text-faint">{config.slots.toLocaleString()}</div>
+              <InlineTooltip label="Total consensus rounds to simulate" detail="Paper baseline: 10,000">
+                <span className="text-11 text-text-faint">{config.slots.toLocaleString()}</span>
+              </InlineTooltip>
             </div>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
               {SLOT_ANCHORS.map(option => (
@@ -300,13 +318,14 @@ export function SimConfigPanel({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="text-xs text-muted mb-1.5 block">
-                Attestation Threshold (γ)
+                <InlineTooltip label="Fraction of validators required to attest before a block is accepted">
+                  Attestation Threshold (γ)
+                </InlineTooltip>
               </label>
               <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
                 {THRESHOLD_OPTIONS.map(option => (
                   <button
                     key={option.label}
-                    title={`γ = ${option.value} — fraction of validators required to attest before a block is accepted`}
                     onClick={() => onConfigChange('attestationThreshold', option.value)}
                     className={cn(
                       segmentButtonClassName,
@@ -324,13 +343,14 @@ export function SimConfigPanel({
 
             <div>
               <label className="text-xs text-muted mb-1.5 block">
-                Slot Time (Δ)
+                <InlineTooltip label="Time per consensus slot" detail="Shorter slots mean faster finality but less time for attestations to arrive.">
+                  Slot Time (Δ)
+                </InlineTooltip>
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {SLOT_OPTIONS.map(option => (
                   <button
                     key={option.label}
-                    title={`${option.value}s per slot — shorter slots mean faster finality but less time for attestations to arrive`}
                     onClick={() => onConfigChange('slotTime', option.value)}
                     className={cn(
                       segmentButtonClassName,
@@ -347,8 +367,10 @@ export function SimConfigPanel({
             </div>
 
             <div>
-              <label title="ETH cost validators pay when relocating between regions. Higher costs discourage geographic churn." className="text-xs text-muted mb-1.5 block">
-                Migration Cost: {config.migrationCost.toFixed(4)} ETH
+              <label className="text-xs text-muted mb-1.5 block">
+                <InlineTooltip label="ETH cost validators pay when relocating between regions" detail="Higher costs discourage geographic churn.">
+                  Migration Cost: {config.migrationCost.toFixed(4)} ETH
+                </InlineTooltip>
               </label>
               <div className="lab-input-shell rounded-[1rem] px-4 py-4">
                 <input

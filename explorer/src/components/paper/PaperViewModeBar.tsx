@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ListTree, FileText, BookOpen, ScrollText, MousePointerClick, Users } from 'lucide-react'
+import { ListTree, FileText, BookOpen, ScrollText, MousePointerClick, Users, X } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
 import { getActiveStudy } from '../../studies'
@@ -143,6 +143,17 @@ export function PaperViewModeBar({
   const activeSection = !paperMode ? sections[activeSectionIndex] : null
   const [hoveredMode, setHoveredMode] = useState<ReaderMode | null>(null)
   const [notesHovered, setNotesHovered] = useState(false)
+  const [lensToast, setLensToast] = useState<ReaderMode | null>(null)
+  const prevModeRef = useRef(readerMode)
+
+  /* Show toast only when user actively switches mode (not on mount) */
+  useEffect(() => {
+    if (prevModeRef.current === readerMode) return
+    prevModeRef.current = readerMode
+    setLensToast(readerMode)
+    const timer = setTimeout(() => setLensToast(null), 3000)
+    return () => clearTimeout(timer)
+  }, [readerMode])
   const suggestedEntryIds = study.navigation.bestFirstStopIds
   const suggestedEntries = suggestedEntryIds
     .map(id => sections.find(section => section.id === id))
@@ -202,7 +213,7 @@ export function PaperViewModeBar({
                 const isActive = readerMode === mode
                 const isHovered = hoveredMode === mode
                 return (
-                  <Tooltip key={mode} label={meta.detail}>
+                  <Tooltip key={mode} label={`${meta.lensLabel} · ${meta.toneLabel}`} detail={meta.detail}>
                     <motion.button
                       role="tab"
                       aria-selected={isActive}
@@ -238,26 +249,6 @@ export function PaperViewModeBar({
               })}
             </div>
 
-          </div>
-
-          <div
-            data-testid="paper-current-lens-summary-desktop"
-            className={cn(
-              'hidden min-w-0 flex-1 items-center rounded-xl border px-3 py-2 lg:flex',
-              currentModeMeta.summaryClass,
-            )}
-          >
-            <span className={cn('mr-2 h-2 w-2 shrink-0 rounded-full', currentModeMeta.dotClass)} />
-            <div className="min-w-0">
-              <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-text-faint">Current lens</div>
-              <div className="mt-0.5 flex min-w-0 items-center gap-2">
-                <span className="shrink-0 text-sm font-medium text-text-primary">{currentModeMeta.lensLabel}</span>
-                <span className={cn('hidden rounded-full border px-2 py-0.5 text-[10px] font-medium xl:inline-flex', currentModeMeta.badgeClass)}>
-                  {currentModeMeta.toneLabel}
-                </span>
-                <span className="truncate text-xs text-muted">{currentModeMeta.detail}</span>
-              </div>
-            </div>
           </div>
 
           <div className="grid w-full grid-cols-2 items-stretch gap-2 sm:flex sm:w-auto sm:shrink-0 sm:items-center sm:justify-end">
@@ -307,27 +298,6 @@ export function PaperViewModeBar({
                 <span className="hidden sm:inline">Research map</span>
               </button>
             </Tooltip>
-          </div>
-        </div>
-
-        <div
-          data-testid="paper-current-lens-summary-mobile"
-          className={cn(
-            'mt-1.5 rounded-lg border px-3 py-2 lg:hidden',
-            currentModeMeta.summaryClass,
-          )}
-        >
-          <div className="flex items-start gap-2.5">
-            <span className={cn('mt-1 h-2 w-2 shrink-0 rounded-full', currentModeMeta.dotClass)} />
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <div className="text-sm font-medium text-text-primary">{currentModeMeta.lensLabel}</div>
-                <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-medium', currentModeMeta.badgeClass)}>
-                  {currentModeMeta.toneLabel}
-                </span>
-              </div>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-muted">{currentModeMeta.detail}</p>
-            </div>
           </div>
         </div>
 
@@ -456,6 +426,39 @@ export function PaperViewModeBar({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Floating lens toast — appears on mode switch */}
+      <AnimatePresence>
+        {lensToast && (() => {
+          const meta = MODE_META[lensToast]
+          return (
+            <motion.div
+              key={lensToast}
+              initial={{ opacity: 0, y: -6, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.8 }}
+              className={cn(
+                'absolute right-4 top-full z-50 mt-2 flex items-center gap-2.5 rounded-xl border px-3 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.06)] sm:right-6',
+                meta.summaryClass,
+              )}
+            >
+              <span className={cn('h-2 w-2 shrink-0 rounded-full', meta.dotClass)} />
+              <div className="min-w-0">
+                <span className="text-xs font-medium text-text-primary">{meta.lensLabel}</span>
+                <span className="mx-1.5 text-rule">·</span>
+                <span className="text-[11px] text-muted">{meta.detail}</span>
+              </div>
+              <button
+                onClick={() => setLensToast(null)}
+                className="ml-1 shrink-0 rounded-md p-0.5 text-muted/60 transition-colors hover:bg-black/[0.04] hover:text-muted"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </motion.div>
+          )
+        })()}
+      </AnimatePresence>
     </div>
   )
 }

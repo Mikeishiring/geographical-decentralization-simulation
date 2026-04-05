@@ -25,7 +25,10 @@ import {
   type UIMessage,
 } from 'ai'
 import { z } from 'zod/v4'
-import { SIMULATION_COPILOT_CONTEXT, PUBLISHED_REPLAY_COPILOT_CONTEXT } from './study-context.ts'
+import {
+  buildPublishedReplayCopilotContext as buildPublishedReplayCopilotPrompt,
+  buildSimulationCopilotContext as buildSimulationCopilotPrompt,
+} from './study-context.ts'
 import { buildStudyContext } from './study-context-builder.ts'
 import { buildTools } from './catalog.ts'
 import { SimulationRuntime, parseSimulationRequest, type SimulationRequest } from './simulation-runtime.ts'
@@ -49,7 +52,6 @@ import {
   type SimulationViewSection,
   type SimulationViewSpec,
 } from '../src/types/simulation-view.ts'
-import { getActiveStudy } from '../src/studies/index.ts'
 import type { StudyAssistantQueryView, StudyAssistantWorkflow, StudyDashboardSpec, TopicCard } from '../src/studies/types.ts'
 import type { AskArtifactData, AskPlanData, AskStatusData } from '../src/lib/ask-artifact.ts'
 import type { AskUIMessage } from '../src/lib/ask-chat.ts'
@@ -60,6 +62,7 @@ import {
   resolveWorkflowSimulationConfig,
   resolveWorkflowStructuredQuery,
 } from '../src/lib/workflow-launch.ts'
+import { getStudyPackage } from '../src/studies/index.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXPLORER_ROOT = path.resolve(__dirname, '..')
@@ -98,8 +101,10 @@ const STOP_WORDS = new Set([
   'with',
 ])
 
-const ACTIVE_STUDY = getActiveStudy()
+const ACTIVE_STUDY = getStudyPackage(process.env.STUDY_ID?.trim() || undefined)
 const STUDY_CONTEXT = buildStudyContext(ACTIVE_STUDY)
+const SIMULATION_COPILOT_CONTEXT = buildSimulationCopilotPrompt(ACTIVE_STUDY)
+const PUBLISHED_REPLAY_COPILOT_CONTEXT = buildPublishedReplayCopilotPrompt(ACTIVE_STUDY)
 const ACTIVE_STUDY_QUERY_VIEWS = ACTIVE_STUDY.assistant.queryViews ?? []
 const OVERVIEW_CARD = ACTIVE_STUDY.overviewCard
 const TOPIC_CARDS = ACTIVE_STUDY.topicCards
@@ -235,7 +240,13 @@ const simulationRuntime = new SimulationRuntime()
 const explorationStore = new ExplorationStore()
 const agentLoopStore = new AgentLoopStore()
 const agentLoopOrchestrator = client
-  ? new AgentLoopOrchestrator(client, agentLoopStore, simulationRuntime, anthropicModel)
+  ? new AgentLoopOrchestrator(
+      client,
+      agentLoopStore,
+      simulationRuntime,
+      anthropicModel,
+      SIMULATION_COPILOT_CONTEXT,
+    )
   : null
 const publishedReplayDatasetCache = new Map<string, PublishedReplayPayload>()
 let publishedResearchCatalogCache: PublishedResearchCatalog | null = null

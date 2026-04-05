@@ -6,6 +6,7 @@ import type { CSSProperties } from 'react'
 import { motion } from 'framer-motion'
 import { SPRING_SOFT, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { cn } from '../../lib/cn'
+import { InlineTooltip } from '../ui/Tooltip'
 import { LATENCY_MIN, LATENCY_MAX } from '../../data/gcp-latency'
 import { formatNumber } from './simulation-constants'
 import { THRESHOLDS, SENTIMENT_TEXT, sentimentLower, sentimentHigher } from './simulation-evidence-constants'
@@ -61,38 +62,48 @@ export function EvidenceMapSidebar({
         </div>
         <div className="grid grid-cols-2 gap-1.5">
           {gini != null && (
-            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]" title="Gini coefficient (0 = perfectly equal, 1 = maximally concentrated). Measures geographic validator distribution.">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Gini</div>
+            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">
+                <InlineTooltip label="Gini coefficient" detail="0 = perfectly equal, 1 = maximally concentrated. Measures geographic validator distribution.">Gini</InlineTooltip>
+              </div>
               <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(gini, THRESHOLDS.gini)])}>
                 {formatNumber(gini, 3)}
               </div>
             </div>
           )}
           {hhi != null && (
-            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]" title="Herfindahl-Hirschman Index — sum of squared market shares. Higher = more concentrated.">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">HHI</div>
+            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">
+                <InlineTooltip label="Herfindahl-Hirschman Index" detail="Sum of squared market shares. Higher = more concentrated.">HHI</InlineTooltip>
+              </div>
               <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(hhi, THRESHOLDS.hhi)])}>
                 {formatNumber(hhi, 4)}
               </div>
             </div>
           )}
           {liveness != null && (
-            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]" title={LIVENESS_DESCRIPTION}>
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">{LIVENESS_LABEL}</div>
+            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">
+                <InlineTooltip label={LIVENESS_LABEL} detail={LIVENESS_DESCRIPTION}>{LIVENESS_LABEL}</InlineTooltip>
+              </div>
               <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentHigher(liveness, THRESHOLDS.liveness)])}>
                 {formatLivenessCount(liveness)}
               </div>
             </div>
           )}
           {clusters != null && (
-            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]" title="Number of distinct geographic clusters identified by nearest-neighbor analysis.">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Clusters</div>
+            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">
+                <InlineTooltip label="Distinct geographic clusters identified by nearest-neighbor analysis">Clusters</InlineTooltip>
+              </div>
               <div className="text-[13px] font-semibold tabular-nums text-stone-800">{clusters}</div>
             </div>
           )}
           {distance != null && (
-            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]" title="Sum of pairwise distances between all active regions. Higher = more geographically spread out.">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Distance</div>
+            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">
+                <InlineTooltip label="Sum of pairwise distances between all active regions" detail="Higher = more geographically spread out.">Distance</InlineTooltip>
+              </div>
               <div className="text-[13px] font-semibold tabular-nums text-stone-800">{distance.toLocaleString()}</div>
             </div>
           )}
@@ -187,9 +198,12 @@ export function EvidenceMapSidebar({
       {overlay === 'latency' && (
         <div className="rounded-lg border border-black/[0.06] bg-white p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium mb-2">Latency scale</div>
-          <div className="h-1.5 rounded-full" style={{ background: 'linear-gradient(to right, #10B981, #FBBF24, #F97316, #EF4444)' }} title="Green = low latency, Red = high latency between GCP regions" />
+          <InlineTooltip label="Green = low latency, Red = high latency between GCP regions">
+            <span className="block h-1.5 w-full rounded-full" style={{ background: 'linear-gradient(to right, #10B981, #FBBF24, #F97316, #EF4444)' }} />
+          </InlineTooltip>
           <div className="flex justify-between mt-1 text-[9px] font-mono text-stone-400">
-            <span title="Minimum pairwise GCP latency">{LATENCY_MIN.toFixed(0)} ms</span><span title="Maximum pairwise GCP latency">{LATENCY_MAX.toFixed(0)} ms</span>
+            <InlineTooltip label="Minimum pairwise GCP latency"><span>{LATENCY_MIN.toFixed(0)} ms</span></InlineTooltip>
+            <InlineTooltip label="Maximum pairwise GCP latency"><span>{LATENCY_MAX.toFixed(0)} ms</span></InlineTooltip>
           </div>
         </div>
       )}
@@ -206,16 +220,18 @@ export function EvidenceMapSidebar({
                 { size: 'h-2 w-2', label: 'High', color: NODE_BLUE.source, tip: 'High block source concentration' },
                 { size: 'h-2.5 w-2.5', label: 'Top', color: NODE_BLUE.source, tip: 'Maximum block source concentration' },
               ] as const).map(({ size, label, color, tip }) => (
-                <span key={label} className="flex items-center gap-1" title={tip}>
-                  <span className={cn('rounded-full', size)} style={{ backgroundColor: color }} />
-                  <span className="text-[10px] text-stone-500">{label}</span>
-                </span>
+                <InlineTooltip key={label} label={tip}>
+                  <span className="flex items-center gap-1">
+                    <span className={cn('rounded-full', size)} style={{ backgroundColor: color }} />
+                    <span className="text-[10px] text-stone-500">{label}</span>
+                  </span>
+                </InlineTooltip>
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
               {Object.entries(REGION_COLORS).map(([region, color]) => (
-                <span key={region} className="flex items-center gap-1.5 min-w-0" title={`Validators in ${region}`}>
+                <span key={region} className="flex items-center gap-1.5 min-w-0">
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
                   <span className="text-[10px] text-stone-500 truncate">{region}</span>
                 </span>

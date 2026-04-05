@@ -359,6 +359,47 @@ export function buildLatencyArcs(nodes: readonly RegionNode[], maxArcs = 30): re
   return arcs
 }
 
+// ── Flow direction — net sender/receiver classification ─────────────────────
+
+export interface RegionFlowData {
+  readonly id: string
+  readonly sourceCount: number
+  readonly validatorCount: number
+  /** Positive = net receiver (hub), negative = net sender (origin) */
+  readonly netFlow: number
+  /** 0 = balanced, 1 = pure receiver, -1 = pure sender */
+  readonly flowRatio: number
+}
+
+export function computeFlowData(
+  validatorNodes: readonly RegionNode[],
+  sourceNodes: readonly RegionNode[],
+): ReadonlyMap<string, RegionFlowData> {
+  const sourceMap = new Map<string, number>()
+  for (const s of sourceNodes) sourceMap.set(s.id, s.count)
+
+  const validatorMap = new Map<string, number>()
+  for (const v of validatorNodes) validatorMap.set(v.id, v.count)
+
+  const allIds = new Set([...sourceMap.keys(), ...validatorMap.keys()])
+  const result = new Map<string, RegionFlowData>()
+
+  for (const id of allIds) {
+    const sc = sourceMap.get(id) ?? 0
+    const vc = validatorMap.get(id) ?? 0
+    const total = sc + vc
+    result.set(id, {
+      id,
+      sourceCount: sc,
+      validatorCount: vc,
+      netFlow: vc - sc,
+      flowRatio: total > 0 ? (vc - sc) / total : 0,
+    })
+  }
+
+  return result
+}
+
 // ── Tooltip type ────────────────────────────────────────────────────────────
 
 export interface TooltipData {
