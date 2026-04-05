@@ -117,9 +117,14 @@ export function PaperViewModeBar({
   const suggestedEntries = suggestedEntryIds
     .map(id => sections.find(section => section.id === id))
     .filter((section): section is (typeof sections)[number] => !!section)
+  const mobileSuggestedEntries = suggestedEntries.slice(0, 3)
   const referenceLinks = study.metadata.references.filter(
     (ref): ref is typeof ref & { readonly url: string } => typeof ref.url === 'string' && ref.url.length > 0,
   )
+  const mobileQuickLinks = [
+    ...referenceLinks.slice(0, 2).map(ref => ({ label: ref.label, href: ref.url })),
+    ...(onTabChange ? [{ label: 'Simulation results', href: '#results' }] : []),
+  ]
 
   useLayoutEffect(() => {
     const bar = barRef.current
@@ -265,7 +270,7 @@ export function PaperViewModeBar({
               transition={SPRING}
               className="overflow-hidden"
             >
-              <div className="space-y-4 border-t border-rule/70 pt-4">
+              <div className="space-y-3.5 border-t border-rule/70 pt-3.5 sm:space-y-4 sm:pt-4">
                 {/* Current position — section progress */}
                 {activeSection && (
                   <div className="flex items-center gap-3 rounded-lg border border-rule bg-surface-active/50 px-3 py-2">
@@ -284,14 +289,19 @@ export function PaperViewModeBar({
                   </div>
                 )}
 
-                <div className="rounded-lg border border-accent/12 bg-accent/[0.035] px-3 py-3">
+                <div className="rounded-lg border border-accent/12 bg-accent/[0.035] px-3 py-2.5 sm:py-3">
                   <div className="flex items-center gap-2 text-xs font-medium text-text-primary">
                     <Users className="h-3.5 w-3.5 text-accent" />
                     Community notes workflow
                   </div>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <div className="mt-3 sm:hidden">
+                    <p className="text-xs leading-relaxed text-muted">
+                      Highlight text in any mode to attach a public note to the passage. Published notes also appear on the Community page for replies and voting.
+                    </p>
+                  </div>
+                  <div className="mt-3 hidden gap-2 sm:grid sm:grid-cols-3">
                     {COMMUNITY_NOTE_STEPS.map((item, index) => (
-                      <div key={item.title} className="rounded-md border border-rule/60 bg-white/85 px-3 py-2.5">
+                      <div key={item.title} className="rounded-md border border-rule/60 bg-white/85 px-3 py-2">
                         <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent/70">
                           {index === 0 ? <MousePointerClick className="h-3 w-3" /> : <span>{`0${index + 1}`}</span>}
                           <span>{item.title}</span>
@@ -302,7 +312,58 @@ export function PaperViewModeBar({
                   </div>
                 </div>
 
-                <div className="grid gap-6 sm:grid-cols-3">
+                <div className="grid gap-3 sm:hidden">
+                  <div className="rounded-lg border border-rule/70 bg-white/85 px-3 py-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-xs font-medium text-text-primary">Current mode</div>
+                      <span className="rounded-full border border-rule/60 bg-surface-active px-2 py-0.5 text-[10px] font-medium text-text-faint">
+                        {MODE_META[readerMode].fidelityShort}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-sm font-medium text-text-primary">{MODE_META[readerMode].label}</div>
+                    <p className="mt-1 text-xs leading-relaxed text-muted">{MODE_META[readerMode].detail}</p>
+                  </div>
+
+                  <div className="rounded-lg border border-rule/70 bg-white/85 px-3 py-2.5">
+                    <div className="text-xs font-medium text-text-primary">Suggested entry points</div>
+                    <div className="mt-1.5 space-y-1.5">
+                      {mobileSuggestedEntries.map((entry, i) => (
+                        <a key={entry.id} href={`#${entry.id}`} onClick={() => onSectionClick(entry.id)} className="block text-[13px] leading-5 text-muted transition-colors hover:text-accent">
+                          <span className="mr-1 text-xs text-accent">{i + 1}.</span> {entry.title}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-rule/70 bg-white/85 px-3 py-2.5">
+                    <div className="text-xs font-medium text-text-primary">Quick links</div>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {mobileQuickLinks.map(link => (
+                        link.href === '#results' ? (
+                          <button
+                            key={link.label}
+                            onClick={() => onTabChange?.('results')}
+                            className="inline-flex items-center rounded-full border border-rule/60 bg-surface-active/60 px-2.5 py-1.5 text-[11px] font-medium text-text-primary transition-colors hover:border-accent/20 hover:text-accent"
+                          >
+                            {link.label}
+                          </button>
+                        ) : (
+                          <a
+                            key={link.label}
+                            href={link.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center rounded-full border border-rule/60 bg-surface-active/60 px-2.5 py-1.5 text-[11px] font-medium text-text-primary transition-colors hover:border-accent/20 hover:text-accent"
+                          >
+                            {link.label}
+                          </a>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="hidden gap-5 sm:grid sm:grid-cols-3">
                   <div>
                     <div className="text-xs font-medium text-text-primary">Suggested entry points</div>
                     <div className="mt-2 space-y-1.5">
