@@ -13,54 +13,83 @@ import {
   AnimatedScrollText,
   AnimatedMessageSquare,
   AnimatedChevronToggle,
-  AnimatedSparkles,
 } from './AnimatedViewIcons'
 
 export type ReaderMode = 'editorial' | 'arguments' | 'html' | 'paper'
 
-export const MODE_META: Record<ReaderMode, { icon: typeof ListTree; label: string; detail: string; fidelity: string; fidelityShort: string; provenanceHint: string }> = {
+export const MODE_META: Record<ReaderMode, {
+  icon: typeof ListTree
+  label: string
+  lensLabel: string
+  toneLabel: string
+  detail: string
+  provenanceHint: string
+  activeTextClass: string
+  activeTabClass: string
+  hoverTabClass: string
+  summaryClass: string
+  dotClass: string
+  badgeClass: string
+}> = {
   editorial: {
     icon: BookOpen,
     label: 'Editorial',
+    lensLabel: 'Interpretive lens',
+    toneLabel: 'Synthesized',
     detail: 'Interpreted walkthrough with source pills',
-    fidelity: 'LLM narrative',
-    fidelityShort: 'Interpreted',
     provenanceHint: 'Narrative text is LLM-generated. Source pills show provenance.',
+    activeTextClass: 'text-accent-warm',
+    activeTabClass: 'bg-[rgba(194,85,58,0.10)] text-accent-warm ring-[rgba(194,85,58,0.16)]',
+    hoverTabClass: 'hover:bg-[rgba(194,85,58,0.05)] hover:text-accent-warm',
+    summaryClass: 'border-[rgba(194,85,58,0.16)] bg-[rgba(194,85,58,0.055)]',
+    dotClass: 'bg-accent-warm',
+    badgeClass: 'border-[rgba(194,85,58,0.14)] bg-white/80 text-accent-warm',
   },
   arguments: {
     icon: ListTree,
     label: 'Arguments',
+    lensLabel: 'Claim lens',
+    toneLabel: 'Structured',
     detail: 'Argument structure with citations',
-    fidelity: 'Structured claims',
-    fidelityShort: 'Arguments',
     provenanceHint: 'Claims and evidence extracted from the paper. Narrative is minimal; source pills show provenance.',
+    activeTextClass: 'text-slate-700',
+    activeTabClass: 'bg-slate-100/95 text-slate-700 ring-slate-200/90',
+    hoverTabClass: 'hover:bg-slate-100/70 hover:text-slate-700',
+    summaryClass: 'border-slate-200/90 bg-slate-50/85',
+    dotClass: 'bg-slate-500',
+    badgeClass: 'border-slate-200/80 bg-white/80 text-slate-600',
   },
   html: {
     icon: ScrollText,
-    label: 'HTML View',
+    label: 'HTML',
+    lensLabel: 'Source lens',
+    toneLabel: 'Anchored',
     detail: 'Source-oriented article with anchored sections, figures, and appendices',
-    fidelity: 'HTML source',
-    fidelityShort: 'HTML',
     provenanceHint: 'Article-style source view. Keeps section structure and source links without PDF-only navigation.',
+    activeTextClass: 'text-accent',
+    activeTabClass: 'bg-accent/[0.09] text-accent ring-accent/20',
+    hoverTabClass: 'hover:bg-accent/[0.04] hover:text-accent',
+    summaryClass: 'border-accent/20 bg-accent/[0.05]',
+    dotClass: 'bg-accent',
+    badgeClass: 'border-accent/18 bg-white/85 text-accent',
   },
   paper: {
     icon: FileText,
-    label: 'Original PDF',
+    label: 'PDF',
+    lensLabel: 'Record lens',
+    toneLabel: 'Original',
     detail: 'Unmodified arXiv PDF',
-    fidelity: 'Original arXiv',
-    fidelityShort: 'Source',
     provenanceHint: 'Unmodified published document — no interpretation layer.',
+    activeTextClass: 'text-slate-700',
+    activeTabClass: 'bg-[rgba(148,163,184,0.12)] text-slate-700 ring-[rgba(148,163,184,0.22)]',
+    hoverTabClass: 'hover:bg-[rgba(148,163,184,0.08)] hover:text-slate-700',
+    summaryClass: 'border-slate-200/90 bg-[rgba(148,163,184,0.08)]',
+    dotClass: 'bg-slate-700',
+    badgeClass: 'border-slate-200/80 bg-white/82 text-slate-600',
   },
 }
 
 const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'arguments', 'html', 'paper'] as const
-
-const SPECTRUM_POSITIONS: Record<ReaderMode, number> = {
-  editorial: 0,
-  arguments: 34,
-  html: 70,
-  paper: 100,
-}
 
 const COMMUNITY_NOTE_STEPS = [
   {
@@ -109,6 +138,7 @@ export function PaperViewModeBar({
   const sections = study.sections
   const paperMode = readerMode === 'paper'
   const progressPercent = ((activeSectionIndex + 1) / sections.length) * 100
+  const currentModeMeta = MODE_META[readerMode]
 
   const activeSection = !paperMode ? sections[activeSectionIndex] : null
   const [hoveredMode, setHoveredMode] = useState<ReaderMode | null>(null)
@@ -184,18 +214,18 @@ export function PaperViewModeBar({
                       className={cn(
                         'relative flex min-h-[2.25rem] items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors sm:justify-start',
                         isActive
-                          ? 'text-text-primary font-medium'
-                          : 'text-muted hover:text-text-primary',
+                          ? 'font-medium'
+                          : cn('text-muted hover:text-text-primary', meta.hoverTabClass),
                       )}
                     >
                       {isActive && (
                         <motion.span
                           layoutId="mode-pill"
-                          className="absolute inset-0 rounded-lg bg-white shadow-sm ring-1 ring-black/[0.04]"
+                          className={cn('absolute inset-0 rounded-lg shadow-sm ring-1', meta.activeTabClass)}
                           transition={SPRING_SNAPPY}
                         />
                       )}
-                      <span className="relative flex items-center gap-1.5">
+                      <span className={cn('relative flex items-center gap-1.5', isActive ? meta.activeTextClass : null)}>
                         {mode === 'editorial' && <AnimatedBookOpen isActive={isActive} isHovered={isHovered} />}
                         {mode === 'arguments' && <AnimatedListTree isActive={isActive} isHovered={isHovered} />}
                         {mode === 'html' && <AnimatedScrollText isActive={isActive} isHovered={isHovered} />}
@@ -208,6 +238,26 @@ export function PaperViewModeBar({
               })}
             </div>
 
+          </div>
+
+          <div
+            data-testid="paper-current-lens-summary-desktop"
+            className={cn(
+              'hidden min-w-0 flex-1 items-center rounded-xl border px-3 py-2 lg:flex',
+              currentModeMeta.summaryClass,
+            )}
+          >
+            <span className={cn('mr-2 h-2 w-2 shrink-0 rounded-full', currentModeMeta.dotClass)} />
+            <div className="min-w-0">
+              <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-text-faint">Current lens</div>
+              <div className="mt-0.5 flex min-w-0 items-center gap-2">
+                <span className="shrink-0 text-sm font-medium text-text-primary">{currentModeMeta.lensLabel}</span>
+                <span className={cn('hidden rounded-full border px-2 py-0.5 text-[10px] font-medium xl:inline-flex', currentModeMeta.badgeClass)}>
+                  {currentModeMeta.toneLabel}
+                </span>
+                <span className="truncate text-xs text-muted">{currentModeMeta.detail}</span>
+              </div>
+            </div>
           </div>
 
           <div className="grid w-full grid-cols-2 items-stretch gap-2 sm:flex sm:w-auto sm:shrink-0 sm:items-center sm:justify-end">
@@ -242,7 +292,7 @@ export function PaperViewModeBar({
                 </button>
               </Tooltip>
             )}
-            <Tooltip label="Navigation, fidelity spectrum, and references">
+            <Tooltip label="Entry points, note workflow, and references">
               <button
                 onClick={onGuideToggle}
                 className={cn(
@@ -253,10 +303,31 @@ export function PaperViewModeBar({
                 )}
               >
                 <AnimatedChevronToggle isActive={guideOpen} />
-                <span className="sm:hidden">Guide</span>
-                <span className="hidden sm:inline">Reading guide</span>
+                <span className="sm:hidden">Map</span>
+                <span className="hidden sm:inline">Research map</span>
               </button>
             </Tooltip>
+          </div>
+        </div>
+
+        <div
+          data-testid="paper-current-lens-summary-mobile"
+          className={cn(
+            'mt-1.5 rounded-lg border px-3 py-2 lg:hidden',
+            currentModeMeta.summaryClass,
+          )}
+        >
+          <div className="flex items-start gap-2.5">
+            <span className={cn('mt-1 h-2 w-2 shrink-0 rounded-full', currentModeMeta.dotClass)} />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-medium text-text-primary">{currentModeMeta.lensLabel}</div>
+                <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-medium', currentModeMeta.badgeClass)}>
+                  {currentModeMeta.toneLabel}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-muted">{currentModeMeta.detail}</p>
+            </div>
           </div>
         </div>
 
@@ -314,17 +385,6 @@ export function PaperViewModeBar({
 
                 <div className="grid gap-3 sm:hidden">
                   <div className="rounded-lg border border-rule/70 bg-white/85 px-3 py-2.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-xs font-medium text-text-primary">Current mode</div>
-                      <span className="rounded-full border border-rule/60 bg-surface-active px-2 py-0.5 text-[10px] font-medium text-text-faint">
-                        {MODE_META[readerMode].fidelityShort}
-                      </span>
-                    </div>
-                    <div className="mt-2 text-sm font-medium text-text-primary">{MODE_META[readerMode].label}</div>
-                    <p className="mt-1 text-xs leading-relaxed text-muted">{MODE_META[readerMode].detail}</p>
-                  </div>
-
-                  <div className="rounded-lg border border-rule/70 bg-white/85 px-3 py-2.5">
                     <div className="text-xs font-medium text-text-primary">Suggested entry points</div>
                     <div className="mt-1.5 space-y-1.5">
                       {mobileSuggestedEntries.map((entry, i) => (
@@ -363,7 +423,7 @@ export function PaperViewModeBar({
                   </div>
                 </div>
 
-                <div className="hidden gap-5 sm:grid sm:grid-cols-3">
+                <div className="hidden gap-6 sm:grid sm:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
                   <div>
                     <div className="text-xs font-medium text-text-primary">Suggested entry points</div>
                     <div className="mt-2 space-y-1.5">
@@ -373,63 +433,6 @@ export function PaperViewModeBar({
                         </a>
                       ))}
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-medium text-text-primary">Fidelity spectrum</div>
-                    {/* Animated spectrum visualization */}
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="text-2xs flex select-none items-center gap-1 whitespace-nowrap text-amber-500/50">
-                        <AnimatedSparkles isActive={readerMode === 'editorial'} />
-                        <span className="text-amber-600/50">Interpreted</span>
-                      </span>
-                      <div className="relative flex h-4 w-16 items-center">
-                        <div className="absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 rounded-full bg-gradient-to-r from-amber-300/30 via-rule to-accent/20" />
-                        {MODES_ORDERED.map((mode, i) => (
-                          <div
-                            key={mode}
-                            className={cn(
-                              'absolute top-1/2 -translate-y-1/2 rounded-full',
-                              readerMode === mode ? 'h-1.5 w-1.5 bg-accent' : 'h-1 w-1 bg-rule',
-                            )}
-                            style={{ left: `${(i / (MODES_ORDERED.length - 1)) * 100}%`, marginLeft: readerMode === mode ? -3 : -2 }}
-                          />
-                        ))}
-                        <motion.div
-                          className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-accent"
-                          animate={{ left: `${SPECTRUM_POSITIONS[readerMode]}%` }}
-                          style={{ marginLeft: -5 }}
-                          transition={SPRING_SNAPPY}
-                        />
-                      </div>
-                      <span className="text-2xs select-none whitespace-nowrap text-accent/50">Source</span>
-                    </div>
-                    <div className="mt-2 space-y-1.5">
-                      {MODES_ORDERED.map(mode => {
-                        const meta = MODE_META[mode]
-                        const Icon = meta.icon
-                        const isCurrent = readerMode === mode
-                        return (
-                          <button
-                            key={mode}
-                            onClick={() => onModeChange(mode)}
-                            className={cn(
-                              'flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors',
-                              isCurrent
-                                ? 'bg-accent/8 text-accent font-medium'
-                                : 'text-muted hover:bg-surface-active hover:text-text-primary',
-                            )}
-                          >
-                            <Icon className="h-3 w-3 shrink-0" />
-                            <span>{meta.label}</span>
-                            <span className={cn('ml-auto text-2xs', isCurrent ? 'text-accent/60' : 'text-text-faint')}>
-                              {meta.fidelityShort}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <p className="mt-2 text-2xs leading-relaxed text-muted">{MODE_META[readerMode].detail}</p>
-                    <p className="mt-1 text-2xs leading-relaxed text-text-faint italic">{MODE_META[readerMode].provenanceHint}</p>
                   </div>
                   <div>
                     <div className="text-xs font-medium text-text-primary">References & artifacts</div>
@@ -445,6 +448,7 @@ export function PaperViewModeBar({
                         </button>
                       )}
                     </div>
+                    <p className="mt-3 text-2xs leading-relaxed text-muted">{currentModeMeta.provenanceHint}</p>
                   </div>
                 </div>
               </div>

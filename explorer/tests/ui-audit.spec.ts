@@ -87,7 +87,7 @@ test('mobile paper toolbar keeps short note and guide labels in a dedicated seco
   await page.goto('/')
 
   const modeSwitcher = page.getByRole('tablist', { name: 'Reading mode' })
-  const guideButton = page.getByRole('button', { name: /Guide/ })
+  const guideButton = page.getByRole('button', { name: /Map|Guide/ })
   const notesButton = page.getByRole('button', { name: /Notes/ })
 
   await expect(modeSwitcher).toBeVisible()
@@ -111,7 +111,7 @@ test('mobile guide keeps entry-point context within the initial viewport', async
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
 
-  await page.getByRole('button', { name: /Guide/ }).click()
+  await page.getByRole('button', { name: /Map|Guide/ }).click()
 
   const suggestedHeading = page.getByText('Suggested entry points').first()
   await expect(suggestedHeading).toBeVisible()
@@ -143,6 +143,19 @@ test('mobile pdf mode keeps the explainer compact above the document', async ({ 
   expect((firstPageBox?.y ?? 0)).toBeLessThan(630)
 })
 
+test('paper lens summary condenses the active mode context', async ({ page }) => {
+  await page.goto('/')
+
+  const lensSummary = page.getByTestId('paper-current-lens-summary-desktop')
+  await expect(lensSummary).toBeVisible()
+  await expect(lensSummary).toContainText('Interpretive lens')
+  await expect(lensSummary).toContainText('Interpreted walkthrough with source pills')
+
+  await page.getByRole('tab', { name: 'HTML' }).click()
+  await expect(lensSummary).toContainText('Source lens')
+  await expect(lensSummary).toContainText('Source-oriented article with anchored sections, figures, and appendices')
+})
+
 test('paper reader toolbar sits close to the tab nav on initial load', async ({ page }) => {
   await page.goto('/')
 
@@ -169,7 +182,7 @@ test('paper reader toolbar stays docked beneath the sticky tab nav', async ({ pa
 
   const tabNavShell = page.getByTestId('tab-nav-shell')
   const paperToolbar = page.getByTestId('paper-view-mode-bar')
-  const guideButton = page.getByRole('button', { name: /Reading guide|Guide/ })
+  const guideButton = page.getByRole('button', { name: /Research map|Map|Guide/ })
 
   await expect(tabNavShell).toBeVisible()
   await expect(paperToolbar).toBeVisible()
