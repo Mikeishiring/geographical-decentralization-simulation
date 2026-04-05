@@ -150,6 +150,57 @@ test('paper reader toolbar stays docked beneath the sticky tab nav', async ({ pa
   expect(stickyGap).toBeLessThan(14)
 })
 
+test('html view contents rail clears the paper toolbar when scrolled', async ({ page }) => {
+  await page.setViewportSize({ width: 1512, height: 982 })
+  await page.addInitScript(() => {
+    window.localStorage.setItem('paper-reader-mode', 'html')
+  })
+  await page.goto('/')
+  await expect(page.getByText('Published figures you can inspect here')).toBeVisible()
+  await page.mouse.wheel(0, 900)
+
+  const paperToolbar = page.getByTestId('paper-view-mode-bar')
+  const htmlContentsRail = page.getByTestId('paper-html-contents-rail')
+
+  await expect(paperToolbar).toBeVisible()
+  await expect(htmlContentsRail).toBeVisible()
+
+  const paperToolbarBox = await paperToolbar.boundingBox()
+  const htmlContentsRailBox = await htmlContentsRail.boundingBox()
+
+  expect(paperToolbarBox).not.toBeNull()
+  expect(htmlContentsRailBox).not.toBeNull()
+
+  const stickyGap = (htmlContentsRailBox?.y ?? 0) - ((paperToolbarBox?.y ?? 0) + (paperToolbarBox?.height ?? 0))
+  expect(stickyGap).toBeGreaterThanOrEqual(-2)
+  expect(stickyGap).toBeLessThan(24)
+})
+
+test('pdf toolbar stays beneath the paper toolbar without overlap', async ({ page }) => {
+  await page.setViewportSize({ width: 1512, height: 982 })
+  await page.addInitScript(() => {
+    window.localStorage.setItem('paper-reader-mode', 'paper')
+  })
+  await page.goto('/')
+  await expect(page.getByText('Public community notes vs private PDF notes')).toBeVisible({ timeout: 60_000 })
+
+  const paperToolbar = page.getByTestId('paper-view-mode-bar')
+  const pdfToolbar = page.getByTestId('pdf-viewer-toolbar')
+
+  await expect(paperToolbar).toBeVisible()
+  await expect(pdfToolbar).toBeVisible({ timeout: 60_000 })
+
+  const paperToolbarBox = await paperToolbar.boundingBox()
+  const pdfToolbarBox = await pdfToolbar.boundingBox()
+
+  expect(paperToolbarBox).not.toBeNull()
+  expect(pdfToolbarBox).not.toBeNull()
+
+  const stickyGap = (pdfToolbarBox?.y ?? 0) - ((paperToolbarBox?.y ?? 0) + (paperToolbarBox?.height ?? 0))
+  expect(stickyGap).toBeGreaterThanOrEqual(-2)
+  expect(stickyGap).toBeLessThan(16)
+})
+
 test('results evidence labels collapse threshold as critical regions', async ({ page }) => {
   await page.goto('/?tab=results')
 

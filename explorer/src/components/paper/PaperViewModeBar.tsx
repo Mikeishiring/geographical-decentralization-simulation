@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ListTree, FileText, BookOpen, ScrollText, MousePointerClick, Users } from 'lucide-react'
 import { cn } from '../../lib/cn'
@@ -105,6 +105,7 @@ export function PaperViewModeBar({
   noteCount = 0,
 }: PaperViewModeBarProps) {
   const study = getActiveStudy()
+  const barRef = useRef<HTMLDivElement | null>(null)
   const sections = study.sections
   const paperMode = readerMode === 'paper'
   const progressPercent = ((activeSectionIndex + 1) / sections.length) * 100
@@ -120,8 +121,34 @@ export function PaperViewModeBar({
     (ref): ref is typeof ref & { readonly url: string } => typeof ref.url === 'string' && ref.url.length > 0,
   )
 
+  useLayoutEffect(() => {
+    const bar = barRef.current
+    if (!bar) return
+
+    const updateHeight = () => {
+      document.documentElement.style.setProperty('--explorer-paper-mode-bar-height', `${Math.ceil(bar.getBoundingClientRect().height)}px`)
+    }
+
+    updateHeight()
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateHeight)
+      return () => window.removeEventListener('resize', updateHeight)
+    }
+
+    const observer = new ResizeObserver(() => updateHeight())
+    observer.observe(bar)
+    window.addEventListener('resize', updateHeight)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', updateHeight)
+    }
+  }, [guideOpen, noteCount, notesVisible, readerMode])
+
   return (
     <div
+      ref={barRef}
       data-testid="paper-view-mode-bar"
       className="sticky z-40 -mx-4 border-b border-rule/70 bg-canvas/92 px-4 py-2 backdrop-blur-md sm:-mx-6 sm:px-6"
       style={{ top: 'var(--explorer-tab-nav-height, 3.75rem)' }}
