@@ -32,6 +32,7 @@ export function ExplorationCard({
 }) {
   const timeAgo = formatTimeAgo(cardTimestamp(exploration))
   const allTags = [...exploration.paradigmTags, ...exploration.experimentTags]
+  const accentColor = exploration.surface === 'simulation' ? 'border-l-accent-warm' : 'border-l-accent'
   const mockReplies = MOCK_NOTE_EXTRAS[exploration.id]?.replies ?? []
   const realReplies = exploration.replies ?? []
   const realReplyIds = new Set(realReplies.map(r => r.id))
@@ -46,10 +47,11 @@ export function ExplorationCard({
         visible: { opacity: 1, y: 0, transition: SPRING_CRISP },
       }}
       className={cn(
-        'overflow-hidden rounded-xl border bg-white transition-shadow duration-150',
+        'overflow-hidden rounded-xl border border-l-[3px] bg-white transition-shadow duration-150',
+        accentColor,
         isDeepLinked
-          ? 'border-accent/20 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent)_6%,transparent)]'
-          : 'border-rule shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]',
+          ? 'border-y-accent/20 border-r-accent/20 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent)_6%,transparent)]'
+          : 'border-y-rule border-r-rule shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]',
       )}
     >
       <div className="flex gap-3 p-4">

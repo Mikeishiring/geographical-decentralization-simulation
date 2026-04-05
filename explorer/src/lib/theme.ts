@@ -211,8 +211,8 @@ export const CHART = {
   hoverGlowOpacity: '30',
 } as const
 
-/** Fluid layout max-width — scales from ~1024px to ~1408px across viewports */
-export const CONTENT_MAX_WIDTH = 'max-w-[clamp(64rem,55rem+10vw,88rem)]'
+/** Fluid layout max-width — scales from ~1152px to ~1536px across viewports */
+export const CONTENT_MAX_WIDTH = 'max-w-[clamp(72rem,62rem+12vw,96rem)]'
 
 /** Compact number formatter — 1.4K, 23.5M, 890B */
 export function formatCompact(value: number, unit?: string): string {

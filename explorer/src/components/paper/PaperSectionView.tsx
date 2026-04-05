@@ -278,7 +278,7 @@ export function PaperSectionView({
 
   return (
     <>
-      <div className="grid gap-10 xl:grid-cols-[216px_minmax(0,1fr)] 2xl:grid-cols-[228px_minmax(0,1fr)]">
+      <div className="grid gap-10 xl:grid-cols-[224px_minmax(0,1fr)] 2xl:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden xl:block xl:sticky xl:self-start xl:pr-3" style={{ top: PAPER_STACK_STICKY_TOP }}>
           <div className="rounded-xl border border-rule/60 bg-white/95 p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
             <SectionNav activeSectionId={activeSectionId} onSectionClick={onSectionClick} compact />
@@ -401,7 +401,7 @@ function SectionCard({
           </div>
         </div>
 
-        <div className={cn('mt-4', showSidebarSupporting ? 'max-w-4xl' : 'max-w-[58rem]')}>
+        <div className={cn('mt-4', showSidebarSupporting ? 'max-w-5xl' : 'max-w-[64rem]')}>
           <h2 className="text-2xl font-medium text-text-primary font-serif text-balance sm:text-3xl">
             {section.title}
           </h2>
@@ -432,7 +432,7 @@ function SectionCard({
       )}
 
       {showInlineSupporting && (
-        <div className="mb-6 rounded-2xl border border-rule/70 bg-surface-active/25 p-4 sm:p-5">
+        <div className="mb-8 rounded-2xl border border-rule/70 bg-surface-active/25 p-4 sm:p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <span className="text-xs font-medium text-text-primary">Supporting evidence</span>
             <span className="rounded-full border border-rule/50 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-text-faint tabular-nums">
@@ -448,8 +448,8 @@ function SectionCard({
         </div>
       )}
 
-      <div className={cn('grid min-w-0 gap-8 xl:items-start', showSidebarSupporting && 'xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]')}>
-        <div className={cn('min-w-0', showSidebarSupporting ? 'max-w-4xl' : 'max-w-[56rem]')}>
+      <div className={cn('grid min-w-0 gap-8 xl:items-start', showSidebarSupporting && 'xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_360px]')}>
+        <div className={cn('min-w-0', showSidebarSupporting ? 'max-w-5xl' : 'max-w-[60rem]')}>
           {/* Lede — the hook that draws you in */}
           <p className={cn('text-[22px] leading-[1.55] font-medium text-text-primary font-serif sm:text-[24px]', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[50rem]')}>
             {narrative.lede}
@@ -465,12 +465,12 @@ function SectionCard({
           </div>
 
           {/* Pull quote — no label, just the accent border and the words */}
-          <div className={cn('mt-8 border-l-[3px] border-accent/40 pl-5 py-1', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[50rem]')}>
+          <div className={cn('mt-10 border-l-[3px] border-accent/40 pl-6 py-2', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[50rem]')}>
             <p className="text-[18px] leading-[1.6] text-text-primary/90 font-serif italic text-balance">
               {narrative.pullQuote}
             </p>
           </div>
-          <div className="mt-8" />
+          <div className="mt-10" />
         </div>
 
         {showSidebarSupporting && (

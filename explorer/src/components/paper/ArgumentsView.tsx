@@ -218,7 +218,7 @@ export function ArgumentsView({
                               </span>
                             )}
                           </div>
-                          <p className="text-xs leading-[1.5] text-muted">
+                          <p className={cn('text-xs leading-[1.5] text-muted', !isExpanded && 'xl:line-clamp-1')}>
                             {section.description}
                           </p>
                         </div>

@@ -514,7 +514,48 @@ export function PrecomputedEvidenceSurface({
   const totalSlots = payloadQuery.data ? totalSlotsFromPayload(payloadQuery.data) : 0
 
   if (catalogError) {
-    return <div className="lab-stage-soft p-5 text-sm text-muted">{catalogError}</div>
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING_CRISP}
+        className="rounded-2xl border border-rule bg-white p-8 sm:p-10"
+      >
+        <div className="flex items-start gap-4">
+          <div className="rounded-xl bg-accent/[0.06] p-3">
+            <BarChart3 className="h-6 w-6 text-accent" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-text-primary">Simulation Evidence Lab</h3>
+            <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted">
+              Explore pre-computed simulation results across SSP and MSP paradigms. Compare Gini coefficients,
+              HHI concentration, liveness thresholds, and geographic distribution metrics across scenarios.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          {(['Gini coefficient', 'HHI concentration', 'Liveness threshold'] as const).map(metric => (
+            <div key={metric} className="rounded-xl border border-rule/60 bg-canvas p-4">
+              <div className="text-2xs font-medium uppercase tracking-wide text-text-faint">{metric}</div>
+              <div className="mt-2 h-16 rounded-lg bg-rule/20 animate-pulse" />
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center gap-4">
+          <p className="text-xs text-muted">The pre-computed catalog is currently unavailable.</p>
+          {onModeChange && (
+            <button
+              onClick={() => onModeChange('engine')}
+              className="rounded-lg bg-text-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-text-primary/90"
+            >
+              Run your own simulation
+            </button>
+          )}
+        </div>
+      </motion.div>
+    )
   }
 
   if (!catalog) {

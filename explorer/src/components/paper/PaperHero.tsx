@@ -22,19 +22,18 @@ export function PaperHero() {
         <GlobeNetwork className="w-full h-full text-muted" />
       </div>
 
-      <div className="relative max-w-4xl">
-        <motion.h1
+      <div className="relative max-w-5xl">
+        <motion.p
           variants={STAGGER_ITEM}
-          className="text-2xl font-medium leading-snug text-text-primary font-serif sm:text-3xl text-balance"
+          className="text-lg leading-relaxed text-text-primary/80 font-serif sm:text-xl text-balance"
         >
-          {study.metadata.title}
-        </motion.h1>
-        <motion.p variants={STAGGER_ITEM} className="mt-2 text-sm text-muted font-serif">{study.metadata.citation}</motion.p>
+          {study.metadata.subtitle}
+        </motion.p>
 
-        {/* Key claims as inline chips */}
-        <motion.div variants={STAGGER_ITEM} className="mt-4 flex flex-wrap gap-1.5">
+        {/* Key claims — the paper's central findings */}
+        <motion.div variants={STAGGER_ITEM} className="mt-5 flex flex-wrap gap-2">
           {study.metadata.keyClaims.map(claim => (
-            <span key={claim} className="lab-chip">
+            <span key={claim} className="rounded-lg border border-accent/12 bg-accent/[0.04] px-3 py-1.5 text-[13px] font-medium leading-snug text-text-primary">
               {claim}
             </span>
           ))}
