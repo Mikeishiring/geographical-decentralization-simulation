@@ -220,9 +220,10 @@ function App() {
         <main
           id="main-content"
           className={cn(
-            'mx-auto overflow-x-hidden px-4 py-8 sm:px-6',
+            'mx-auto px-4 sm:px-6',
+            activeTab === 'paper' ? 'max-w-[88rem] pb-8 pt-3 sm:pt-4' : 'py-8',
             activeTab === 'paper'
-              ? 'max-w-[88rem]'
+              ? ''
               : (activeTab === 'agent' || activeTab === 'results')
                 ? 'max-w-[96rem]'
                 : 'max-w-6xl',

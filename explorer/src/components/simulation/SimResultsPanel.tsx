@@ -181,7 +181,7 @@ function buildArtifactFigureNote(artifact: SimulationArtifact): {
     case 'paper_geography_metrics.json':
       return {
         title: 'Paper-facing concentration figure',
-        detail: 'Use this when checking claims about geography concentration, liveness, or profit variance rather than just final rewards.',
+        detail: 'Use this when checking claims about geography concentration, collapse threshold, or profit variance rather than just final rewards.',
       }
     case 'top_regions_final.json':
       return {
