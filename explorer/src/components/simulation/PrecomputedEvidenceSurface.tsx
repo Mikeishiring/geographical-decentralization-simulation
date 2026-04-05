@@ -14,6 +14,7 @@ import type { Block } from '../../types/blocks'
 import { formatNumber, paradigmLabel } from './simulation-constants'
 import { CHART_COLORS } from './simulation-evidence-constants'
 import {
+  LIVENESS_LABEL,
   totalSlotsFromPayload,
   topRegionsForSlot,
   type PublishedAnalyticsPayload,
@@ -119,7 +120,7 @@ function buildTimeseriesBlocks(payload: PublishedAnalyticsPayload): Block[] {
   }
   push('Gini coefficient \u2014 stake inequality over time', 'Gini', sampleSeries(metrics.gini), CHART_COLORS.gini, 'Index (0 = equal, 1 = monopoly)')
   push('HHI \u2014 market concentration pressure', 'HHI', sampleSeries(metrics.hhi), CHART_COLORS.hhi, 'Index (< 0.15 = unconcentrated)')
-  push('Liveness \u2014 geographic region coverage', 'Liveness', sampleSeries(metrics.liveness), CHART_COLORS.liveness, 'Active regions (%)')
+  push('Collapse threshold \u2014 regions required to fail the network', LIVENESS_LABEL, sampleSeries(metrics.liveness), CHART_COLORS.liveness, 'Regions')
   push('Total validator distance \u2014 network spread', 'Total distance', sampleSeries(metrics.total_distance), CHART_COLORS.totalDistance, 'Sum of inter-node distances')
   push('Clusters \u2014 spatial grouping density', 'Clusters', sampleSeries(metrics.clusters), CHART_COLORS.clusters, 'Distinct geographic clusters')
   push('MEV \u2014 block value captured by builders', 'MEV', sampleSeries(metrics.mev), CHART_COLORS.mev, 'ETH per block')

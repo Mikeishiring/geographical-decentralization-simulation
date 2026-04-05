@@ -6,7 +6,10 @@ import { InsightBlock } from '../blocks/InsightBlock'
 import { StatBlock } from '../blocks/StatBlock'
 import { TimeSeriesBlock } from '../blocks/TimeSeriesBlock'
 import { formatNumber, paradigmLabel } from './simulation-constants'
-import type { PublishedAnalyticsPayload } from './simulation-analytics'
+import {
+  LIVENESS_LABEL,
+  type PublishedAnalyticsPayload,
+} from './simulation-analytics'
 import { CONTINENT_OUTLINES } from '../../data/world-outlines'
 import { GCP_REGIONS, type GcpRegion, type MacroRegion } from '../../data/gcp-regions'
 import { cn } from '../../lib/cn'
@@ -612,20 +615,20 @@ function noteFocusArea(note: PublishedViewerAnnotationNote): PublishedViewerFocu
       return 'geography'
     }
     const metricKey = resolvedMetricAnchorKey(note)
-    if (metricKey === 'gini' || metricKey === 'hhi' || metricKey === 'liveness') {
+    if (metricKey === 'gini' || metricKey === 'hhi') {
       return 'concentration'
     }
-    if (metricKey === 'proposal_time' || metricKey === 'mev' || metricKey === 'total_distance') {
+    if (metricKey === 'proposal_time' || metricKey === 'mev' || metricKey === 'total_distance' || metricKey === 'liveness') {
       return 'performance'
     }
     return 'performance'
   }
   if (note.anchorKind === 'metric') {
     const metricKey = resolvedMetricAnchorKey(note)
-    if (metricKey === 'gini' || metricKey === 'hhi' || metricKey === 'liveness') {
+    if (metricKey === 'gini' || metricKey === 'hhi') {
       return 'concentration'
     }
-    if (metricKey === 'proposal_time' || metricKey === 'mev' || metricKey === 'total_distance') {
+    if (metricKey === 'proposal_time' || metricKey === 'mev' || metricKey === 'total_distance' || metricKey === 'liveness') {
       return 'performance'
     }
   }
@@ -1710,8 +1713,8 @@ export function PublishedDatasetViewer({
   const metricNoteCounts = useMemo(() => ({
     geography: annotationNotes.filter(note => isRegionAnchoredNote(note)).length,
     gini: annotationNotes.filter(note => noteMatchesMetric(note, ['gini'])).length,
-    concentration: annotationNotes.filter(note => noteMatchesMetric(note, ['gini', 'hhi', 'liveness'])).length,
-    performance: annotationNotes.filter(note => noteMatchesMetric(note, ['proposal_time', 'mev', 'total_distance'])).length,
+    concentration: annotationNotes.filter(note => noteMatchesMetric(note, ['gini', 'hhi'])).length,
+    performance: annotationNotes.filter(note => noteMatchesMetric(note, ['proposal_time', 'mev', 'total_distance', 'liveness'])).length,
     mev: annotationNotes.filter(note => noteMatchesMetric(note, ['mev'])).length,
     proposalTime: annotationNotes.filter(note => noteMatchesMetric(note, ['proposal_time'])).length,
     methods: annotationNotes.filter(note => (note.anchorKind === 'comparison' && note.anchorKey === 'comparison') || note.intent === 'methods').length,
@@ -1769,15 +1772,16 @@ export function PublishedDatasetViewer({
   )
   const buildChartNotePins = (
     notes: readonly PublishedViewerAnnotationNote[],
-    chartKey: 'concentration' | 'distance' | 'proposal' | 'mev',
+    chartKey: 'concentration' | 'resilience' | 'distance' | 'proposal' | 'mev',
   ) => notes.flatMap(note => {
     const metricKey = resolvedMetricAnchorKey(note)
     let pinValue: number | null = null
 
     if (chartKey === 'concentration') {
       if (metricKey === 'hhi') pinValue = currentHhi
-      else if (metricKey === 'liveness') pinValue = currentLiveness
-      else pinValue = currentGini ?? currentLiveness ?? currentHhi
+      else pinValue = currentGini ?? currentHhi
+    } else if (chartKey === 'resilience') {
+      pinValue = currentLiveness
     } else if (chartKey === 'distance') {
       pinValue = currentTotalDistance
     } else if (chartKey === 'proposal') {
@@ -1896,14 +1900,24 @@ export function PublishedDatasetViewer({
 
   const concentrationSeriesBlock = {
     type: 'timeseries' as const,
-    title: 'Concentration and liveness',
+    title: 'Concentration signals',
     series: [
       { label: 'Gini', data: sampleMetricSeries(metrics.gini, slot), color: CHART_COLORS.gini },
       { label: 'HHI', data: sampleMetricSeries(metrics.hhi, slot), color: CHART_COLORS.hhi },
-      { label: 'Liveness', data: sampleMetricSeries(metrics.liveness, slot), color: CHART_COLORS.liveness },
     ],
     xLabel: 'Slot',
     yLabel: 'Index',
+    annotations: slot > 0 ? [{ x: slot, label: 'Current slot' }] : [],
+  }
+
+  const resilienceSeriesBlock = {
+    type: 'timeseries' as const,
+    title: 'Collapse threshold',
+    series: [
+      { label: LIVENESS_LABEL, data: sampleMetricSeries(metrics.liveness, slot), color: CHART_COLORS.liveness },
+    ],
+    xLabel: 'Slot',
+    yLabel: 'Regions',
     annotations: slot > 0 ? [{ x: slot, label: 'Current slot' }] : [],
   }
 
@@ -2171,11 +2185,20 @@ export function PublishedDatasetViewer({
             block: concentrationSeriesBlock,
             notes: filteredAnnotationNotes.filter(note =>
               isRegionAnchoredNote(note)
-              || noteMatchesMetric(note, ['gini', 'hhi', 'liveness']),
+              || noteMatchesMetric(note, ['gini', 'hhi']),
             ),
             notePins: buildChartNotePins(filteredAnnotationNotes.filter(note =>
-              isRegionAnchoredNote(note) || noteMatchesMetric(note, ['gini', 'hhi', 'liveness'])
+              isRegionAnchoredNote(note) || noteMatchesMetric(note, ['gini', 'hhi'])
             ), 'concentration'),
+          },
+          {
+            key: 'resilience',
+            block: resilienceSeriesBlock,
+            notes: filteredAnnotationNotes.filter(note => noteMatchesMetric(note, ['liveness'])),
+            notePins: buildChartNotePins(
+              filteredAnnotationNotes.filter(note => noteMatchesMetric(note, ['liveness'])),
+              'resilience',
+            ),
           },
           {
             key: 'distance',

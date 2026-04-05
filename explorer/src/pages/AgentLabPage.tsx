@@ -455,6 +455,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
     : null
   const hasAskResult = aiResponse !== null || streamedArtifact !== null || askLoading || aiError !== null
   const hasExperiment = session !== null
+  const showAskScaffolding = mode === 'ask' && !askLoading && !hasAskResult && !askPlan
 
   return (
     <div className="space-y-6">
@@ -582,37 +583,41 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
             />
           )}
 
-          <div className={cn(
-            'grid gap-4',
-            ASK_QUERY_VIEWS.length > 0 && '2xl:grid-cols-[1.05fr_0.95fr]',
-          )}>
-            <AskWorkflowDeck
-              workflows={ASK_WORKFLOWS}
-              sections={ASK_WORKFLOW_SECTIONS}
-              mode="ask"
-              activeRoute={askPlan?.route ?? null}
-              activePrompt={query}
-              onPromptSelect={handleSuggestionClick}
-              busy={askLoading}
-            />
+          {showAskScaffolding && (
+            <>
+              <div className={cn(
+                'grid gap-4',
+                ASK_QUERY_VIEWS.length > 0 && '2xl:grid-cols-[1.05fr_0.95fr]',
+              )}>
+                <AskWorkflowDeck
+                  workflows={ASK_WORKFLOWS}
+                  sections={ASK_WORKFLOW_SECTIONS}
+                  mode="ask"
+                  activeRoute={null}
+                  activePrompt={query}
+                  onPromptSelect={handleSuggestionClick}
+                  busy={askLoading}
+                />
 
-            {ASK_QUERY_VIEWS.length > 0 && (
-              <AskQueryWorkbench
-                queryViews={ASK_QUERY_VIEWS}
-                activeViewId={askPlan?.route === 'structured-results' ? askPlan.queryView?.id ?? null : null}
-                activeRequest={askPlan?.route === 'structured-results' ? askPlan.queryRequest : undefined}
-                onLaunch={handleSuggestionClick}
+                {ASK_QUERY_VIEWS.length > 0 && (
+                  <AskQueryWorkbench
+                    queryViews={ASK_QUERY_VIEWS}
+                    activeViewId={null}
+                    activeRequest={undefined}
+                    onLaunch={handleSuggestionClick}
+                    busy={askLoading}
+                  />
+                )}
+              </div>
+
+              <AskCapabilityPanel
+                capabilities={ASK_CAPABILITIES}
+                promptTips={ASK_PROMPT_TIPS}
+                onPromptSelect={handleSuggestionClick}
                 busy={askLoading}
               />
-            )}
-          </div>
-
-          <AskCapabilityPanel
-            capabilities={ASK_CAPABILITIES}
-            promptTips={ASK_PROMPT_TIPS}
-            onPromptSelect={handleSuggestionClick}
-            busy={askLoading}
-          />
+            </>
+          )}
 
           {/* AI results */}
           <AnimatePresence mode="wait">

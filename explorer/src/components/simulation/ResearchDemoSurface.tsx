@@ -35,6 +35,7 @@ import {
   analyticsMetricSeriesForPayload,
   analyticsMetricOptionsForView,
   ANALYTICS_VIEW_OPTIONS,
+  LIVENESS_LABEL,
   buildAnalyticsDashboardPresets,
   buildAnalyticsBlocks,
   buildAnalyticsExportBundle,
@@ -45,6 +46,8 @@ import {
   parseAnalyticsCompareMode,
   parseAnalyticsDeckView,
   parseAnalyticsQueryMetric,
+  formatLivenessCount,
+  formatLivenessCountWithUnit,
   type AnalyticsCompareMode,
   type AnalyticsDashboardPreset,
   type AnalyticsDeckView,
@@ -171,6 +174,10 @@ function formatPercentValue(value: number | null | undefined, digits = 1): strin
   return `${formatNumber(value, digits)}%`
 }
 
+function formatLivenessValue(value: number | null | undefined): string {
+  return formatLivenessCount(value)
+}
+
 function formatOptionalMilliseconds(value: number | null | undefined, digits = 1): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
   return `${formatNumber(value, digits)} ms`
@@ -186,6 +193,10 @@ function formatIndexValue(value: number): string {
 
 function formatPercentSeriesValue(value: number): string {
   return `${formatNumber(value, 1)}%`
+}
+
+function formatLivenessSeriesValue(value: number): string {
+  return formatLivenessCount(value)
 }
 
 function formatMillisecondsSeriesValue(value: number): string {
@@ -283,11 +294,11 @@ function describeViewerSnapshot(
 
   const dominantRegion = snapshot.dominantRegionCity ?? snapshot.dominantRegionId ?? 'no dominant region'
   const gini = snapshot.currentGini != null ? formatNumber(snapshot.currentGini, 3) : 'N/A'
-  const liveness = snapshot.currentLiveness != null ? `${formatNumber(snapshot.currentLiveness, 1)}%` : 'N/A'
+  const liveness = snapshot.currentLiveness != null ? formatLivenessCountWithUnit(snapshot.currentLiveness) : 'N/A'
   const mev = snapshot.currentMev != null ? `${formatNumber(snapshot.currentMev, 4)} ETH` : 'N/A'
   const proposalTime = snapshot.currentProposalTime != null ? `${formatNumber(snapshot.currentProposalTime, 1)} ms` : 'N/A'
 
-  return `${label} is at slot ${snapshot.slotNumber.toLocaleString()} of ${snapshot.totalSlots.toLocaleString()}, with ${snapshot.activeRegions.toLocaleString()} active regions. Dominant region: ${dominantRegion}. Gini ${gini}, liveness ${liveness}, MEV ${mev}, proposal time ${proposalTime}.`
+  return `${label} is at slot ${snapshot.slotNumber.toLocaleString()} of ${snapshot.totalSlots.toLocaleString()}, with ${snapshot.activeRegions.toLocaleString()} active regions. Dominant region: ${dominantRegion}. Gini ${gini}, ${LIVENESS_LABEL.toLowerCase()} ${liveness}, MEV ${mev}, proposal time ${proposalTime}.`
 }
 
 function datasetPaperSectionId(dataset: ResearchDatasetEntry | null): string | null {
@@ -683,7 +694,7 @@ export function ResearchDemoSurface({
         ? `This surface treats ${selectedDataset.result} as the authoritative published output and keeps it visible while the reader moves through the paper.`
         : 'Select a dataset to reveal the published evidence layer.',
       points: [
-        'Use the replay to inspect concentration, topology, latency, and liveness over slot progression.',
+        `Use the replay to inspect concentration, topology, latency, and ${LIVENESS_LABEL.toLowerCase()} over slot progression.`,
         'Keep the evidence in view while switching scenario, mode, and playback posture.',
         'The page prioritizes interpretation before configuration.',
       ],
@@ -726,7 +737,7 @@ export function ResearchDemoSurface({
       },
       {
         label: 'Trace slot changes',
-        prompt: `Walk me through the major slot-level changes in ${selectedDataset.path}, focusing on decentralization, latency, and liveness.`,
+        prompt: `Walk me through the major slot-level changes in ${selectedDataset.path}, focusing on decentralization, latency, and ${LIVENESS_LABEL.toLowerCase()}.`,
       },
       {
         label: 'Interpret tradeoffs',
@@ -1883,7 +1894,7 @@ export function ResearchDemoSurface({
           ? `Use the replay to explain how migration cost ${formatEth(selectedMetadata?.cost)}, delta ${formatMilliseconds(selectedMetadata?.delta)}, cutoff ${formatMilliseconds(selectedMetadata?.cutoff)}, and gamma ${typeof selectedMetadata?.gamma === 'number' ? formatNumber(selectedMetadata.gamma, 4) : 'N/A'} shape the observed trajectory.`
           : paperLens === 'methods'
             ? 'Treat selector changes as movement across published scenarios. This page is intentionally separated from the heavier exact-simulation path.'
-            : 'Start with the map and concentration metrics, then trace how latency and liveness respond as slot progression unfolds.',
+            : `Start with the map and concentration metrics, then trace how latency and ${LIVENESS_LABEL.toLowerCase()} respond as slot progression unfolds.`,
       },
       {
         title: 'Canonical paper anchor',
@@ -2006,7 +2017,7 @@ export function ResearchDemoSurface({
         id: 'proposal-time',
         label: 'Proposal time',
         detail: viewerSnapshot?.currentLiveness != null
-          ? `Liveness ${formatPercentValue(viewerSnapshot.currentLiveness)}`
+          ? `${LIVENESS_LABEL} ${formatLivenessValue(viewerSnapshot.currentLiveness)}`
           : 'Consensus timing posture.',
         focusArea: 'performance',
         anchor: { kind: 'metric', key: 'proposal_time', label: 'Metric · Proposal time' },
@@ -2022,17 +2033,17 @@ export function ResearchDemoSurface({
   const resultSnapshotCards = useMemo<ReplaySnapshotMetricCard[]>(() => [
     buildReplayMetricCard({
       id: 'liveness',
-      label: 'Liveness',
+      label: LIVENESS_LABEL,
       detail: viewerSnapshot?.currentProposalTime != null
         ? `Proposal ${formatOptionalMilliseconds(viewerSnapshot.currentProposalTime)}`
-        : 'Completion posture over slot progression.',
+        : 'Regional outage threshold over slot progression.',
       focusArea: 'performance',
-      anchor: { kind: 'metric', key: 'liveness', label: 'Metric · Liveness' },
+      anchor: { kind: 'metric', key: 'liveness', label: `Metric · ${LIVENESS_LABEL}` },
       metric: 'liveness',
       analyticsView: 'latency',
       currentValue: viewerSnapshot?.currentLiveness,
       color: '#16A34A',
-      formatSeriesValue: formatPercentSeriesValue,
+      formatSeriesValue: formatLivenessSeriesValue,
     }),
     buildReplayMetricCard({
       id: 'hhi',

@@ -17,6 +17,20 @@ export type AnalyticsCompareMode = 'absolute' | 'overlay' | 'delta'
 
 type AnalyticsMetricUnit = 'index' | 'percent' | 'milliseconds' | 'eth' | 'count'
 
+export const LIVENESS_LABEL = 'Critical regions'
+export const LIVENESS_DESCRIPTION = 'Smallest number of regions whose outage collapses the network.'
+
+export function formatLivenessCount(value: number | null | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
+  return Math.round(value).toLocaleString()
+}
+
+export function formatLivenessCountWithUnit(value: number | null | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
+  const rounded = Math.round(value)
+  return `${rounded.toLocaleString()} region${rounded === 1 ? '' : 's'}`
+}
+
 export interface AnalyticsViewOption {
   readonly id: AnalyticsDeckView
   readonly label: string
@@ -151,7 +165,7 @@ export const ANALYTICS_VIEW_OPTIONS: readonly AnalyticsViewOption[] = [
   {
     id: 'latency',
     label: 'Latency',
-    description: 'Liveness, proposal timing, and failure posture.',
+    description: 'Collapse threshold, proposal timing, and failure posture.',
   },
   {
     id: 'economics',
@@ -196,9 +210,9 @@ export const ANALYTICS_QUERY_OPTIONS: readonly AnalyticsQueryOption[] = [
   {
     id: 'liveness',
     view: 'latency',
-    label: 'Liveness',
-    description: 'Percentage of slots meeting the liveness target.',
-    unit: 'percent',
+    label: LIVENESS_LABEL,
+    description: LIVENESS_DESCRIPTION,
+    unit: 'count',
     color: '#16A34A',
     comparisonColor: '#15803D',
   },
@@ -335,7 +349,7 @@ export function buildAnalyticsDashboardPresets(
     {
       id: 'latency-check',
       label: 'Latency check',
-      note: 'Read liveness and timing posture as an operational surface.',
+      note: 'Read collapse threshold and timing posture as an operational surface.',
       analyticsView: 'latency',
       analyticsMetric: 'liveness',
       analyticsCompareMode: 'absolute',
@@ -608,6 +622,9 @@ function formatMetricValue(
   queryMetric: AnalyticsQueryMetric,
   value: number | null | undefined,
 ): string {
+  if (queryMetric === 'liveness') {
+    return formatLivenessCount(value)
+  }
   const option = ANALYTICS_QUERY_OPTIONS.find(candidate => candidate.id === queryMetric)
   switch (option?.unit) {
     case 'percent':
@@ -630,6 +647,9 @@ function formatMetricDelta(
 ): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
   const prefix = value > 0 ? '+' : ''
+  if (queryMetric === 'liveness') {
+    return `${prefix}${Math.round(value).toLocaleString()}`
+  }
   const option = ANALYTICS_QUERY_OPTIONS.find(candidate => candidate.id === queryMetric)
   switch (option?.unit) {
     case 'percent':
@@ -647,6 +667,7 @@ function formatMetricDelta(
 }
 
 function metricYAxisLabel(queryMetric: AnalyticsQueryMetric): string {
+  if (queryMetric === 'liveness') return 'Regions'
   const option = ANALYTICS_QUERY_OPTIONS.find(candidate => candidate.id === queryMetric)
   switch (option?.unit) {
     case 'percent':

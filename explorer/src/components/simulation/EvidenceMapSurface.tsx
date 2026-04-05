@@ -515,19 +515,21 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
             {/* ── Latency arcs layer ── */}
             {overlay === 'latency' && latencyArcs.map((arc, i) => {
               const color = latencyColor(arc.normalized)
+              const isRelatedToHover = hoveredRegion == null || arc.fromId === hoveredRegion || arc.toId === hoveredRegion
+              const showLabel = hoveredRegion == null ? i < 6 : isRelatedToHover
               return (
                 <g key={`arc-${arc.fromId}-${arc.toId}`}>
                   <motion.path
                     d={arc.path}
                     fill="none"
                     stroke={color}
-                    strokeWidth={1 + (1 - arc.normalized) * 0.6}
+                    strokeWidth={(isRelatedToHover ? 1.2 : 0.8) + (1 - arc.normalized) * (isRelatedToHover ? 0.9 : 0.45)}
                     strokeLinecap="round"
                     initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 0.6 }}
+                    animate={{ pathLength: 1, opacity: hoveredRegion == null ? 0.58 : isRelatedToHover ? 0.82 : 0.16 }}
                     transition={{ ...SPRING_SOFT, delay: i * 0.02 }}
                   />
-                  {i < 10 && (() => {
+                  {showLabel && (() => {
                     const fromRegion = GCP_REGION_MAP.get(arc.fromId)
                     const toRegion = GCP_REGION_MAP.get(arc.toId)
                     if (!fromRegion || !toRegion) return null
@@ -545,7 +547,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                         fontFamily="var(--font-mono)"
                         fontWeight={600}
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: 0.8 }}
+                        animate={{ opacity: hoveredRegion == null ? 0.72 : 0.92 }}
                         transition={{ delay: 0.3 + i * 0.02 }}
                       >
                         {arc.ms.toFixed(0)} ms

@@ -362,7 +362,7 @@ export function PublishedReplayNotesPanel({
 
     options.push(
       { kind: 'metric', key: 'gini', label: 'Metric · Gini' },
-      { kind: 'metric', key: 'liveness', label: 'Metric · Liveness' },
+      { kind: 'metric', key: 'liveness', label: 'Metric · Critical regions' },
       { kind: 'metric', key: 'proposal_time', label: 'Metric · Proposal time' },
       { kind: 'metric', key: 'mev', label: 'Metric · MEV' },
     )
