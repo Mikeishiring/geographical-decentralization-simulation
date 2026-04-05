@@ -97,7 +97,7 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
         </div>
       )}
 
-      <main className={cn('mx-auto px-4 sm:px-6', CONTENT_MAX_WIDTH, embedded ? 'py-6' : 'py-8')}>
+      <main className={cn('mx-auto px-4 sm:px-6', CONTENT_MAX_WIDTH, embedded ? 'py-4 sm:py-6' : 'py-8')}>
         <div className="grid gap-8 xl:grid-cols-[250px_minmax(0,1fr)]">
           <aside className="hidden xl:block">
             <div
@@ -166,19 +166,19 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
           </aside>
 
           <article className="min-w-0">
-            <header className="overflow-hidden rounded-[1.8rem] border border-rule/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-6 py-7 shadow-[0_6px_24px_rgba(0,0,0,0.05)] sm:px-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/[0.05] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] text-accent">
+            <header className="overflow-hidden rounded-[1.8rem] border border-rule/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-4 py-5 shadow-[0_6px_24px_rgba(0,0,0,0.05)] sm:px-8 sm:py-7">
+              <div className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/[0.05] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.1em] text-accent sm:px-3 sm:text-[11px]">
                 <FlaskConical className="h-3.5 w-3.5" />
                 {embedded ? 'HTML Source View' : 'Research HTML Preview'}
               </div>
-              <h1 className="mt-4 max-w-4xl text-3xl font-medium leading-tight text-text-primary font-serif sm:text-4xl">
+              <h1 className="mt-3.5 max-w-4xl text-[1.9rem] font-medium leading-[1.06] text-text-primary font-serif sm:mt-4 sm:text-4xl sm:leading-tight">
                 {study.metadata.title}
               </h1>
-              <p className="mt-3 max-w-3xl text-base leading-7 text-muted">
+              <p className="mt-2.5 max-w-3xl text-[14px] leading-6.5 text-muted sm:mt-3 sm:text-base sm:leading-7">
                 {embedded ? 'A source-oriented HTML reading layer over the paper, with section structure and cited artifacts preserved.' : study.metadata.subtitle}
               </p>
 
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap gap-1.5 sm:mt-5 sm:gap-2">
                 {study.metadata.references.map(reference => (
                   reference.url ? (
                     <a
@@ -186,7 +186,7 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
                       href={reference.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white/90 px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-active"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white/90 px-2.5 py-1.5 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-active sm:px-3 sm:text-xs"
                     >
                       <ExternalLink className="h-3 w-3" />
                       {reference.label}
@@ -198,7 +198,7 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
                     href={htmlUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.05] px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/[0.1]"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.05] px-2.5 py-1.5 text-[11px] font-medium text-accent transition-colors hover:bg-accent/[0.1] sm:px-3 sm:text-xs"
                   >
                     <ExternalLink className="h-3 w-3" />
                     Open arXiv HTML
@@ -206,10 +206,10 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
                 )}
               </div>
 
-              <div className="mt-6 grid gap-5 border-t border-rule/70 pt-6 lg:grid-cols-[minmax(0,1fr)_260px]">
+              <div className="mt-5 grid gap-4 border-t border-rule/70 pt-5 sm:mt-6 sm:gap-5 sm:pt-6 lg:grid-cols-[minmax(0,1fr)_260px]">
                 <div>
                   <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-text-faint">Abstract</div>
-                  <p className="mt-2 max-w-3xl text-[15px] leading-7 text-text-body">
+                  <p className="mt-2 max-w-3xl text-[14px] leading-6.5 text-text-body sm:text-[15px] sm:leading-7">
                     {study.metadata.abstract}
                   </p>
                 </div>
@@ -225,9 +225,9 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-5 grid gap-2.5 sm:mt-6 sm:grid-cols-2 sm:gap-3 xl:grid-cols-4">
                 {study.metadata.authors.map(author => (
-                  <div key={author.name} className="rounded-2xl border border-rule/60 bg-white/75 px-4 py-3">
+                  <div key={author.name} className="rounded-2xl border border-rule/60 bg-white/75 px-3.5 py-3 sm:px-4">
                     <div className="text-sm font-medium text-text-primary">{author.name}</div>
                     {author.role && <div className="mt-1 text-xs text-muted">{author.role}</div>}
                     {author.focus && <div className="mt-2 text-[11px] leading-5 text-text-faint">{author.focus}</div>}
