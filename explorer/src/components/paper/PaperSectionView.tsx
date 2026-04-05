@@ -248,6 +248,9 @@ interface PaperSectionViewProps {
   readonly onSectionClick?: (sectionId: string) => void
 }
 
+const PAPER_STACK_STICKY_TOP = 'calc(var(--explorer-tab-nav-height, 3.75rem) + var(--explorer-paper-mode-bar-height, 4.75rem) + 1rem)'
+const PAPER_STACK_SCROLL_MARGIN = 'calc(var(--explorer-tab-nav-height, 3.75rem) + var(--explorer-paper-mode-bar-height, 4.75rem) + 1.5rem)'
+
 export function PaperSectionView({
   activeSectionId: activeSectionIdProp,
   notesVisible = false,
@@ -276,7 +279,7 @@ export function PaperSectionView({
   return (
     <>
       <div className="grid gap-10 xl:grid-cols-[216px_minmax(0,1fr)] 2xl:grid-cols-[228px_minmax(0,1fr)]">
-        <aside className="hidden xl:block xl:sticky xl:top-[9.4rem] xl:self-start xl:pr-3">
+        <aside className="hidden xl:block xl:sticky xl:self-start xl:pr-3" style={{ top: PAPER_STACK_STICKY_TOP }}>
           <div className="rounded-xl border border-rule/60 bg-white/95 p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
             <SectionNav activeSectionId={activeSectionId} onSectionClick={onSectionClick} compact />
           </div>
@@ -371,7 +374,8 @@ function SectionCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.15 }}
       transition={SPRING}
-      className="group scroll-mt-[9.8rem] overflow-hidden rounded-2xl border border-rule bg-white p-6 card-hover geo-accent-bar sm:p-7 lg:p-8"
+      className="group overflow-hidden rounded-2xl border border-rule bg-white p-6 card-hover geo-accent-bar sm:p-7 lg:p-8"
+      style={{ scrollMarginTop: PAPER_STACK_SCROLL_MARGIN }}
     >
       <div className="mb-6 border-b border-rule pb-5">
         <div className="flex flex-wrap items-start gap-3">
@@ -471,7 +475,7 @@ function SectionCard({
         </div>
 
         {showSidebarSupporting && (
-          <aside className="min-w-0 xl:sticky xl:top-[9.8rem]">
+          <aside className="min-w-0 xl:sticky" style={{ top: PAPER_STACK_STICKY_TOP }}>
             <div className="rounded-2xl border border-rule/80 bg-surface-active/45 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
