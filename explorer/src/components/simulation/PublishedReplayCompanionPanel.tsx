@@ -15,6 +15,7 @@ import {
 import type { Block, SourceBlock as SourceBlockData } from '../../types/blocks'
 import type { PublishedViewerSnapshot } from './PublishedDatasetViewer'
 import { paradigmLabel } from './simulation-constants'
+import { LIVENESS_LABEL, formatLivenessCount } from './simulation-analytics'
 
 interface DatasetRef {
   readonly evaluation: string
@@ -198,7 +199,7 @@ export function PublishedReplayCompanionPanel({
     }
 
     if (viewerSnapshot?.currentLiveness != null && viewerSnapshot.currentProposalTime != null) {
-      prompts.push('Explain the relationship between liveness and proposal time at the current slot.')
+      prompts.push(`Explain the relationship between ${LIVENESS_LABEL.toLowerCase()} and proposal time at the current slot.`)
     }
 
     if (comparisonDataset && primarySlot != null) {
@@ -500,7 +501,7 @@ export function PublishedReplayCompanionPanel({
             </span>
           ) : null}
           {viewerSnapshot?.currentGini != null ? <span className="lab-chip">gini {formatMetric(viewerSnapshot.currentGini, 3)}</span> : null}
-          {viewerSnapshot?.currentLiveness != null ? <span className="lab-chip">liveness {formatMetric(viewerSnapshot.currentLiveness, 1)}%</span> : null}
+          {viewerSnapshot?.currentLiveness != null ? <span className="lab-chip">{LIVENESS_LABEL.toLowerCase()} {formatLivenessCount(viewerSnapshot.currentLiveness)}</span> : null}
           {comparisonDataset ? <span className="lab-chip">compare {paradigmLabel(comparisonDataset.paradigm)}</span> : null}
           {comparisonViewerSnapshot ? <motion.span variants={STAGGER_ITEM} className="lab-chip">compare slot {comparisonViewerSnapshot.slotNumber}</motion.span> : null}
         </motion.div>

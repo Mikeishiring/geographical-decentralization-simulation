@@ -271,30 +271,92 @@ export interface LatencyArc {
 export function buildLatencyArcs(nodes: readonly RegionNode[], maxArcs = 30): readonly LatencyArc[] {
   if (nodes.length < 2) return []
 
-  const topNodes = [...nodes].toSorted((a, b) => b.count - a.count).slice(0, 12)
+  const rankedNodes = [...nodes].toSorted((a, b) => b.count - a.count)
   const arcs: LatencyArc[] = []
+  const seenPairs = new Set<string>()
 
-  for (let i = 0; i < topNodes.length; i++) {
-    for (let j = i + 1; j < topNodes.length; j++) {
-      const a = topNodes[i]!
-      const b = topNodes[j]!
+  const pushArc = (a: RegionNode, b: RegionNode) => {
+    const key = a.id < b.id ? `${a.id}:${b.id}` : `${b.id}:${a.id}`
+    if (seenPairs.has(key)) return false
+    const ms = getLatency(a.id, b.id)
+    const norm = getLatencyNormalized(a.id, b.id)
+    if (ms == null || norm == null) return false
+
+    seenPairs.add(key)
+    arcs.push({
+      path: greatCircleArc(a.lat, a.lon, b.lat, b.lon, SVG_W, SVG_H),
+      ms,
+      normalized: norm,
+      fromId: a.id,
+      toId: b.id,
+    })
+    return true
+  }
+
+  // Ensure every visible region keeps at least one representative latency link.
+  for (const node of rankedNodes) {
+    const bestPartner = rankedNodes
+      .filter(candidate => candidate.id !== node.id)
+      .map(candidate => ({
+        candidate,
+        ms: getLatency(node.id, candidate.id),
+      }))
+      .filter((entry): entry is { candidate: RegionNode; ms: number } => entry.ms != null)
+      .toSorted((left, right) => left.ms - right.ms || right.candidate.count - left.candidate.count)[0]
+
+    if (!bestPartner) continue
+    pushArc(node, bestPartner.candidate)
+    if (arcs.length >= maxArcs) return arcs
+  }
+
+  // Add a few extra fast corridors for the dominant regions so the global backbone is still legible.
+  for (const node of rankedNodes.slice(0, Math.min(8, rankedNodes.length))) {
+    let addedForNode = 0
+    const candidates = rankedNodes
+      .filter(candidate => candidate.id !== node.id)
+      .map(candidate => ({
+        candidate,
+        ms: getLatency(node.id, candidate.id),
+      }))
+      .filter((entry): entry is { candidate: RegionNode; ms: number } => entry.ms != null)
+      .toSorted((left, right) => left.ms - right.ms || right.candidate.count - left.candidate.count)
+
+    for (const candidate of candidates) {
+      if (pushArc(node, candidate.candidate)) {
+        addedForNode += 1
+      }
+      if (addedForNode >= 2 || arcs.length >= maxArcs) break
+    }
+    if (arcs.length >= maxArcs) return arcs
+  }
+
+  // Fill remaining space with the strongest low-latency corridors weighted by regional importance.
+  const candidatePairs: Array<{
+    readonly a: RegionNode
+    readonly b: RegionNode
+    readonly score: number
+  }> = []
+
+  for (let i = 0; i < rankedNodes.length; i++) {
+    for (let j = i + 1; j < rankedNodes.length; j++) {
+      const a = rankedNodes[i]!
+      const b = rankedNodes[j]!
       const ms = getLatency(a.id, b.id)
-      const norm = getLatencyNormalized(a.id, b.id)
-      if (ms == null || norm == null) continue
-
-      arcs.push({
-        path: greatCircleArc(a.lat, a.lon, b.lat, b.lon, SVG_W, SVG_H),
-        ms,
-        normalized: norm,
-        fromId: a.id,
-        toId: b.id,
+      if (ms == null) continue
+      candidatePairs.push({
+        a,
+        b,
+        score: (a.count + b.count) / Math.max(ms, 1),
       })
     }
   }
 
+  for (const candidate of candidatePairs.toSorted((left, right) => right.score - left.score)) {
+    pushArc(candidate.a, candidate.b)
+    if (arcs.length >= maxArcs) break
+  }
+
   return arcs
-    .toSorted((a, b) => b.ms - a.ms)
-    .slice(0, maxArcs)
 }
 
 // ── Tooltip type ────────────────────────────────────────────────────────────
