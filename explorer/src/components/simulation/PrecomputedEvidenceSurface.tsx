@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SlidersHorizontal, ChevronDown } from 'lucide-react'
+import { SlidersHorizontal, ChevronDown, BarChart3 } from 'lucide-react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { cn } from '../../lib/cn'
+import { InlineTooltip } from '../ui/Tooltip'
 import {
   readPublishedEvidenceSelectionFromSearch,
   writePublishedEvidenceSelectionToHistory,
@@ -291,9 +292,9 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
 
         {hasCostDimension && (
           <div className="flex min-w-[320px] flex-[1.6] items-center gap-2 border-t border-black/[0.05] px-3 py-2 sm:border-t-0 sm:border-l">
-            <span className={filterLabel} title="ETH migration cost charged when a validator relocates between regions. Higher cost = stronger geographic lock-in.">
-              Migration cost
-            </span>
+            <InlineTooltip label="ETH cost when a validator relocates" detail="Higher cost = stronger geographic lock-in.">
+              <span className={filterLabel}>Migration cost</span>
+            </InlineTooltip>
             <div className="flex flex-wrap gap-1">
               {costResults.map(({ result, cost }) => {
                 const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
@@ -308,7 +309,6 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
                     key={result}
                     type="button"
                     onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
-                    title={costTooltips[formatCostLabel(cost)] ?? `Migration cost: ${formatCostLabel(cost)} ETH per relocation`}
                     className={cn(chipBase, 'tabular-nums', selectedResult === result ? chipActive : chipInactive)}
                   >
                     {formatCostLabel(cost)}{hint ? ` (${hint})` : ''}
@@ -364,7 +364,9 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
               {/* Source paradigm */}
               {paradigms.length > 1 && (
                 <>
-                  <span className={filterLabel} title="Block-building paradigm: External or Local">Paradigm</span>
+                  <InlineTooltip label="Block-building paradigm: External (SSP) or Local (MSP)">
+                    <span className={filterLabel}>Paradigm</span>
+                  </InlineTooltip>
                   <div className="flex gap-1">
                     {paradigms.map(paradigm => (
                       <button

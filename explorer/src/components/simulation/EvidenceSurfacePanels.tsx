@@ -487,13 +487,14 @@ function EvidenceKpiCard({
               {hoverIndex != null && currentValue != null ? card.formatSeriesValue(currentValue) : card.value}
             </div>
             {seriesDelta && (
+              <InlineTooltip label={hoverIndex != null ? 'Change from slot 1 to the inspected slot' : 'Change from slot 1 to the final slot'}>
               <div
                 className={cn('inline-flex items-center gap-1 text-[10px] font-medium tabular-nums', DELTA_COLOR[deltaSentiment])}
-                title={hoverIndex != null ? 'Change from slot 1 to the inspected slot' : 'Change from slot 1 to the final slot'}
               >
                 <span>{DELTA_ARROW[deltaDirection]}</span>
                 <span>{seriesDelta.formatted}</span>
               </div>
+              </InlineTooltip>
             )}
           </div>
           <div className="text-[10px] leading-[1.45] text-stone-500 line-clamp-1">
@@ -897,8 +898,12 @@ export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
         {items.map(item => (
-          <div key={item.label} className="py-0.5" title={METRIC_TOOLTIPS[item.label]}>
-            <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">{item.label}</div>
+          <div key={item.label} className="py-0.5">
+            <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">
+              {METRIC_TOOLTIPS[item.label] ? (
+                <InlineTooltip label={METRIC_TOOLTIPS[item.label]}>{item.label}</InlineTooltip>
+              ) : item.label}
+            </div>
             <div className="text-[13px] font-semibold text-stone-800 tabular-nums">{item.value}</div>
           </div>
         ))}
@@ -910,7 +915,7 @@ export function SlotMetricsGrid({ payload }: SlotMetricsGridProps) {
           <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium mb-1.5">Top regions</div>
           <div className="space-y-1">
             {topRegions.map((region, i) => (
-              <div key={region.label} className="flex items-center gap-2" title={`${region.label} — ${formatNumber(region.share, 1)}% of validators`}>
+              <div key={region.label} className="flex items-center gap-2">
                 <span className="text-[10px] text-stone-400 w-4 tabular-nums text-right font-medium">#{i + 1}</span>
                 <span className="text-[11px] text-stone-700 min-w-[80px] truncate font-medium">{region.label}</span>
                 <div className="flex-1 h-[4px] rounded-full bg-stone-100 overflow-hidden">
