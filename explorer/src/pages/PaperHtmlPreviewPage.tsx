@@ -24,6 +24,8 @@ interface PaperHtmlPreviewPageProps {
   readonly embedded?: boolean
 }
 
+const EMBEDDED_PAPER_STACK_TOP = 'calc(var(--explorer-tab-nav-height, 3.75rem) + var(--explorer-paper-mode-bar-height, 4.75rem) + 1rem)'
+
 export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageProps) {
   const study = getActiveStudy()
   const backHref = withoutPreviewParam()
@@ -98,7 +100,11 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
       <main className={cn('mx-auto px-4 sm:px-6', CONTENT_MAX_WIDTH, embedded ? 'py-6' : 'py-8')}>
         <div className="grid gap-8 xl:grid-cols-[250px_minmax(0,1fr)]">
           <aside className="hidden xl:block">
-            <div className="sticky top-28 rounded-2xl border border-rule/70 bg-white/95 p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+            <div
+              data-testid="paper-html-contents-rail"
+              className="sticky rounded-2xl border border-rule/70 bg-white/95 p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)]"
+              style={{ top: embedded ? EMBEDDED_PAPER_STACK_TOP : '7rem' }}
+            >
               <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-text-faint">Contents</div>
               <nav className="mt-3 space-y-1.5">
                 {study.sections.map(section => (
@@ -169,7 +175,7 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
                 {study.metadata.title}
               </h1>
               <p className="mt-3 max-w-3xl text-base leading-7 text-muted">
-                {study.metadata.subtitle}
+                {embedded ? 'A source-oriented HTML reading layer over the paper, with section structure and cited artifacts preserved.' : study.metadata.subtitle}
               </p>
 
               <div className="mt-5 flex flex-wrap gap-2">
