@@ -4,6 +4,7 @@ import { Play, Pause, RotateCcw, Layers, Radio, Zap, Plus, Minus, Maximize2, Dow
 import { EvidenceMapSidebar } from './EvidenceMapSidebar'
 import { LIGHT_SURFACE, SPRING_SOFT, SPRING_SNAPPY, SPRING_POPUP } from '../../lib/theme'
 import { cn } from '../../lib/cn'
+import { InlineTooltip, Tooltip } from '../ui/Tooltip'
 import { LATENCY_MIN, LATENCY_MAX } from '../../data/gcp-latency'
 import {
   totalSlotsFromPayload,
@@ -24,6 +25,7 @@ import {
   getSlotRegionNodes,
   getSourceNodes,
   buildLatencyArcs,
+  computeFlowData,
   computeLabelPositions,
   spreadOverlappingNodes,
   type OverlayMode,
@@ -176,6 +178,12 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
     [overlay, displayNodes],
   )
 
+  // Flow data — net sender/receiver classification for directional visualization
+  const flowData = useMemo(
+    () => computeFlowData(validatorNodes, sourceNodes),
+    [validatorNodes, sourceNodes],
+  )
+
   const sorted = useMemo(
     () => [...displayNodes].toSorted((a, b) => b.count - a.count),
     [displayNodes],
@@ -301,40 +309,43 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
               {overlay === 'validators' ? (
                 <>
-                  <motion.span
-                    key={`regions-${displayNodes.length}`}
-                    className="tabular-nums"
-                    initial={{ opacity: 0, y: 2 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={SPRING_SNAPPY}
-                    title="Distinct GCP regions with at least one validator at this slot"
-                  >
-                    {displayNodes.length} regions
-                  </motion.span>
+                  <InlineTooltip label="Distinct GCP regions with at least one validator at this slot">
+                    <motion.span
+                      key={`regions-${displayNodes.length}`}
+                      className="tabular-nums"
+                      initial={{ opacity: 0, y: 2 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={SPRING_SNAPPY}
+                    >
+                      {displayNodes.length} regions
+                    </motion.span>
+                  </InlineTooltip>
                   <span className="text-black/20">·</span>
-                  <motion.span
-                    key={`validators-${totalValidators}`}
-                    className="tabular-nums"
-                    initial={{ opacity: 0, y: 2 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ ...SPRING_SNAPPY, delay: 0.05 }}
-                    title="Total validator agents distributed across regions"
-                  >
-                    {totalValidators.toLocaleString()} validators
-                  </motion.span>
+                  <InlineTooltip label="Total validator agents distributed across regions">
+                    <motion.span
+                      key={`validators-${totalValidators}`}
+                      className="tabular-nums"
+                      initial={{ opacity: 0, y: 2 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ ...SPRING_SNAPPY, delay: 0.05 }}
+                    >
+                      {totalValidators.toLocaleString()} validators
+                    </motion.span>
+                  </InlineTooltip>
                   <span className="text-black/20">·</span>
                 </>
               ) : null}
-              <motion.span
-                key={`slot-${slot}`}
-                className="font-mono tabular-nums text-text-faint"
-                initial={{ opacity: 0, y: 2 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ ...SPRING_SNAPPY, delay: 0.1 }}
-                title="Current consensus round in the simulation timeline"
-              >
-                slot {(slot + 1).toLocaleString()}
-              </motion.span>
+              <InlineTooltip label="Current consensus round in the simulation timeline">
+                <motion.span
+                  key={`slot-${slot}`}
+                  className="font-mono tabular-nums text-text-faint"
+                  initial={{ opacity: 0, y: 2 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...SPRING_SNAPPY, delay: 0.1 }}
+                >
+                  slot {(slot + 1).toLocaleString()}
+                </motion.span>
+              </InlineTooltip>
               <span className="text-black/20">·</span>
               <span>{overlayDescription}</span>
             </div>
@@ -347,10 +358,9 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                 { mode: 'latency' as const, icon: Zap, label: 'Latency', detail: 'Show inter-region network latency arcs' },
                 { mode: 'sources' as const, icon: Layers, label: 'Sources', detail: 'Show information source placement' },
               ]).map(({ mode, icon: Icon, label, detail }) => (
+                <Tooltip key={mode} label={detail}>
                 <button
-                  key={mode}
                   onClick={() => setOverlay(mode)}
-                  title={detail}
                   className={cn(
                     'flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.25 text-[11px] font-medium transition-all duration-150',
                     overlay === mode
@@ -361,6 +371,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                   <Icon className="h-3 w-3" />
                   {label}
                 </button>
+                </Tooltip>
               ))}
               <div className="mx-0.5 h-5 w-px bg-black/[0.06]" />
               <button
@@ -468,6 +479,16 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                 <feComponentTransfer><feFuncA type="linear" slope="0.1" /></feComponentTransfer>
                 <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
               </filter>
+              {/* Directional flow arrowhead */}
+              <marker id={`${idPrefix}-flow-arrow`} viewBox="0 0 8 6" refX="7" refY="3" markerWidth="6" markerHeight="4.5" orient="auto">
+                <path d="M0,0.5 L7,3 L0,5.5 Z" fill="currentColor" opacity="0.5" />
+              </marker>
+              {/* Glow filter for hub nodes */}
+              <filter id={`${idPrefix}-hub-glow`} x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+                <feComponentTransfer in="blur"><feFuncA type="linear" slope="0.25" /></feComponentTransfer>
+                <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
             </defs>
 
             {/* Background — warm off-white canvas */}
@@ -558,11 +579,13 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
               )
             })}
 
-            {/* ── Network connections (validators/sources mode) — great-circle arcs ── */}
+            {/* ── Network connections (validators/sources mode) — great-circle arcs with flow ── */}
             {overlay !== 'latency' && edges.map((e, i) => {
               const strength = (e.va + e.vb) / (2 * maxCount)
               const opacity = 0.18 + strength * 0.32
               const sw = 0.5 + strength * 0.8
+              // Show arrow on top 12 edges to indicate flow toward higher-count node
+              const showArrow = !playing && i < 12
 
               return playing ? (
                 <path
@@ -575,7 +598,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                   opacity={opacity}
                 />
               ) : (
-                <g key={`edge-${i}`}>
+                <g key={`edge-${i}`} style={{ color: e.color }}>
                   <motion.path
                     d={e.path}
                     fill="none"
@@ -585,25 +608,39 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity }}
                     transition={{ ...SPRING_SOFT, delay: 0.3 + i * 0.005 }}
+                    markerEnd={showArrow ? `url(#${idPrefix}-flow-arrow)` : undefined}
                   />
-                  {/* Traveling ping dot — shows network activity on top connections */}
-                  {i < 8 && (
-                    <circle r={1.2 + strength * 1.2} fill={e.color} opacity={0}>
-                      <animateMotion dur={`${3.5 + i * 0.6}s`} repeatCount="indefinite" path={e.path} />
-                      <animate attributeName="opacity" values="0;0.6;0.6;0" dur={`${3.5 + i * 0.6}s`} repeatCount="indefinite" />
-                    </circle>
+                  {/* Traveling flow particle — larger for stronger connections, dual particles on top edges */}
+                  {i < 10 && (
+                    <>
+                      <circle r={1.4 + strength * 1.6} fill={e.color} opacity={0}>
+                        <animateMotion dur={`${2.8 + i * 0.5}s`} repeatCount="indefinite" path={e.path} />
+                        <animate attributeName="opacity" values="0;0.55;0.55;0" dur={`${2.8 + i * 0.5}s`} repeatCount="indefinite" />
+                        <animate attributeName="r" values={`${(1 + strength).toFixed(1)};${(1.8 + strength * 2).toFixed(1)};${(1 + strength).toFixed(1)}`} dur={`${2.8 + i * 0.5}s`} repeatCount="indefinite" />
+                      </circle>
+                      {/* Second trailing particle on top 4 edges — creates a convoy effect */}
+                      {i < 4 && (
+                        <circle r={0.8 + strength * 0.8} fill={e.color} opacity={0}>
+                          <animateMotion dur={`${2.8 + i * 0.5}s`} begin={`${(2.8 + i * 0.5) * 0.4}s`} repeatCount="indefinite" path={e.path} />
+                          <animate attributeName="opacity" values="0;0.35;0.35;0" dur={`${2.8 + i * 0.5}s`} begin={`${(2.8 + i * 0.5) * 0.4}s`} repeatCount="indefinite" />
+                        </circle>
+                      )}
+                    </>
                   )}
                 </g>
               )
             })}
 
-            {/* ── Region nodes — colored by macro-region ── */}
+            {/* ── Region nodes — colored by macro-region with flow-aware styling ── */}
             {displayNodes.map((node, index) => {
               const r = nodeRadius(node.count, maxCount)
               const color = overlay === 'sources' ? NODE_BLUE.source : regionColor(node.macroRegion)
               const rank = sorted.findIndex(n => n.id === node.id)
               const isTop3 = rank >= 0 && rank < 3
+              const isTop6 = rank >= 0 && rank < 6
               const isHovered = hoveredRegion === node.id
+              const flow = flowData.get(node.id)
+              const isNetReceiver = flow ? flow.flowRatio > 0.15 : false
 
               const hoverProps = {
                 style: { cursor: 'pointer' as const },
@@ -620,27 +657,41 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
 
               return (
                 <g key={node.id}>
-                  {/* Breathing halo for top 3 — subtle pulse on light canvas */}
-                  {isTop3 && !playing && (
-                    <circle cx={node.x} cy={node.y} r={r * 2.5} fill="none" stroke={color} strokeWidth={0.6} opacity={0.08}>
-                      <animate attributeName="r" values={`${(r * 2.2).toFixed(1)};${(r * 3.2).toFixed(1)};${(r * 2.2).toFixed(1)}`} dur="4s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0.04;0.12;0.04" dur="4s" repeatCount="indefinite" />
+                  {/* Hub glow — major hubs that are net receivers get a diffuse glow */}
+                  {isTop6 && isNetReceiver && !playing && (
+                    <circle cx={node.x} cy={node.y} r={r * 3} fill={color} fillOpacity={0} filter={`url(#${idPrefix}-hub-glow)`}>
+                      <animate attributeName="fill-opacity" values="0.06;0.14;0.06" dur="3.5s" repeatCount="indefinite" />
                     </circle>
+                  )}
+
+                  {/* Breathing halo for top 3 — outer ring with inner pulse */}
+                  {isTop3 && !playing && (
+                    <>
+                      <circle cx={node.x} cy={node.y} r={r * 2.5} fill="none" stroke={color} strokeWidth={0.6} opacity={0.08}>
+                        <animate attributeName="r" values={`${(r * 2.2).toFixed(1)};${(r * 3.4).toFixed(1)};${(r * 2.2).toFixed(1)}`} dur="3.5s" repeatCount="indefinite" />
+                        <animate attributeName="opacity" values="0.04;0.14;0.04" dur="3.5s" repeatCount="indefinite" />
+                      </circle>
+                      {/* Inner ring — faster offset pulse for depth */}
+                      <circle cx={node.x} cy={node.y} r={r * 1.6} fill="none" stroke={color} strokeWidth={0.4} opacity={0.05}>
+                        <animate attributeName="r" values={`${(r * 1.5).toFixed(1)};${(r * 2.1).toFixed(1)};${(r * 1.5).toFixed(1)}`} dur="2.8s" begin="0.5s" repeatCount="indefinite" />
+                        <animate attributeName="opacity" values="0.03;0.10;0.03" dur="2.8s" begin="0.5s" repeatCount="indefinite" />
+                      </circle>
+                    </>
                   )}
 
                   {/* Hover glow — soft radial highlight */}
                   {isHovered && (
-                    <circle cx={node.x} cy={node.y} r={r * 2} fill={color} fillOpacity={0.12} />
+                    <circle cx={node.x} cy={node.y} r={r * 2.2} fill={color} fillOpacity={0.14} />
                   )}
 
-                  {/* Core node */}
+                  {/* Core node — top nodes get thicker stroke for prominence */}
                   {playing ? (
                     <circle
                       cx={node.x} cy={node.y}
                       r={isHovered ? r * 1.2 : r}
                       fill={color}
                       stroke="white"
-                      strokeWidth={isTop3 ? 1.2 : 0.8}
+                      strokeWidth={isTop3 ? 1.4 : isTop6 ? 1 : 0.6}
                       {...hoverProps}
                     />
                   ) : (
@@ -649,7 +700,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                       r={r}
                       fill={color}
                       stroke="white"
-                      strokeWidth={isTop3 ? 1.2 : 0.8}
+                      strokeWidth={isTop3 ? 1.4 : isTop6 ? 1 : 0.6}
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: isHovered ? 1.2 : 1, opacity: 1 }}
                       transition={{ ...SPRING_SNAPPY, delay: 0.1 + index * 0.008 }}
@@ -775,6 +826,23 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                       </span>
                     </div>
                   )}
+                  {/* Flow direction indicator */}
+                  {(() => {
+                    const flow = flowData.get(tooltip.id)
+                    if (!flow || (flow.sourceCount === 0 && overlay !== 'sources')) return null
+                    const isReceiver = flow.flowRatio > 0.15
+                    const isSender = flow.flowRatio < -0.15
+                    return (
+                      <div className="mt-1 flex items-center gap-1 text-[0.5625rem] font-mono">
+                        <span className={isReceiver ? 'text-blue-500' : isSender ? 'text-amber-500' : 'text-stone-400'}>
+                          {isReceiver ? 'Net receiver' : isSender ? 'Net sender' : 'Balanced'}
+                        </span>
+                        <span className="text-stone-300">
+                          ({flow.sourceCount}s / {flow.validatorCount}v)
+                        </span>
+                      </div>
+                    )
+                  })()}
                   <div className="mt-0.5 text-[0.5625rem] font-mono text-stone-300">
                     #{tooltip.rank + 1} of {tooltip.total}
                   </div>

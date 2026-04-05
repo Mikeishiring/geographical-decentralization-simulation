@@ -405,7 +405,7 @@ function SectionCard({
           <h2 className="text-2xl font-medium text-text-primary font-serif text-balance sm:text-3xl">
             {section.title}
           </h2>
-          <p className={cn('mt-3 text-base leading-relaxed text-muted', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[52rem]')}>
+          <p className={cn('mt-2.5 text-[15px] leading-relaxed text-muted font-serif', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[52rem]')}>
             {section.description}
           </p>
         </div>
@@ -432,19 +432,16 @@ function SectionCard({
       )}
 
       {showInlineSupporting && (
-        <div className="mb-6 rounded-2xl border border-rule/80 bg-surface-active/35 p-4 sm:p-5">
+        <div className="mb-6 rounded-2xl border border-rule/70 bg-surface-active/25 p-4 sm:p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-text-faint">Evidence</div>
-              <div className="mt-1 text-sm font-medium text-text-primary">Tables, caveats, and source blocks</div>
-            </div>
-            <span className="rounded-full border border-rule/60 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-text-faint">
+            <span className="text-xs font-medium text-text-primary">Supporting evidence</span>
+            <span className="rounded-full border border-rule/50 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-text-faint tabular-nums">
               {supportingBlocks.length} block{supportingBlocks.length === 1 ? '' : 's'}
             </span>
           </div>
           <BlockCanvas blocks={supportingBlocks} showExport={false} />
           {!hasFeaturedChart && narrative.figureCaption && (
-            <p className="mt-3 px-1 text-xs leading-6 text-muted">
+            <p className="mt-3 px-1 text-xs leading-relaxed text-muted italic font-serif">
               {narrative.figureCaption}
             </p>
           )}
@@ -452,44 +449,43 @@ function SectionCard({
       )}
 
       <div className={cn('grid min-w-0 gap-8 xl:items-start', showSidebarSupporting && 'xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]')}>
-        <div className={cn('min-w-0 space-y-6', showSidebarSupporting ? 'max-w-4xl' : 'max-w-[56rem]')}>
-          <p className={cn('text-xl leading-relaxed text-text-primary font-serif', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[50rem]')}>
+        <div className={cn('min-w-0', showSidebarSupporting ? 'max-w-4xl' : 'max-w-[56rem]')}>
+          {/* Lede — the hook that draws you in */}
+          <p className={cn('text-[22px] leading-[1.55] font-medium text-text-primary font-serif sm:text-[24px]', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[50rem]')}>
             {narrative.lede}
           </p>
-          <div className="space-y-4 text-[15px] leading-[1.85] text-text-body font-serif">
+
+          {/* Body paragraphs — tighter vertical rhythm for reading flow */}
+          <div className="mt-6 space-y-3.5 text-[15px] leading-[1.85] text-text-body font-serif">
             {narrative.paragraphs.map(paragraph => (
               <p key={paragraph} className={cn(showSidebarSupporting ? 'max-w-3xl' : 'max-w-[50rem]')}>
                 {renderParagraph(paragraph, narrative.keyClaim, noteHighlights, handleHighlightClick, notesVisible)}
               </p>
             ))}
           </div>
-          <div className={cn('rounded-xl border border-accent/10 bg-accent/[0.03] px-5 py-4', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[50rem]')}>
-            <div className="mb-2 flex items-center gap-1.5 text-2xs font-medium uppercase tracking-[0.1em] text-accent/50">
-              <Quote className="h-3 w-3" />
-              Pull quote
-            </div>
-            <p className="text-lg leading-relaxed text-text-primary font-serif italic text-balance">
+
+          {/* Pull quote — no label, just the accent border and the words */}
+          <div className={cn('mt-8 border-l-[3px] border-accent/40 pl-5 py-1', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[50rem]')}>
+            <p className="text-[18px] leading-[1.6] text-text-primary/90 font-serif italic text-balance">
               {narrative.pullQuote}
             </p>
           </div>
+          <div className="mt-8" />
         </div>
 
         {showSidebarSupporting && (
           <aside className="min-w-0 xl:sticky" style={{ top: PAPER_STACK_STICKY_TOP }}>
-            <div className="rounded-2xl border border-rule/80 bg-surface-active/45 p-4">
+            <div className="rounded-2xl border border-rule/70 bg-surface-active/25 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-text-faint">Evidence</div>
-                  <div className="mt-1 text-sm font-medium text-text-primary">Tables, caveats, and source blocks</div>
-                </div>
-                <span className="rounded-full border border-rule/60 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-text-faint">
-                  {supportingBlocks.length} block{supportingBlocks.length === 1 ? '' : 's'}
+                <span className="text-xs font-medium text-text-primary">Supporting evidence</span>
+                <span className="rounded-full border border-rule/50 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-text-faint tabular-nums">
+                  {supportingBlocks.length}
                 </span>
               </div>
               <BlockCanvas blocks={supportingBlocks} showExport={false} />
             </div>
             {!hasFeaturedChart && narrative.figureCaption && (
-              <p className="mt-3 px-1 text-xs leading-6 text-muted">
+              <p className="mt-3 px-1 text-xs leading-relaxed text-muted italic font-serif">
                 {narrative.figureCaption}
               </p>
             )}
@@ -507,28 +503,30 @@ function SectionCard({
         </div>
       ) : null}
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-5">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-rule/50 pt-5">
         {previousSection ? (
           <a
             href={`#${previousSection.id}`}
             onClick={() => onNavigate(previousSection.id)}
-            className="arrow-link flex-row-reverse"
+            className="group/nav flex items-center gap-2 rounded-lg px-2 py-1.5 -mx-2 text-xs text-muted transition-colors hover:text-accent hover:bg-accent/[0.04]"
           >
-            <span>&larr; {previousSection.number} {previousSection.title}</span>
+            <span className="transition-transform group-hover/nav:-translate-x-0.5">&larr;</span>
+            <span><span className="mono-xs text-text-faint">{previousSection.number}</span> {previousSection.title}</span>
           </a>
         ) : (
-          <span className="text-xs text-text-faint">Beginning of paper</span>
+          <span className="text-2xs text-text-faint uppercase tracking-wide">Beginning of paper</span>
         )}
         {nextSection ? (
           <a
             href={`#${nextSection.id}`}
             onClick={() => onNavigate(nextSection.id)}
-            className="arrow-link"
+            className="group/nav flex items-center gap-2 rounded-lg px-2 py-1.5 -mx-2 text-xs text-muted transition-colors hover:text-accent hover:bg-accent/[0.04]"
           >
-            {nextSection.number} {nextSection.title}
+            <span><span className="mono-xs text-text-faint">{nextSection.number}</span> {nextSection.title}</span>
+            <span className="transition-transform group-hover/nav:translate-x-0.5">&rarr;</span>
           </a>
         ) : (
-          <span className="text-xs text-text-faint">End of paper</span>
+          <span className="text-2xs text-text-faint uppercase tracking-wide">End of paper</span>
         )}
       </div>
     </motion.section>
