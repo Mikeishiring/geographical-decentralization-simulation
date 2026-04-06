@@ -173,10 +173,12 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
     [rawDisplayNodes, maxCount],
   )
 
-  const latencyArcs = useMemo(
-    () => overlay === 'latency' ? buildLatencyArcs(displayNodes) : [],
+  const latencyResult = useMemo(
+    () => overlay === 'latency' ? buildLatencyArcs(displayNodes) : { arcs: [], truncatedCount: 0 },
     [overlay, displayNodes],
   )
+  const latencyArcs = latencyResult.arcs
+  const latencyTruncatedCount = latencyResult.truncatedCount
 
   // Flow data — net sender/receiver classification for directional visualization
   const flowData = useMemo(
@@ -274,6 +276,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
   const progress = lastSlot > 0 ? (slot / lastSlot) * 100 : 100
   const overlayDescription = overlay === 'latency'
     ? `Latency arcs ${LATENCY_MIN.toFixed(0)}–${LATENCY_MAX.toFixed(0)} ms`
+      + (latencyTruncatedCount > 0 ? ` · showing ${latencyArcs.length} of ${latencyArcs.length + latencyTruncatedCount} corridors` : '')
     : overlay === 'sources'
       ? 'Source placement across regions'
       : 'Live validator distribution'
@@ -472,7 +475,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
             viewBox={viewBox}
             className="block h-full w-full"
             preserveAspectRatio="xMidYMid slice"
-            role="img"
+            role="region"
             aria-label="Validator geography map — scroll to zoom, drag to pan"
           >
             <defs>

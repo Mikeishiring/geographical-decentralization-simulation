@@ -268,8 +268,11 @@ export interface LatencyArc {
   readonly toId: string
 }
 
-export function buildLatencyArcs(nodes: readonly RegionNode[], maxArcs = 30): readonly LatencyArc[] {
-  if (nodes.length < 2) return []
+export function buildLatencyArcs(
+  nodes: readonly RegionNode[],
+  maxArcs = 30,
+): { arcs: readonly LatencyArc[]; truncatedCount: number } {
+  if (nodes.length < 2) return { arcs: [], truncatedCount: 0 }
 
   const rankedNodes = [...nodes].toSorted((a, b) => b.count - a.count)
   const arcs: LatencyArc[] = []
@@ -306,57 +309,69 @@ export function buildLatencyArcs(nodes: readonly RegionNode[], maxArcs = 30): re
 
     if (!bestPartner) continue
     pushArc(node, bestPartner.candidate)
-    if (arcs.length >= maxArcs) return arcs
-  }
-
-  // Add a few extra fast corridors for the dominant regions so the global backbone is still legible.
-  for (const node of rankedNodes.slice(0, Math.min(8, rankedNodes.length))) {
-    let addedForNode = 0
-    const candidates = rankedNodes
-      .filter(candidate => candidate.id !== node.id)
-      .map(candidate => ({
-        candidate,
-        ms: getLatency(node.id, candidate.id),
-      }))
-      .filter((entry): entry is { candidate: RegionNode; ms: number } => entry.ms != null)
-      .toSorted((left, right) => left.ms - right.ms || right.candidate.count - left.candidate.count)
-
-    for (const candidate of candidates) {
-      if (pushArc(node, candidate.candidate)) {
-        addedForNode += 1
-      }
-      if (addedForNode >= 2 || arcs.length >= maxArcs) break
-    }
-    if (arcs.length >= maxArcs) return arcs
-  }
-
-  // Fill remaining space with the strongest low-latency corridors weighted by regional importance.
-  const candidatePairs: Array<{
-    readonly a: RegionNode
-    readonly b: RegionNode
-    readonly score: number
-  }> = []
-
-  for (let i = 0; i < rankedNodes.length; i++) {
-    for (let j = i + 1; j < rankedNodes.length; j++) {
-      const a = rankedNodes[i]!
-      const b = rankedNodes[j]!
-      const ms = getLatency(a.id, b.id)
-      if (ms == null) continue
-      candidatePairs.push({
-        a,
-        b,
-        score: (a.count + b.count) / Math.max(ms, 1),
-      })
-    }
-  }
-
-  for (const candidate of candidatePairs.toSorted((left, right) => right.score - left.score)) {
-    pushArc(candidate.a, candidate.b)
     if (arcs.length >= maxArcs) break
   }
 
-  return arcs
+  if (arcs.length < maxArcs) {
+    // Add a few extra fast corridors for the dominant regions so the global backbone is still legible.
+    for (const node of rankedNodes.slice(0, Math.min(8, rankedNodes.length))) {
+      let addedForNode = 0
+      const candidates = rankedNodes
+        .filter(candidate => candidate.id !== node.id)
+        .map(candidate => ({
+          candidate,
+          ms: getLatency(node.id, candidate.id),
+        }))
+        .filter((entry): entry is { candidate: RegionNode; ms: number } => entry.ms != null)
+        .toSorted((left, right) => left.ms - right.ms || right.candidate.count - left.candidate.count)
+
+      for (const candidate of candidates) {
+        if (pushArc(node, candidate.candidate)) {
+          addedForNode += 1
+        }
+        if (addedForNode >= 2 || arcs.length >= maxArcs) break
+      }
+      if (arcs.length >= maxArcs) break
+    }
+  }
+
+  if (arcs.length < maxArcs) {
+    // Fill remaining space with the strongest low-latency corridors weighted by regional importance.
+    const candidatePairs: Array<{
+      readonly a: RegionNode
+      readonly b: RegionNode
+      readonly score: number
+    }> = []
+
+    for (let i = 0; i < rankedNodes.length; i++) {
+      for (let j = i + 1; j < rankedNodes.length; j++) {
+        const a = rankedNodes[i]!
+        const b = rankedNodes[j]!
+        const ms = getLatency(a.id, b.id)
+        if (ms == null) continue
+        candidatePairs.push({
+          a,
+          b,
+          score: (a.count + b.count) / Math.max(ms, 1),
+        })
+      }
+    }
+
+    for (const candidate of candidatePairs.toSorted((left, right) => right.score - left.score)) {
+      pushArc(candidate.a, candidate.b)
+      if (arcs.length >= maxArcs) break
+    }
+  }
+
+  // Count total valid corridors to report truncation
+  let totalValidPairs = 0
+  for (let i = 0; i < rankedNodes.length; i++) {
+    for (let j = i + 1; j < rankedNodes.length; j++) {
+      if (getLatency(rankedNodes[i]!.id, rankedNodes[j]!.id) != null) totalValidPairs++
+    }
+  }
+
+  return { arcs, truncatedCount: Math.max(0, totalValidPairs - arcs.length) }
 }
 
 // ── Flow direction — net sender/receiver classification ─────────────────────

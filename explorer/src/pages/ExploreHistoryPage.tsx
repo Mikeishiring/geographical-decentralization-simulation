@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, ArrowUpDown, Tag, ChevronDown, ChevronUp, LayoutList, LayoutGrid, Check } from 'lucide-react'
@@ -87,7 +87,7 @@ export function ExploreHistoryPage({
     },
   })
 
-  const toggleExpand = (id: string) => setExpandedId(previous => (previous === id ? null : id))
+  const toggleExpand = useCallback((id: string) => setExpandedId(previous => (previous === id ? null : id)), [])
 
   // Close sort menu on outside click
   useEffect(() => {
@@ -247,6 +247,7 @@ export function ExploreHistoryPage({
                 exit={{ opacity: 0, y: -4, scale: 0.97 }}
                 transition={SPRING_CRISP}
                 className="absolute right-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-lg border border-rule bg-white shadow-lg"
+                onKeyDown={(e) => { if (e.key === 'Escape') setSortMenuOpen(false) }}
               >
                 {SORT_OPTIONS.map(option => (
                   <button

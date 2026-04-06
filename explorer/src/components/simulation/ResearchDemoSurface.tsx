@@ -3335,7 +3335,7 @@ export function ResearchDemoSurface({
                     <a
                       href={datasetUrl ?? undefined}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       className={cn(
                         'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
                         !datasetUrl && 'pointer-events-none opacity-60',
@@ -3346,7 +3346,7 @@ export function ResearchDemoSurface({
                     <a
                       href={sourceUrl ?? undefined}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       className={cn(
                         'inline-flex items-center justify-center rounded-lg border border-rule bg-white px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-border-hover',
                         !sourceUrl && 'pointer-events-none opacity-60',
