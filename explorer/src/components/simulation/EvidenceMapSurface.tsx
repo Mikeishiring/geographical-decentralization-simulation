@@ -199,7 +199,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
   const edges = useMemo(() => {
     if (displayNodes.length < 2) return []
     const seen = new Set<string>()
-    const result: Array<{ path: string; va: number; vb: number; colorA: string; colorB: string; gradId: string }> = []
+    const result: Array<{ path: string; va: number; vb: number; colorA: string; colorB: string; gradId: string; x1: number; y1: number; x2: number; y2: number }> = []
     const N = Math.min(3, displayNodes.length - 1)
     for (const p of displayNodes) {
       const distances = displayNodes
@@ -211,14 +211,15 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
         const key = p.id < q.id ? `${p.id}-${q.id}` : `${q.id}-${p.id}`
         if (!seen.has(key)) {
           seen.add(key)
-          const cA = regionColor(p.macroRegion)
-          const cB = regionColor(q.macroRegion)
+          // Orient path from lower-count node → higher-count node so arrow points toward hub
+          const [from, to] = p.count <= q.count ? [p, q] : [q, p]
           result.push({
-            path: greatCircleArc(p.lat, p.lon, q.lat, q.lon, SVG_W, SVG_H),
-            va: p.count, vb: q.count,
-            colorA: cA,
-            colorB: cB,
+            path: greatCircleArc(from.lat, from.lon, to.lat, to.lon, SVG_W, SVG_H),
+            va: from.count, vb: to.count,
+            colorA: regionColor(from.macroRegion),
+            colorB: regionColor(to.macroRegion),
             gradId: `${idPrefix}-eg-${result.length}`,
+            x1: from.x, y1: from.y, x2: to.x, y2: to.y,
           })
         }
       }
@@ -498,7 +499,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
               </filter>
               {/* Edge gradients — each connection blends from one region color to the other */}
               {overlay !== 'latency' && edges.map(e => (
-                <linearGradient key={e.gradId} id={e.gradId} gradientUnits="userSpaceOnUse">
+                <linearGradient key={e.gradId} id={e.gradId} gradientUnits="userSpaceOnUse" x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}>
                   <stop offset="0%" stopColor={e.colorA} />
                   <stop offset="100%" stopColor={e.colorB} />
                 </linearGradient>

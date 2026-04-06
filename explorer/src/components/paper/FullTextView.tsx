@@ -76,6 +76,7 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
   // PDF state
   const [numPages, setNumPages] = useState(0)
   const [pdfError, setPdfError] = useState(false)
+  const [pdfLoadKey, setPdfLoadKey] = useState(0)
   const [currentPage, setCurrentPage] = useState(initialPage ?? 1)
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX)
   const zoom = ZOOM_STEPS[zoomIndex]
@@ -516,7 +517,7 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
                   <>
                     <div>Failed to load PDF.</div>
                     <button
-                      onClick={() => { setPdfError(false); setNumPages(0) }}
+                      onClick={() => { setPdfError(false); setNumPages(0); setPdfLoadKey(k => k + 1) }}
                       className={cn('mt-2 text-xs underline underline-offset-2', darkMode ? 'text-white/50 hover:text-white/70' : 'text-muted hover:text-text-primary')}
                     >
                       Retry
@@ -530,6 +531,7 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
           )}
 
           <Document
+            key={pdfLoadKey}
             file={LOCAL_PDF_URL}
             onLoadSuccess={handleDocumentLoadSuccess}
             loading={null}
