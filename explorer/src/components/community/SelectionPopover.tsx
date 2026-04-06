@@ -59,8 +59,11 @@ function computePosition(rect: DOMRect, containerRef?: React.RefObject<HTMLEleme
       : rect.right + 40 // fallback: use selection right edge + small offset
     const marginAvailable = window.innerWidth - proseRight
     if (marginAvailable > POPUP_WIDTH + MARGIN_GAP * 2) {
+      // Clamp vertical position so the popover stays within the viewport
+      const maxTop = window.innerHeight - POPUP_HEIGHT_ESTIMATE - MARGIN_GAP
+      const clampedTop = Math.max(MARGIN_GAP, Math.min(rect.top, maxTop))
       return {
-        top: rect.top,
+        top: clampedTop,
         left: proseRight + MARGIN_GAP,
         placeBelow: false,
         marginMode: true as const,

@@ -150,46 +150,56 @@ function renderWithNoteHighlights(
 ): ReactNode {
   if (highlights.length === 0) return text
 
+  // Build sorted list of all matches in this paragraph
+  const matches: Array<{ start: number; end: number; highlight: NoteHighlight }> = []
   for (const highlight of highlights) {
     const searchTerm = highlight.excerpt.length > 50
       ? highlight.excerpt.slice(0, 50)
       : highlight.excerpt
     const idx = text.indexOf(searchTerm)
     if (idx === -1) continue
-
-    const matchEnd = Math.min(idx + highlight.excerpt.length, text.length)
-    const before = text.slice(0, idx)
-    const match = text.slice(idx, matchEnd)
-    const after = text.slice(matchEnd)
-
-    return (
-      <>
-        {before}
-        <NoteHoverCard highlight={highlight} onClickOpen={() => onHighlightClick?.()} visible={visible}>
-          <mark
-            className={cn(
-              'relative -mx-px rounded-sm px-px transition-all duration-200',
-              visible
-                ? 'group/mark cursor-pointer border-b border-dashed border-accent/25 bg-accent/[0.06] hover:border-solid hover:border-accent/40 hover:bg-accent/[0.12]'
-                : 'cursor-default border-b-transparent bg-transparent',
-            )}
-            onClick={visible ? () => onHighlightClick?.() : undefined}
-          >
-            {match}
-            {visible && (
-              <span className="pointer-events-none absolute -right-3 -top-0.5 inline-flex select-none items-center gap-0.5 text-[9px] font-semibold text-accent/60 opacity-0 transition-opacity duration-150 group-hover/mark:opacity-100">
-                <MessageSquare className="h-2.5 w-2.5" />
-                {highlight.noteCount}
-              </span>
-            )}
-          </mark>
-        </NoteHoverCard>
-        {after}
-      </>
-    )
+    const end = Math.min(idx + highlight.excerpt.length, text.length)
+    matches.push({ start: idx, end, highlight })
   }
 
-  return text
+  if (matches.length === 0) return text
+
+  // Sort by position; if overlapping, keep the earlier/longer match
+  matches.sort((a, b) => a.start - b.start || b.end - a.end)
+
+  // Build fragments, skipping overlapping ranges
+  const parts: ReactNode[] = []
+  let cursor = 0
+  for (const { start, end, highlight } of matches) {
+    if (start < cursor) continue // skip overlapping match
+    if (start > cursor) parts.push(text.slice(cursor, start))
+    const match = text.slice(start, end)
+    parts.push(
+      <NoteHoverCard key={`nh-${start}`} highlight={highlight} onClickOpen={() => onHighlightClick?.()} visible={visible}>
+        <mark
+          className={cn(
+            'relative -mx-px rounded-sm px-px transition-all duration-200',
+            visible
+              ? 'group/mark cursor-pointer border-b border-dashed border-accent/25 bg-accent/[0.06] hover:border-solid hover:border-accent/40 hover:bg-accent/[0.12]'
+              : 'cursor-default border-b-transparent bg-transparent',
+          )}
+          onClick={visible ? () => onHighlightClick?.() : undefined}
+        >
+          {match}
+          {visible && (
+            <span className="pointer-events-none absolute -right-3 -top-0.5 inline-flex select-none items-center gap-0.5 text-[9px] font-semibold text-accent/60 opacity-0 transition-opacity duration-150 group-hover/mark:opacity-100">
+              <MessageSquare className="h-2.5 w-2.5" />
+              {highlight.noteCount}
+            </span>
+          )}
+        </mark>
+      </NoteHoverCard>,
+    )
+    cursor = end
+  }
+  if (cursor < text.length) parts.push(text.slice(cursor))
+
+  return <>{parts}</>
 }
 
 function SectionNav({ activeSectionId, onSectionClick, compact = false }: SectionNavProps) {
