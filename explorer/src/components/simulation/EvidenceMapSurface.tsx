@@ -197,7 +197,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
   const edges = useMemo(() => {
     if (displayNodes.length < 2) return []
     const seen = new Set<string>()
-    const result: Array<{ path: string; va: number; vb: number; color: string }> = []
+    const result: Array<{ path: string; va: number; vb: number; colorA: string; colorB: string; gradId: string }> = []
     const N = Math.min(3, displayNodes.length - 1)
     for (const p of displayNodes) {
       const distances = displayNodes
@@ -209,10 +209,14 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
         const key = p.id < q.id ? `${p.id}-${q.id}` : `${q.id}-${p.id}`
         if (!seen.has(key)) {
           seen.add(key)
+          const cA = regionColor(p.macroRegion)
+          const cB = regionColor(q.macroRegion)
           result.push({
             path: greatCircleArc(p.lat, p.lon, q.lat, q.lon, SVG_W, SVG_H),
             va: p.count, vb: q.count,
-            color: regionColor(p.count >= q.count ? p.macroRegion : q.macroRegion),
+            colorA: cA,
+            colorB: cB,
+            gradId: `${idPrefix}-eg-${result.length}`,
           })
         }
       }
@@ -489,6 +493,13 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                 <feComponentTransfer in="blur"><feFuncA type="linear" slope="0.25" /></feComponentTransfer>
                 <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
               </filter>
+              {/* Edge gradients — each connection blends from one region color to the other */}
+              {overlay !== 'latency' && edges.map(e => (
+                <linearGradient key={e.gradId} id={e.gradId} gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor={e.colorA} />
+                  <stop offset="100%" stopColor={e.colorB} />
+                </linearGradient>
+              ))}
             </defs>
 
             {/* Background — warm off-white canvas */}
@@ -584,45 +595,51 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
               const strength = (e.va + e.vb) / (2 * maxCount)
               const opacity = 0.18 + strength * 0.32
               const sw = 0.5 + strength * 0.8
-              // Show arrow on top 12 edges to indicate flow toward higher-count node
+              const gradStroke = e.colorA === e.colorB ? e.colorA : `url(#${e.gradId})`
+              // Particle color: use the higher-count node's color for visibility
+              const particleColor = e.va >= e.vb ? e.colorA : e.colorB
+              // Show arrow on top 12 edges when paused to indicate flow direction
               const showArrow = !playing && i < 12
+              // Particle speed: faster for stronger connections, slower (larger dur) for weaker
+              const dur = 2.2 + i * 0.4
 
-              return playing ? (
-                <path
-                  key={`edge-${i}`}
-                  d={e.path}
-                  fill="none"
-                  stroke={e.color}
-                  strokeWidth={sw}
-                  strokeLinecap="round"
-                  opacity={opacity}
-                />
-              ) : (
-                <g key={`edge-${i}`} style={{ color: e.color }}>
-                  <motion.path
-                    d={e.path}
-                    fill="none"
-                    stroke={e.color}
-                    strokeWidth={sw}
-                    strokeLinecap="round"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity }}
-                    transition={{ ...SPRING_SOFT, delay: 0.3 + i * 0.005 }}
-                    markerEnd={showArrow ? `url(#${idPrefix}-flow-arrow)` : undefined}
-                  />
-                  {/* Traveling flow particle — larger for stronger connections, dual particles on top edges */}
+              return (
+                <g key={`edge-${i}`} style={{ color: particleColor }}>
+                  {playing ? (
+                    <path
+                      d={e.path}
+                      fill="none"
+                      stroke={gradStroke}
+                      strokeWidth={sw}
+                      strokeLinecap="round"
+                      opacity={opacity}
+                    />
+                  ) : (
+                    <motion.path
+                      d={e.path}
+                      fill="none"
+                      stroke={gradStroke}
+                      strokeWidth={sw}
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity }}
+                      transition={{ ...SPRING_SOFT, delay: 0.3 + i * 0.005 }}
+                      markerEnd={showArrow ? `url(#${idPrefix}-flow-arrow)` : undefined}
+                    />
+                  )}
+                  {/* Traveling flow particles — visible during both play and pause */}
                   {i < 10 && (
                     <>
-                      <circle r={1.4 + strength * 1.6} fill={e.color} opacity={0}>
-                        <animateMotion dur={`${2.8 + i * 0.5}s`} repeatCount="indefinite" path={e.path} />
-                        <animate attributeName="opacity" values="0;0.55;0.55;0" dur={`${2.8 + i * 0.5}s`} repeatCount="indefinite" />
-                        <animate attributeName="r" values={`${(1 + strength).toFixed(1)};${(1.8 + strength * 2).toFixed(1)};${(1 + strength).toFixed(1)}`} dur={`${2.8 + i * 0.5}s`} repeatCount="indefinite" />
+                      <circle r={1.4 + strength * 1.6} fill={particleColor} opacity={0}>
+                        <animateMotion dur={`${dur}s`} repeatCount="indefinite" path={e.path} />
+                        <animate attributeName="opacity" values="0;0.6;0.6;0" dur={`${dur}s`} repeatCount="indefinite" />
+                        <animate attributeName="r" values={`${(1 + strength).toFixed(1)};${(1.8 + strength * 2).toFixed(1)};${(1 + strength).toFixed(1)}`} dur={`${dur}s`} repeatCount="indefinite" />
                       </circle>
-                      {/* Second trailing particle on top 4 edges — creates a convoy effect */}
+                      {/* Second trailing particle on top 4 edges — convoy effect */}
                       {i < 4 && (
-                        <circle r={0.8 + strength * 0.8} fill={e.color} opacity={0}>
-                          <animateMotion dur={`${2.8 + i * 0.5}s`} begin={`${(2.8 + i * 0.5) * 0.4}s`} repeatCount="indefinite" path={e.path} />
-                          <animate attributeName="opacity" values="0;0.35;0.35;0" dur={`${2.8 + i * 0.5}s`} begin={`${(2.8 + i * 0.5) * 0.4}s`} repeatCount="indefinite" />
+                        <circle r={0.8 + strength * 0.8} fill={particleColor} opacity={0}>
+                          <animateMotion dur={`${dur}s`} begin={`${dur * 0.4}s`} repeatCount="indefinite" path={e.path} />
+                          <animate attributeName="opacity" values="0;0.4;0.4;0" dur={`${dur}s`} begin={`${dur * 0.4}s`} repeatCount="indefinite" />
                         </circle>
                       )}
                     </>
