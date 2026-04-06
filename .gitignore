@@ -239,6 +239,7 @@ explorer/%USERPROFILE%/
 explorer/playwright-report/
 explorer/test-results/
 explorer/tmp-*.png
+tmp-*.png
 explorer/server/__pycache__/
 explorer/server/data/
 
