@@ -114,6 +114,8 @@ type DeltaDirection = 'up' | 'down' | 'flat'
 
 interface KpiCard {
   readonly label: string
+  /** Short clarifier shown next to label (e.g. "Gini" for Inequality) */
+  readonly subtitle?: string
   readonly value: string
   readonly showDelta: boolean
   readonly preferredDeltaDirection: 'higher' | 'lower' | 'neutral'
@@ -173,6 +175,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     const giniSentiment = sentimentLower(giniEnd, THRESHOLDS.gini)
     cards.push({
       label: 'Inequality',
+      subtitle: 'Gini index',
       value: formatNumber(giniEnd, 3),
       showDelta: true,
       preferredDeltaDirection: 'lower',
@@ -201,6 +204,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     const hhiSentiment = sentimentLower(hhiEnd, THRESHOLDS.hhi)
     cards.push({
       label: 'Concentration',
+      subtitle: 'HHI',
       value: formatNumber(hhiEnd, 4),
       showDelta: true,
       preferredDeltaDirection: 'lower',
@@ -229,6 +233,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     const livenessSentiment = sentimentHigher(livenessEnd, THRESHOLDS.liveness)
     cards.push({
       label: LIVENESS_LABEL,
+      subtitle: 'Liveness threshold',
       value: formatLivenessCount(livenessEnd),
       showDelta: true,
       preferredDeltaDirection: 'higher',
@@ -261,6 +266,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     const attestationSentiment: MetricSentiment = attestEnd >= 85 ? 'positive' : attestEnd >= 70 ? 'neutral' : 'negative'
     cards.push({
       label: 'Attestation',
+      subtitle: 'Consensus health',
       value: formatNumber(attestEnd, 1),
       showDelta: true,
       preferredDeltaDirection: 'higher',
@@ -289,6 +295,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
     const proposalSentiment = sentimentLower(proposalEnd, THRESHOLDS.proposalTime)
     cards.push({
       label: 'Proposal latency',
+      subtitle: 'Pipeline speed',
       value: `${formatNumber(proposalEnd, 1)} ms`,
       showDelta: true,
       preferredDeltaDirection: 'lower',
@@ -316,6 +323,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   if (activeEnd > 0) {
     cards.push({
       label: 'Active regions',
+      subtitle: 'Geographic spread',
       value: String(activeEnd),
       showDelta: false,
       preferredDeltaDirection: 'higher',
@@ -436,7 +444,7 @@ function EvidenceKpiCard({
       aria-pressed={active}
       aria-label={`${card.label}: ${card.value}. ${card.detail}`}
       className={cn(
-        'group relative z-0 min-h-[118px] h-full overflow-visible bg-[#FCFBFA]/82 px-3 py-3 text-left transition-[background-color,box-shadow] duration-150 hover:bg-white/94 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20',
+        'group relative z-0 min-h-[100px] h-full overflow-visible bg-[#FCFBFA]/82 px-3 py-2.5 text-left transition-[background-color,box-shadow] duration-150 hover:bg-white/94 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20',
         active && 'z-10 bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)]',
         hovered && 'z-20',
       )}
@@ -451,26 +459,20 @@ function EvidenceKpiCard({
       />
 
       <AnimatePresence initial={false}>
-        {hovered && (
+        {hovered && hoverIndex == null && (
           <motion.div
-            className="pointer-events-none absolute inset-x-3 bottom-full z-30 mb-2"
+            className="pointer-events-none absolute inset-x-3 bottom-full z-30 mb-1.5"
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.14, ease: 'easeOut' }}
+            transition={{ duration: 0.12, ease: 'easeOut' }}
           >
-            <div className="rounded-[14px] border border-black/[0.06] bg-white/96 px-3 py-2.5 shadow-[0_16px_36px_rgba(15,23,42,0.1)] backdrop-blur-sm">
-              <div className="text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint">
-                {hoverIndex != null ? 'Slot inspection' : card.label}
-              </div>
-              <div className="mt-1 text-[11px] font-medium leading-[1.45] text-stone-800">
+            <div className="rounded-lg border border-black/[0.06] bg-white/96 px-2.5 py-2 shadow-[0_8px_20px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+              <div className="text-[11px] font-medium leading-[1.4] text-stone-800">
                 {popoverHeadline}
               </div>
-              <div className="mt-1 text-[10px] leading-snug text-stone-500">
+              <div className="mt-0.5 text-[10px] leading-snug text-stone-500">
                 {popoverDetail}
-              </div>
-              <div className="mt-2 border-t border-rule/70 pt-2 text-[10px] leading-snug text-text-faint">
-                {card.detail}
               </div>
             </div>
           </motion.div>
@@ -479,10 +481,15 @@ function EvidenceKpiCard({
 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
-            <span className="text-[9px] uppercase tracking-[0.1em] text-stone-500 font-semibold truncate">{card.label}</span>
-          </div>
+          <InlineTooltip label={card.detail}>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
+              <span className="text-[9px] uppercase tracking-[0.1em] text-stone-500 font-semibold truncate">{card.label}</span>
+              {card.subtitle && (
+                <span className="text-[8px] text-stone-400 font-normal truncate hidden sm:inline">{card.subtitle}</span>
+              )}
+            </div>
+          </InlineTooltip>
           <div className="mt-1.5 flex flex-wrap items-end gap-x-2 gap-y-1">
             <div className="text-[19px] font-semibold text-stone-900 tabular-nums leading-none tracking-tight">
               {hoverIndex != null && currentValue != null ? card.formatSeriesValue(currentValue) : card.value}
