@@ -156,7 +156,7 @@ function NoteCard({
       <button
         type="button"
         onClick={() => setIsExpanded(prev => !prev)}
-        className="w-full px-3.5 py-3 text-left"
+        className="w-full px-3.5 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
         aria-expanded={isExpanded}
         aria-label={`Note: ${note.publication.title}`}
       >

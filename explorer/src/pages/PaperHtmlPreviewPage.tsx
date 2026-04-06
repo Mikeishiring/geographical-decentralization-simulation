@@ -86,7 +86,7 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
               <a
                 href={htmlUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.05] px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/[0.1]"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -145,7 +145,7 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
                       key={appendix.id}
                       href={appendix.url}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       className="block rounded-lg border border-rule/60 bg-surface-active/35 px-3 py-2 transition-colors hover:border-accent/20 hover:bg-accent/[0.04]"
                     >
                       <div className="text-xs font-medium text-text-primary">{appendix.label}</div>
@@ -185,7 +185,7 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
                       key={reference.label}
                       href={reference.url}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white/90 px-2.5 py-1.5 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-active sm:px-3 sm:text-xs"
                     >
                       <ExternalLink className="h-3 w-3" />
@@ -197,7 +197,7 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
                   <a
                     href={htmlUrl}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.05] px-2.5 py-1.5 text-[11px] font-medium text-accent transition-colors hover:bg-accent/[0.1] sm:px-3 sm:text-xs"
                   >
                     <ExternalLink className="h-3 w-3" />
@@ -268,7 +268,7 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
                         <a
                           href={entry.chart.figureHref}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-active"
                         >
                           <ExternalLink className="h-3 w-3" />
@@ -377,7 +377,7 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
                     key={appendix.id}
                     href={appendix.url}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="rounded-2xl border border-rule/60 bg-surface-active/35 px-4 py-3 transition-colors hover:border-accent/20 hover:bg-accent/[0.04]"
                   >
                     <div className="flex items-center gap-2 text-sm font-medium text-text-primary">
@@ -421,7 +421,7 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
                           <a
                             href={reference.url}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent/80"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
