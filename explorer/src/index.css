@@ -630,6 +630,14 @@ body {
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* Fade hint for horizontally scrollable tab bars on mobile */
+@media (max-width: 639px) {
+  .tab-scroll-fade {
+    mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
+  }
+}
+
 /* ── Accessible focus ring — visible on keyboard, hidden on mouse ── */
 :focus-visible {
   outline: 2px solid var(--color-accent);

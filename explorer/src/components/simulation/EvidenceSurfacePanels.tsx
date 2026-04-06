@@ -170,7 +170,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
 
   // Gini — inequality index
   const giniEnd = metrics.gini?.[finalSlot]
-  if (giniEnd != null) {
+  if (giniEnd != null && giniEnd >= 0 && giniEnd <= 1 && Number.isFinite(giniEnd)) {
     const giniDelta = computeDelta(metrics.gini?.[0], giniEnd)
     const giniSentiment = sentimentLower(giniEnd, THRESHOLDS.gini)
     cards.push({
@@ -199,7 +199,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
 
   // HHI — market concentration
   const hhiEnd = metrics.hhi?.[finalSlot]
-  if (hhiEnd != null) {
+  if (hhiEnd != null && hhiEnd >= 0 && Number.isFinite(hhiEnd)) {
     const hhiDelta = computeDelta(metrics.hhi?.[0], hhiEnd)
     const hhiSentiment = sentimentLower(hhiEnd, THRESHOLDS.hhi)
     cards.push({
@@ -229,7 +229,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   // Collapse threshold — regions required to fail the network
   const livenessEnd = metrics.liveness?.[finalSlot]
   const livenessDelta = computeDelta(metrics.liveness?.[0], livenessEnd)
-  if (livenessEnd != null) {
+  if (livenessEnd != null && Number.isFinite(livenessEnd)) {
     const livenessSentiment = sentimentHigher(livenessEnd, THRESHOLDS.liveness)
     cards.push({
       label: LIVENESS_LABEL,
@@ -262,7 +262,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   // Attestation — coordination health
   const attestEnd = metrics.attestations?.[finalSlot]
   const attestDelta = computeDelta(metrics.attestations?.[0], attestEnd)
-  if (attestEnd != null) {
+  if (attestEnd != null && Number.isFinite(attestEnd)) {
     const attestationSentiment: MetricSentiment = attestEnd >= 85 ? 'positive' : attestEnd >= 70 ? 'neutral' : 'negative'
     cards.push({
       label: 'Attestation',
@@ -291,7 +291,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
   // Proposal latency — pipeline speed
   const proposalEnd = metrics.proposal_times?.[finalSlot]
   const proposalDelta = computeDelta(metrics.proposal_times?.[0], proposalEnd)
-  if (proposalEnd != null) {
+  if (proposalEnd != null && Number.isFinite(proposalEnd)) {
     const proposalSentiment = sentimentLower(proposalEnd, THRESHOLDS.proposalTime)
     cards.push({
       label: 'Proposal latency',

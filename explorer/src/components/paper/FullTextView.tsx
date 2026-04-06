@@ -39,6 +39,8 @@ function loadAnnotations(): Annotation[] {
     const stored = window.localStorage.getItem(ANNOTATION_STORAGE_KEY)
     return stored ? JSON.parse(stored) : []
   } catch {
+    // Corrupted storage — clear it so we don't keep failing
+    try { window.localStorage.removeItem(ANNOTATION_STORAGE_KEY) } catch { /* noop */ }
     return []
   }
 }
@@ -73,6 +75,7 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
 
   // PDF state
   const [numPages, setNumPages] = useState(0)
+  const [pdfError, setPdfError] = useState(false)
   const [currentPage, setCurrentPage] = useState(initialPage ?? 1)
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX)
   const zoom = ZOOM_STEPS[zoomIndex]
@@ -107,7 +110,15 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
 
   const handleDocumentLoadSuccess = useCallback(({ numPages: total }: { numPages: number }) => {
     setNumPages(total)
+    setPdfError(false)
   }, [])
+
+  // Timeout: if PDF hasn't loaded after 15s, show error state
+  useEffect(() => {
+    if (numPages > 0 || pdfError) return
+    const timer = setTimeout(() => setPdfError(true), 15_000)
+    return () => clearTimeout(timer)
+  }, [numPages, pdfError])
 
   // Scroll to initialPage once the PDF renders
   useEffect(() => {
@@ -494,14 +505,26 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
           )}
           style={{ height: 'calc(100vh - clamp(13rem, 28vh, 15rem))' }}
         >
-          {/* Loading state */}
+          {/* Loading / error state */}
           {numPages === 0 && (
             <div className="flex h-full items-center justify-center">
               <div className={cn(
-                'text-sm animate-pulse',
+                'text-sm text-center',
                 darkMode ? 'text-white/40' : 'text-muted',
               )}>
-                Loading paper...
+                {pdfError ? (
+                  <>
+                    <div>Failed to load PDF.</div>
+                    <button
+                      onClick={() => { setPdfError(false); setNumPages(0) }}
+                      className={cn('mt-2 text-xs underline underline-offset-2', darkMode ? 'text-white/50 hover:text-white/70' : 'text-muted hover:text-text-primary')}
+                    >
+                      Retry
+                    </button>
+                  </>
+                ) : (
+                  <span className="animate-pulse">Loading paper...</span>
+                )}
               </div>
             </div>
           )}

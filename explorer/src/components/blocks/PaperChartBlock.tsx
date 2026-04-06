@@ -827,7 +827,7 @@ export function PaperChartBlock({ block, caption }: PaperChartBlockProps) {
             <a
               href={chart.figureHref}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-accent hover:text-accent/80"
             >
               <ExternalLink className="h-3 w-3" />

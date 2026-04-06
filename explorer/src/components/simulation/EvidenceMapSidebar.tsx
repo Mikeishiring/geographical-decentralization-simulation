@@ -49,7 +49,7 @@ export function EvidenceMapSidebar({
     <div
       className={cn(
         'border-t border-black/[0.06] bg-[#FAFAF8] p-3 lg:border-l lg:border-t-0',
-        'space-y-3 max-h-[360px] overflow-y-auto overscroll-contain lg:overflow-y-auto',
+        'space-y-3 max-h-[min(360px,calc(100vh-220px))] overflow-y-auto overscroll-contain lg:overflow-y-auto',
         className,
       )}
       style={style}

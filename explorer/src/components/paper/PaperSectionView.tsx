@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Link2, Check, Lightbulb, MessageSquare, Users } from 'lucide-react'
+import { Link2, Check, X, Lightbulb, MessageSquare, Users } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { PaperChartBlock } from '../blocks/PaperChartBlock'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
@@ -263,16 +263,23 @@ export function PaperSectionView({
   const narratives = study.narratives
   const activeSectionId = activeSectionIdProp ?? sections[0].id
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
+  const [copyFailed, setCopyFailed] = useState(false)
 
   const handleCopySectionLink = async (sectionId: string) => {
     const url = new URL(window.location.href)
     url.hash = sectionId
     try {
       await navigator.clipboard.writeText(url.toString())
+      setCopyFailed(false)
       setCopiedSectionId(sectionId)
       window.setTimeout(() => setCopiedSectionId(current => (current === sectionId ? null : current)), 1600)
     } catch {
-      // ignore clipboard failures
+      setCopyFailed(true)
+      setCopiedSectionId(sectionId)
+      window.setTimeout(() => {
+        setCopiedSectionId(current => (current === sectionId ? null : current))
+        setCopyFailed(false)
+      }, 1600)
     }
   }
 
@@ -304,6 +311,7 @@ export function PaperSectionView({
                   previousSection={previousSection}
                   nextSection={nextSection}
                   copiedSectionId={copiedSectionId}
+                  copyFailed={copyFailed}
                   onCopyLink={handleCopySectionLink}
                   onNavigate={(id: string) => {
                     document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
@@ -327,6 +335,7 @@ function SectionCard({
   previousSection,
   nextSection,
   copiedSectionId,
+  copyFailed = false,
   onCopyLink,
   onNavigate,
   notesVisible = false,
@@ -338,6 +347,7 @@ function SectionCard({
   readonly previousSection?: PaperSection
   readonly nextSection?: PaperSection
   readonly copiedSectionId: string | null
+  readonly copyFailed?: boolean
   readonly onCopyLink: (id: string) => void
   readonly onNavigate: (id: string) => void
   readonly notesVisible?: boolean
@@ -395,8 +405,12 @@ function SectionCard({
               onClick={() => onCopyLink(section.id)}
               className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-[11px] font-medium text-muted transition-colors hover:bg-surface-active hover:text-text-primary"
             >
-              {copiedSectionId === section.id ? <Check className="h-3 w-3 text-success" /> : <Link2 className="h-3 w-3" />}
-              {copiedSectionId === section.id ? 'Copied' : 'Section link'}
+              {copiedSectionId === section.id
+                ? (copyFailed ? <X className="h-3 w-3 text-red-500" /> : <Check className="h-3 w-3 text-success" />)
+                : <Link2 className="h-3 w-3" />}
+              {copiedSectionId === section.id
+                ? (copyFailed ? 'Copy failed' : 'Copied')
+                : 'Section link'}
             </button>
           </div>
         </div>

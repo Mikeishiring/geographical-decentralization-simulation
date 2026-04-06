@@ -250,7 +250,7 @@ export function SelectionPopover({
           transition={SPRING_POPUP}
           data-annotation-popover
           className={cn(
-            'fixed z-[100001] pointer-events-auto rounded-2xl bg-white/[0.97] backdrop-blur-sm shadow-[0_4px_24px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] px-4 py-3 pb-3.5',
+            'fixed z-[60] pointer-events-auto rounded-2xl bg-white/[0.97] backdrop-blur-sm shadow-[0_4px_24px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] px-4 py-3 pb-3.5',
             position.marginMode
               ? ''
               : `-translate-x-1/2 ${position.placeBelow ? '' : '-translate-y-full'}`,

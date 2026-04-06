@@ -260,7 +260,7 @@ export function ExactSimulationAnalyticsPanel({
               <a
                 href={comparisonDatasetUrl ?? undefined}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className={cn(
                   'inline-flex items-center justify-center rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-hover',
                   !comparisonDatasetUrl && 'pointer-events-none opacity-60',

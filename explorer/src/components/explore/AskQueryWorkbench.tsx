@@ -287,7 +287,7 @@ export function AskQueryWorkbench({
     ? buildLaunchContext(deferredView, deferredState)
     : null
   const previewQuery = useQuery({
-    queryKey: ['ask-query-preview', deferredLaunchContext?.structuredQuery ?? null],
+    queryKey: ['ask-query-preview', JSON.stringify(deferredLaunchContext?.structuredQuery ?? null)],
     enabled: Boolean(deferredLaunchContext),
     staleTime: 30_000,
     placeholderData: previousData => previousData,

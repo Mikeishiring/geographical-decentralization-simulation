@@ -10,7 +10,8 @@ import {
   writePublishedEvidenceSelectionToHistory,
 } from '../../lib/published-evidence-url'
 import { SPRING_CRISP } from '../../lib/theme'
-import { GCP_REGIONS, type MacroRegion } from '../../data/gcp-regions'
+import { type MacroRegion } from '../../data/gcp-regions'
+import { GCP_REGION_MAP } from './evidence-map-helpers'
 import type { Block } from '../../types/blocks'
 import { formatNumber, paradigmLabel } from './simulation-constants'
 import { CHART_COLORS } from './simulation-evidence-constants'
@@ -48,20 +49,23 @@ function readResearchCatalog(): ResearchCatalog | null {
 function useResearchCatalog(catalogScriptUrl: string) {
   const [catalog, setCatalog] = useState<ResearchCatalog | null>(readResearchCatalog)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState<boolean>(catalog === null)
 
   useEffect(() => {
     const existing = readResearchCatalog()
-    if (existing) { setCatalog(existing); setError(null); return }
+    if (existing) { setCatalog(existing); setError(null); setLoading(false); return }
 
+    setLoading(true)
     const scriptId = 'research-demo-catalog-script'
     let script = document.getElementById(scriptId) as HTMLScriptElement | null
 
     const handleLoad = () => {
       const loaded = readResearchCatalog()
-      if (loaded) { setCatalog(loaded); setError(null); return }
+      if (loaded) { setCatalog(loaded); setError(null); setLoading(false); return }
       setError('Research catalog loaded but no datasets were exposed.')
+      setLoading(false)
     }
-    const handleError = () => setError('Could not load the research catalog.')
+    const handleError = () => { setError('Could not load the research catalog.'); setLoading(false) }
 
     if (!script) {
       script = document.createElement('script')
@@ -79,7 +83,7 @@ function useResearchCatalog(catalogScriptUrl: string) {
     }
   }, [catalogScriptUrl])
 
-  return { catalog, error }
+  return { catalog, error, loading }
 }
 
 // ── Data fetcher ────────────────────────────────────────────────────────────
@@ -99,8 +103,6 @@ async function fetchPayload(
 }
 
 // ── Block builders ──────────────────────────────────────────────────────────
-
-const GCP_REGION_MAP = new Map(GCP_REGIONS.map(r => [r.id, r]))
 
 function sampleSeries(raw: readonly number[] | undefined, maxPoints = 200): Array<{ x: number; y: number }> {
   if (!raw || raw.length === 0) return []

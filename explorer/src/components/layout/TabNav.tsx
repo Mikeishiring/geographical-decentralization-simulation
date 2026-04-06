@@ -47,17 +47,15 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
 
     const observer = new ResizeObserver(() => updateHeight())
     observer.observe(navShell)
-    window.addEventListener('resize', updateHeight)
 
     return () => {
       observer.disconnect()
-      window.removeEventListener('resize', updateHeight)
     }
   }, [])
 
   return (
     <div ref={navShellRef} data-testid="tab-nav-shell" className="sticky top-0 z-20 border-b border-rule bg-white/92 backdrop-blur-lg shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-      <div className={`${CONTENT_MAX_WIDTH} mx-auto px-4 sm:px-6 overflow-x-auto hide-scrollbar`}>
+      <div className={`${CONTENT_MAX_WIDTH} mx-auto px-4 sm:px-6 overflow-x-auto hide-scrollbar tab-scroll-fade`}>
         <nav className="flex gap-1 min-w-max" role="tablist" aria-label="Explorer sections">
           {tabs.map(tab => {
             const isActive = activeTab === tab.id

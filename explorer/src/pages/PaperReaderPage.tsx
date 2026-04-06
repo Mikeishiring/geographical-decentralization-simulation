@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createExploration, publishExploration, listExplorations, type Exploration } from '../lib/api'
 import { MOCK_COMMUNITY_NOTES } from '../data/mock-community-notes'
@@ -223,18 +224,26 @@ export function PaperReaderPage({
       containerRef={containerRef}
     />
 
-    {noteError && (
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-danger/20 bg-danger/5 px-4 py-2.5 text-sm text-danger shadow-lg backdrop-blur-sm">
-        <span>{noteError}</span>
-        <button
-          onClick={() => setNoteError(null)}
-          className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium text-danger/70 hover:text-danger hover:bg-danger/10 transition-colors"
-          aria-label="Dismiss error"
+    <AnimatePresence>
+      {noteError && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-danger/20 bg-danger/5 px-4 py-2.5 text-sm text-danger shadow-lg backdrop-blur-sm"
         >
-          Dismiss
-        </button>
-      </div>
-    )}
+          <span>{noteError}</span>
+          <button
+            onClick={() => setNoteError(null)}
+            className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium text-danger/70 hover:text-danger hover:bg-danger/10 transition-colors"
+            aria-label="Dismiss error"
+          >
+            Dismiss
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
 
     <div ref={containerRef} className="min-w-0 w-full max-w-full">
 
