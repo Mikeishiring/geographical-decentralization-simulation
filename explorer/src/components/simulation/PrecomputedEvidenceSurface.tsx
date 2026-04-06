@@ -298,12 +298,6 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
             <div className="flex flex-wrap gap-1">
               {costResults.map(({ result, cost }) => {
                 const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
-                const costTooltips: Record<string, string> = {
-                  '0': 'Zero migration cost — validators can move freely between regions with no penalty',
-                  '0.001': 'Low migration cost — minimal friction for geographic relocation',
-                  '0.002': 'Paper baseline — the migration cost used in the published research paper',
-                  '0.003': 'High migration cost — significant penalty discourages validator movement',
-                }
                 return (
                   <button
                     key={result}

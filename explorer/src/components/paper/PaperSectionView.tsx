@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Link2, Quote, Check, Lightbulb, MessageSquare, Users } from 'lucide-react'
+import { Link2, Check, Lightbulb, MessageSquare, Users } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { PaperChartBlock } from '../blocks/PaperChartBlock'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
