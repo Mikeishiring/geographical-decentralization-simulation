@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
+import { InlineTooltip } from '../ui/Tooltip'
 import { SPRING_CRISP, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { formatNumber, paradigmLabel } from './simulation-constants'
 import {
