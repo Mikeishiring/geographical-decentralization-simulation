@@ -626,25 +626,6 @@ export function PrecomputedEvidenceSurface({
             <div ref={chartGridRef} className="px-4 py-4 sm:px-5">
               {taggedBlocks.length > 0 && (
                 <>
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <div className="text-[10px] font-medium text-muted">
-                      {activeCategory === 'all'
-                        ? 'All chart panels'
-                        : `${activeCategory[0]?.toUpperCase()}${activeCategory.slice(1)} panels`}
-                    </div>
-                    <span className="text-black/20">·</span>
-                    <span className="text-[10px] tabular-nums text-text-faint">
-                      {visibleBlocks.length} of {taggedBlocks.length}
-                    </span>
-                    {activeCategory !== 'all' && (
-                      <button
-                        onClick={() => setActiveCategory('all')}
-                        className="ml-auto text-[10px] font-medium text-accent hover:underline"
-                      >
-                        Clear lens
-                      </button>
-                    )}
-                  </div>
                   <AnimatePresence mode="popLayout">
                     {visibleBlocks.length > 0 ? (
                       <motion.div

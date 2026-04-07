@@ -31,13 +31,13 @@ function TooltipBase({
     <span
       className={cn(
         'group/tip relative',
-        variant === 'inline' ? 'inline cursor-help' : 'inline-flex',
+        variant === 'inline' ? 'inline cursor-default' : 'inline-flex',
         className,
       )}
       aria-describedby={tipId}
     >
       {variant === 'inline' ? (
-        <span className="transition-colors duration-150 group-hover/tip:text-text-primary">
+        <span className="decoration-stone-300/60 decoration-dotted underline-offset-[3px] group-hover/tip:underline transition-colors duration-150 group-hover/tip:text-text-primary">
           {children}
         </span>
       ) : (
@@ -51,7 +51,7 @@ function TooltipBase({
           'max-w-[260px] rounded-xl border border-white/[0.08] bg-[#141414]/95 px-3 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.35),0_0_0_0.5px_rgba(255,255,255,0.06)]',
           'backdrop-blur-xl',
           'opacity-0 transition-[opacity,transform] duration-200',
-          'group-hover/tip:opacity-100 group-hover/tip:delay-[850ms]',
+          'group-hover/tip:opacity-100 group-hover/tip:delay-[350ms]',
           placement === 'below'
             ? 'top-full mt-2.5 translate-y-1 group-hover/tip:translate-y-0'
             : 'bottom-full mb-2.5 -translate-y-1 group-hover/tip:-translate-y-0',
