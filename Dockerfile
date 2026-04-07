@@ -44,10 +44,25 @@ RUN echo "── Step 1: Attempting git lfs pull ──" \
  && for f in $(find dashboard/simulations -name 'data.json' 2>/dev/null); do \
       if head -c 40 "$f" 2>/dev/null | grep -q 'version https://git-lfs'; then \
         echo "  LFS pointer: $f — downloading from GitHub..."; \
-        curl -fsSL "${LFS_REPO_URL}/${f}" -o "${f}.tmp" \
-          && mv "${f}.tmp" "$f" \
-          && echo "  ✓ resolved $f ($(wc -c < "$f") bytes)" \
-          || { echo "  ✗ FAILED to download $f"; UNRESOLVED=$((UNRESOLVED + 1)); }; \
+        OK=0; \
+        for attempt in 1 2 3 4 5 6; do \
+          rm -f "${f}.tmp"; \
+          if curl -fSL --retry 3 --retry-delay 2 --retry-all-errors \
+               --connect-timeout 15 --max-time 120 \
+               -C - "${LFS_REPO_URL}/${f}" -o "${f}.tmp" \
+             && [ -s "${f}.tmp" ] \
+             && ! head -c 40 "${f}.tmp" | grep -q 'version https://git-lfs'; then \
+            mv "${f}.tmp" "$f"; \
+            echo "  ✓ resolved $f ($(wc -c < "$f") bytes) [attempt $attempt]"; \
+            OK=1; break; \
+          fi; \
+          echo "  ↻ attempt $attempt failed for $f, retrying..." >&2; \
+          sleep $((attempt * 3)); \
+        done; \
+        if [ "$OK" -eq 0 ]; then \
+          echo "  ✗ FAILED to download $f after 6 attempts"; \
+          UNRESOLVED=$((UNRESOLVED + 1)); \
+        fi; \
       fi; \
     done \
  && echo "── Step 3: Final verification ──" \
