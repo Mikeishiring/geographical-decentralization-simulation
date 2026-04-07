@@ -17,14 +17,14 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     lede: 'Where you are on the map determines how long you can afford to wait — and waiting is where the money is. Once latency affects both value capture and consensus, geography becomes part of the protocol.',
     paragraphs: [
       'External and local block building expose different latency-critical paths, but both transform regional network position into economic advantage. In external block building, a proposer wants fast access to the best supplier while also keeping supplier-to-attester propagation tight enough to satisfy the attestation threshold. In local block building, the proposer wants to sit where value from many sources accumulates while still remaining close enough to attesters to finalize in time.',
-      'That turns validator placement into a geographic game. The paper frames this as a tension between value capture and quorum reachability, and that framing matters because it explains why the same infrastructure change can help one paradigm and hurt the other.',
+      'That turns validator placement into a geographic game. The paper frames this as a tension between value capture and quorum reachability, and that framing matters because it explains why the same infrastructure change can help one paradigm and hurt the other. Crucially, v3 of the paper does not just simulate this — it proves it formally. Section §4 establishes that reducing propagation delays weakly increases expected payoffs under both paradigms, that local building advantages scale linearly with the number of sources, and that the two paradigms exhibit provably opposite sensitivities to source placement.',
     ],
     pullQuote: 'Geography creates a payoff gradient, and rational validators will follow it.',
     figureCaption: 'The core comparison is the latency path itself: external block building optimizes a best supplier path, while local block building optimizes over many direct information inputs.',
     keyClaim: 'both transform regional network position into economic advantage',
   },
   'simulation-design': {
-    lede: 'The simulation is deliberately simplified, but it is simplified in a way that makes the causal story easy to inspect.',
+    lede: 'With the theoretical properties established, the simulation asks: how do these forces play out quantitatively? The design is deliberately simplified, but simplified in a way that makes the causal story easy to inspect.',
     paragraphs: [
       'Validators are agents that repeatedly compare expected rewards across measured cloud regions, then migrate if the gain exceeds switching cost. That design keeps the paper close to a geographic equilibrium story rather than a one-off optimization snapshot.',
       'The costs of that clarity are explicit. MEV is modeled as deterministic and linear in latency, migration cost is fixed, and information is complete. Those assumptions make the engine more interpretable, but the paper is careful to treat them as modeling limits rather than claims about production Ethereum.',
@@ -46,11 +46,11 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   'se1-source-placement': {
     lede: 'Infrastructure placement is not a neutral background condition. It changes the shape of the optimization problem itself.',
     paragraphs: [
-      'The striking result in EXP 1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm. Local block building exhibits a scaling effect: advantages compound across all sources simultaneously, so aligned placement — where value capture and consensus pressure pull in the same direction — accelerates centralization.',
+      'The striking result in EXP 1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm. Local block building exhibits a scaling effect: if a proposer is 10 ms closer to each of 40 sources, the aggregate value gain is 40 × 10 ms × the MEV growth rate. Advantages compound across all sources simultaneously, so aligned placement — where value capture and consensus pressure pull in the same direction — accelerates centralization.',
       'External block building exhibits a different dynamic, a double penalty: proposer-supplier latency affects payoffs twice, both in observing block value and in the round-trip to attesters. But because the proposer relies on a single best supplier rather than aggregating many sources, the scaling effect is absent. Misalignment makes the double penalty worse by widening the supplier bottleneck, so co-location incentives intensify rather than relax.',
     ],
     pullQuote: 'The same geography can be stabilizing in one paradigm and destabilizing in the other.',
-    figureCaption: 'EXP 1 is the cleanest demonstration that the paper is not merely comparing two labels; it is comparing two different latency geometries.',
+    figureCaption: 'EXP 1 is the cleanest demonstration that the paper is not merely comparing two labels; it is comparing two different latency geometries. Supplier and relay locations act as geographic anchors that pin the payoff landscape differently under each paradigm.',
     keyClaim: 'aligned and misaligned placements invert the severity of centralization depending on the paradigm',
   },
   'se2-distribution': {
@@ -87,7 +87,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     lede: 'Shorter slots do less to change where validators end up than to change how unevenly rewards are distributed on the way there.',
     paragraphs: [
       'The paper finds that moving to 6-second slots leaves the broad geographic equilibrium largely intact. The same regions remain attractive, and the same concentration tendencies persist.',
-      'What changes is reward variance. When the slot is shorter, a fixed latency advantage consumes a bigger fraction of the available timing budget. That raises the penalty for being outside the favored corridors even if the final map does not change dramatically.',
+      'What changes is reward variance. When the slot is shorter, a fixed latency advantage consumes a bigger fraction of the available timing budget, raising the coefficient of variation by 5-10% across regions. That raises the penalty for being outside the favored corridors even if the final map does not change dramatically.',
     ],
     pullQuote: 'Shorter slots amplify inequality faster than they rewrite the geography.',
     figureCaption: 'The slot-time experiment is a reminder that not every protocol change moves the concentration map, but many still change who gets paid.',
@@ -96,8 +96,8 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   discussion: {
     lede: 'The discussion section is diagnostic rather than prescriptive, and that is the right tone to preserve in the UI.',
     paragraphs: [
-      'The paper sketches mitigation directions: weakening proposer monopoly power through decentralized block building (BuilderNet, MCP), dampening latency sensitivity via MEV-burn, and encouraging geographic diversity among suppliers and signal sources. None of these are presented as settled policy recommendations.',
-      'That restraint matters. The contribution is to show that geographic concentration is endogenous to the timing structure of the system, not to claim the model has already solved how to counteract it.',
+      'The paper sketches mitigation directions: weakening proposer monopoly power through decentralized block building (BuilderNet, MCP), dampening latency sensitivity via MEV-burn, and encouraging geographic diversity among suppliers and signal sources. None of these are presented as settled policy recommendations. Notably, the framework can also be used to analyze ePBS dynamics, where removing relay chokepoints may change the geographic equilibrium — but the paper stops short of that prediction.',
+      'That restraint matters. The contribution is to show that geographic concentration is endogenous to the timing structure of the system, not to claim the model has already solved how to counteract it. Empirical work from DataAlways supports the directional finding: PBS reduces validator clustering but transfers geographic risk to builder concentration. The model and the data point in the same direction.',
     ],
     pullQuote: 'If we want a different map, we need to reshape the terrain.',
     figureCaption: 'Mitigation ideas are included as design directions, not as recommendations validated by this model.',
