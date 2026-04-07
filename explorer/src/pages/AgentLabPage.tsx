@@ -14,7 +14,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { DefaultChatTransport } from 'ai'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, MessageSquare, FlaskConical, Link2, FileText } from 'lucide-react'
-import { NodeArc } from '../components/decorative/NodeArc'
 import { cn } from '../lib/cn'
 import { SPRING, SPRING_SNAPPY } from '../lib/theme'
 import { explore, getApiHealth, createExploration, publishExploration, type ExploreResponse, type ExploreError } from '../lib/api'
@@ -40,12 +39,9 @@ import {
 } from '../components/agent/agent-hooks'
 import { AgentStepCard } from '../components/agent/AgentStepCard'
 import { AgentCostBar } from '../components/agent/AgentCostBar'
-import { AskCapabilityPanel } from '../components/explore/AskCapabilityPanel'
 import { AskPlanPanel } from '../components/explore/AskPlanPanel'
-import { AskQueryWorkbench } from '../components/explore/AskQueryWorkbench'
 import { AskStageRail } from '../components/explore/AskStageRail'
 import { AskStatusFeed } from '../components/explore/AskStatusFeed'
-import { AskWorkflowDeck } from '../components/explore/AskWorkflowDeck'
 import { BlockCanvas } from '../components/explore/BlockCanvas'
 import { AskLoadingStateCard, buildAskLoadingDescriptor } from '../components/explore/AskLoadingState'
 import { ShimmerLoading } from '../components/explore/ShimmerBlock'
@@ -76,39 +72,6 @@ const ASK_DESCRIPTION = ASSISTANT_CONFIG.askDescription
 const ASK_PLACEHOLDER = ASSISTANT_CONFIG.askPlaceholder
   ?? 'Ask about a mechanism, comparison, metric, or implication...'
 const ASK_HEADING = ASSISTANT_CONFIG.askHeading ?? 'Ask a question about the paper'
-const ASK_CAPABILITIES = ASSISTANT_CONFIG.capabilities ?? [
-  {
-    id: 'read-paper',
-    title: 'Explain the paper',
-    description: 'Summarize the main mechanism and claims in the active study package.',
-    state: 'live' as const,
-    prompts: [`What is the main claim of ${ACTIVE_STUDY.metadata.title}?`],
-  },
-  {
-    id: 'compare-results',
-    title: 'Compare results',
-    description: 'Pull pre-computed figures and comparisons into the page.',
-    state: 'live' as const,
-    prompts: ['Which result matters most, and why?'],
-  },
-]
-const ASK_PROMPT_TIPS = ASSISTANT_CONFIG.promptTips ?? [
-  {
-    id: 'tip-metric',
-    label: 'Name a metric',
-    description: 'Mention the exact outcome you care about to get to the right evidence faster.',
-    example: 'How does Gini change under higher gamma?',
-  },
-  {
-    id: 'tip-compare',
-    label: 'Ask for a contrast',
-    description: 'Contrast two scenarios or paradigms instead of asking for a broad summary.',
-    example: 'Compare baseline local vs external block building.',
-  },
-]
-const ASK_QUERY_VIEWS = ASSISTANT_CONFIG.queryViews ?? []
-const ASK_WORKFLOWS = ASSISTANT_CONFIG.workflows ?? []
-const ASK_WORKFLOW_SECTIONS = ASSISTANT_CONFIG.workflowSections ?? []
 
 interface AgentLabPageProps {
   readonly onTabChange?: (tab: import('../components/layout/TabNav').TabId) => void
@@ -455,7 +418,6 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
     : null
   const hasAskResult = aiResponse !== null || streamedArtifact !== null || askLoading || aiError !== null
   const hasExperiment = session !== null
-  const showAskScaffolding = mode === 'ask' && !askLoading && !hasAskResult && !askPlan
 
   return (
     <div className="space-y-6">
@@ -583,41 +545,6 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
             />
           )}
 
-          {showAskScaffolding && (
-            <>
-              <div className={cn(
-                'grid gap-4',
-                ASK_QUERY_VIEWS.length > 0 && '2xl:grid-cols-[1.05fr_0.95fr]',
-              )}>
-                <AskWorkflowDeck
-                  workflows={ASK_WORKFLOWS}
-                  sections={ASK_WORKFLOW_SECTIONS}
-                  mode="ask"
-                  activeRoute={null}
-                  activePrompt={query}
-                  onPromptSelect={handleSuggestionClick}
-                  busy={askLoading}
-                />
-
-                {ASK_QUERY_VIEWS.length > 0 && (
-                  <AskQueryWorkbench
-                    queryViews={ASK_QUERY_VIEWS}
-                    activeViewId={null}
-                    activeRequest={undefined}
-                    onLaunch={handleSuggestionClick}
-                    busy={askLoading}
-                  />
-                )}
-              </div>
-
-              <AskCapabilityPanel
-                capabilities={ASK_CAPABILITIES}
-                promptTips={ASK_PROMPT_TIPS}
-                onPromptSelect={handleSuggestionClick}
-                busy={askLoading}
-              />
-            </>
-          )}
 
           {/* AI results */}
           <AnimatePresence mode="wait">
@@ -875,33 +802,25 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
         </div>
       )}
 
-      {/* Suggested questions — shown when no active results in either mode */}
+      {/* Idea prompts — minimal, 3 lines */}
       {!hasAskResult && mode === 'ask' && !askLoading && (
-        <div className="relative overflow-hidden rounded-xl border border-dashed border-rule bg-white px-5 py-8">
-          {/* Node-arc motif — visual DNA echoing the header globe */}
-          <div className="absolute right-4 top-2 w-[140px] h-[70px] opacity-[0.5] pointer-events-none select-none" aria-hidden="true">
-            <NodeArc className="w-full h-full text-muted" />
+        <div className="rounded-xl border border-rule bg-white px-5 py-5">
+          <div className="space-y-1 text-13 leading-relaxed text-muted">
+            <p>Ask about any mechanism, metric, or finding in the paper.</p>
+            <p>Compare paradigms, question assumptions, or request evidence tables.</p>
+            <p>The model reads the full study package and returns grounded answers.</p>
           </div>
-
-          <div className="relative text-center text-sm text-muted mb-5">
-            Pick a question to get started, or type your own in the search bar above
-          </div>
-          <div className="relative grid gap-2 sm:grid-cols-2 xl:grid-cols-4 stagger-reveal">
+          <div className="mt-4 flex flex-wrap gap-2 stagger-reveal">
             {ASK_SUGGESTIONS.map((s, i) => (
               <motion.button
                 key={s.prompt}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ ...SPRING, delay: i * 0.03 }}
                 onClick={() => handleSuggestionClick(s.prompt)}
-                className="group rounded-xl border border-rule bg-surface-active/60 px-3.5 py-3 text-left transition-all hover:border-border-hover hover:bg-white hover:shadow-sm"
+                className="rounded-full border border-rule bg-surface-active/60 px-3.5 py-1.5 text-xs font-medium text-text-body transition-all hover:border-border-hover hover:bg-white hover:shadow-sm active:scale-[0.97]"
               >
-                <div className="mono-xs uppercase text-text-faint">
-                  {s.label}
-                </div>
-                <div className="mt-1.5 text-xs leading-5 text-text-body group-hover:text-text-primary transition-colors">
-                  {s.prompt}
-                </div>
+                {s.label}
               </motion.button>
             ))}
           </div>
@@ -909,34 +828,25 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
       )}
 
       {!hasExperiment && mode === 'experiment' && !isCreating && (
-        <div className="space-y-4">
-          <AskWorkflowDeck
-            workflows={ASK_WORKFLOWS}
-            sections={ASK_WORKFLOW_SECTIONS}
-            mode="experiment"
-            onPromptSelect={handleSuggestionClick}
-            busy={isCreating}
-          />
-          <div className="relative overflow-hidden rounded-xl border border-dashed border-rule bg-white px-5 py-8">
-            {/* Node-arc motif — globe DNA */}
-            <div className="absolute left-4 bottom-2 w-[120px] h-[60px] opacity-[0.4] pointer-events-none select-none" aria-hidden="true">
-              <NodeArc className="w-full h-full text-muted" />
-            </div>
-
-            <div className="relative text-center text-sm text-muted mb-4">
-              Describe a hypothesis and the AI will configure a simulation, run it, and interpret the results for you
-            </div>
-            <div className="relative flex flex-wrap justify-center gap-2 stagger-reveal">
-              {EXPERIMENT_SUGGESTIONS.map(s => (
-                <button
-                  key={s.prompt}
-                  onClick={() => handleSuggestionClick(s.prompt)}
-                  className="rounded-full border border-rule bg-surface-active/60 px-3.5 py-1.5 text-xs font-medium text-text-primary transition-all hover:border-border-hover hover:bg-white hover:shadow-sm"
-                >
-                  {s.prompt}
-                </button>
-              ))}
-            </div>
+        <div className="rounded-xl border border-rule bg-white px-5 py-5">
+          <div className="space-y-1 text-13 leading-relaxed text-muted">
+            <p>Describe a hypothesis you want to test against the simulation.</p>
+            <p>The agent configures parameters, runs the model, and interprets results.</p>
+            <p>You approve each step before it executes.</p>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2 stagger-reveal">
+            {EXPERIMENT_SUGGESTIONS.map((s, i) => (
+              <motion.button
+                key={s.prompt}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...SPRING, delay: i * 0.03 }}
+                onClick={() => handleSuggestionClick(s.prompt)}
+                className="rounded-full border border-rule bg-surface-active/60 px-3.5 py-1.5 text-xs font-medium text-text-body transition-all hover:border-border-hover hover:bg-white hover:shadow-sm active:scale-[0.97]"
+              >
+                {s.prompt}
+              </motion.button>
+            ))}
           </div>
         </div>
       )}
