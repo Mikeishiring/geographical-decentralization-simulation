@@ -46,7 +46,7 @@ export class AgentLoopStore {
       status: 'active',
       maxSteps: Math.min(
         Math.max(1, maxSteps ?? AGENT_LOOP_DEFAULTS.maxSteps),
-        10,
+        AGENT_LOOP_DEFAULTS.maxSteps,
       ),
       totalClaudeCalls: 0,
       totalSimulations: 0,
