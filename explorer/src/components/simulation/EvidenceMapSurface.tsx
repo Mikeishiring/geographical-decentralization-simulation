@@ -750,8 +750,8 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                       fill={color}
                       stroke="white"
                       strokeWidth={isTop3 ? 1.4 : isTop6 ? 1 : 0.6}
-                      style={{ transition: 'r 0.15s ease-out, cx 0.1s ease-out, cy 0.1s ease-out' }}
                       {...hoverProps}
+                      style={{ cursor: 'pointer', transition: 'r 0.15s ease-out, cx 0.1s ease-out, cy 0.1s ease-out' }}
                     />
                   ) : (
                     <motion.circle
