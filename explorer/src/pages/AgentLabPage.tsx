@@ -72,7 +72,6 @@ const ASK_DESCRIPTION = ASSISTANT_CONFIG.askDescription
   ?? `Ask grounded questions about ${ACTIVE_STUDY.metadata.title}, or run a bounded experiment against this study package.`
 const ASK_PLACEHOLDER = ASSISTANT_CONFIG.askPlaceholder
   ?? 'Ask about a mechanism, comparison, metric, or implication...'
-const _ASK_HEADING = ASSISTANT_CONFIG.askHeading ?? 'Ask a question about the paper'
 
 interface AgentLabPageProps {
   readonly onTabChange?: (tab: import('../components/layout/TabNav').TabId) => void

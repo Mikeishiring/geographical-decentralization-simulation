@@ -82,7 +82,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
   const chartH = svgH - padding.top - padding.bottom
   const xAxisLabel = block.xLabel?.trim() || 'Slot'
 
-  const allPoints = block.series.flatMap(series => series.data)
+  const allPoints = block.series.flatMap(series => series.data).filter(point => Number.isFinite(point.x) && Number.isFinite(point.y))
   if (allPoints.length === 0) {
     return <BlockEmptyState title={block.title} message="No time-series samples were attached to this block." />
   }
@@ -489,10 +489,10 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
               )
             })}
 
-            {block.annotations?.map(annotation => {
+            {block.annotations?.map((annotation, annotationIdx) => {
               const { sx } = toSvg(annotation.x, minY)
               return (
-                <g key={annotation.x}>
+                <g key={`annotation-${annotationIdx}-${annotation.label}`}>
                   <line
                     x1={sx}
                     y1={padding.top}
@@ -618,9 +618,9 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
 
         {block.annotations && block.annotations.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
-            {block.annotations.map(annotation => (
+            {block.annotations.map((annotation, annotationIdx) => (
               <span
-                key={`${annotation.x}-${annotation.label}`}
+                key={`chip-${annotationIdx}-${annotation.label}`}
                 className="lab-chip"
               >
                 x={annotation.x}: {annotation.label}
