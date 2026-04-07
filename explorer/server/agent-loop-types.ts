@@ -88,9 +88,9 @@ export interface AgentSession {
 // ---------------------------------------------------------------------------
 
 export const AGENT_LOOP_DEFAULTS = {
-  maxSteps: 5,
-  maxClaudeCalls: 12,
-  maxSimulations: 6,
+  maxSteps: 3,
+  maxClaudeCalls: 8,
+  maxSimulations: 3,
   maxConcurrentSessions: 3,
   sessionTimeoutMs: 30 * 60 * 1000, // 30 minutes
   minQuestionLength: 10,
