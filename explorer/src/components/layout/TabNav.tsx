@@ -104,7 +104,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                   aria-selected={isActive}
                   tabIndex={isActive ? 0 : -1}
                   className={cn(
-                    'relative flex items-center gap-2 rounded-xl px-3.5 py-3 text-13 transition-colors',
+                    'relative flex items-center gap-2 rounded-xl px-3.5 py-3 text-13 transition-colors active:scale-[0.95]',
                     isActive
                       ? 'bg-surface-active/70 text-text-primary font-medium'
                       : 'text-muted hover:text-text-primary',
