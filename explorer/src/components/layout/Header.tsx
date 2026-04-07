@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Code, ExternalLink, FileText } from 'lucide-react'
 import { PAPER_METADATA, type Author, type AuthorSocial } from '../../data/paper-sections'
-import { CONTENT_MAX_WIDTH, SPRING_SNAPPY } from '../../lib/theme'
+import { CONTENT_MAX_WIDTH } from '../../lib/theme'
 import { GlobeWireframe } from '../decorative/GlobeWireframe'
 
 const SOCIAL_ICONS: Record<AuthorSocial['platform'], { label: string; path: string; viewBox?: string }> = {
@@ -84,7 +84,7 @@ function AuthorChip({ author }: { readonly author: Author }) {
             className="absolute left-0 top-full mt-2.5 z-40"
           >
             <div
-              className="rounded-2xl bg-white/97 backdrop-blur-xl min-w-[200px] max-w-[280px]"
+              className="rounded-2xl bg-white/[0.97] backdrop-blur-xl min-w-[200px] max-w-[280px]"
               style={{
                 boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.08), 0 12px 40px rgba(0,0,0,0.04)',
               }}
