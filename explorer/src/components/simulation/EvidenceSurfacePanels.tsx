@@ -70,11 +70,33 @@ function buildSparklineGeometry(
   return { coords, points, areaD, baselineY }
 }
 
+/** Build a smooth monotone cubic SVG path from coordinate pairs */
+function buildSmoothPath(coords: ReadonlyArray<{ x: number; y: number }>): string {
+  if (coords.length < 2) return ''
+  if (coords.length === 2) return `M ${coords[0]!.x} ${coords[0]!.y} L ${coords[1]!.x} ${coords[1]!.y}`
+
+  const parts: string[] = [`M ${coords[0]!.x} ${coords[0]!.y}`]
+  for (let i = 0; i < coords.length - 1; i++) {
+    const p0 = coords[Math.max(0, i - 1)]!
+    const p1 = coords[i]!
+    const p2 = coords[i + 1]!
+    const p3 = coords[Math.min(coords.length - 1, i + 2)]!
+
+    const cp1x = p1.x + (p2.x - p0.x) / 6
+    const cp1y = p1.y + (p2.y - p0.y) / 6
+    const cp2x = p2.x - (p3.x - p1.x) / 6
+    const cp2y = p2.y - (p3.y - p1.y) / 6
+
+    parts.push(`C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`)
+  }
+  return parts.join(' ')
+}
+
 function Sparkline({
   data,
   color,
-  width = 72,
-  height = 24,
+  width = 88,
+  height = 28,
   highlightIndex = null,
 }: {
   readonly data: readonly number[]
@@ -85,18 +107,31 @@ function Sparkline({
 }) {
   const geometry = buildSparklineGeometry(data, width, height)
   if (!geometry) return null
-  const { coords, points, baselineY } = geometry
+  const { coords, baselineY } = geometry
   const highlight = coords[Math.max(0, Math.min(coords.length - 1, highlightIndex ?? (coords.length - 1)))] ?? coords[coords.length - 1]!
+  const smoothD = buildSmoothPath(coords)
+  const last = coords[coords.length - 1]!
+  const first = coords[0]!
+  const smoothAreaD = `${smoothD} L ${last.x} ${baselineY} L ${first.x} ${baselineY} Z`
+  const gradientId = `spark-fill-${color.replace(/[^a-zA-Z0-9]/g, '')}`
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0" aria-hidden>
-      <polyline points={points} fill="none" stroke={withAlpha(color, 0.75)} strokeWidth={1.25} strokeLinecap="round" strokeLinejoin="round" />
-      <line x1={highlight.x} y1={2} x2={highlight.x} y2={baselineY} stroke={withAlpha(color, 0.18)} strokeWidth={1} />
-      <circle cx={highlight.x} cy={highlight.y} r={2.5} fill="white" stroke={color} strokeWidth={1.5} />
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2={height}>
+          <stop offset="0%" stopColor={color} stopOpacity={0.12} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.01} />
+        </linearGradient>
+      </defs>
+      <path d={smoothAreaD} fill={`url(#${gradientId})`} />
+      <path d={smoothD} fill="none" stroke={withAlpha(color, 0.8)} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      <line x1={highlight.x} y1={2} x2={highlight.x} y2={baselineY} stroke={withAlpha(color, 0.14)} strokeWidth={0.75} strokeDasharray="2 2" />
+      <circle cx={highlight.x} cy={highlight.y} r={3} fill={withAlpha(color, 0.1)} />
+      <circle cx={highlight.x} cy={highlight.y} r={2} fill="white" stroke={color} strokeWidth={1.2} />
     </svg>
   )
 }
 
-function sampleForSpark(raw: readonly number[] | undefined, maxPoints = 20): number[] {
+function sampleForSpark(raw: readonly number[] | undefined, maxPoints = 32): number[] {
   if (!raw || raw.length === 0) return []
   const step = Math.max(1, Math.ceil(raw.length / maxPoints))
   const out: number[] = []
@@ -478,7 +513,7 @@ function EvidenceKpiCard({
           <InlineTooltip label={card.subtitle ? `${card.subtitle} — ${card.detail}` : card.detail}>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
-              <span className="text-[9px] uppercase tracking-[0.02em] text-stone-500 font-semibold truncate">{card.label}</span>
+              <span className="text-[9px] uppercase tracking-[0.08em] text-stone-500 font-semibold truncate">{card.label}</span>
             </div>
           </InlineTooltip>
           <div className="mt-1.5 flex flex-wrap items-end gap-x-2 gap-y-1">
@@ -512,7 +547,7 @@ function EvidenceKpiCard({
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 4 }}
-                  transition={{ duration: 0.12, ease: 'easeOut' }}
+                  transition={{ duration: 0.12, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <div className="min-w-[96px] rounded-lg border border-rule/70 bg-white/96 px-2 py-1.5 text-[9px] leading-tight text-stone-600 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
                     <div className="font-medium text-stone-900">Slot {(effectiveIndex + 1).toLocaleString()}</div>
@@ -547,7 +582,7 @@ export function EvidenceKpiStrip({ payload, activeCategory, onCategoryChange }: 
 
   return (
     <motion.div
-      className="rounded-[14px] border border-black/[0.05] bg-black/[0.05]"
+      className="rounded-[14px] border border-black/[0.06] bg-black/[0.05]"
       initial="hidden"
       animate="visible"
       variants={STAGGER_CONTAINER}
@@ -728,7 +763,7 @@ export function EvidenceCategoryBar({
           'sticky top-[4.85rem] z-20 transition-all duration-200',
           embedded
             ? cn(
-                'border-b border-black/[0.05]',
+                'border-b border-black/[0.06]',
                 isStuck ? 'bg-white/94 shadow-[0_8px_20px_rgba(15,23,42,0.06)] backdrop-blur-md' : 'bg-[#FCFBFA]/96',
               )
             : cn(
@@ -748,7 +783,7 @@ export function EvidenceCategoryBar({
           <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <div className="text-[9px] uppercase tracking-[0.1em] text-stone-400 font-semibold">Chart lens</div>
+                <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-semibold">Chart lens</div>
                 <span className="text-[10px] font-medium tabular-nums text-stone-500">
                   {counts[activeCategory]} panel{counts[activeCategory] !== 1 ? 's' : ''}
                 </span>

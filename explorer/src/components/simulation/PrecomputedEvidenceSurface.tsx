@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SlidersHorizontal, ChevronDown, BarChart3 } from 'lucide-react'
+import { ChevronDown, BarChart3 } from 'lucide-react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { BlockRenderer } from '../blocks/BlockRenderer'
 import { cn } from '../../lib/cn'
@@ -207,24 +207,12 @@ interface ScenarioSelectorProps {
   readonly onSelect: (entry: ResearchDatasetEntry) => void
 }
 
-const chipBase = 'rounded-[8px] border px-2 py-1 text-[10px] font-medium cursor-pointer transition-all duration-150'
-const chipActive = 'border-black/[0.08] bg-white text-stone-900 shadow-[0_1px_1px_rgba(0,0,0,0.04)]'
-const chipInactive = 'border-transparent bg-transparent text-stone-500 hover:border-black/[0.05] hover:bg-white/78 hover:text-stone-700'
-const filterLabel = 'text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint shrink-0'
-const filterDivider = 'hidden sm:block w-px h-4 bg-rule/60 shrink-0'
-
-/** Compact summary pill showing active secondary filter value */
-function FilterPill({ label, value }: { readonly label: string; readonly value: string }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-[7px] bg-black/[0.03] px-2 py-0.5 text-[10px] text-muted">
-      <span className="text-text-faint">{label}</span>
-      <span className="font-medium text-text-secondary">{value}</span>
-    </span>
-  )
-}
+const chipBase = 'rounded-[8px] border px-2.5 py-1 text-[11px] font-medium cursor-pointer transition-all duration-150'
+const chipActive = 'border-black/[0.12] bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+const chipInactive = 'border-transparent bg-transparent text-stone-500 hover:border-black/[0.06] hover:bg-white/80 hover:text-stone-700'
+const filterLabel = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-400 shrink-0'
 
 function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selectedResult, onSelect }: ScenarioSelectorProps) {
-  const [filtersOpen, setFiltersOpen] = useState(false)
   const evaluations = useMemo(() => uniqueOrdered(catalog.datasets.map(d => d.evaluation)), [catalog])
   const paradigms = useMemo(
     () => uniqueOrdered(catalog.datasets.filter(d => d.evaluation === selectedEvaluation).map(d => d.paradigm)),
@@ -241,29 +229,17 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
     [catalog, selectedEvaluation, selectedParadigm],
   )
 
-  const { costResults, otherResults } = useMemo(() => {
+  const { costResults } = useMemo(() => {
     const costs: Array<{ result: string; cost: number }> = []
-    const others: string[] = []
     for (const r of allResults) {
       const cost = parseCostFromResult(r)
       if (cost != null) costs.push({ result: r, cost })
-      else others.push(r)
     }
     costs.sort((a, b) => a.cost - b.cost)
-    return { costResults: costs, otherResults: others }
+    return { costResults: costs }
   }, [allResults])
 
   const hasCostDimension = costResults.length > 1
-  // Cost is always visible; only paradigm/variant go into collapsible
-  const hasSecondaryFilters = paradigms.length > 1 || otherResults.length > 1
-
-  // Build summary of current secondary selections (cost excluded — always shown)
-  const filterSummary = useMemo(() => {
-    const parts: Array<{ label: string; value: string }> = []
-    if (paradigms.length > 1) parts.push({ label: 'Source', value: selectedParadigm })
-    if (otherResults.length > 1) parts.push({ label: 'Variant', value: selectedResult })
-    return parts
-  }, [paradigms, selectedParadigm, otherResults, selectedResult])
 
   const findAndSelect = useCallback((evaluation: string, paradigm: string, result?: string) => {
     const match = result
@@ -275,25 +251,25 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
 
   return (
     <div className="space-y-1.5">
-      <div className="flex flex-wrap items-stretch overflow-hidden rounded-[12px] border border-black/[0.05] bg-[#FAF9F7]/96 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
-        <div className="flex min-w-[220px] flex-1 items-center gap-2 px-3 py-2">
+      <div className="flex flex-wrap items-stretch overflow-hidden rounded-[12px] border border-black/[0.06] bg-[#FAF9F7]/96 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.55)]">
+        <div className="flex min-w-[220px] flex-1 items-center gap-2.5 px-3.5 py-2.5">
           <span className={filterLabel}>Scenario</span>
           <div className="relative min-w-0 flex-1">
             <select
               value={selectedEvaluation}
               onChange={e => findAndSelect(e.target.value, selectedParadigm)}
-              className="w-full appearance-none bg-transparent pl-0 pr-7 py-0 text-[11px] font-medium text-stone-800 cursor-pointer focus:outline-none"
+              className="w-full appearance-none rounded-[7px] border border-black/[0.08] bg-white pl-2.5 pr-7 py-1 text-[12px] font-medium text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/20"
             >
               {evaluations.map(evaluation => (
                 <option key={evaluation} value={evaluation}>{evaluation}</option>
               ))}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 text-muted" />
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400" />
           </div>
         </div>
 
         {hasCostDimension && (
-          <div className="flex min-w-[320px] flex-[1.6] items-center gap-2 border-t border-black/[0.05] px-3 py-2 sm:border-t-0 sm:border-l">
+          <div className="flex min-w-[320px] flex-[1.6] items-center gap-2.5 border-t border-black/[0.06] px-3.5 py-2.5 sm:border-t-0 sm:border-l">
             <InlineTooltip label="ETH cost when a validator relocates" detail="Higher cost = stronger geographic lock-in.">
               <span className={filterLabel}>Migration cost</span>
             </InlineTooltip>
@@ -315,93 +291,26 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
           </div>
         )}
 
-        {hasSecondaryFilters ? (
-          <button
-            type="button"
-            onClick={() => setFiltersOpen(prev => !prev)}
-            className={cn(
-              'inline-flex items-center justify-center gap-1.5 border-t border-black/[0.05] px-3 py-2 text-[11px] font-medium transition-colors sm:border-t-0 sm:border-l',
-              filtersOpen
-                ? 'bg-accent/6 text-accent'
-                : 'text-muted hover:bg-white/72 hover:text-text-secondary',
-            )}
-          >
-            <SlidersHorizontal className="h-3 w-3" />
-            <span>{filtersOpen ? 'Hide filters' : 'More filters'}</span>
-          </button>
-        ) : null}
-      </div>
-
-      {hasSecondaryFilters && !filtersOpen && filterSummary.length > 1 && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-text-faint">Active filters</span>
-          {filterSummary.map(({ label, value }) => (
-            <FilterPill key={label} label={label} value={value} />
-          ))}
-        </div>
-      )}
-
-      {/* Secondary filters — collapsible tray */}
-      <AnimatePresence>
-        {filtersOpen && hasSecondaryFilters && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="rounded-[12px] border border-black/[0.05] bg-[#FCFBFA] px-3 py-3">
-              <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] text-text-faint">
-                <span className="font-semibold uppercase tracking-[0.1em] text-text-faint">More filters</span>
-                <span>Refine the paradigm or variant without changing the atlas frame.</span>
-              </div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-              {/* Source paradigm */}
-              {paradigms.length > 1 && (
-                <>
-                  <InlineTooltip label="Block-building paradigm: External (SSP) or Local (MSP)">
-                    <span className={filterLabel}>Paradigm</span>
-                  </InlineTooltip>
-                  <div className="flex gap-1">
-                    {paradigms.map(paradigm => (
-                      <button
-                        key={paradigm}
-                        type="button"
-                        onClick={() => findAndSelect(selectedEvaluation, paradigm)}
-                        className={cn(chipBase, selectedParadigm === paradigm ? chipActive : chipInactive)}
-                      >
-                        {paradigmLabel(paradigm)}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {/* Non-cost result variants */}
-              {otherResults.length > 1 && (
-                <>
-                  {paradigms.length > 1 && <div className={filterDivider} />}
-                  <span className={filterLabel}>Variant</span>
-                  <div className="flex gap-1">
-                    {otherResults.map(result => (
-                      <button
-                        key={result}
-                        type="button"
-                        onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
-                        className={cn(chipBase, selectedResult === result ? chipActive : chipInactive)}
-                      >
-                        {result}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-              </div>
+        {paradigms.length > 1 && (
+          <div className="flex items-center gap-2.5 border-t border-black/[0.06] px-3.5 py-2.5 sm:border-t-0 sm:border-l">
+            <InlineTooltip label="Block-building paradigm: External (SSP) or Local (MSP)">
+              <span className={filterLabel}>Paradigm</span>
+            </InlineTooltip>
+            <div className="flex gap-1">
+              {paradigms.map(paradigm => (
+                <button
+                  key={paradigm}
+                  type="button"
+                  onClick={() => findAndSelect(selectedEvaluation, paradigm)}
+                  className={cn(chipBase, selectedParadigm === paradigm ? chipActive : chipInactive)}
+                >
+                  {paradigmLabel(paradigm)}
+                </button>
+              ))}
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   )
 }
