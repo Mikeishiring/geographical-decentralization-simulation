@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Code, ExternalLink } from 'lucide-react'
+import { Code, ExternalLink, FileText } from 'lucide-react'
 import { PAPER_METADATA, type Author, type AuthorSocial } from '../../data/paper-sections'
 import { CONTENT_MAX_WIDTH, SPRING_SNAPPY } from '../../lib/theme'
 import { GlobeWireframe } from '../decorative/GlobeWireframe'
@@ -28,9 +28,9 @@ function SocialIcon({ social }: { readonly social: AuthorSocial }) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={icon.label}
-      className="flex h-[22px] w-[22px] items-center justify-center rounded-full text-muted/60 transition-colors duration-150 hover:bg-accent/8 hover:text-accent"
+      className="flex h-[24px] w-[24px] items-center justify-center rounded-md text-muted/50 transition-all duration-150 hover:bg-accent/8 hover:text-accent hover:scale-110 active:scale-95"
     >
-      <svg viewBox={icon.viewBox ?? '0 0 24 24'} className="h-3 w-3 fill-current">
+      <svg viewBox={icon.viewBox ?? '0 0 24 24'} className="h-[11px] w-[11px] fill-current">
         <path d={icon.path} />
       </svg>
     </a>
@@ -77,36 +77,60 @@ function AuthorChip({ author }: { readonly author: Author }) {
       <AnimatePresence>
         {hovered && (author.role || author.focus || author.socials?.length) && (
           <motion.div
-            initial={{ opacity: 0, y: 4, scale: 0.96 }}
+            initial={{ opacity: 0, y: 6, scale: 0.92 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 2, scale: 0.98 }}
-            transition={SPRING_SNAPPY}
-            className="absolute left-0 top-full mt-2 z-40"
+            exit={{ opacity: 0, y: 3, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 22, mass: 0.7 }}
+            className="absolute left-0 top-full mt-2.5 z-40"
           >
-            <div className="rounded-xl border border-rule bg-white/95 backdrop-blur-md shadow-lg px-3.5 py-2.5 min-w-[180px] max-w-[260px]">
-              <div className="flex items-center gap-2">
-                <span className="text-13 font-medium text-text-primary">
-                  {author.name}
-                </span>
-                {author.url && (
-                  <ExternalLink className="h-3 w-3 text-muted/50 shrink-0" />
+            <div
+              className="rounded-2xl bg-white/97 backdrop-blur-xl min-w-[200px] max-w-[280px]"
+              style={{
+                boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.08), 0 12px 40px rgba(0,0,0,0.04)',
+              }}
+            >
+              {/* Author identity */}
+              <div className="px-4 pt-3.5 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-semibold tracking-[-0.01em] text-text-primary">
+                    {author.name}
+                  </span>
+                </div>
+                {author.role && (
+                  <div className="mt-0.5 text-[11px] font-medium text-accent">
+                    {author.role}
+                  </div>
+                )}
+                {author.focus && (
+                  <div className="mt-1 text-[11px] leading-relaxed text-muted">
+                    {author.focus}
+                  </div>
                 )}
               </div>
-              {author.role && (
-                <div className="mt-1 text-11 text-accent font-medium">
-                  {author.role}
-                </div>
-              )}
-              {author.focus && (
-                <div className="mt-1 text-11 leading-relaxed text-muted">
-                  {author.focus}
-                </div>
-              )}
-              {author.socials && author.socials.length > 0 && (
-                <div className="mt-2 flex items-center gap-0.5 border-t border-rule/50 pt-2">
-                  {author.socials.map(social => (
+
+              {/* Social row + paper link */}
+              {(author.socials?.length || author.url) && (
+                <div className="flex items-center gap-1 border-t border-black/[0.06] px-3 py-2">
+                  {author.socials?.map(social => (
                     <SocialIcon key={social.platform} social={social} />
                   ))}
+                  {author.url && (
+                    <>
+                      {author.socials?.length ? (
+                        <div className="mx-1 h-3.5 w-px bg-black/[0.08]" />
+                      ) : null}
+                      <a
+                        href={author.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="View in paper"
+                        className="flex h-[22px] items-center gap-1 rounded-full px-1.5 text-muted/50 transition-colors duration-150 hover:bg-accent/8 hover:text-accent"
+                      >
+                        <FileText className="h-3 w-3" />
+                        <span className="text-[10px] font-medium tracking-wide uppercase">Paper</span>
+                      </a>
+                    </>
+                  )}
                 </div>
               )}
             </div>
