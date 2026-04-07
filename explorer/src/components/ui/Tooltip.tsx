@@ -48,7 +48,7 @@ function TooltipBase({
         role="tooltip"
         className={cn(
           'pointer-events-none absolute left-1/2 z-50 -translate-x-1/2 whitespace-normal',
-          'max-w-[260px] rounded-xl border border-white/[0.08] bg-[#141414]/95 px-3 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.35),0_0_0_0.5px_rgba(255,255,255,0.06)]',
+          'min-w-[180px] max-w-[340px] rounded-xl border border-white/[0.08] bg-[#141414]/95 px-3.5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.35),0_0_0_0.5px_rgba(255,255,255,0.06)]',
           'backdrop-blur-xl',
           'opacity-0 transition-[opacity,transform] duration-200',
           'group-hover/tip:opacity-100 group-hover/tip:delay-[350ms]',
@@ -57,11 +57,11 @@ function TooltipBase({
             : 'bottom-full mb-2.5 -translate-y-1 group-hover/tip:-translate-y-0',
         )}
       >
-        <span className="block text-[11px] font-medium leading-snug tracking-[-0.01em] text-white/90">
+        <span className="block text-[11.5px] font-medium leading-[1.45] tracking-[-0.01em] text-white/90">
           {label}
         </span>
         {detail && (
-          <span className="mt-1 block text-[10px] leading-relaxed text-white/50">
+          <span className="mt-1 block text-[10.5px] leading-[1.5] text-white/50">
             {detail}
           </span>
         )}

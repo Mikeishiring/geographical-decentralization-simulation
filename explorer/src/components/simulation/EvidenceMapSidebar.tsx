@@ -63,7 +63,7 @@ export function EvidenceMapSidebar({
         <div className="grid grid-cols-2 gap-1.5">
           {gini != null && (
             <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium cursor-help" title="Gini coefficient — 0 = perfectly equal, 1 = maximally concentrated. Measures geographic validator distribution.">Gini</div>
+              <InlineTooltip label="Gini coefficient — 0 = perfectly equal, 1 = maximally concentrated" placement="above"><span className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Gini</span></InlineTooltip>
               <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(gini, THRESHOLDS.gini)])}>
                 {formatNumber(gini, 3)}
               </div>
@@ -71,7 +71,7 @@ export function EvidenceMapSidebar({
           )}
           {hhi != null && (
             <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium cursor-help" title="Herfindahl-Hirschman Index — Sum of squared market shares. Higher = more concentrated.">HHI</div>
+              <InlineTooltip label="Herfindahl-Hirschman Index — sum of squared market shares, higher = more concentrated" placement="above"><span className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">HHI</span></InlineTooltip>
               <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(hhi, THRESHOLDS.hhi)])}>
                 {formatNumber(hhi, 4)}
               </div>
@@ -79,7 +79,7 @@ export function EvidenceMapSidebar({
           )}
           {liveness != null && (
             <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium cursor-help" title={`${LIVENESS_LABEL} — ${LIVENESS_DESCRIPTION}`}>{LIVENESS_LABEL}</div>
+              <InlineTooltip label={`${LIVENESS_LABEL} — ${LIVENESS_DESCRIPTION}`} placement="above"><span className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">{LIVENESS_LABEL}</span></InlineTooltip>
               <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentHigher(liveness, THRESHOLDS.liveness)])}>
                 {formatLivenessCount(liveness)}
               </div>
@@ -87,13 +87,13 @@ export function EvidenceMapSidebar({
           )}
           {clusters != null && (
             <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium cursor-help" title="Distinct geographic clusters identified by nearest-neighbor analysis">Clusters</div>
+              <InlineTooltip label="Distinct geographic clusters identified by nearest-neighbor analysis" placement="above"><span className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Clusters</span></InlineTooltip>
               <div className="text-[13px] font-semibold tabular-nums text-stone-800">{clusters}</div>
             </div>
           )}
           {distance != null && (
             <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium cursor-help" title="Sum of pairwise distances between all active regions. Higher = more geographically spread out.">Distance</div>
+              <InlineTooltip label="Sum of pairwise distances between active regions — higher = more geographically spread" placement="above"><span className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Distance</span></InlineTooltip>
               <div className="text-[13px] font-semibold tabular-nums text-stone-800">{distance.toLocaleString()}</div>
             </div>
           )}
