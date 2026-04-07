@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion'
-import { MousePointerClick } from 'lucide-react'
 import { STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { getActiveStudy } from '../../studies'
 import { GlobeNetwork } from '../decorative/GlobeNetwork'
@@ -37,16 +36,6 @@ export function PaperHero() {
               {claim}
             </span>
           ))}
-        </motion.div>
-
-        <motion.div
-          variants={STAGGER_ITEM}
-          className="mt-4 inline-flex max-w-2xl items-start gap-2 rounded-xl border border-accent/15 bg-white/80 px-3.5 py-2.5 text-xs leading-relaxed text-muted shadow-[0_4px_16px_rgba(15,23,42,0.05)] backdrop-blur-sm"
-        >
-          <MousePointerClick className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
-          <span>
-            Highlight any passage to publish a public community note. Notes stay attached to the section you annotated and also appear on the Community page for replies and voting.
-          </span>
         </motion.div>
 
       </div>

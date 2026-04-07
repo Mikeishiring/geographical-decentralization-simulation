@@ -85,15 +85,13 @@ function Sparkline({
 }) {
   const geometry = buildSparklineGeometry(data, width, height)
   if (!geometry) return null
-  const { coords, points, areaD, baselineY } = geometry
+  const { coords, points, baselineY } = geometry
   const highlight = coords[Math.max(0, Math.min(coords.length - 1, highlightIndex ?? (coords.length - 1)))] ?? coords[coords.length - 1]!
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0" aria-hidden>
-      <line x1={0} y1={baselineY} x2={width} y2={baselineY} stroke={withAlpha(color, 0.16)} strokeWidth={1} />
-      <path d={areaD} fill={withAlpha(color, 0.11)} />
-      <polyline points={points} fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
-      <line x1={highlight.x} y1={2} x2={highlight.x} y2={baselineY} stroke={withAlpha(color, 0.22)} strokeWidth={1} />
-      <circle cx={highlight.x} cy={highlight.y} r={2.8} fill="white" stroke={color} strokeWidth={1.7} />
+      <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
+      <line x1={highlight.x} y1={2} x2={highlight.x} y2={baselineY} stroke={withAlpha(color, 0.18)} strokeWidth={1} />
+      <circle cx={highlight.x} cy={highlight.y} r={2.5} fill="white" stroke={color} strokeWidth={1.5} />
     </svg>
   )
 }
@@ -401,9 +399,6 @@ function EvidenceKpiCard({
   const deltaDirection = seriesDelta?.direction ?? 'flat'
   const deltaSentiment = deltaTone(deltaDirection, card.preferredDeltaDirection)
   const slotLabel = hoverIndex != null ? `Slot ${(effectiveIndex + 1).toLocaleString()}` : 'Final slot'
-  const compactSummary = hoverIndex != null
-    ? `${slotLabel} of ${card.totalSlots.toLocaleString()}`
-    : card.insight
   const popoverHeadline = hoverIndex != null
     ? `${card.label} at ${slotLabel.toLowerCase()}`
     : card.insight
@@ -448,9 +443,9 @@ function EvidenceKpiCard({
         active && 'z-10 bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)]',
         hovered && 'z-20',
       )}
-      style={{
-        backgroundImage: `linear-gradient(180deg, ${withAlpha(card.sparkColor, active ? 0.05 : 0.018)} 0%, rgba(255,255,255,0) 62%)`,
-      }}
+      style={active ? {
+        backgroundImage: `linear-gradient(180deg, ${withAlpha(card.sparkColor, 0.04)} 0%, rgba(255,255,255,0) 50%)`,
+      } : undefined}
     >
       <span
         aria-hidden
@@ -481,13 +476,10 @@ function EvidenceKpiCard({
 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <InlineTooltip label={card.detail}>
+          <InlineTooltip label={card.subtitle ? `${card.subtitle} — ${card.detail}` : card.detail}>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
               <span className="text-[9px] uppercase tracking-[0.1em] text-stone-500 font-semibold truncate">{card.label}</span>
-              {card.subtitle && (
-                <span className="text-[8px] text-stone-400 font-normal truncate hidden sm:inline">{card.subtitle}</span>
-              )}
             </div>
           </InlineTooltip>
           <div className="mt-1.5 flex flex-wrap items-end gap-x-2 gap-y-1">
@@ -505,9 +497,6 @@ function EvidenceKpiCard({
               </InlineTooltip>
             )}
           </div>
-          <div className="text-[10px] leading-[1.45] text-stone-500 line-clamp-1">
-            {compactSummary}
-          </div>
         </div>
 
         {card.sparkData.length > 1 ? (
@@ -520,7 +509,7 @@ function EvidenceKpiCard({
             <AnimatePresence initial={false}>
               {hoverIndex != null && currentValue != null ? (
                 <motion.div
-                  className={cn('pointer-events-none absolute bottom-full z-20 mb-2', tooltipPositionClass)}
+                  className={cn('pointer-events-none absolute bottom-full z-30 mb-2', tooltipPositionClass)}
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 4 }}
@@ -559,12 +548,12 @@ export function EvidenceKpiStrip({ payload, activeCategory, onCategoryChange }: 
 
   return (
     <motion.div
-      className="overflow-hidden rounded-[14px] border border-black/[0.05] bg-black/[0.05]"
+      className="rounded-[14px] border border-black/[0.05] bg-black/[0.05]"
       initial="hidden"
       animate="visible"
       variants={STAGGER_CONTAINER}
     >
-      <div className="grid grid-cols-1 gap-px sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-px sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 [&>*:first-child]:rounded-tl-[13px] [&>*:first-child]:rounded-tr-[13px] sm:[&>*:first-child]:rounded-tr-none sm:[&>*:nth-child(2)]:rounded-tr-[13px] xl:[&>*:nth-child(2)]:rounded-tr-none xl:[&>*:last-child]:rounded-tr-[13px] [&>*:last-child]:rounded-br-[13px] [&>*:last-child]:rounded-bl-[13px] sm:[&>*:last-child]:rounded-bl-none sm:[&>*:nth-last-child(2)]:rounded-bl-[13px] xl:[&>*:nth-last-child(2)]:rounded-bl-none xl:[&>*:first-child]:rounded-bl-[13px]">
         {cards.map(card => {
           const isActive = activeCategory === card.linkedCategory
           return (
