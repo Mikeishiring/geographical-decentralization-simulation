@@ -59,6 +59,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
   const [mapViewportHeight, setMapViewportHeight] = useState<number | null>(null)
   const rafRef = useRef<number | null>(null)
   const lastFrameRef = useRef(0)
+  const prevNodeIdsRef = useRef<Set<string>>(new Set())
 
   // ── Zoom & Pan ──
   const [zoom, setZoom] = useState(1)
@@ -172,6 +173,27 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
     () => spreadOverlappingNodes(rawDisplayNodes, maxCount),
     [rawDisplayNodes, maxCount],
   )
+
+  // Ghost nodes — nodes that just disappeared get a fade-out instead of instant removal
+  const ghostNodes = useMemo(() => {
+    const currentIds = new Set(displayNodes.map(n => n.id))
+    const ghosts: Array<{ id: string; x: number; y: number; color: string }> = []
+    // Only track ghosts during playback
+    if (playing) {
+      for (const prevId of prevNodeIdsRef.current) {
+        if (!currentIds.has(prevId)) {
+          // Find this node's last known position from the GCP region data
+          const region = GCP_REGION_MAP.get(prevId)
+          if (region) {
+            const { x, y } = latLonToMercator(region.lat, region.lon, SVG_W, SVG_H)
+            ghosts.push({ id: prevId, x, y, color: regionColor(region.macroRegion) })
+          }
+        }
+      }
+    }
+    prevNodeIdsRef.current = currentIds
+    return ghosts
+  }, [displayNodes, playing])
 
   const latencyResult = useMemo(
     () => overlay === 'latency' ? buildLatencyArcs(displayNodes) : { arcs: [], truncatedCount: 0 },
@@ -652,6 +674,21 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
               )
             })}
 
+            {/* ── Ghost nodes — fade out during playback when a region loses all validators ── */}
+            {ghostNodes.map(ghost => (
+              <circle
+                key={`ghost-${ghost.id}`}
+                cx={ghost.x} cy={ghost.y}
+                r={3}
+                fill={ghost.color}
+                stroke="white"
+                strokeWidth={0.4}
+              >
+                <animate attributeName="r" from="3" to="0" dur="0.4s" fill="freeze" />
+                <animate attributeName="opacity" from="0.6" to="0" dur="0.4s" fill="freeze" />
+              </circle>
+            ))}
+
             {/* ── Region nodes — colored by macro-region with flow-aware styling ── */}
             {displayNodes.map((node, index) => {
               const r = nodeRadius(node.count, maxCount)
@@ -713,6 +750,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                       fill={color}
                       stroke="white"
                       strokeWidth={isTop3 ? 1.4 : isTop6 ? 1 : 0.6}
+                      style={{ transition: 'r 0.15s ease-out, cx 0.1s ease-out, cy 0.1s ease-out' }}
                       {...hoverProps}
                     />
                   ) : (
