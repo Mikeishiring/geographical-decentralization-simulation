@@ -315,7 +315,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       series: metrics.attestations ?? [],
       totalSlots,
       formatSeriesValue: value => formatNumber(value, 1),
-      formatDeltaValue: value => formatNumber(value, 4),
+      formatDeltaValue: value => formatNumber(value, 1),
       sparkColor: CHART_COLORS.attestation,
       linkedCategory: 'economics',
     })
@@ -344,7 +344,7 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
       series: metrics.proposal_times ?? [],
       totalSlots,
       formatSeriesValue: value => `${formatNumber(value, 1)} ms`,
-      formatDeltaValue: value => `${formatNumber(value, 4)} ms`,
+      formatDeltaValue: value => `${formatNumber(value, 1)} ms`,
       sparkColor: CHART_COLORS.proposalTime,
       linkedCategory: 'latency',
     })
@@ -474,7 +474,7 @@ function EvidenceKpiCard({
       aria-pressed={active}
       aria-label={`${card.label}: ${card.value}. ${card.detail}`}
       className={cn(
-        'group relative z-0 min-h-[100px] h-full overflow-visible bg-white/80 px-3 py-2.5 text-left transition-[background-color,box-shadow,transform] duration-150 hover:bg-white/94 active:scale-[0.97] active:duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20',
+        'group relative z-0 min-h-[72px] h-full overflow-visible bg-white/80 px-3 py-2 text-left transition-[background-color,box-shadow,transform] duration-150 hover:bg-white/94 active:scale-[0.97] active:duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20',
         active && 'z-10 bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)]',
         hovered && 'z-20',
       )}
@@ -515,16 +515,16 @@ function EvidenceKpiCard({
         </div>
       </InlineTooltip>
 
-      <div className="mt-1.5 flex items-end gap-1.5">
+      <div className="mt-1 flex items-center gap-1.5">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-            <div className="text-[20px] font-medium text-stone-900 tabular-nums leading-none tracking-[-0.01em] font-[family-name:var(--font-mono)]">
+            <div className="text-[18px] font-medium text-stone-900 tabular-nums leading-none tracking-[-0.01em] font-[family-name:var(--font-mono)]">
               {hoverIndex != null && currentValue != null ? card.formatSeriesValue(currentValue) : card.value}
             </div>
             {seriesDelta && (
               <InlineTooltip label={hoverIndex != null ? 'Change from slot 1 to the inspected slot' : 'Change from slot 1 to the final slot'}>
               <div
-                className={cn('inline-flex items-center gap-1 text-[10px] font-medium tabular-nums', DELTA_COLOR[deltaSentiment])}
+                className={cn('inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums', DELTA_COLOR[deltaSentiment])}
               >
                 <span>{DELTA_ARROW[deltaDirection]}</span>
                 <span>{seriesDelta.formatted}</span>

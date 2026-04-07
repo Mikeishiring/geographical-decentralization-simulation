@@ -322,7 +322,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
   }, [])
 
   return (
-    <div className={cn(embedded ? 'overflow-hidden' : 'lab-stage overflow-hidden', className)}>
+    <div className={cn(embedded ? 'overflow-visible' : 'lab-stage', className)} style={{ overflow: 'visible' }}>
       {/* ── Hero header ── */}
       <div className={cn(
         'border-b border-black/[0.06] px-4 py-3 sm:px-5',
@@ -451,11 +451,13 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
         {/* SVG Map */}
         <div
           ref={mapContainerRef}
-          className="relative overflow-hidden lg:self-start"
+          className="relative lg:self-start"
           style={{
             aspectRatio: `${SVG_W} / ${MAP_VISIBLE_H}`,
             backgroundColor: LIGHT_SURFACE.bg,
             cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
+            overflow: 'clip' as 'hidden',
+            overflowClipMargin: 'content-box 200px',
             maskImage: 'linear-gradient(to right, transparent 0%, black 3%, black 97%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 4%, black 96%, transparent 100%)',
             maskComposite: 'intersect',
             WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 3%, black 97%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 4%, black 96%, transparent 100%)',
