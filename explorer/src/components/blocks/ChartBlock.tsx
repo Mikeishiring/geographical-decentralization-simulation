@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BLOCK_COLORS, CHART, SPRING_CRISP } from '../../lib/theme'
 import type { ChartBlock as ChartBlockType } from '../../types/blocks'
@@ -80,9 +80,33 @@ function EmptyBlock({ title }: { readonly title: string }) {
   return <BlockEmptyState title={title} message="No chart points were attached to this block." />
 }
 
+function useDelayedClear<T>(initialValue: T, delayMs = 200) {
+  const [value, setValue] = useState<T>(initialValue)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const cancel = useCallback(() => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null }
+  }, [])
+
+  const set = useCallback((next: T) => {
+    cancel()
+    setValue(next)
+  }, [cancel])
+
+  const scheduleClear = useCallback(() => {
+    cancel()
+    timerRef.current = setTimeout(() => setValue(initialValue), delayMs)
+  }, [cancel, initialValue, delayMs])
+
+  useEffect(() => () => cancel(), [cancel])
+
+  return { value, set, scheduleClear, cancel } as const
+}
+
 function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string }) {
   const gradientId = useId()
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+  const hover = useDelayedClear<number | null>(null)
+  const hoverIdx = hover.value
   const padding = { top: 10, right: 40, bottom: 30, left: 10 }
   const width = 500
   const height = 160
@@ -132,9 +156,9 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
               const dist = Math.abs(points[i].x - relX)
               if (dist < bestDist) { bestDist = dist; nearest = i }
             }
-            setHoverIdx(nearest)
+            hover.set(nearest)
           }}
-          onMouseLeave={() => setHoverIdx(null)}
+          onMouseLeave={hover.scheduleClear}
         >
           <defs>
             <linearGradient id={gradientId} x1="0%" x2="0%" y1="0%" y2="100%">
@@ -220,36 +244,38 @@ function LineChart({ data, unit }: { data: ChartBlockType['data']; unit?: string
       {/* Hover tooltip — spring entrance */}
       <AnimatePresence>
         {hoveredPoint && (
-          <InteractiveInspector
-            eyebrow="Point inspection"
-            title={hoveredPoint.label}
-            subtitle="Hover across the line to compare this point against the opening and the latest value."
-            hint="Line chart"
-            metrics={[
-              {
-                label: 'Value',
-                value: formatChartValue(hoveredPoint.value, unit),
-                tone: 'accent',
-              },
-              {
-                label: 'Vs start',
-                value: formatSignedChartDelta(hoveredPoint.value, points[0]?.value ?? null, unit),
-              },
-              {
-                label: 'Vs prev',
-                value: formatSignedChartDelta(
-                  hoveredPoint.value,
-                  hoverIdx != null && hoverIdx > 0 ? points[hoverIdx - 1]?.value ?? null : hoveredPoint.value,
-                  unit,
-                ),
-              },
-              {
-                label: 'Peak',
-                value: highestPoint ? `${highestPoint.label} · ${formatChartValue(highestPoint.value, unit)}` : 'N/A',
-              },
-            ]}
-            className="mt-3"
-          />
+          <div onMouseEnter={hover.cancel} onMouseLeave={hover.scheduleClear}>
+            <InteractiveInspector
+              eyebrow="Point inspection"
+              title={hoveredPoint.label}
+              subtitle="Hover across the line to compare this point against the opening and the latest value."
+              hint="Line chart"
+              metrics={[
+                {
+                  label: 'Value',
+                  value: formatChartValue(hoveredPoint.value, unit),
+                  tone: 'accent',
+                },
+                {
+                  label: 'Vs start',
+                  value: formatSignedChartDelta(hoveredPoint.value, points[0]?.value ?? null, unit),
+                },
+                {
+                  label: 'Vs prev',
+                  value: formatSignedChartDelta(
+                    hoveredPoint.value,
+                    hoverIdx != null && hoverIdx > 0 ? points[hoverIdx - 1]?.value ?? null : hoveredPoint.value,
+                    unit,
+                  ),
+                },
+                {
+                  label: 'Peak',
+                  value: highestPoint ? `${highestPoint.label} · ${formatChartValue(highestPoint.value, unit)}` : 'N/A',
+                },
+              ]}
+              className="mt-3"
+            />
+          </div>
         )}
       </AnimatePresence>
 
@@ -278,7 +304,8 @@ function BarChart({
   unit?: string
   categoryColors: Map<string, string>
 }) {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const barHover = useDelayedClear<number | null>(null)
+  const hoveredIndex = barHover.value
   const totalMagnitude = data.reduce((sum, datum) => sum + Math.abs(datum.value), 0)
   const sortedByMagnitude = [...data]
     .map((datum, index) => ({ datum, index }))
@@ -301,8 +328,8 @@ function BarChart({
         return (
           <motion.div
             key={`${d.label}-${i}`}
-            onMouseEnter={() => setHoveredIndex(i)}
-            onMouseLeave={() => setHoveredIndex(null)}
+            onMouseEnter={() => barHover.set(i)}
+            onMouseLeave={barHover.scheduleClear}
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: isDimmed ? 0.4 : 1, x: 0 }}
             transition={{ ...SPRING_CRISP, delay: i * 0.03 }}
@@ -335,32 +362,34 @@ function BarChart({
 
       <AnimatePresence initial={false}>
         {hoveredDatum ? (
-          <InteractiveInspector
-            eyebrow="Bar inspection"
-            title={hoveredDatum.label}
-            subtitle={hoveredDatum.category ? `Category: ${hoveredDatum.category}` : 'Inspect how this row contributes to the chart total.'}
-            hint="Bar chart"
-            metrics={[
-              {
-                label: 'Value',
-                value: formatChartValue(hoveredDatum.value, unit),
-                tone: 'accent',
-              },
-              {
-                label: 'Rank',
-                value: hoveredRank >= 0 ? `#${hoveredRank + 1} of ${data.length}` : 'N/A',
-              },
-              {
-                label: 'Share',
-                value: totalMagnitude > 0 ? `${((Math.abs(hoveredDatum.value) / totalMagnitude) * 100).toFixed(1)}%` : 'N/A',
-              },
-              {
-                label: 'Gap to leader',
-                value: leadingDatum ? formatSignedChartDelta(hoveredDatum.value, leadingDatum.value, unit) : 'N/A',
-              },
-            ]}
-            className="pt-1"
-          />
+          <div onMouseEnter={barHover.cancel} onMouseLeave={barHover.scheduleClear}>
+            <InteractiveInspector
+              eyebrow="Bar inspection"
+              title={hoveredDatum.label}
+              subtitle={hoveredDatum.category ? `Category: ${hoveredDatum.category}` : 'Inspect how this row contributes to the chart total.'}
+              hint="Bar chart"
+              metrics={[
+                {
+                  label: 'Value',
+                  value: formatChartValue(hoveredDatum.value, unit),
+                  tone: 'accent',
+                },
+                {
+                  label: 'Rank',
+                  value: hoveredRank >= 0 ? `#${hoveredRank + 1} of ${data.length}` : 'N/A',
+                },
+                {
+                  label: 'Share',
+                  value: totalMagnitude > 0 ? `${((Math.abs(hoveredDatum.value) / totalMagnitude) * 100).toFixed(1)}%` : 'N/A',
+                },
+                {
+                  label: 'Gap to leader',
+                  value: leadingDatum ? formatSignedChartDelta(hoveredDatum.value, leadingDatum.value, unit) : 'N/A',
+                },
+              ]}
+              className="pt-1"
+            />
+          </div>
         ) : (
           <motion.div
             key="bar-hint"

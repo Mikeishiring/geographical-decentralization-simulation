@@ -70,14 +70,13 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
         {block.title}
       </h3>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 sm:divide-x sm:divide-rule">
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 gap-0 sm:divide-x sm:divide-rule"
+        onMouseLeave={() => { setHoveredSide(null); setHoveredItemKey(null) }}
+      >
         {/* Left column */}
         <div
           onMouseEnter={() => setHoveredSide('left')}
-          onMouseLeave={() => {
-            setHoveredSide(null)
-            setHoveredItemKey(null)
-          }}
           className={cn(
             'pb-4 sm:pb-0 sm:pr-5 border-b sm:border-b-0 border-rule rounded-md transition-colors',
             hoveredSide === 'left' && 'bg-accent/[0.03]',
@@ -114,10 +113,6 @@ export function ComparisonBlock({ block }: ComparisonBlockProps) {
         {/* Right column */}
         <div
           onMouseEnter={() => setHoveredSide('right')}
-          onMouseLeave={() => {
-            setHoveredSide(null)
-            setHoveredItemKey(null)
-          }}
           className={cn(
             'pt-4 sm:pt-0 sm:pl-5 rounded-md transition-colors',
             hoveredSide === 'right' && 'bg-accent-warm/[0.03]',

@@ -46,7 +46,6 @@ export function PaperReaderPage({
       : sections[0].id
   })
 
-  const [guideOpen, setGuideOpen] = useState(false)
   const [notesVisible, setNotesVisible] = useState(true)
   const [pdfTargetPage, setPdfTargetPage] = useState<number | undefined>(undefined)
 
@@ -255,11 +254,6 @@ export function PaperReaderPage({
       <PaperViewModeBar
         readerMode={readerMode}
         onModeChange={setReaderMode}
-        activeSectionIndex={activeSectionIndex}
-        guideOpen={guideOpen}
-        onGuideToggle={() => setGuideOpen(prev => !prev)}
-        onSectionClick={setActiveSectionId}
-        onTabChange={onTabChange}
         notesVisible={notesVisible}
         onNotesToggle={() => setNotesVisible(prev => !prev)}
         noteCount={totalNoteCount}
