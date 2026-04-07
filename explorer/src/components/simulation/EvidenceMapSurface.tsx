@@ -221,7 +221,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
   const edges = useMemo(() => {
     if (displayNodes.length < 2) return []
     const seen = new Set<string>()
-    const result: Array<{ path: string; va: number; vb: number; colorA: string; colorB: string; gradId: string; x1: number; y1: number; x2: number; y2: number }> = []
+    const result: Array<{ key: string; path: string; va: number; vb: number; colorA: string; colorB: string; gradId: string; x1: number; y1: number; x2: number; y2: number; departing?: boolean }> = []
     const N = Math.min(3, displayNodes.length - 1)
     for (const p of displayNodes) {
       const distances = displayNodes
@@ -236,6 +236,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
           // Orient path from lower-count node → higher-count node so arrow points toward hub
           const [from, to] = p.count <= q.count ? [p, q] : [q, p]
           result.push({
+            key,
             path: greatCircleArc(from.lat, from.lon, to.lat, to.lon, SVG_W, SVG_H),
             va: from.count, vb: to.count,
             colorA: regionColor(from.macroRegion),
@@ -451,7 +452,15 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
         <div
           ref={mapContainerRef}
           className="relative overflow-hidden lg:self-start"
-          style={{ aspectRatio: `${SVG_W} / ${MAP_VISIBLE_H}`, backgroundColor: LIGHT_SURFACE.bg, cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
+          style={{
+            aspectRatio: `${SVG_W} / ${MAP_VISIBLE_H}`,
+            backgroundColor: LIGHT_SURFACE.bg,
+            cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
+            maskImage: 'linear-gradient(to right, transparent 0%, black 3%, black 97%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 4%, black 96%, transparent 100%)',
+            maskComposite: 'intersect',
+            WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 3%, black 97%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 4%, black 96%, transparent 100%)',
+            WebkitMaskComposite: 'destination-in',
+          }}
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -617,62 +626,75 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
             })}
 
             {/* ── Network connections (validators/sources mode) — great-circle arcs with flow ── */}
-            {overlay !== 'latency' && edges.map((e, i) => {
-              const strength = (e.va + e.vb) / (2 * maxCount)
-              const opacity = 0.18 + strength * 0.32
-              const sw = 0.5 + strength * 0.8
-              const gradStroke = e.colorA === e.colorB ? e.colorA : `url(#${e.gradId})`
-              // Particle color: use the higher-count node's color for visibility
-              const particleColor = e.va >= e.vb ? e.colorA : e.colorB
-              // Show arrow on top 12 edges when paused to indicate flow direction
-              const showArrow = !playing && i < 12
-              // Particle speed: faster for stronger connections, slower (larger dur) for weaker
-              const dur = 2.2 + i * 0.4
+            {overlay !== 'latency' && (
+              <AnimatePresence>
+                {edges.map((e, i) => {
+                  const strength = (e.va + e.vb) / (2 * maxCount)
+                  const opacity = 0.18 + strength * 0.32
+                  const sw = 0.5 + strength * 0.8
+                  const gradStroke = e.colorA === e.colorB ? e.colorA : `url(#${e.gradId})`
+                  // Particle color: use the higher-count node's color for visibility
+                  const particleColor = e.va >= e.vb ? e.colorA : e.colorB
+                  // Show arrow on top 12 edges when paused to indicate flow direction
+                  const showArrow = !playing && i < 12
+                  // Particle speed: faster for stronger connections, slower (larger dur) for weaker
+                  const dur = 2.2 + i * 0.4
 
-              return (
-                <g key={`edge-${i}`} style={{ color: particleColor }}>
-                  {playing ? (
-                    <path
-                      d={e.path}
-                      fill="none"
-                      stroke={gradStroke}
-                      strokeWidth={sw}
-                      strokeLinecap="round"
-                      opacity={opacity}
-                    />
-                  ) : (
-                    <motion.path
-                      d={e.path}
-                      fill="none"
-                      stroke={gradStroke}
-                      strokeWidth={sw}
-                      strokeLinecap="round"
-                      initial={{ pathLength: 0, opacity: 0 }}
-                      animate={{ pathLength: 1, opacity }}
-                      transition={{ ...SPRING_SOFT, delay: 0.3 + i * 0.005 }}
-                      markerEnd={showArrow ? `url(#${idPrefix}-flow-arrow)` : undefined}
-                    />
-                  )}
-                  {/* Traveling flow particles — visible during both play and pause */}
-                  {i < 10 && (
-                    <>
-                      <circle r={1.4 + strength * 1.6} fill={particleColor} opacity={0}>
-                        <animateMotion dur={`${dur}s`} repeatCount="indefinite" path={e.path} />
-                        <animate attributeName="opacity" values="0;0.6;0.6;0" dur={`${dur}s`} repeatCount="indefinite" />
-                        <animate attributeName="r" values={`${(1 + strength).toFixed(1)};${(1.8 + strength * 2).toFixed(1)};${(1 + strength).toFixed(1)}`} dur={`${dur}s`} repeatCount="indefinite" />
-                      </circle>
-                      {/* Second trailing particle on top 4 edges — convoy effect */}
-                      {i < 4 && (
-                        <circle r={0.8 + strength * 0.8} fill={particleColor} opacity={0}>
-                          <animateMotion dur={`${dur}s`} begin={`${dur * 0.4}s`} repeatCount="indefinite" path={e.path} />
-                          <animate attributeName="opacity" values="0;0.4;0.4;0" dur={`${dur}s`} begin={`${dur * 0.4}s`} repeatCount="indefinite" />
-                        </circle>
+                  return (
+                    <motion.g
+                      key={e.key}
+                      style={{ color: particleColor }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.12, ease: 'easeOut' }}
+                    >
+                      {playing ? (
+                        <motion.path
+                          d={e.path}
+                          fill="none"
+                          stroke={gradStroke}
+                          strokeWidth={sw}
+                          strokeLinecap="round"
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity }}
+                          transition={{ duration: 0.15, ease: 'easeOut' }}
+                        />
+                      ) : (
+                        <motion.path
+                          d={e.path}
+                          fill="none"
+                          stroke={gradStroke}
+                          strokeWidth={sw}
+                          strokeLinecap="round"
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity }}
+                          transition={{ ...SPRING_SOFT, delay: 0.3 + i * 0.005 }}
+                          markerEnd={showArrow ? `url(#${idPrefix}-flow-arrow)` : undefined}
+                        />
                       )}
-                    </>
-                  )}
-                </g>
-              )
-            })}
+                      {/* Traveling flow particles — visible during both play and pause */}
+                      {i < 10 && (
+                        <>
+                          <circle r={1.4 + strength * 1.6} fill={particleColor} opacity={0}>
+                            <animateMotion dur={`${dur}s`} repeatCount="indefinite" path={e.path} />
+                            <animate attributeName="opacity" values="0;0.6;0.6;0" dur={`${dur}s`} repeatCount="indefinite" />
+                            <animate attributeName="r" values={`${(1 + strength).toFixed(1)};${(1.8 + strength * 2).toFixed(1)};${(1 + strength).toFixed(1)}`} dur={`${dur}s`} repeatCount="indefinite" />
+                          </circle>
+                          {/* Second trailing particle on top 4 edges — convoy effect */}
+                          {i < 4 && (
+                            <circle r={0.8 + strength * 0.8} fill={particleColor} opacity={0}>
+                              <animateMotion dur={`${dur}s`} begin={`${dur * 0.4}s`} repeatCount="indefinite" path={e.path} />
+                              <animate attributeName="opacity" values="0;0.4;0.4;0" dur={`${dur}s`} begin={`${dur * 0.4}s`} repeatCount="indefinite" />
+                            </circle>
+                          )}
+                        </>
+                      )}
+                    </motion.g>
+                  )
+                })}
+              </AnimatePresence>
+            )}
 
             {/* ── Ghost nodes — fade out during playback when a region loses all validators ── */}
             {ghostNodes.map(ghost => (
@@ -910,10 +932,6 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
             )}
           </AnimatePresence>
 
-          {/* ── Slot progress bar (bottom of map) ── */}
-          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-black/[0.04]">
-            <div className="h-full transition-[width] duration-100" style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #1c1917, #57534e)' }} />
-          </div>
         </div>
 
         {/* ── Sidebar ── */}
