@@ -48,7 +48,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     id: 'system-model',
     number: '§3',
     title: 'System Model',
-    description: 'Geography, consensus, MEV extraction, and information sources.',
+    description: 'Why your position on the map is an economic advantage — and why the two paradigms exploit it differently.',
     category: 'methodology',
     blocks: [
       {
@@ -77,7 +77,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     id: 'simulation-design',
     number: '§5.2',
     title: 'Simulation Design',
-    description: 'Agent-based model setup, migration dynamics, and metric definitions.',
+    description: 'How the paper tests timing slack, the scaling effect, and the double penalty on 40 real cloud regions.',
     category: 'methodology',
     blocks: [
       {
@@ -112,7 +112,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     id: 'baseline-results',
     number: '§5.3',
     title: 'Baseline Results',
-    description: 'Convergence analysis with the homogeneous initial distribution.',
+    description: 'Both paradigms centralize from a uniform start — but local building reaches 3x the concentration of external.',
     category: 'finding',
     blocks: [
       {
@@ -132,7 +132,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     id: 'se1-source-placement',
     number: '§5.4',
     title: 'EXP 1: Information-Source Placement',
-    description: 'Latency-aligned vs misaligned sources and their paradigm-specific effects.',
+    description: 'Moving infrastructure to the same place helps one paradigm and hurts the other.',
     category: 'finding',
     blocks: [
       {
@@ -148,7 +148,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     id: 'se2-distribution',
     number: '§5.5',
     title: 'EXP 2: Heterogeneous Validator Distribution',
-    description: 'Starting from real Ethereum validator distribution (Chainbound data).',
+    description: 'When validators start where Ethereum already is, the starting map can matter more than the paradigm.',
     category: 'finding',
     blocks: [
       {
@@ -164,7 +164,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     id: 'se3-joint',
     number: '§5.6',
     title: 'EXP 3: Joint Heterogeneity',
-    description: 'Combined source placement + distribution effects, including transient decentralization.',
+    description: 'A brief dip in concentration that looks like decentralization — but the paper refuses to overclaim it.',
     category: 'finding',
     blocks: [
       {
@@ -184,7 +184,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     id: 'se4a-attestation',
     number: '§5.7.1',
     title: 'EXP 4a: Attestation Threshold (gamma)',
-    description: 'A paradigm-sensitive contrast in the homogeneous consensus-parameter study.',
+    description: 'Tighter timing centralizes external building more — but can actually disperse local building.',
     category: 'finding',
     blocks: [
       {
@@ -206,7 +206,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     id: 'se4b-slots',
     number: '§5.7.2',
     title: 'EXP 4b: Shorter Slot Times (EIP-7782)',
-    description: 'Impact of 6-second slots vs the current 12-second slots.',
+    description: 'Halving slot time barely moves the map — but raises reward inequality by 5-10%.',
     category: 'finding',
     blocks: [
       {
@@ -222,7 +222,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     id: 'discussion',
     number: '§6.1-§6.2',
     title: 'Discussion: Implications & Mitigations',
-    description: 'Implications plus mitigation directions from the discussion section.',
+    description: 'Protocol design shapes geography. What the paper suggests — and why it stops short of prescriptions.',
     category: 'discussion',
     blocks: [
       {
@@ -247,7 +247,7 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     id: 'limitations',
     number: '§6.3',
     title: 'Limitations',
-    description: 'Acknowledged assumptions and their potential impact.',
+    description: 'Where confidence should stop — every modeling simplification and what it trades away.',
     category: 'caveat',
     blocks: [
       {

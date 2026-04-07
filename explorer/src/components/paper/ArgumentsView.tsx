@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, FileText, Lightbulb, MousePointerClick } from 'lucide-react'
+import { ChevronDown, FileText, Lightbulb, MousePointerClick, Zap } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING, SPRING_CRISP, SECTION_CATEGORY_STYLE, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { getActiveStudy } from '../../studies'
@@ -11,6 +11,29 @@ import { BlockCanvas } from '../explore/BlockCanvas'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import type { Block, Cite } from '../../types/blocks'
 import type { Exploration } from '../../lib/api'
+
+/* ── Named mechanisms from the paper's formal analysis (§4) ─────────────── */
+
+const KEY_MECHANISMS = [
+  {
+    name: 'Timing slack',
+    paradigm: 'Both',
+    definition: 'How long a proposer can afford to wait for a more valuable block before attesters move on. Your position on the map determines your slack.',
+    implication: 'Regions with lower latency to attesters have more slack, translating directly into higher expected rewards.',
+  },
+  {
+    name: 'Scaling effect',
+    paradigm: 'Local',
+    definition: 'Value advantage scales linearly with the number of signal sources — 10ms closer to each of 40 sources yields 40 x 10ms x MEV growth rate.',
+    implication: 'Produces aggressive centralization (Gini > 0.75) because advantages compound across all sources simultaneously.',
+  },
+  {
+    name: 'Double penalty',
+    paradigm: 'External',
+    definition: 'Proposer-supplier latency enters the payoff twice: once in observing block value, once in the round-trip timing budget to attesters.',
+    implication: 'Bounded advantage (single supplier, no scaling), but misaligned placement intensifies co-location pressure (HHI up to 0.97).',
+  },
+] as const
 
 /* ── Block grouping by argument role ─────────────────────────────────────── */
 
@@ -163,8 +186,60 @@ export function ArgumentsView({
         )}
       </motion.div>
 
+      {/* Key mechanisms panel — the vocabulary readers need before diving into sections */}
+      <motion.div
+        className="mt-5 rounded-xl border border-accent/12 bg-gradient-to-br from-accent/[0.02] to-transparent overflow-hidden"
+        variants={STAGGER_CONTAINER}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-accent/8">
+          <div className="flex items-center gap-2">
+            <Zap className="h-3.5 w-3.5 text-accent/60" />
+            <span className="text-xs font-medium text-text-primary">Key mechanisms</span>
+            <span className="text-2xs text-muted">from §4 formal analysis</span>
+          </div>
+        </div>
+        <div className="grid gap-px bg-accent/[0.06] sm:grid-cols-3">
+          {KEY_MECHANISMS.map(m => (
+            <motion.div
+              key={m.name}
+              variants={STAGGER_ITEM}
+              className="bg-white px-5 py-4 sm:px-4"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className={cn(
+                  'h-1.5 w-1.5 rounded-full shrink-0',
+                  m.paradigm === 'Both' ? 'bg-accent' : m.paradigm === 'Local' ? 'bg-amber-500' : 'bg-blue-500',
+                )} />
+                <span className="text-13 font-semibold text-text-primary">{m.name}</span>
+                <span className={cn(
+                  'inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-medium',
+                  m.paradigm === 'Both'
+                    ? 'text-accent/60'
+                    : m.paradigm === 'Local'
+                      ? 'text-amber-600/60'
+                      : 'text-blue-600/60',
+                )}>
+                  {m.paradigm}
+                </span>
+              </div>
+              <p className="text-[13px] leading-relaxed text-muted">{m.definition}</p>
+              <p className="mt-2 text-[13px] leading-relaxed text-text-primary/80 font-medium border-t border-rule/50 pt-2">{m.implication}</p>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Transition hint */}
+      <div className="mt-8 mb-4 flex items-center gap-3">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-rule/60 to-transparent" />
+        <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted/50 shrink-0">Section-by-section evidence</span>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-rule/60 to-transparent" />
+      </div>
+
       {/* Section accordion */}
-      <div className="mt-6 rounded-xl border border-rule bg-white overflow-hidden">
+      <div className="rounded-xl border border-rule bg-white overflow-hidden">
         <div className="flex items-center justify-between gap-3 px-5 py-2.5 border-b border-rule bg-surface-active/30">
           <div className="text-xs font-medium text-text-primary">Arguments by section</div>
           <div className="flex items-center gap-3">

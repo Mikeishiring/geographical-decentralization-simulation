@@ -59,6 +59,19 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
         verdict: 'Local block building centralizes faster in the neutral baseline (Gini ~0.75 vs ~0.26 for external), while external block building remains more path-dependent to infrastructure placement and migration cost.',
       },
 
+  // Row 3b: Quantitative head-to-head (the scannable numbers table from §5.3)
+  {
+    type: 'table',
+    title: 'Baseline Concentration Metrics: Head-to-Head',
+    headers: ['Metric', 'External', 'Local', 'Interpretation'],
+    rows: [
+      ['Gini coefficient', '0.26', '0.75', 'Local produces ~3x geographic concentration'],
+      ['HHI', '0.18', '0.62', 'Local approaches single-region dominance'],
+      ['Regions to break liveness', '2', '1', 'Local has minimal geographic redundancy'],
+    ],
+    highlight: [2],
+  },
+
   // Row 4: Surprising finding
   {
     type: 'insight',
@@ -144,6 +157,65 @@ export const OVERVIEW_CARD: TopicCard = {
 }
 
 export const TOPIC_CARDS: readonly TopicCard[] = [
+  {
+    id: 'key-mechanisms',
+    title: 'Three mechanisms that drive validator migration',
+    description: 'The named forces behind geographic concentration: timing slack, the scaling effect, and the double penalty.',
+    theme: 'methodology',
+    prompts: [
+      'What is timing slack and why does it matter?',
+      'How does the scaling effect work in local block building?',
+      'What is the double penalty in external block building?',
+      'Why do these mechanisms produce different maps?',
+    ],
+    blocks: [
+      {
+        type: 'insight',
+        emphasis: 'key-finding',
+        title: 'Three named mechanisms from §4',
+        text: '**Timing slack**: how long a proposer can wait before attesters move on — your map position determines your slack. **Scaling effect** (local building): 10ms closer to each of 40 sources yields 40 x 10ms x MEV growth rate in aggregate advantage, driving Gini above 0.75. **Double penalty** (external building): supplier latency enters payoffs twice, but the advantage is bounded to a single supplier.',
+      },
+      {
+        type: 'insight',
+        text: 'The scaling effect aggregates many small advantages into a large one — it rewards the geographic center of gravity. The double penalty amplifies a single bottleneck — it rewards proximity to one anchor point. Same underlying force (latency), fundamentally different optimization landscapes.',
+      },
+    ],
+  },
+  {
+    id: 'opposite-directions',
+    title: 'When the same change pushes paradigms apart',
+    description: 'The paper\'s sharpest result: identical infrastructure or parameter changes can centralize one paradigm and decentralize the other.',
+    theme: 'finding',
+    prompts: [
+      'How can the same geographic change help one paradigm and hurt the other?',
+      'Why do source placement effects invert across paradigms?',
+      'Why does raising gamma centralize external but decentralize local?',
+      'What makes these opposing sensitivities provable rather than just simulated?',
+    ],
+    blocks: [
+      {
+        type: 'table',
+        title: 'Opposite Sensitivities: Same Change, Different Direction',
+        headers: ['Change', 'External Block Building', 'Local Block Building'],
+        rows: [
+          ['Sources placed in low-latency hubs', 'Softer centralization', 'Faster centralization (scaling effect compounds)'],
+          ['Sources placed in high-latency regions', 'Faster centralization (HHI 0.97)', 'Moderate centralization (HHI 0.79)'],
+          ['Higher attestation threshold (gamma)', 'More concentration (tighter timing amplifies supplier sensitivity)', 'Less concentration (forces attester vs signal trade-off)'],
+        ],
+        highlight: [1],
+      },
+      {
+        type: 'insight',
+        emphasis: 'surprising',
+        title: 'This is provable, not just observed',
+        text: 'Section §4 formally establishes that the two paradigms exhibit provably opposite sensitivities to source placement. This is not a simulation artifact — it follows from the structural difference between optimizing over a single best supplier versus summing over many sources.',
+      },
+      {
+        type: 'caveat',
+        text: 'The gamma sign-flip is demonstrated in EXP 4a\'s homogeneous setup specifically. The paper does not claim the same sign-flip holds across every possible configuration.',
+      },
+    ],
+  },
   {
     id: 'ssp-vs-msp',
     title: 'Why does local block building centralize faster than external?',
