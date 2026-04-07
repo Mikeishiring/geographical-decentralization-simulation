@@ -47,7 +47,7 @@ export function Footer() {
           {/* Attribution + coordinate */}
           <div className="flex items-center gap-3">
             <p className="text-11 text-text-faint">
-              Yang, Oz, Wu, Zhang (2025) · arXiv:2509.21475 · MIT License
+              Yang, Oz, Wu, Zhang (2025) · ACM SIGMETRICS 2026 · arXiv:2509.21475 · MIT License
             </p>
             <span className="hidden sm:inline mono-xs text-meridian" aria-hidden="true">
               50.1°N 8.7°E
