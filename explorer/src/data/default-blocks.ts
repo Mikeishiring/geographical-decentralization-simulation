@@ -245,7 +245,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
           ['Baseline (with migration cost)', 'More persistence away from the tightest hubs', 'Still concentrates strongly toward North America'],
           ['EXP 1: Aligned sources', 'Usually softer than misaligned External', 'Reinforces centralization pressure'],
           ['EXP 1: Misaligned sources', 'Poorly connected supplier sharpens co-location pull', 'Source vs attester trade-off becomes more visible'],
-          ['EXP 2 / SE3: Real ETH start', 'Existing US+EU hubs dominate; remote suppliers can cause a brief dip first', 'Existing US+EU hubs dominate; source placement matters less'],
+          ['EXP 2 / EXP 3: Real ETH start', 'Existing US+EU hubs dominate; remote suppliers can cause a brief dip first', 'Existing US+EU hubs dominate; source placement matters less'],
         ],
         highlight: [4],
       },
