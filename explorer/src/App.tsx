@@ -224,9 +224,7 @@ function App() {
             activeTab === 'paper' ? 'max-w-[96rem] pb-8 pt-3 sm:pt-4' : 'py-8',
             activeTab === 'paper'
               ? ''
-              : (activeTab === 'agent' || activeTab === 'results')
-                ? 'max-w-[96rem]'
-                : 'max-w-6xl',
+              : 'max-w-[96rem]',
           )}
         >
         <div {...hiddenPanelProps(activeTab !== 'paper')}>
