@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Code, ExternalLink, FileText } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { PAPER_METADATA, type Author, type AuthorSocial } from '../../data/paper-sections'
 import { CONTENT_MAX_WIDTH } from '../../lib/theme'
 import { GlobeWireframe } from '../decorative/GlobeWireframe'
@@ -46,8 +46,21 @@ const HEADER_REPOSITORY_URL =
   PAPER_METADATA.references.find((reference) => reference.label === 'Simulation repository')?.url
   ?? 'https://github.com/syang-ng/geographical-decentralization-simulation'
 
-function AuthorChip({ author }: { readonly author: Author }) {
+function AuthorChip({ author, index, total }: { readonly author: Author; readonly index: number; readonly total: number }) {
   const [hovered, setHovered] = useState(false)
+  const chipRef = useRef<HTMLSpanElement>(null)
+  const tooltipRef = useRef<HTMLDivElement>(null)
+
+  // Dismiss tooltip on any scroll (fixes reappearing tooltip when scrolling across tabs)
+  useEffect(() => {
+    if (!hovered) return
+    const dismiss = () => setHovered(false)
+    window.addEventListener('scroll', dismiss, { capture: true, passive: true })
+    return () => window.removeEventListener('scroll', dismiss, { capture: true })
+  }, [hovered])
+
+  // Compute whether tooltip should anchor right instead of left to avoid clipping
+  const isRightHalf = index >= total / 2
 
   const nameElement = author.url ? (
     <a
@@ -64,24 +77,29 @@ function AuthorChip({ author }: { readonly author: Author }) {
     </span>
   )
 
+  const handleMouseEnter = useCallback(() => setHovered(true), [])
+  const handleMouseLeave = useCallback(() => setHovered(false), [])
+
   return (
     <span
+      ref={chipRef}
       className="relative inline-flex items-center"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onFocus={() => setHovered(true)}
-      onBlur={() => setHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleMouseEnter}
+      onBlur={handleMouseLeave}
     >
       {nameElement}
 
       <AnimatePresence>
         {hovered && (author.role || author.focus || author.socials?.length) && (
           <motion.div
+            ref={tooltipRef}
             initial={{ opacity: 0, y: 6, scale: 0.92 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 3, scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 380, damping: 22, mass: 0.7 }}
-            className="absolute left-0 top-full mt-2.5 z-40"
+            className={`absolute top-full mt-2.5 z-40 ${isRightHalf ? 'right-0' : 'left-0'}`}
           >
             <div
               className="rounded-2xl bg-white/[0.97] backdrop-blur-xl min-w-[200px] max-w-[280px]"
@@ -141,6 +159,33 @@ function AuthorChip({ author }: { readonly author: Author }) {
   )
 }
 
+/** arXiv logo — stylized "χ" mark */
+function ArxivIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+      <path d="M4 3l8 10M12 3L4 13" />
+    </svg>
+  )
+}
+
+/** GitHub Octocat mark */
+function GitHubIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d={SOCIAL_ICONS.github.path} />
+    </svg>
+  )
+}
+
+/** X (Twitter) logo */
+function XIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d={SOCIAL_ICONS.x.path} />
+    </svg>
+  )
+}
+
 export function Header() {
   return (
     <header className="relative bg-white border-b border-rule stripe-top-accent">
@@ -159,29 +204,38 @@ export function Header() {
 
       <div className={`relative ${CONTENT_MAX_WIDTH} mx-auto px-4 py-6 sm:px-6 sm:py-10`}>
         <div className="flex flex-col gap-3 sm:gap-4">
-          {/* Top row: edition label + arXiv badge */}
+          {/* Top row: edition label + external links */}
           <div className="flex flex-wrap items-start justify-between gap-2 sm:items-center">
             <p className="text-2xs font-medium uppercase tracking-[0.14em] text-text-faint">
               Interactive paper edition
             </p>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <a
                 href={HEADER_ARXIV_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-md border border-rule px-2.5 py-1 text-2xs font-medium text-muted transition-colors hover:border-accent/30 hover:text-accent active:scale-[0.95] transition-transform duration-100"
+                aria-label="arXiv paper"
+                className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-rule text-muted transition-all duration-150 hover:border-accent/30 hover:text-accent hover:scale-110 active:scale-95"
               >
-                <span className="font-mono tracking-tight">arXiv:2509.21475</span>
-                <ExternalLink className="h-3 w-3 opacity-50" />
+                <ArxivIcon className="h-3.5 w-3.5" />
               </a>
               <a
                 href={HEADER_REPOSITORY_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-md border border-rule px-2.5 py-1 text-2xs font-medium text-muted transition-colors hover:border-accent/30 hover:text-accent active:scale-[0.95] transition-transform duration-100"
+                aria-label="GitHub repository"
+                className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-rule text-muted transition-all duration-150 hover:border-accent/30 hover:text-accent hover:scale-110 active:scale-95"
               >
-                <Code className="h-3 w-3 opacity-60" />
-                <span className="font-mono tracking-tight">Repository</span>
+                <GitHubIcon className="h-3.5 w-3.5" />
+              </a>
+              <a
+                href="https://x.com/syang2ng"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="X / Twitter"
+                className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-rule text-muted transition-all duration-150 hover:border-accent/30 hover:text-accent hover:scale-110 active:scale-95"
+              >
+                <XIcon className="h-3 w-3" />
               </a>
             </div>
           </div>
@@ -195,7 +249,7 @@ export function Header() {
           <div className="flex items-center gap-x-1.5 flex-wrap">
             {AUTHORS.map((author, i) => (
               <span key={author.name} className="inline-flex items-center">
-                <AuthorChip author={author} />
+                <AuthorChip author={author} index={i} total={AUTHORS.length} />
                 {i < AUTHORS.length - 1 && (
                   <span className="text-rule ml-1.5">·</span>
                 )}
