@@ -510,14 +510,14 @@ function EvidenceKpiCard({
 
       <InlineTooltip label={card.subtitle ? `${card.subtitle} — ${card.detail}` : card.detail}>
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className={cn('h-2 w-2 rounded-full shrink-0 shadow-[0_0_6px_currentColor]', SENTIMENT_DOT[card.sentiment])} />
+          <span className={cn('h-2 w-2 rounded-full shrink-0 shadow-[0_0_3px_currentColor]', SENTIMENT_DOT[card.sentiment])} style={{ opacity: 0.85 }} />
           <span className="text-[9px] uppercase tracking-[0.08em] text-stone-500 font-semibold truncate">{card.label}</span>
         </div>
       </InlineTooltip>
 
-      <div className="mt-1.5 flex items-end gap-2">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
+      <div className="mt-1.5 flex items-end gap-1.5">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
             <div className="text-[20px] font-medium text-stone-900 tabular-nums leading-none tracking-[-0.01em] font-[family-name:var(--font-mono)]">
               {hoverIndex != null && currentValue != null ? card.formatSeriesValue(currentValue) : card.value}
             </div>
