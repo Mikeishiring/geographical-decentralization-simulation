@@ -1,18 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ListTree, FileText, BookOpen, ScrollText, MousePointerClick, Users, X } from 'lucide-react'
+import { ListTree, FileText, BookOpen, ScrollText, X } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_SOFT, SPRING_SNAPPY } from '../../lib/theme'
-import { getActiveStudy } from '../../studies'
+import { SPRING_SNAPPY } from '../../lib/theme'
 import { Tooltip } from '../ui/Tooltip'
-import type { TabId } from '../layout/TabNav'
 import {
   AnimatedBookOpen,
   AnimatedListTree,
   AnimatedFileText,
   AnimatedScrollText,
   AnimatedMessageSquare,
-  AnimatedChevronToggle,
 } from './AnimatedViewIcons'
 
 export type ReaderMode = 'editorial' | 'arguments' | 'html' | 'paper'
@@ -91,29 +88,9 @@ export const MODE_META: Record<ReaderMode, {
 
 const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'arguments', 'html', 'paper'] as const
 
-const COMMUNITY_NOTE_STEPS = [
-  {
-    title: 'Highlight any passage',
-    detail: 'Select text in Editorial, Arguments, HTML, or the PDF to open the note composer.',
-  },
-  {
-    title: 'Publish a human takeaway',
-    detail: 'Add context in your own words. Public notes are interpretation layered on top of the cited evidence.',
-  },
-  {
-    title: 'See it in two places',
-    detail: 'Published notes appear inline in the paper and on the Community page for replies, votes, and linking.',
-  },
-] as const
-
 interface PaperViewModeBarProps {
   readonly readerMode: ReaderMode
   readonly onModeChange: (mode: ReaderMode) => void
-  readonly activeSectionIndex: number
-  readonly guideOpen: boolean
-  readonly onGuideToggle: () => void
-  readonly onSectionClick: (id: string) => void
-  readonly onTabChange?: (tab: TabId) => void
   /** Whether inline community notes are shown on sections */
   readonly notesVisible?: boolean
   readonly onNotesToggle?: () => void
@@ -124,23 +101,11 @@ interface PaperViewModeBarProps {
 export function PaperViewModeBar({
   readerMode,
   onModeChange,
-  activeSectionIndex,
-  guideOpen,
-  onGuideToggle,
-  onSectionClick,
-  onTabChange,
   notesVisible = false,
   onNotesToggle,
   noteCount = 0,
 }: PaperViewModeBarProps) {
-  const study = getActiveStudy()
   const barRef = useRef<HTMLDivElement | null>(null)
-  const sections = study.sections
-  const paperMode = readerMode === 'paper'
-  const progressPercent = ((activeSectionIndex + 1) / sections.length) * 100
-  const currentModeMeta = MODE_META[readerMode]
-
-  const activeSection = !paperMode ? sections[activeSectionIndex] : null
   const [hoveredMode, setHoveredMode] = useState<ReaderMode | null>(null)
   const [notesHovered, setNotesHovered] = useState(false)
   const [lensToast, setLensToast] = useState<ReaderMode | null>(null)
@@ -154,18 +119,6 @@ export function PaperViewModeBar({
     const timer = setTimeout(() => setLensToast(null), 3000)
     return () => clearTimeout(timer)
   }, [readerMode])
-  const suggestedEntryIds = study.navigation.bestFirstStopIds
-  const suggestedEntries = suggestedEntryIds
-    .map(id => sections.find(section => section.id === id))
-    .filter((section): section is (typeof sections)[number] => !!section)
-  const mobileSuggestedEntries = suggestedEntries.slice(0, 3)
-  const referenceLinks = study.metadata.references.filter(
-    (ref): ref is typeof ref & { readonly url: string } => typeof ref.url === 'string' && ref.url.length > 0,
-  )
-  const mobileQuickLinks = [
-    ...referenceLinks.slice(0, 2).map(ref => ({ label: ref.label, href: ref.url })),
-    ...(onTabChange ? [{ label: 'Simulation results', href: '#results' }] : []),
-  ]
 
   useLayoutEffect(() => {
     const bar = barRef.current
@@ -190,7 +143,7 @@ export function PaperViewModeBar({
       observer.disconnect()
       window.removeEventListener('resize', updateHeight)
     }
-  }, [guideOpen, noteCount, notesVisible, readerMode])
+  }, [noteCount, notesVisible, readerMode])
 
   return (
     <div
@@ -251,180 +204,39 @@ export function PaperViewModeBar({
 
           </div>
 
-          <div className="grid w-full grid-cols-2 items-stretch gap-2 sm:flex sm:w-auto sm:shrink-0 sm:items-center sm:justify-end">
-            {onNotesToggle && (
-              <Tooltip label="Show inline public notes, note highlights, and section annotation prompts">
-                <button
-                  onClick={onNotesToggle}
-                  onMouseEnter={() => setNotesHovered(true)}
-                  onMouseLeave={() => setNotesHovered(false)}
-                  className={cn(
-                    'flex min-h-[2.25rem] w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors sm:w-auto',
-                    notesVisible
-                      ? 'border-accent/30 bg-accent/5 text-accent'
-                      : 'border-accent/20 bg-white text-accent/80 hover:border-accent/35 hover:bg-accent/[0.05] hover:text-accent',
-                  )}
-                >
-                  <AnimatedMessageSquare isActive={notesVisible} isHovered={notesHovered} />
-                  <span className="sm:hidden">Notes</span>
-                  <span className="hidden sm:inline">Community notes</span>
-                  {noteCount > 0 && (
-                    <motion.span
-                      className={cn(
-                        'ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold',
-                        notesVisible ? 'bg-accent text-white' : 'bg-surface-active text-text-faint',
-                      )}
-                      animate={notesVisible ? { scale: [1, 1.2, 1] } : {}}
-                      transition={SPRING_SNAPPY}
-                    >
-                      {noteCount}
-                    </motion.span>
-                  )}
-                </button>
-              </Tooltip>
-            )}
-            <Tooltip label="Entry points, note workflow, and references">
+          {onNotesToggle && (
+            <Tooltip label="Show inline public notes, note highlights, and section annotation prompts">
               <button
-                onClick={onGuideToggle}
+                onClick={onNotesToggle}
+                onMouseEnter={() => setNotesHovered(true)}
+                onMouseLeave={() => setNotesHovered(false)}
                 className={cn(
-                  'flex min-h-[2.25rem] w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors sm:w-auto',
-                  guideOpen
+                  'flex min-h-[2.25rem] shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors',
+                  notesVisible
                     ? 'border-accent/30 bg-accent/5 text-accent'
-                    : 'border-rule text-muted hover:text-text-primary hover:border-border-hover',
+                    : 'border-accent/20 bg-white text-accent/80 hover:border-accent/35 hover:bg-accent/[0.05] hover:text-accent',
                 )}
               >
-                <AnimatedChevronToggle isActive={guideOpen} />
-                <span className="sm:hidden">Map</span>
-                <span className="hidden sm:inline">Research map</span>
+                <AnimatedMessageSquare isActive={notesVisible} isHovered={notesHovered} />
+                <span className="sm:hidden">Notes</span>
+                <span className="hidden sm:inline">Community notes</span>
+                {noteCount > 0 && (
+                  <motion.span
+                    className={cn(
+                      'ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold',
+                      notesVisible ? 'bg-accent text-white' : 'bg-surface-active text-text-faint',
+                    )}
+                    animate={notesVisible ? { scale: [1, 1.2, 1] } : {}}
+                    transition={SPRING_SNAPPY}
+                  >
+                    {noteCount}
+                  </motion.span>
+                )}
               </button>
             </Tooltip>
-          </div>
+          )}
         </div>
 
-        {/* Collapsible reading guide panel */}
-        <AnimatePresence>
-          {guideOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={SPRING}
-              className="overflow-hidden"
-            >
-              <div className="space-y-3.5 border-t border-rule/70 pt-3.5 sm:space-y-4 sm:pt-4">
-                {/* Current position — section progress */}
-                {activeSection && (
-                  <div className="flex items-center gap-3 rounded-lg border border-rule bg-surface-active/50 px-3 py-2">
-                    <span className="mono-xs text-accent shrink-0">{activeSection.number}</span>
-                    <span className="text-xs text-text-primary truncate">{activeSection.title}</span>
-                    <div className="ml-auto flex items-center gap-2 shrink-0 text-xs text-muted">
-                      <span className="tabular-nums">{activeSectionIndex + 1}/{sections.length}</span>
-                      <div className="h-1 w-16 overflow-hidden rounded-full bg-surface-active">
-                        <motion.div
-                          className="h-full rounded-full bg-accent"
-                          animate={{ width: `${progressPercent}%` }}
-                          transition={SPRING_SOFT}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="rounded-lg border border-accent/12 bg-accent/[0.035] px-3 py-2.5 sm:py-3">
-                  <div className="flex items-center gap-2 text-xs font-medium text-text-primary">
-                    <Users className="h-3.5 w-3.5 text-accent" />
-                    Community notes workflow
-                  </div>
-                  <div className="mt-3 sm:hidden">
-                    <p className="text-xs leading-relaxed text-muted">
-                      Highlight text in any mode to attach a public note to the passage. Published notes also appear on the Community page for replies and voting.
-                    </p>
-                  </div>
-                  <div className="mt-3 hidden gap-2 sm:grid sm:grid-cols-3">
-                    {COMMUNITY_NOTE_STEPS.map((item, index) => (
-                      <div key={item.title} className="rounded-md border border-rule/60 bg-white/85 px-3 py-2">
-                        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent/70">
-                          {index === 0 ? <MousePointerClick className="h-3 w-3" /> : <span>{`0${index + 1}`}</span>}
-                          <span>{item.title}</span>
-                        </div>
-                        <p className="mt-1 text-[11px] leading-relaxed text-muted">{item.detail}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:hidden">
-                  <div className="rounded-lg border border-rule/70 bg-white/85 px-3 py-2.5">
-                    <div className="text-xs font-medium text-text-primary">Suggested entry points</div>
-                    <div className="mt-1.5 space-y-1.5">
-                      {mobileSuggestedEntries.map((entry, i) => (
-                        <a key={entry.id} href={`#${entry.id}`} onClick={() => onSectionClick(entry.id)} className="block text-[13px] leading-5 text-muted transition-colors hover:text-accent">
-                          <span className="mr-1 text-xs text-accent">{i + 1}.</span> {entry.title}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg border border-rule/70 bg-white/85 px-3 py-2.5">
-                    <div className="text-xs font-medium text-text-primary">Quick links</div>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {mobileQuickLinks.map(link => (
-                        link.href === '#results' ? (
-                          <button
-                            key={link.label}
-                            onClick={() => onTabChange?.('results')}
-                            className="inline-flex items-center rounded-full border border-rule/60 bg-surface-active/60 px-2.5 py-1.5 text-[11px] font-medium text-text-primary transition-colors hover:border-accent/20 hover:text-accent"
-                          >
-                            {link.label}
-                          </button>
-                        ) : (
-                          <a
-                            key={link.label}
-                            href={link.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center rounded-full border border-rule/60 bg-surface-active/60 px-2.5 py-1.5 text-[11px] font-medium text-text-primary transition-colors hover:border-accent/20 hover:text-accent"
-                          >
-                            {link.label}
-                          </a>
-                        )
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="hidden gap-6 sm:grid sm:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-                  <div>
-                    <div className="text-xs font-medium text-text-primary">Suggested entry points</div>
-                    <div className="mt-2 space-y-1.5">
-                      {suggestedEntries.map((entry, i) => (
-                        <a key={entry.id} href={`#${entry.id}`} onClick={() => onSectionClick(entry.id)} className="block text-sm text-muted transition-colors hover:text-accent">
-                          <span className="mr-1 text-xs text-accent">{i + 1}.</span> {entry.title}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-medium text-text-primary">References & artifacts</div>
-                    <div className="mt-2 space-y-1.5">
-                      {referenceLinks.map(ref => (
-                        <a key={ref.label} href={ref.url} target="_blank" rel="noopener noreferrer" className="arrow-link text-xs">
-                          {ref.label}
-                        </a>
-                      ))}
-                      {onTabChange && (
-                        <button onClick={() => onTabChange('results')} className="arrow-link text-xs">
-                          Simulation results
-                        </button>
-                      )}
-                    </div>
-                    <p className="mt-3 text-2xs leading-relaxed text-muted">{currentModeMeta.provenanceHint}</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* Floating lens toast — appears on mode switch */}

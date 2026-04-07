@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { SPRING_CRISP } from '../../lib/theme'
@@ -14,12 +14,43 @@ interface TableBlockProps {
 export function TableBlock({ block }: TableBlockProps) {
   const highlightSet = new Set(block.highlight ?? [])
   const [hoveredRow, setHoveredRow] = useState<number | null>(null)
+  const [pinnedRow, setPinnedRow] = useState<number | null>(null)
+  const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
+  const cancelClear = useCallback(() => {
+    if (clearTimerRef.current) {
+      clearTimeout(clearTimerRef.current)
+      clearTimerRef.current = null
+    }
+  }, [])
+
+  const scheduleClear = useCallback(() => {
+    cancelClear()
+    clearTimerRef.current = setTimeout(() => setHoveredRow(null), 200)
+  }, [cancelClear])
+
+  useEffect(() => () => cancelClear(), [cancelClear])
+
+  /* Dismiss pinned row on outside click */
+  useEffect(() => {
+    if (pinnedRow === null) return
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setPinnedRow(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [pinnedRow])
+
+  const activeRow = pinnedRow ?? hoveredRow
 
   if (block.rows.length === 0 || block.headers.length === 0) {
     return <BlockEmptyState title={block.title} message="No headers or rows were attached to this table." />
   }
 
-  const inspectedRow = hoveredRow !== null ? block.rows[hoveredRow] ?? null : null
+  const inspectedRow = activeRow !== null ? block.rows[activeRow] ?? null : null
   const inspectedPairs = inspectedRow
     ? block.headers.map((header, index) => ({
         label: header,
@@ -29,6 +60,7 @@ export function TableBlock({ block }: TableBlockProps) {
 
   return (
     <motion.div
+      ref={containerRef}
       className="bg-white border border-rule rounded-xl p-5 card-hover"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -56,13 +88,15 @@ export function TableBlock({ block }: TableBlockProps) {
             {block.rows.map((row, rowIdx) => (
               <tr
                 key={rowIdx}
-                onMouseEnter={() => setHoveredRow(rowIdx)}
-                onMouseLeave={() => setHoveredRow(null)}
+                onMouseEnter={() => { cancelClear(); setHoveredRow(rowIdx) }}
+                onMouseLeave={scheduleClear}
+                onClick={() => setPinnedRow(prev => prev === rowIdx ? null : rowIdx)}
                 className={cn(
-                  'item-separator transition-all',
+                  'item-separator transition-all cursor-pointer',
                   highlightSet.has(rowIdx) && 'border-l-2 border-l-accent-warm',
-                  hoveredRow === rowIdx && 'bg-accent/[0.02]',
-                  hoveredRow !== null && hoveredRow !== rowIdx && 'opacity-40',
+                  activeRow === rowIdx && 'bg-accent/[0.02]',
+                  activeRow !== null && activeRow !== rowIdx && 'opacity-40',
+                  pinnedRow === rowIdx && 'ring-1 ring-accent/20 bg-accent/[0.04]',
                 )}
               >
                 {row.map((cell, cellIdx) => (
@@ -81,22 +115,35 @@ export function TableBlock({ block }: TableBlockProps) {
 
       <AnimatePresence initial={false}>
         {inspectedRow ? (
-          <InteractiveInspector
-            eyebrow="Row inspection"
-            title={inspectedRow[0] ?? `Row ${hoveredRow! + 1}`}
-            subtitle={
-              inspectedPairs.length > 4
-                ? `Inspecting ${inspectedPairs.length} columns. Showing the first four here.`
-                : 'Hover across the table to inspect a full row without losing the ranking context.'
-            }
-            hint={highlightSet.has(hoveredRow!) ? 'Highlighted row' : 'Table row'}
-            metrics={inspectedPairs.slice(0, 4).map(pair => ({
-              label: pair.label,
-              value: pair.value,
-              tone: pair.label === block.headers[0] ? 'accent' : 'default',
-            }))}
-            className="mt-4"
-          />
+          <div
+            onMouseEnter={cancelClear}
+            onMouseLeave={scheduleClear}
+          >
+            <InteractiveInspector
+              eyebrow="Row inspection"
+              title={inspectedRow[0] ?? `Row ${activeRow! + 1}`}
+              subtitle={
+                pinnedRow !== null
+                  ? 'Click the row again or outside the table to dismiss.'
+                  : inspectedPairs.length > 4
+                    ? `Inspecting ${inspectedPairs.length} columns. Click the row to pin this view.`
+                    : 'Hover across the table to inspect a full row. Click to pin.'
+              }
+              hint={
+                pinnedRow !== null
+                  ? 'Pinned'
+                  : highlightSet.has(activeRow!)
+                    ? 'Highlighted row'
+                    : 'Table row'
+              }
+              metrics={inspectedPairs.slice(0, 4).map(pair => ({
+                label: pair.label,
+                value: pair.value,
+                tone: pair.label === block.headers[0] ? 'accent' : 'default',
+              }))}
+              className="mt-4"
+            />
+          </div>
         ) : (
           <motion.div
             key="table-hint"
@@ -106,7 +153,7 @@ export function TableBlock({ block }: TableBlockProps) {
             exit={{ opacity: 0, y: 4 }}
             transition={SPRING_CRISP}
           >
-            Hover a row to inspect its values without leaving the table.
+            Hover a row to inspect its values. Click to pin.
           </motion.div>
         )}
       </AnimatePresence>

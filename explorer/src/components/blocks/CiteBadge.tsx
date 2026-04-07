@@ -40,7 +40,7 @@ export function CiteBadge({ cite, alwaysVisible = false }: CiteBadgeProps) {
             onClick={() => goToPdfPage(page)}
             className={cn(
               'inline-flex items-center gap-1 rounded-full border border-accent/15 bg-accent/5 px-2 py-0.5 text-2xs text-accent/60',
-              'transition-all duration-200 hover:bg-accent/12 hover:text-accent hover:border-accent/30 select-none cursor-pointer',
+              'transition-colors duration-200 hover:bg-accent/12 hover:text-accent hover:border-accent/30 select-none cursor-pointer',
               visibilityClass,
             )}
             title={`${primaryParts.join(' · ')} — view PDF page ${page}`}

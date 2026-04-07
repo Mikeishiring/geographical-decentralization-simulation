@@ -26,7 +26,7 @@ interface SectionNavProps {
 }
 
 const NOTE_PREVIEW_OPEN_DELAY_MS = 140
-const NOTE_PREVIEW_CLOSE_DELAY_MS = 80
+const NOTE_PREVIEW_CLOSE_DELAY_MS = 220
 
 function collectNoteHighlights(notes: readonly Exploration[]): readonly NoteHighlight[] {
   const seen = new Map<string, NoteHighlight>()
