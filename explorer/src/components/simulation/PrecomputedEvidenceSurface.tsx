@@ -207,10 +207,8 @@ interface ScenarioSelectorProps {
   readonly onSelect: (entry: ResearchDatasetEntry) => void
 }
 
-const chipBase = 'rounded-[8px] border px-2.5 py-1 text-[11px] font-medium cursor-pointer transition-all duration-150'
-const chipActive = 'border-black/[0.12] bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-const chipInactive = 'border-transparent bg-transparent text-stone-500 hover:border-black/[0.06] hover:bg-white/80 hover:text-stone-700'
 const filterLabel = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-400 shrink-0'
+const selectClass = 'appearance-none rounded-[7px] border border-black/[0.08] bg-white pl-2.5 pr-7 py-1 text-[12px] font-medium text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/20'
 
 function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selectedResult, onSelect }: ScenarioSelectorProps) {
   const evaluations = useMemo(() => uniqueOrdered(catalog.datasets.map(d => d.evaluation)), [catalog])
@@ -250,67 +248,70 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
   }, [catalog, onSelect])
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-stretch overflow-hidden rounded-[12px] border border-black/[0.06] bg-[#FAF9F7]/96 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.55)]">
-        <div className="flex min-w-[180px] items-center gap-2.5 px-3.5 py-2.5" style={{ flex: hasCostDimension ? '1 1 0%' : '0 1 auto' }}>
-          <span className={filterLabel}>Scenario</span>
-          <div className="relative min-w-0" style={{ flex: hasCostDimension ? '1 1 0%' : '0 1 auto' }}>
+    <div className="flex flex-wrap items-center gap-3">
+      {/* Scenario */}
+      <div className="flex items-center gap-2">
+        <span className={filterLabel}>Scenario</span>
+        <div className="relative">
+          <select
+            value={selectedEvaluation}
+            onChange={e => findAndSelect(e.target.value, selectedParadigm)}
+            className={selectClass}
+          >
+            {evaluations.map(evaluation => (
+              <option key={evaluation} value={evaluation}>{evaluation}</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400" />
+        </div>
+      </div>
+
+      {/* Migration cost */}
+      {hasCostDimension && (
+        <div className="flex items-center gap-2">
+          <InlineTooltip label="ETH cost when a validator relocates" detail="Higher cost = stronger geographic lock-in.">
+            <span className={filterLabel}>Migration cost</span>
+          </InlineTooltip>
+          <div className="relative">
             <select
-              value={selectedEvaluation}
-              onChange={e => findAndSelect(e.target.value, selectedParadigm)}
-              className="w-full appearance-none rounded-[7px] border border-black/[0.08] bg-white pl-2.5 pr-7 py-1 text-[12px] font-medium text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/20"
+              value={selectedResult}
+              onChange={e => findAndSelect(selectedEvaluation, selectedParadigm, e.target.value)}
+              className={cn(selectClass, 'tabular-nums')}
             >
-              {evaluations.map(evaluation => (
-                <option key={evaluation} value={evaluation}>{evaluation}</option>
+              {costResults.map(({ result, cost }) => {
+                const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
+                return (
+                  <option key={result} value={result}>
+                    {formatCostLabel(cost)}{hint ? ` (${hint})` : ''}
+                  </option>
+                )
+              })}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400" />
+          </div>
+        </div>
+      )}
+
+      {/* Paradigm */}
+      {paradigms.length > 1 && (
+        <div className="flex items-center gap-2">
+          <InlineTooltip label="Block-building paradigm: External (SSP) or Local (MSP)">
+            <span className={filterLabel}>Paradigm</span>
+          </InlineTooltip>
+          <div className="relative">
+            <select
+              value={selectedParadigm}
+              onChange={e => findAndSelect(selectedEvaluation, e.target.value)}
+              className={selectClass}
+            >
+              {paradigms.map(paradigm => (
+                <option key={paradigm} value={paradigm}>{paradigmLabel(paradigm)}</option>
               ))}
             </select>
             <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-stone-400" />
           </div>
         </div>
-
-        {hasCostDimension && (
-          <div className="flex min-w-[280px] flex-[1.4] items-center gap-2.5 border-l border-black/[0.06] px-3.5 py-2.5">
-            <InlineTooltip label="ETH cost when a validator relocates" detail="Higher cost = stronger geographic lock-in.">
-              <span className={filterLabel}>Migration cost</span>
-            </InlineTooltip>
-            <div className="flex flex-wrap gap-1">
-              {costResults.map(({ result, cost }) => {
-                const hint = cost === 0.002 ? 'paper' : cost === 0 ? 'none' : null
-                return (
-                  <button
-                    key={result}
-                    type="button"
-                    onClick={() => findAndSelect(selectedEvaluation, selectedParadigm, result)}
-                    className={cn(chipBase, 'tabular-nums', selectedResult === result ? chipActive : chipInactive)}
-                  >
-                    {formatCostLabel(cost)}{hint ? ` (${hint})` : ''}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {paradigms.length > 1 && (
-          <div className="flex items-center gap-2.5 border-l border-black/[0.06] px-3.5 py-2.5 ml-auto">
-            <InlineTooltip label="Block-building paradigm: External (SSP) or Local (MSP)">
-              <span className={filterLabel}>Paradigm</span>
-            </InlineTooltip>
-            <div className="flex gap-1">
-              {paradigms.map(paradigm => (
-                <button
-                  key={paradigm}
-                  type="button"
-                  onClick={() => findAndSelect(selectedEvaluation, paradigm)}
-                  className={cn(chipBase, selectedParadigm === paradigm ? chipActive : chipInactive)}
-                >
-                  {paradigmLabel(paradigm)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }
@@ -498,24 +499,10 @@ export function PrecomputedEvidenceSurface({
                 <h2 className="text-[15px] font-semibold tracking-tight text-text-primary">
                   Simulation Results
                 </h2>
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
-                <span>Published atlas</span>
-                <span className="text-black/20">·</span>
-                <span>{catalog.datasets.length} scenarios</span>
                 {totalSlots > 0 && (
-                  <>
-                    <span className="text-black/20">·</span>
-                    <span className="tabular-nums">{totalSlots.toLocaleString()} slots</span>
-                  </>
-                )}
-                {selectedEntry && (
-                  <>
-                    <span className="text-black/20">·</span>
-                    <span className="font-medium text-text-secondary">{selectedEntry.evaluation}</span>
-                    <span className="text-black/20">·</span>
-                    <span>{paradigmLabel(selectedEntry.paradigm)}</span>
-                  </>
+                  <span className="rounded-md border border-black/[0.06] bg-surface-active/60 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted">
+                    {totalSlots.toLocaleString()} slots
+                  </span>
                 )}
               </div>
             </div>
@@ -528,7 +515,7 @@ export function PrecomputedEvidenceSurface({
           </div>
 
           {selectedEntry && (
-            <div className="mt-3 border-t border-rule/70 pt-3">
+            <div className="mt-3">
               <ScenarioSelector
                 catalog={catalog}
                 selectedEvaluation={selectedEntry.evaluation}
