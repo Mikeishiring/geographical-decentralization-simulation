@@ -206,11 +206,6 @@ export function PaperReaderPage({
     window.history.replaceState({}, '', url.toString())
   }, [activeSectionId])
 
-  const activeSectionIndex = Math.max(
-    0,
-    sections.findIndex(section => section.id === activeSectionId),
-  )
-
   return (
     <PaperNavProvider value={paperNavValue}>
     {/* Popover lives OUTSIDE the container so mousedown on it

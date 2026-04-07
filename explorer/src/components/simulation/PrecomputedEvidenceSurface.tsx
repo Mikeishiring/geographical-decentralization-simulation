@@ -362,6 +362,19 @@ export function PrecomputedEvidenceSurface({
   const [selectedEntry, setSelectedEntry] = useState<ResearchDatasetEntry | null>(null)
   const [activeCategory, setActiveCategory] = useState<PlotCategory>('all')
   const chartGridRef = useRef<HTMLDivElement>(null)
+  const selectorSentinelRef = useRef<HTMLDivElement>(null)
+  const [selectorStuck, setSelectorStuck] = useState(false)
+
+  useEffect(() => {
+    const el = selectorSentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setSelectorStuck(entry ? !entry.isIntersecting : false),
+      { threshold: 0 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (!catalog || selectedEntry) return
@@ -526,17 +539,8 @@ export function PrecomputedEvidenceSurface({
             />
           </div>
 
-          {selectedEntry && (
-            <div className="mt-3 border-t border-rule/70 pt-3">
-              <ScenarioSelector
-                catalog={catalog}
-                selectedEvaluation={selectedEntry.evaluation}
-                selectedParadigm={selectedEntry.paradigm}
-                selectedResult={selectedEntry.result}
-                onSelect={setSelectedEntry}
-              />
-            </div>
-          )}
+          {/* Sentinel: marks the natural position of the selector — when it scrolls out, the sticky bar gains its "stuck" style */}
+          <div ref={selectorSentinelRef} className="h-0" aria-hidden />
 
           {(payloadQuery.isLoading || payloadQuery.isError || payloadQuery.data) && (
             <div className="mt-3 border-t border-rule/70 pt-3">
@@ -582,6 +586,29 @@ export function PrecomputedEvidenceSurface({
           )}
         </div>
       </motion.section>
+
+      {/* ── Sticky scenario selector bar ── */}
+      {selectedEntry && (
+        <div
+          className={cn(
+            'sticky z-30 transition-all duration-200',
+            selectorStuck
+              ? 'border-b border-black/[0.06] bg-white/94 shadow-[0_8px_20px_rgba(15,23,42,0.06)] backdrop-blur-md'
+              : 'bg-transparent',
+          )}
+          style={{ top: 'var(--explorer-tab-nav-height, 3.75rem)' }}
+        >
+          <div className="px-4 py-2.5 sm:px-5">
+            <ScenarioSelector
+              catalog={catalog}
+              selectedEvaluation={selectedEntry.evaluation}
+              selectedParadigm={selectedEntry.paradigm}
+              selectedResult={selectedEntry.result}
+              onSelect={setSelectedEntry}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── Analytical lens and chart deck below the hero surface ── */}
       {payloadQuery.data && (
