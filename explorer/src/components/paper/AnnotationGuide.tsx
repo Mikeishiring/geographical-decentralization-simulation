@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { MousePointerClick, X, MessageSquarePlus, Eye, Highlighter } from 'lucide-react'
 import { cn } from '../../lib/cn'
@@ -34,6 +34,7 @@ export function AnnotationGuide() {
   const [visible, setVisible] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [autoCollapsed, setAutoCollapsed] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   // Entrance: fade in after a short delay
   useEffect(() => {
@@ -62,24 +63,34 @@ export function AnnotationGuide() {
   const handleDismiss = useCallback(() => {
     setVisible(false)
     try { sessionStorage.setItem(SESSION_KEY, '1') } catch { /* noop */ }
-    // Remove from DOM after fade-out completes
-    setTimeout(() => setDismissed(true), 300)
+    // Remove from DOM after exit transition completes
+    const el = containerRef.current
+    if (el) {
+      const onEnd = () => { setDismissed(true); el.removeEventListener('transitionend', onEnd) }
+      el.addEventListener('transitionend', onEnd)
+    } else {
+      setDismissed(true)
+    }
   }, [])
 
   const handleToggle = useCallback(() => {
     setExpanded(prev => !prev)
-    setAutoCollapsed(true) // prevent auto-collapse on manual interaction
+    setAutoCollapsed(true)
   }, [])
 
   if (dismissed) return null
 
   return (
     <div
-      className="fixed bottom-5 right-5 z-40 sm:bottom-6 sm:right-6 origin-bottom-right transition-all duration-200 ease-out"
+      ref={containerRef}
+      className="fixed bottom-5 right-5 z-40 sm:bottom-6 sm:right-6 origin-bottom-right"
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? 'scale(1) translateY(0)' : 'scale(0.92) translateY(8px)',
         pointerEvents: visible ? 'auto' : 'none',
+        transition: visible
+          ? 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1)'
+          : 'transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.12s cubic-bezier(0.22, 1, 0.36, 1)',
       }}
     >
       {expanded ? (
@@ -88,7 +99,7 @@ export function AnnotationGuide() {
           initial={{ opacity: 0.6, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
-          className="w-[300px] origin-bottom-right rounded-2xl border border-black/[0.06] bg-white/[0.97] shadow-[0_16px_48px_rgba(15,23,42,0.12),0_0_0_0.5px_rgba(0,0,0,0.04)] backdrop-blur-lg sm:w-[320px]"
+          className="w-[300px] origin-bottom-right rounded-2xl border border-black/[0.06] bg-white/[0.97] shadow-[0_16px_48px_rgba(15,23,42,0.12),0_0_0_1px_rgba(0,0,0,0.06)] backdrop-blur-lg sm:w-[320px]"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
@@ -100,7 +111,7 @@ export function AnnotationGuide() {
             </div>
             <button
               onClick={handleDismiss}
-              className="flex h-5 w-5 items-center justify-center rounded-md text-stone-400 transition-colors duration-100 hover:bg-stone-100 hover:text-stone-600"
+              className="flex h-5 w-5 items-center justify-center rounded-full text-stone-400 transition-[color,background-color] duration-100 hover:bg-stone-100 hover:text-stone-600 active:scale-[0.92] active:transition-transform active:duration-100"
               aria-label="Dismiss annotation guide"
             >
               <X className="h-3 w-3" />
@@ -133,7 +144,7 @@ export function AnnotationGuide() {
           {/* Collapse button */}
           <button
             onClick={() => { setExpanded(false); setAutoCollapsed(true) }}
-            className="w-full border-t border-black/[0.04] px-4 py-2 text-[10px] font-medium text-stone-400 transition-colors hover:text-stone-600"
+            className="w-full border-t border-black/[0.04] px-4 py-2 text-[10px] font-medium text-stone-400 transition-[color] duration-100 hover:text-stone-600 active:scale-[0.97] active:transition-transform active:duration-100"
           >
             Got it
           </button>
@@ -147,9 +158,9 @@ export function AnnotationGuide() {
           onClick={handleToggle}
           className={cn(
             'flex items-center gap-2 rounded-full border border-black/[0.06] bg-white/[0.95] px-3.5 py-2',
-            'shadow-[0_4px_20px_rgba(15,23,42,0.1),0_0_0_0.5px_rgba(0,0,0,0.03)] backdrop-blur-lg',
-            'text-[11px] font-medium text-stone-500 transition-colors duration-150 hover:bg-white hover:text-stone-700',
-            'origin-bottom-right',
+            'shadow-[0_4px_20px_rgba(15,23,42,0.1),0_0_0_1px_rgba(0,0,0,0.04)] backdrop-blur-lg',
+            'text-[11px] font-medium text-stone-500 transition-[color,background-color] duration-150 hover:bg-white hover:text-stone-700',
+            'origin-bottom-right active:scale-[0.92] active:transition-transform active:duration-100',
           )}
           aria-label="Open annotation guide"
         >
