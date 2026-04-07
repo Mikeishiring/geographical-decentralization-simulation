@@ -7,14 +7,23 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Smile, Link2, Check, Users, Loader2 } from 'lucide-react'
+import { Smile, Link2, Check, Users, Loader2, ThumbsUp, ThumbsDown, Flame, Lightbulb, HelpCircle, Heart, Eye, Target } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING_POPUP, SPRING_SNAPPY, SPRING_CRISP } from '../../lib/theme'
 import type { TextAnchor } from '../../types/anchors'
 
 /* ── Emoji picker ───────────────────────────────────────────────────────── */
 
-const EMOJI_REACTIONS = ['👍', '👎', '🔥', '💡', '🤔', '❤️', '👀', '🎯'] as const
+const EMOJI_REACTIONS = [
+  { key: 'thumbs-up', icon: ThumbsUp },
+  { key: 'thumbs-down', icon: ThumbsDown },
+  { key: 'flame', icon: Flame },
+  { key: 'lightbulb', icon: Lightbulb },
+  { key: 'help', icon: HelpCircle },
+  { key: 'heart', icon: Heart },
+  { key: 'eye', icon: Eye },
+  { key: 'target', icon: Target },
+] as const
 
 function EmojiPicker({ onSelect }: { readonly onSelect: (emoji: string) => void }) {
   return (
@@ -23,16 +32,16 @@ function EmojiPicker({ onSelect }: { readonly onSelect: (emoji: string) => void 
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.92, y: 4 }}
       transition={SPRING_SNAPPY}
-      className="absolute bottom-full left-0 mb-1.5 flex gap-0.5 rounded-xl border border-black/[0.06] bg-white px-2 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.10)]"
+      className="absolute bottom-full left-0 mb-1.5 flex gap-0.5 rounded-xl border border-black/[0.06] bg-white px-2 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.10),0_0_0_1px_rgba(0,0,0,0.06)]"
     >
-      {EMOJI_REACTIONS.map(emoji => (
+      {EMOJI_REACTIONS.map(({ key, icon: Icon }) => (
         <button
-          key={emoji}
+          key={key}
           type="button"
-          onClick={() => onSelect(emoji)}
-          className="rounded-md px-1 py-0.5 text-sm transition-transform active:scale-90 hover:scale-[1.18] hover:bg-black/[0.04]"
+          onClick={() => onSelect(key)}
+          className="rounded-md px-1 py-0.5 text-sm transition-transform active:scale-[0.92] hover:scale-[1.18] hover:bg-black/[0.04]"
         >
-          {emoji}
+          <Icon className="h-3.5 w-3.5" />
         </button>
       ))}
     </motion.div>
@@ -317,7 +326,7 @@ export function SelectionPopover({
                 key="compose"
                 initial={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.12 }}
+                transition={{ duration: 0.12, ease: [0.22, 1, 0.36, 1] }}
               >
                 {/* Header: community note identity + section context */}
                 <div className="mb-2 flex items-center justify-between">
@@ -393,7 +402,7 @@ export function SelectionPopover({
                     <motion.button
                       type="button"
                       onClick={handleCancel}
-                      whileTap={{ scale: 0.96 }}
+                      whileTap={{ scale: 0.95 }}
                       disabled={isLocked}
                       className="rounded-2xl px-3.5 py-1.5 text-xs font-medium text-black/50 transition-[background-color,color] duration-150 hover:bg-black/[0.06] hover:text-black/80 disabled:opacity-30 disabled:pointer-events-none"
                     >
@@ -404,7 +413,7 @@ export function SelectionPopover({
                       type="button"
                       onClick={handleSubmit}
                       disabled={!comment.trim() || isLocked}
-                      whileTap={{ scale: 0.96 }}
+                      whileTap={{ scale: 0.95 }}
                       className="rounded-2xl bg-accent px-3.5 py-1.5 text-xs font-medium text-white transition-[filter,opacity] duration-150 hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {phase === 'submitting' ? (

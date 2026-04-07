@@ -111,7 +111,7 @@ export function Header() {
                 href={HEADER_ARXIV_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-md border border-rule px-2.5 py-1 text-2xs font-medium text-muted transition-colors hover:border-accent/30 hover:text-accent"
+                className="inline-flex items-center gap-1.5 rounded-md border border-rule px-2.5 py-1 text-2xs font-medium text-muted transition-colors hover:border-accent/30 hover:text-accent active:scale-[0.95] transition-transform duration-100"
               >
                 <span className="font-mono tracking-tight">arXiv:2509.21475</span>
                 <ExternalLink className="h-3 w-3 opacity-50" />
@@ -120,7 +120,7 @@ export function Header() {
                 href={HEADER_REPOSITORY_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-md border border-rule px-2.5 py-1 text-2xs font-medium text-muted transition-colors hover:border-accent/30 hover:text-accent"
+                className="inline-flex items-center gap-1.5 rounded-md border border-rule px-2.5 py-1 text-2xs font-medium text-muted transition-colors hover:border-accent/30 hover:text-accent active:scale-[0.95] transition-transform duration-100"
               >
                 <Code className="h-3 w-3 opacity-60" />
                 <span className="font-mono tracking-tight">Repository</span>
