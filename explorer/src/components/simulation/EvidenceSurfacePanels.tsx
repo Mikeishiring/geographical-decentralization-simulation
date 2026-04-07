@@ -508,15 +508,16 @@ function EvidenceKpiCard({
         )}
       </AnimatePresence>
 
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <InlineTooltip label={card.subtitle ? `${card.subtitle} — ${card.detail}` : card.detail}>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className={cn('h-2 w-2 rounded-full shrink-0 shadow-[0_0_6px_currentColor]', SENTIMENT_DOT[card.sentiment])} />
-              <span className="text-[9px] uppercase tracking-[0.08em] text-stone-500 font-semibold truncate">{card.label}</span>
-            </div>
-          </InlineTooltip>
-          <div className="mt-1.5 flex flex-wrap items-end gap-x-2 gap-y-1">
+      <InlineTooltip label={card.subtitle ? `${card.subtitle} — ${card.detail}` : card.detail}>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className={cn('h-2 w-2 rounded-full shrink-0 shadow-[0_0_6px_currentColor]', SENTIMENT_DOT[card.sentiment])} />
+          <span className="text-[9px] uppercase tracking-[0.08em] text-stone-500 font-semibold truncate">{card.label}</span>
+        </div>
+      </InlineTooltip>
+
+      <div className="mt-1.5 flex items-end gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
             <div className="text-[20px] font-medium text-stone-900 tabular-nums leading-none tracking-[-0.01em] font-[family-name:var(--font-mono)]">
               {hoverIndex != null && currentValue != null ? card.formatSeriesValue(currentValue) : card.value}
             </div>
@@ -536,7 +537,7 @@ function EvidenceKpiCard({
         {card.sparkData.length > 1 ? (
           <div
             ref={sparklineRef}
-            className="relative shrink-0 self-center"
+            className="relative shrink-0"
             onPointerMove={handleSparklinePointerMove}
             onPointerLeave={() => setHoverIndex(null)}
           >
