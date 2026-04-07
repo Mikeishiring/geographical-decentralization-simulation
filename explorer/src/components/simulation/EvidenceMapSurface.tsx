@@ -381,7 +381,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
             </div>
           </div>
 
-          <div className="rounded-[12px] border border-black/[0.05] bg-white p-[2px] shadow-[inset_0_1px_1px_rgba(0,0,0,0.03)]">
+          <div className="rounded-[12px] border border-black/[0.06] bg-white p-[2px] shadow-[inset_0_1px_1px_rgba(0,0,0,0.03)]">
             <div className="flex items-center gap-[3px]">
               {([
                 { mode: 'validators' as const, icon: Radio, label: 'Validators', detail: 'Show validator stake distribution across regions' },
@@ -392,7 +392,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                 <button
                   onClick={() => setOverlay(mode)}
                   className={cn(
-                    'flex items-center gap-1.5 rounded-[12px] px-2.5 py-1.25 text-[11px] font-medium transition-[transform,opacity,background-color,color,box-shadow] duration-150 active:scale-[0.92]',
+                    'flex items-center gap-1.5 rounded-[10px] px-2.5 py-1 text-[11px] font-medium transition-[transform,opacity,background-color,color,box-shadow] duration-150 active:scale-[0.92] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30',
                     overlay === mode
                       ? 'bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_0_0_0.5px_rgba(0,0,0,0.04)]'
                       : 'text-stone-400 hover:text-stone-600',
@@ -415,7 +415,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                   setCopied(true)
                   setTimeout(() => setCopied(false), 2000)
                 }}
-                className="flex items-center justify-center h-7 w-7 rounded-[12px] border border-black/[0.05] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-[transform,opacity,background-color,color] duration-150 active:scale-[0.92]"
+                className="flex items-center justify-center h-7 w-7 rounded-[12px] border border-black/[0.06] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-[transform,opacity,background-color,color] duration-150 active:scale-[0.92] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                 title={copied ? 'Copied!' : 'Copy share link with current slot and overlay'}
               >
                 <Link2 className={cn('h-3 w-3 transition-colors', copied && 'text-emerald-500')} />
@@ -434,7 +434,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                   a.click()
                   URL.revokeObjectURL(a.href)
                 }}
-                className="flex items-center justify-center h-7 w-7 rounded-[12px] border border-black/[0.05] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-[transform,opacity,background-color,color] duration-150 active:scale-[0.92]"
+                className="flex items-center justify-center h-7 w-7 rounded-[12px] border border-black/[0.06] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-[transform,opacity,background-color,color] duration-150 active:scale-[0.92] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                 title="Download snapshot data as JSON"
               >
                 <Download className="h-3 w-3" />
@@ -462,7 +462,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
           <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 rounded-[12px] border border-black/[0.06] bg-white/90 backdrop-blur-md p-1 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.06)]">
             <button
               onClick={zoomIn}
-              className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors active:scale-[0.92]"
+              className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors active:scale-[0.92] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
               aria-label={`Zoom in (current: ${zoom.toFixed(1)}x)`}
               title="Zoom in"
             >
@@ -471,7 +471,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
             <div className="h-px bg-black/[0.06] mx-0.5" />
             <button
               onClick={zoomOut}
-              className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors active:scale-[0.92]"
+              className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors active:scale-[0.92] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
               aria-label={`Zoom out (current: ${zoom.toFixed(1)}x)`}
               title="Zoom out"
             >

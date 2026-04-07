@@ -12,7 +12,7 @@ export function SimulationModeToggle({ value, onChange, className }: SimulationM
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center gap-[2px] rounded-[12px] border border-black/[0.05] bg-[#FAF9F7] p-[2px]',
+        'flex shrink-0 items-center gap-[2px] rounded-[12px] border border-black/[0.06] bg-[#FAF9F7] p-[2px]',
         className,
       )}
       style={{ boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.03)' }}

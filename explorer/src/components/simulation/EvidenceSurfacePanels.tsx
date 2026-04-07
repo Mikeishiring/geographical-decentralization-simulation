@@ -512,7 +512,7 @@ function EvidenceKpiCard({
         <div className="min-w-0 flex-1">
           <InlineTooltip label={card.subtitle ? `${card.subtitle} — ${card.detail}` : card.detail}>
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
+              <span className={cn('h-2 w-2 rounded-full shrink-0 shadow-[0_0_6px_currentColor]', SENTIMENT_DOT[card.sentiment])} />
               <span className="text-[9px] uppercase tracking-[0.08em] text-stone-500 font-semibold truncate">{card.label}</span>
             </div>
           </InlineTooltip>
@@ -814,7 +814,7 @@ export function EvidenceCategoryBar({
                   onClick={() => handleCategoryChange(cat.id)}
                   title={CATEGORY_DESCRIPTIONS[cat.id] ?? `Show ${cat.label.toLowerCase()} charts`}
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[10px] font-medium transition-all duration-150',
+                    'inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[10px] font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30',
                     activeCategory === cat.id
                       ? 'border-black/[0.08] bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.05)]'
                       : 'border-transparent bg-transparent text-stone-400 hover:bg-black/[0.035] hover:text-stone-700',
