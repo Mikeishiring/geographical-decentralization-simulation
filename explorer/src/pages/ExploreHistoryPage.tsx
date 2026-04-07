@@ -41,6 +41,7 @@ export function ExploreHistoryPage({
   const [sharedId, setSharedId] = useState<string | null>(null)
   const [guidanceOpen, setGuidanceOpen] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('cards')
+  const [surfaceFilter, setSurfaceFilter] = useState<'all' | 'reading' | 'simulation'>('all')
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const sortMenuRef = useRef<HTMLDivElement>(null)
 
@@ -168,6 +169,11 @@ export function ExploreHistoryPage({
   const publishedExplorations = displayedExplorations.filter(exploration => exploration.publication.published)
   const publishedReadingNotes = publishedExplorations.filter(exploration => exploration.surface === 'reading')
   const publishedSimulationNotes = publishedExplorations.filter(exploration => exploration.surface === 'simulation')
+  const filteredNotes = surfaceFilter === 'all'
+    ? publishedExplorations
+    : surfaceFilter === 'reading'
+      ? publishedReadingNotes
+      : publishedSimulationNotes
   const currentSort = SORT_OPTIONS.find(option => option.value === sort) ?? SORT_OPTIONS[0]
 
   if ((isLoading || deepLinkedExplorationQuery.isLoading) && displayedExplorations.length === 0) {
@@ -182,25 +188,47 @@ export function ExploreHistoryPage({
     <div className="space-y-5">
       {/* ── Single-row toolbar: KPIs · search · view · sort ────── */}
       <div className="flex items-center gap-2">
-        {/* Inline KPI counts */}
-        <div className="flex items-center gap-1.5 pr-1 sm:gap-3 sm:pr-2">
-          <span className="inline-flex items-center gap-1 rounded-full border border-rule bg-white px-2 py-1 text-2xs text-muted tabular-nums">
+        {/* Filter pills — dual-purpose: show counts + toggle surface filter */}
+        <div className="flex items-center gap-1 pr-1 sm:gap-1.5 sm:pr-2">
+          <button
+            onClick={() => setSurfaceFilter('all')}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-2xs tabular-nums transition-all',
+              surfaceFilter === 'all'
+                ? 'border-accent/30 bg-accent/8 text-accent font-medium'
+                : 'border-rule bg-white text-muted hover:border-accent/20',
+            )}
+          >
+            All {publishedExplorations.length}
+          </button>
+          <button
+            onClick={() => setSurfaceFilter(prev => prev === 'reading' ? 'all' : 'reading')}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-2xs tabular-nums transition-all',
+              surfaceFilter === 'reading'
+                ? 'border-accent/30 bg-accent/8 text-accent font-medium'
+                : 'border-rule bg-white text-muted hover:border-accent/20',
+            )}
+          >
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             <span className="sm:hidden">Read</span>
             <span className="hidden sm:inline">Reading</span>
             {publishedReadingNotes.length}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-rule bg-white px-2 py-1 text-2xs text-muted tabular-nums">
+          </button>
+          <button
+            onClick={() => setSurfaceFilter(prev => prev === 'simulation' ? 'all' : 'simulation')}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-2xs tabular-nums transition-all',
+              surfaceFilter === 'simulation'
+                ? 'border-warning/30 bg-warning/8 text-warning font-medium'
+                : 'border-rule bg-white text-muted hover:border-warning/20',
+            )}
+          >
             <span className="h-1.5 w-1.5 rounded-full bg-warning" />
             <span className="sm:hidden">Runs</span>
             <span className="hidden sm:inline">Simulation</span>
             {publishedSimulationNotes.length}
-          </span>
-          <span className="hidden items-center gap-1 rounded-full border border-rule bg-white px-2 py-1 text-2xs text-muted tabular-nums sm:inline-flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent-warm" />
-            Published
-            {publishedExplorations.length}
-          </span>
+          </button>
         </div>
 
         {/* Search */}
@@ -271,37 +299,6 @@ export function ExploreHistoryPage({
         </div>
       </div>
 
-      <div className="rounded-xl border border-rule bg-white px-4 py-4">
-        <div>
-          <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">How community notes work</div>
-          <div className="mt-1 text-sm font-medium text-text-primary">Notes stay anchored to evidence, then move into public discussion</div>
-          <p className="mt-1 max-w-3xl text-13 leading-[1.6] text-muted">
-            A note begins from a highlighted paper passage or a concrete simulation artifact. After someone publishes a human title and takeaway, it appears here for replies, votes, linking, and re-entry into the paper or results.
-          </p>
-        </div>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          {[
-            {
-              title: '1. Start from a passage or run',
-              detail: 'Reading notes quote the exact paper text they respond to. Simulation notes stay tied to the exact-run context that generated them.',
-            },
-            {
-              title: '2. Publish intentionally',
-              detail: 'Only notes with a human-authored title and takeaway become public. Draft context and saved AI traces stay off the Community surface.',
-            },
-            {
-              title: '3. Let discussion sort signal',
-              detail: 'Readers vote, reply, and share direct links. Sorting modes then surface the newest, strongest, most discussed, or most contested notes.',
-            },
-          ].map(item => (
-            <div key={item.title} className="rounded-lg border border-rule/70 bg-surface-active/35 px-3 py-3">
-              <div className="text-xs font-medium text-text-primary">{item.title}</div>
-              <div className="mt-1 text-xs leading-[1.55] text-muted">{item.detail}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {hiddenDraftExploration && (
         <div className="rounded-xl border border-warning/30 bg-warning/6 px-4 py-3">
           <div className="text-sm font-medium text-text-primary">
@@ -331,45 +328,61 @@ export function ExploreHistoryPage({
         </div>
       )}
 
-      {/* ── Notes (the main content) ─────────────────────────────── */}
-      {displayedExplorations.length === 0 && search ? (
+      {/* ── Unified note feed ─────────────────────────────────────── */}
+      {filteredNotes.length === 0 && search ? (
         <NoResults search={search} />
-      ) : (
-        <div className="space-y-6">
-          <ContributionSection
-            eyebrow="Reading"
-            title="Published reading notes"
-            detail="Community interpretations layered on top of the paper reading experience."
-            explorations={publishedReadingNotes}
-            expandedId={expandedId}
-            onToggleExpand={toggleExpand}
-            onVote={delta => voteMutation.mutate(delta)}
-            onOpenQuery={onOpenQuery}
-            onOpenSimulation={onTabChange ? () => onTabChange('results') : undefined}
-            onShare={handleShare}
-            sharedId={sharedId}
-            deepLinkedExplorationId={initialExplorationId}
-            emptyMessage="No published reading notes match the current filters yet."
-            viewMode={viewMode}
-          />
-
-          <ContributionSection
-            eyebrow="Simulation"
-            title="Published exact-run notes"
-            detail="Community notes attached to simulation outputs and exact-run artifacts."
-            explorations={publishedSimulationNotes}
-            expandedId={expandedId}
-            onToggleExpand={toggleExpand}
-            onVote={delta => voteMutation.mutate(delta)}
-            onOpenQuery={onOpenQuery}
-            onOpenSimulation={onTabChange ? () => onTabChange('results') : undefined}
-            onShare={handleShare}
-            sharedId={sharedId}
-            deepLinkedExplorationId={initialExplorationId}
-            emptyMessage="No published exact-run notes match the current filters yet."
-            viewMode={viewMode}
-          />
+      ) : filteredNotes.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-rule bg-white/85 px-4 py-6 text-center text-sm text-muted">
+          No published {surfaceFilter === 'reading' ? 'reading' : surfaceFilter === 'simulation' ? 'simulation' : ''} notes yet.
         </div>
+      ) : viewMode === 'compact' ? (
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={STAGGER_CONTAINER}
+          className="overflow-hidden rounded-xl border border-rule bg-white divide-y divide-rule"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredNotes.map(exploration => (
+              <CompactExplorationRow
+                key={exploration.id}
+                exploration={exploration}
+                isExpanded={expandedId === exploration.id}
+                onToggleExpand={() => toggleExpand(exploration.id)}
+                onVote={delta => voteMutation.mutate({ id: exploration.id, delta })}
+                onOpenQuery={onOpenQuery}
+                onOpenSimulation={onTabChange ? () => onTabChange('results') : undefined}
+                onShare={handleShare}
+                shareCopied={sharedId === exploration.id}
+                isDeepLinked={initialExplorationId === exploration.id}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      ) : (
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={STAGGER_CONTAINER}
+          className="grid gap-3"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredNotes.map(exploration => (
+              <ExplorationCard
+                key={exploration.id}
+                exploration={exploration}
+                isExpanded={expandedId === exploration.id}
+                onToggleExpand={() => toggleExpand(exploration.id)}
+                onVote={delta => voteMutation.mutate({ id: exploration.id, delta })}
+                onOpenQuery={onOpenQuery}
+                onOpenSimulation={onTabChange ? () => onTabChange('results') : undefined}
+                onShare={handleShare}
+                shareCopied={sharedId === exploration.id}
+                isDeepLinked={initialExplorationId === exploration.id}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.div>
       )}
 
       {/* ── Collapsible guidance footer ──────────────────────────── */}
@@ -445,102 +458,6 @@ export function ExploreHistoryPage({
       </div>
 
     </div>
-  )
-}
-
-function ContributionSection({
-  eyebrow,
-  title,
-  detail,
-  explorations,
-  expandedId,
-  onToggleExpand,
-  onVote,
-  onOpenQuery,
-  onOpenSimulation,
-  onShare,
-  sharedId,
-  deepLinkedExplorationId,
-  emptyMessage,
-  viewMode = 'cards',
-}: {
-  readonly eyebrow: string
-  readonly title: string
-  readonly detail: string
-  readonly explorations: readonly Exploration[]
-  readonly expandedId: string | null
-  readonly onToggleExpand: (id: string) => void
-  readonly onVote?: (input: { id: string; delta: 1 | -1 }) => void
-  readonly onOpenQuery?: (query: string) => void
-  readonly onOpenSimulation?: () => void
-  readonly onShare?: (explorationId: string) => void
-  readonly sharedId: string | null
-  readonly deepLinkedExplorationId: string | null
-  readonly emptyMessage: string
-  readonly viewMode?: ViewMode
-}) {
-  return (
-    <section className="space-y-3">
-      <div>
-        <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">{eyebrow}</span>
-        <div className="mt-1 text-[0.9375rem] font-medium text-text-primary">{title}</div>
-        <p className="mt-0.5 max-w-3xl text-13 leading-[1.6] text-muted">{detail}</p>
-      </div>
-
-      {explorations.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-rule bg-white/85 px-4 py-5 text-sm text-muted">
-          {emptyMessage}
-        </div>
-      ) : viewMode === 'compact' ? (
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={STAGGER_CONTAINER}
-          className="overflow-hidden rounded-xl border border-rule bg-white divide-y divide-rule"
-        >
-          <AnimatePresence mode="popLayout">
-            {explorations.map(exploration => (
-              <CompactExplorationRow
-                key={exploration.id}
-                exploration={exploration}
-                isExpanded={expandedId === exploration.id}
-                onToggleExpand={() => onToggleExpand(exploration.id)}
-                onVote={onVote ? delta => onVote({ id: exploration.id, delta }) : undefined}
-                onOpenQuery={onOpenQuery}
-                onOpenSimulation={onOpenSimulation}
-                onShare={onShare}
-                shareCopied={sharedId === exploration.id}
-                isDeepLinked={deepLinkedExplorationId === exploration.id}
-              />
-            ))}
-          </AnimatePresence>
-        </motion.div>
-      ) : (
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={STAGGER_CONTAINER}
-          className="grid gap-4"
-        >
-          <AnimatePresence mode="popLayout">
-            {explorations.map(exploration => (
-              <ExplorationCard
-                key={exploration.id}
-                exploration={exploration}
-                isExpanded={expandedId === exploration.id}
-                onToggleExpand={() => onToggleExpand(exploration.id)}
-                onVote={onVote ? delta => onVote({ id: exploration.id, delta }) : undefined}
-                onOpenQuery={onOpenQuery}
-                onOpenSimulation={onOpenSimulation}
-                onShare={onShare}
-                shareCopied={sharedId === exploration.id}
-                isDeepLinked={deepLinkedExplorationId === exploration.id}
-              />
-            ))}
-          </AnimatePresence>
-        </motion.div>
-      )}
-    </section>
   )
 }
 
