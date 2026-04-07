@@ -163,7 +163,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h3 className="text-sm font-medium text-text-primary">
             {getMetricExplanation(block.title ?? '') ? (
-              <InlineTooltip label={getMetricExplanation(block.title ?? '')!}>
+              <InlineTooltip label={getMetricExplanation(block.title ?? '')!} placement="above">
                 {block.title}
               </InlineTooltip>
             ) : (

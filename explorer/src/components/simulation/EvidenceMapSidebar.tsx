@@ -63,9 +63,7 @@ export function EvidenceMapSidebar({
         <div className="grid grid-cols-2 gap-1.5">
           {gini != null && (
             <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">
-                <InlineTooltip label="Gini coefficient" detail="0 = perfectly equal, 1 = maximally concentrated. Measures geographic validator distribution.">Gini</InlineTooltip>
-              </div>
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium cursor-help" title="Gini coefficient — 0 = perfectly equal, 1 = maximally concentrated. Measures geographic validator distribution.">Gini</div>
               <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(gini, THRESHOLDS.gini)])}>
                 {formatNumber(gini, 3)}
               </div>
@@ -73,9 +71,7 @@ export function EvidenceMapSidebar({
           )}
           {hhi != null && (
             <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">
-                <InlineTooltip label="Herfindahl-Hirschman Index" detail="Sum of squared market shares. Higher = more concentrated.">HHI</InlineTooltip>
-              </div>
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium cursor-help" title="Herfindahl-Hirschman Index — Sum of squared market shares. Higher = more concentrated.">HHI</div>
               <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(hhi, THRESHOLDS.hhi)])}>
                 {formatNumber(hhi, 4)}
               </div>
@@ -83,9 +79,7 @@ export function EvidenceMapSidebar({
           )}
           {liveness != null && (
             <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">
-                <InlineTooltip label={LIVENESS_LABEL} detail={LIVENESS_DESCRIPTION}>{LIVENESS_LABEL}</InlineTooltip>
-              </div>
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium cursor-help" title={`${LIVENESS_LABEL} — ${LIVENESS_DESCRIPTION}`}>{LIVENESS_LABEL}</div>
               <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentHigher(liveness, THRESHOLDS.liveness)])}>
                 {formatLivenessCount(liveness)}
               </div>
@@ -93,17 +87,13 @@ export function EvidenceMapSidebar({
           )}
           {clusters != null && (
             <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">
-                <InlineTooltip label="Distinct geographic clusters identified by nearest-neighbor analysis">Clusters</InlineTooltip>
-              </div>
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium cursor-help" title="Distinct geographic clusters identified by nearest-neighbor analysis">Clusters</div>
               <div className="text-[13px] font-semibold tabular-nums text-stone-800">{clusters}</div>
             </div>
           )}
           {distance != null && (
             <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">
-                <InlineTooltip label="Sum of pairwise distances between all active regions" detail="Higher = more geographically spread out.">Distance</InlineTooltip>
-              </div>
+              <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium cursor-help" title="Sum of pairwise distances between all active regions. Higher = more geographically spread out.">Distance</div>
               <div className="text-[13px] font-semibold tabular-nums text-stone-800">{distance.toLocaleString()}</div>
             </div>
           )}
@@ -198,12 +188,12 @@ export function EvidenceMapSidebar({
       {overlay === 'latency' && (
         <div className="rounded-lg border border-black/[0.06] bg-white p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium mb-2">Latency scale</div>
-          <InlineTooltip label="Green = low latency, Red = high latency between GCP regions">
+          <InlineTooltip label="Green = low latency, Red = high latency between GCP regions" placement="above">
             <span className="block h-1.5 w-full rounded-full" style={{ background: 'linear-gradient(to right, #10B981, #FBBF24, #F97316, #EF4444)' }} />
           </InlineTooltip>
           <div className="flex justify-between mt-1 text-[9px] font-mono text-stone-400">
-            <InlineTooltip label="Minimum pairwise GCP latency"><span>{LATENCY_MIN.toFixed(0)} ms</span></InlineTooltip>
-            <InlineTooltip label="Maximum pairwise GCP latency"><span>{LATENCY_MAX.toFixed(0)} ms</span></InlineTooltip>
+            <InlineTooltip label="Minimum pairwise GCP latency" placement="above"><span>{LATENCY_MIN.toFixed(0)} ms</span></InlineTooltip>
+            <InlineTooltip label="Maximum pairwise GCP latency" placement="above"><span>{LATENCY_MAX.toFixed(0)} ms</span></InlineTooltip>
           </div>
         </div>
       )}
@@ -220,7 +210,7 @@ export function EvidenceMapSidebar({
                 { size: 'h-2 w-2', label: 'High', color: NODE_BLUE.source, tip: 'High block source concentration' },
                 { size: 'h-2.5 w-2.5', label: 'Top', color: NODE_BLUE.source, tip: 'Maximum block source concentration' },
               ] as const).map(({ size, label, color, tip }) => (
-                <InlineTooltip key={label} label={tip}>
+                <InlineTooltip key={label} label={tip} placement="above">
                   <span className="flex items-center gap-1">
                     <span className={cn('rounded-full', size)} style={{ backgroundColor: color }} />
                     <span className="text-[10px] text-stone-500">{label}</span>
