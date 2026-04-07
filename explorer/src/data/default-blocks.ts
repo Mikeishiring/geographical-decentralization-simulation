@@ -56,7 +56,7 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
             { key: 'Dominant pull', value: 'Source plus attester overlap' },
           ],
         },
-        verdict: 'Local block building centralizes faster in the neutral baseline family, while external block building remains more path-dependent to infrastructure placement and migration cost.',
+        verdict: 'Local block building centralizes faster in the neutral baseline (Gini ~0.75 vs ~0.26 for external), while external block building remains more path-dependent to infrastructure placement and migration cost.',
       },
 
   // Row 4: Surprising finding
@@ -90,7 +90,7 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
   // Row 6a: Caveat
   {
     type: 'caveat',
-    text: 'These findings are derived from agent-based simulation using GCP-only latency data. Real validator behavior involves additional factors: stochastic MEV, heterogeneous migration costs, non-fungible information sources, and incomplete latency information. The deterministic linear MEV function is a simplifying assumption.',
+    text: 'These findings are derived from agent-based simulation calibrated to GCP inter-region latency data. The model uses a mean-field approximation (independent migrations), fixed information-source parameters, instantaneous relocation, and latency as the sole location factor. Real validator behavior involves additional drivers — regulatory environment, energy costs, stochastic MEV, and heterogeneous switching costs — that the model abstracts away for tractability.',
   },
 
   // Row 6b: Sources
@@ -179,7 +179,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
             { key: 'Baseline tendency', value: 'Centralizes faster and more strongly' },
           ],
         },
-        verdict: 'Both centralize, but local block building is faster and more severe under baseline homogeneous conditions.',
+        verdict: 'Both centralize, but local block building is faster and more severe — reaching Gini ~0.75 versus ~0.26 for external under baseline homogeneous conditions.',
       },
       {
         type: 'insight',
@@ -258,7 +258,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
   {
     id: 'source-placement',
     title: 'Why can moving sources help one paradigm and hurt the other?',
-    description: 'EXP 1 shows the same infrastructure change pushing external and local block building in opposite directions.',
+    description: 'EXP 1 shows the same infrastructure change pushing external and local block building in opposite directions. Supplier and relay locations act as geographic anchors that pin the optimization landscape.',
     theme: 'msp',
     prompts: [
       'Why can moving sources help one paradigm and hurt the other?',
@@ -271,7 +271,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
         type: 'insight',
         emphasis: 'key-finding',
         title: 'Opposite paradigm sensitivities to source placement',
-        text: 'Local block building: latency-**aligned** sources centralize MORE (low-latency regions benefit both value capture and propagation). External block building: latency-**misaligned** sources centralize MORE (poorly connected suppliers create a large proposer-supplier gap, making co-location extremely valuable). The same infrastructure change has **opposite effects** depending on the paradigm.',
+        text: 'Local block building: latency-**aligned** sources centralize MORE (low-latency regions benefit both value capture and propagation). External block building: latency-**misaligned** sources centralize MORE — poorly connected suppliers act as geographic anchors that create a large proposer-supplier gap, driving HHI to 0.97 versus 0.79 under well-connected placement. The same infrastructure change has **opposite effects** depending on the paradigm.',
       },
       {
         type: 'caveat',
@@ -348,7 +348,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
         type: 'insight',
         emphasis: 'key-finding',
         title: 'Trajectories unchanged, reward variance higher',
-        text: 'Centralization trajectories (Gini, HHI, LC) remain largely **unchanged** under 6s slots. But CV_g (reward variance) is **higher** for both paradigms — the same latency advantage becomes a larger fraction of the shortened timing window, amplifying reward disparities.',
+        text: 'Centralization trajectories (Gini, HHI, LC) remain largely **unchanged** under 6s slots. But CV_g (reward variance) increases by **5-10%** for both paradigms — the same latency advantage becomes a larger fraction of the shortened timing window, amplifying reward disparities even though validators have not moved.',
       },
       {
         type: 'caveat',
@@ -403,11 +403,11 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
         title: 'Paper Limitations',
         headers: ['Limitation', 'Impact', 'Possible Extension'],
         rows: [
-          ['GCP-only latency data', 'Other providers may differ', 'Multi-cloud latency dataset'],
-          ['Deterministic linear MEV', 'Real MEV is stochastic', 'Stochastic MEV model'],
-          ['Fungible info sources', 'Real suppliers differ in value', 'Heterogeneous source values'],
-          ['Full-information assumption', 'Proposers may not know all latencies', 'Partial information model'],
-          ['Constant migration cost', 'Real costs vary over time', 'Time-varying cost functions'],
+          ['Mean-field approximation', 'Treats migrations as independent, may underestimate clustering feedback', 'Correlated migration model'],
+          ['Fixed information-source parameters', 'Abstracts from dynamic MEV progression', 'Time-varying source model'],
+          ['Simplified migration model', 'Instantaneous relocation ignores real switching delays', 'Gradual heterogeneous migration'],
+          ['Latency-only location factors', 'Omits regulatory, energy, and infrastructure drivers', 'Multi-factor location model'],
+          ['GCP-region calibration', 'May not represent all real-world network topologies', 'Multi-provider latency validation'],
         ],
       },
       {
