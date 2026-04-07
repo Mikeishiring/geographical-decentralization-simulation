@@ -8,7 +8,7 @@
  * Users can switch modes freely. Both share the same research context.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { DefaultChatTransport } from 'ai'
@@ -113,6 +113,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
   const [askProgressMeta, setAskProgressMeta] = useState<{ startedAt: number; lastSignalAt: number } | null>(null)
   const [askProgressClock, setAskProgressClock] = useState(() => Date.now())
   const historyRef = useRef(history)
+  const stickyBarRef = useRef<HTMLDivElement | null>(null)
   const pendingAskQueryRef = useRef<string | null>(null)
   const pendingAskLaunchRef = useRef<AskLaunchContext | null>(null)
   const askProgressSignalRef = useRef('')
@@ -140,6 +141,32 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
   // Track pending timers for cleanup on unmount
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   useEffect(() => () => timersRef.current.forEach(clearTimeout), [])
+
+  // Publish sticky bar height as CSS custom property so downstream sticky elements can stack
+  useLayoutEffect(() => {
+    const bar = stickyBarRef.current
+    if (!bar) return
+
+    const updateHeight = () => {
+      document.documentElement.style.setProperty('--explorer-ask-bar-height', `${Math.ceil(bar.getBoundingClientRect().height)}px`)
+    }
+
+    updateHeight()
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateHeight)
+      return () => window.removeEventListener('resize', updateHeight)
+    }
+
+    const observer = new ResizeObserver(() => updateHeight())
+    observer.observe(bar)
+    window.addEventListener('resize', updateHeight)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', updateHeight)
+    }
+  }, [mode])
 
   const apiHealthQuery = useQuery({
     queryKey: ['api-health'],
@@ -471,17 +498,17 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
         ))}
       </div>
 
-      {/* ─── ASK MODE ─── */}
+      {/* ─── Sticky query bar ─── */}
       {mode === 'ask' && (
-        <div className="space-y-6">
-          {/* Query input */}
-          <div className="rounded-2xl bg-white px-5 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_0_0_1px_rgba(0,0,0,0.04)] geo-accent-bar">
-            <div className="lab-section-title">
-              {ASK_HEADING}
-            </div>
+        <div
+          ref={stickyBarRef}
+          className="sticky z-30 -mx-4 border-b border-rule/70 bg-canvas/92 px-4 py-2.5 backdrop-blur-md sm:-mx-6 sm:px-6"
+          style={{ top: 'var(--explorer-tab-nav-height, 3.75rem)' }}
+        >
+          <div className="flex items-center gap-3">
             <div className={cn(
-              'mt-3 flex items-center gap-3 rounded-xl border px-4 py-3 transition-[border-color,box-shadow] duration-200',
-              'border-[rgba(0,0,0,0.08)] bg-[rgba(0,0,0,0.02)]',
+              'flex flex-1 items-center gap-3 rounded-xl border px-4 py-2.5 transition-[border-color,box-shadow] duration-200',
+              'border-[rgba(0,0,0,0.08)] bg-white/90 backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
               !apiDisabled && 'focus-within:border-accent/30 focus-within:shadow-[0_0_0_3px_rgba(59,130,246,0.08)]',
             )}>
               {askLoading ? (
@@ -498,11 +525,18 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                 disabled={apiDisabled || askLoading}
                 className="flex-1 bg-transparent text-[14px] font-[450] text-text-primary placeholder:text-[rgba(0,0,0,0.3)] outline-none disabled:opacity-50"
               />
+              {/* API health — semantic dot */}
+              {apiHealthQuery.data && (
+                <span className={cn(
+                  'w-[6px] h-[6px] shrink-0 rounded-full',
+                  apiHealthQuery.data.anthropicEnabled ? 'bg-[#22c55e]' : 'bg-[#f59e0b]',
+                )} title={apiHealthQuery.data.anthropicEnabled ? 'Reading guide online' : 'Curated content only — needs an API key'} />
+              )}
               <button
                 onClick={() => handleAskSubmit(query)}
                 disabled={!query.trim() || apiDisabled || askLoading}
                 className={cn(
-                  'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors active:scale-[0.96]',
+                  'shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors active:scale-[0.96]',
                   query.trim() && !apiDisabled && !askLoading
                     ? 'bg-accent text-white hover:bg-accent/90'
                     : 'cursor-not-allowed bg-[rgba(0,0,0,0.05)] text-muted',
@@ -518,31 +552,13 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                 )}
               </button>
             </div>
-
-            {/* API health indicator — semantic dot */}
-            {apiHealthQuery.data && (
-              <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-text-faint">
-                <span className={cn(
-                  'w-[6px] h-[6px] rounded-full',
-                  apiHealthQuery.data.anthropicEnabled ? 'bg-[#22c55e]' : 'bg-[#f59e0b]',
-                )} />
-                {apiHealthQuery.data.anthropicEnabled
-                  ? 'Reading guide online'
-                  : 'Curated content only — needs an API key'}
-              </div>
-            )}
-
-            {askLoadingState && askLoading && (
-              <div className="mt-4">
-                <AskLoadingStateCard
-                  compact
-                  descriptor={askLoadingState}
-                  assistantText={askLeadText}
-                  toolActivities={askToolActivities}
-                />
-              </div>
-            )}
           </div>
+        </div>
+      )}
+
+      {/* ─── ASK MODE ─── */}
+      {mode === 'ask' && (
+        <div className="space-y-6">
 
           {askPlan && (
             <AskPlanPanel
