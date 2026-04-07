@@ -89,7 +89,7 @@ function Sparkline({
   const highlight = coords[Math.max(0, Math.min(coords.length - 1, highlightIndex ?? (coords.length - 1)))] ?? coords[coords.length - 1]!
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0" aria-hidden>
-      <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
+      <polyline points={points} fill="none" stroke={withAlpha(color, 0.75)} strokeWidth={1.25} strokeLinecap="round" strokeLinejoin="round" />
       <line x1={highlight.x} y1={2} x2={highlight.x} y2={baselineY} stroke={withAlpha(color, 0.18)} strokeWidth={1} />
       <circle cx={highlight.x} cy={highlight.y} r={2.5} fill="white" stroke={color} strokeWidth={1.5} />
     </svg>
@@ -439,7 +439,7 @@ function EvidenceKpiCard({
       aria-pressed={active}
       aria-label={`${card.label}: ${card.value}. ${card.detail}`}
       className={cn(
-        'group relative z-0 min-h-[100px] h-full overflow-visible bg-[#FCFBFA]/82 px-3 py-2.5 text-left transition-[background-color,box-shadow] duration-150 hover:bg-white/94 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20',
+        'group relative z-0 min-h-[100px] h-full overflow-visible bg-white/80 px-3 py-2.5 text-left transition-[background-color,box-shadow,transform] duration-150 hover:bg-white/94 active:scale-[0.97] active:duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20',
         active && 'z-10 bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)]',
         hovered && 'z-20',
       )}
@@ -458,9 +458,8 @@ function EvidenceKpiCard({
           <motion.div
             className="pointer-events-none absolute inset-x-3 bottom-full z-30 mb-1.5"
             initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.12, ease: 'easeOut' }}
+            animate={{ opacity: 1, y: 0, transition: { duration: 0.15, ease: [0.22, 1, 0.36, 1] } }}
+            exit={{ opacity: 0, y: 4, transition: { duration: 0.1, ease: [0.22, 1, 0.36, 1] } }}
           >
             <div className="rounded-lg border border-black/[0.06] bg-white/96 px-2.5 py-2 shadow-[0_8px_20px_rgba(15,23,42,0.08)] backdrop-blur-sm">
               <div className="text-[11px] font-medium leading-[1.4] text-stone-800">
@@ -479,11 +478,11 @@ function EvidenceKpiCard({
           <InlineTooltip label={card.subtitle ? `${card.subtitle} — ${card.detail}` : card.detail}>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', SENTIMENT_DOT[card.sentiment])} />
-              <span className="text-[9px] uppercase tracking-[0.1em] text-stone-500 font-semibold truncate">{card.label}</span>
+              <span className="text-[9px] uppercase tracking-[0.02em] text-stone-500 font-semibold truncate">{card.label}</span>
             </div>
           </InlineTooltip>
           <div className="mt-1.5 flex flex-wrap items-end gap-x-2 gap-y-1">
-            <div className="text-[19px] font-semibold text-stone-900 tabular-nums leading-none tracking-tight">
+            <div className="text-[20px] font-medium text-stone-900 tabular-nums leading-none tracking-[-0.01em] font-[family-name:var(--font-mono)]">
               {hoverIndex != null && currentValue != null ? card.formatSeriesValue(currentValue) : card.value}
             </div>
             {seriesDelta && (
