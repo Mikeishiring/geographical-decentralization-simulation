@@ -11,11 +11,17 @@ export interface PaperSection {
   readonly blocks: readonly Block[]
 }
 
+export interface AuthorSocial {
+  readonly platform: 'x' | 'github' | 'scholar'
+  readonly url: string
+}
+
 export interface Author {
   readonly name: string
   readonly role?: string
   readonly url?: string
   readonly focus?: string
+  readonly socials?: readonly AuthorSocial[]
 }
 
 export const PAPER_METADATA = {
@@ -23,10 +29,39 @@ export const PAPER_METADATA = {
   subtitle: 'An editorial reading layer over Yang, Oz, Wu, and Zhang (2025).',
   citation: 'Yang, Oz, Wu, Zhang (2025) · ACM SIGMETRICS 2026 · arXiv:2509.21475',
   authors: [
-    { name: 'Sen Yang', role: 'Yale University', focus: 'Blockchain economics, geographic decentralization', url: 'https://scholar.google.com/citations?user=7mGQ22cAAAAJ' },
-    { name: 'Burak Öz', role: 'Flashbots', focus: 'Mechanism design, distributed systems', url: 'https://scholar.google.com/citations?user=_YL_ZSIAAAAJ' },
-    { name: 'Fei Wu', role: 'King\'s College London', focus: 'Co-author' },
-    { name: 'Fan Zhang', role: 'Yale University', focus: 'MEV, cryptographic protocols, trusted execution', url: 'https://scholar.google.com/citations?user=YTokrfkAAAAJ' },
+    {
+      name: 'Sen Yang', role: 'Yale University', focus: 'Blockchain economics, geographic decentralization',
+      url: 'https://scholar.google.com/citations?user=7mGQ22cAAAAJ',
+      socials: [
+        { platform: 'scholar', url: 'https://scholar.google.com/citations?user=7mGQ22cAAAAJ' },
+        { platform: 'x', url: 'https://x.com/syang2ng' },
+        { platform: 'github', url: 'https://github.com/syang-ng' },
+      ],
+    },
+    {
+      name: 'Burak Öz', role: 'Flashbots', focus: 'Mechanism design, distributed systems',
+      url: 'https://scholar.google.com/citations?user=_YL_ZSIAAAAJ',
+      socials: [
+        { platform: 'scholar', url: 'https://scholar.google.com/citations?user=_YL_ZSIAAAAJ' },
+        { platform: 'x', url: 'https://x.com/boez95' },
+        { platform: 'github', url: 'https://github.com/burakoz-tr' },
+      ],
+    },
+    {
+      name: 'Fei Wu', role: 'King\'s College London', focus: 'Co-author',
+      socials: [
+        { platform: 'x', url: 'https://x.com/William33203632' },
+      ],
+    },
+    {
+      name: 'Fan Zhang', role: 'Yale University', focus: 'MEV, cryptographic protocols, trusted execution',
+      url: 'https://scholar.google.com/citations?user=YTokrfkAAAAJ',
+      socials: [
+        { platform: 'scholar', url: 'https://scholar.google.com/citations?user=YTokrfkAAAAJ' },
+        { platform: 'x', url: 'https://x.com/0xfanzhang' },
+        { platform: 'github', url: 'https://github.com/fanzhang-crypto' },
+      ],
+    },
   ] as readonly Author[],
   abstract: "The paper studies how Ethereum's local and external block-building paradigms interact with validator and information-source distributions to shape geographical positioning incentives. Across the bounded simulations, both paradigms induce location-dependent payoffs and migration incentives, while information asymmetries and consensus parameters modulate the strength of concentration pressure.",
   keyClaims: [
