@@ -4,6 +4,7 @@ import { BLOCK_COLORS, CHART, INTENT_COLORS, SPRING_CRISP } from '../../lib/them
 import { crosshairFadeNearLive } from '../../lib/chart-animations'
 import type { TimeSeriesBlock as TimeSeriesBlockType } from '../../types/blocks'
 import { BlockEmptyState } from './BlockEmptyState'
+import { InlineTooltip } from '../ui/Tooltip'
 
 interface TimeSeriesBlockProps {
   block: TimeSeriesBlockType
@@ -157,16 +158,16 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
     : 0
 
   return (
-    <div className="lab-panel overflow-hidden rounded-xl">
+    <div className="lab-panel rounded-xl">
       <div className="border-b border-rule px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h3
-            className="text-sm font-medium text-text-primary group/title cursor-help"
-            title={getMetricExplanation(block.title ?? '') ?? undefined}
-          >
-            {block.title}
-            {getMetricExplanation(block.title ?? '') && (
-              <span className="ml-1.5 inline-flex items-center justify-center h-3.5 w-3.5 rounded-full border border-stone-200 text-[8px] font-semibold text-stone-400 group-hover/title:border-stone-400 group-hover/title:text-stone-600 transition-colors align-text-top">?</span>
+          <h3 className="text-sm font-medium text-text-primary">
+            {getMetricExplanation(block.title ?? '') ? (
+              <InlineTooltip label={getMetricExplanation(block.title ?? '')!}>
+                {block.title}
+              </InlineTooltip>
+            ) : (
+              block.title
             )}
           </h3>
 
