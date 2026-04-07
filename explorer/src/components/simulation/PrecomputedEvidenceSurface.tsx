@@ -487,14 +487,14 @@ export function PrecomputedEvidenceSurface({
         className="lab-stage overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.18, ease: 'easeOut' }}
+        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="px-4 py-3 sm:px-5">
           <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="h-2 w-2 shrink-0 rounded-full bg-accent dot-pulse" />
-                <h2 className="text-[1.05rem] font-semibold tracking-tight text-text-primary">
+                <h2 className="text-[15px] font-semibold tracking-tight text-text-primary">
                   Simulation Results
                 </h2>
               </div>
@@ -542,7 +542,7 @@ export function PrecomputedEvidenceSurface({
             <div className="mt-3 border-t border-rule/70 pt-3">
               {payloadQuery.isLoading && (
                 <div className="space-y-3">
-                  <div className="overflow-hidden rounded-[14px] border border-black/[0.05] bg-black/[0.05]">
+                  <div className="overflow-hidden rounded-[14px] border border-black/[0.06] bg-black/[0.05]">
                     <div className="grid grid-cols-2 gap-px sm:grid-cols-3 lg:grid-cols-5">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <div key={i} className="bg-white/92 px-3 py-3 animate-pulse">
@@ -574,7 +574,7 @@ export function PrecomputedEvidenceSurface({
                     payload={payloadQuery.data}
                     scenarioLabel={selectedEntry ? `${selectedEntry.evaluation}-${selectedEntry.paradigm}-${selectedEntry.result}` : undefined}
                     embedded
-                    className="mt-3 border-t border-black/[0.05] pt-3"
+                    className="mt-3 border-t border-black/[0.06] pt-3"
                   />
                 </motion.div>
               )}
@@ -596,7 +596,7 @@ export function PrecomputedEvidenceSurface({
             />
 
             {/* Config snapshot + slot narrative — integrated into the chart section */}
-            <details className="group/details border-b border-black/[0.05]">
+            <details className="group/details border-b border-black/[0.06]">
               <summary className="flex cursor-pointer select-none items-center gap-2 px-4 py-3 text-[11px] font-medium text-text-secondary transition-colors hover:text-text-primary sm:px-5">
                 <ChevronDown className="h-3 w-3 transition-transform duration-150 group-open/details:rotate-180" />
                 Scenario details
@@ -606,7 +606,7 @@ export function PrecomputedEvidenceSurface({
                   </span>
                 )}
               </summary>
-              <div className="border-t border-black/[0.05] bg-[#FCFBFA] px-4 py-3 sm:px-5">
+              <div className="border-t border-black/[0.06] bg-[#FCFBFA] px-4 py-3 sm:px-5">
                 <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
                   {selectedEntry && (
                     <EvidenceConfigSnapshot

@@ -83,11 +83,30 @@ function buildSparkline(
     const y = height - (((value - min) / range) * (height - 10) + 5)
     return { x, y }
   })
-  const path = points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
-    .join(' ')
-  const areaPath = `${path} L ${width.toFixed(2)} ${height} L 0 ${height} Z`
-  const currentPoint = points[clampIndex(points.length, currentIndex)] ?? points[points.length - 1]!
+
+  // Build smooth monotone cubic spline instead of straight segments
+  let path: string
+  if (points.length < 3) {
+    path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ')
+  } else {
+    const parts: string[] = [`M ${points[0]!.x.toFixed(2)} ${points[0]!.y.toFixed(2)}`]
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[Math.max(0, i - 1)]!
+      const p1 = points[i]!
+      const p2 = points[i + 1]!
+      const p3 = points[Math.min(points.length - 1, i + 2)]!
+      const cp1x = p1.x + (p2.x - p0.x) / 6
+      const cp1y = p1.y + (p2.y - p0.y) / 6
+      const cp2x = p2.x - (p3.x - p1.x) / 6
+      const cp2y = p2.y - (p3.y - p1.y) / 6
+      parts.push(`C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`)
+    }
+    path = parts.join(' ')
+  }
+
+  const lastPoint = points[points.length - 1]!
+  const areaPath = `${path} L ${lastPoint.x.toFixed(2)} ${height} L ${points[0]!.x.toFixed(2)} ${height} Z`
+  const currentPoint = points[clampIndex(points.length, currentIndex)] ?? lastPoint
 
   return {
     path,
