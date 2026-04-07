@@ -10,6 +10,7 @@ import { FullTextView } from '../components/paper/FullTextView'
 import { PaperHtmlPreviewPage } from './PaperHtmlPreviewPage'
 import { PaperNavProvider } from '../components/paper/PaperNavContext'
 import { SelectionPopover } from '../components/community/SelectionPopover'
+import { AnnotationGuide } from '../components/paper/AnnotationGuide'
 import { useTextSelection } from '../hooks/useTextSelection'
 import { getActiveStudy } from '../studies'
 import type { TextAnchor } from '../types/anchors'
@@ -223,6 +224,9 @@ export function PaperReaderPage({
       sectionNoteCount={selectionSectionNoteCount}
       containerRef={containerRef}
     />
+
+    {/* Floating annotation guide — bottom-right widget, only on annotatable views */}
+    {readerMode !== 'paper' && <AnnotationGuide />}
 
     <AnimatePresence>
       {noteError && (
