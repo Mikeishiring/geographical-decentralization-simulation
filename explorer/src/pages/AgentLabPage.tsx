@@ -48,6 +48,7 @@ import { ShimmerLoading } from '../components/explore/ShimmerBlock'
 import { ErrorDisplay } from '../components/explore/ErrorDisplay'
 import { FollowUpPrompts } from '../components/explore/FollowUpPrompts'
 import { ContributionComposer } from '../components/community/ContributionComposer'
+import { GlobeNetwork } from '../components/decorative/GlobeNetwork'
 import { getActiveStudy } from '../studies'
 
 type AgentMode = 'ask' | 'experiment'
@@ -423,7 +424,10 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="reveal-up">
+      <div className="reveal-up relative overflow-hidden">
+        <div className="absolute -right-4 -top-2 w-[140px] h-[140px] opacity-[0.14] pointer-events-none select-none" aria-hidden="true">
+          <GlobeNetwork className="w-full h-full text-muted" />
+        </div>
         <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
           Research workspace
         </span>

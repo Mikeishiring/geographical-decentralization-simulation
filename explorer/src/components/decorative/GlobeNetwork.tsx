@@ -174,7 +174,7 @@ export function GlobeNetwork({ className = '', flip = false }: GlobeNetworkProps
           d={d}
           stroke="currentColor"
           strokeWidth="0.4"
-          opacity="0.12"
+          opacity="0.15"
           fill="none"
         />
       ))}

@@ -17,12 +17,12 @@ export function NodeArc({ className = '' }: { readonly className?: string }) {
       aria-hidden="true"
       preserveAspectRatio="xMidYMid meet"
     >
-      {/* Faint wireframe grid lines */}
-      <line x1="10" y1="30" x2="110" y2="30" stroke="currentColor" strokeWidth="0.3" opacity="0.08" />
-      <line x1="35" y1="8" x2="35" y2="52" stroke="currentColor" strokeWidth="0.3" opacity="0.06" />
-      <line x1="75" y1="8" x2="75" y2="52" stroke="currentColor" strokeWidth="0.3" opacity="0.06" />
-      <path d="M10 18 Q60 6 110 18" stroke="currentColor" strokeWidth="0.3" opacity="0.06" fill="none" />
-      <path d="M10 42 Q60 54 110 42" stroke="currentColor" strokeWidth="0.3" opacity="0.06" fill="none" />
+      {/* Curved graticule lines — echoing the globe wireframe */}
+      <path d="M8 30 Q60 26 112 30" stroke="currentColor" strokeWidth="0.3" opacity="0.08" fill="none" />
+      <path d="M10 16 Q60 8 110 16" stroke="currentColor" strokeWidth="0.3" opacity="0.06" fill="none" />
+      <path d="M10 44 Q60 52 110 44" stroke="currentColor" strokeWidth="0.3" opacity="0.06" fill="none" />
+      <path d="M35 6 Q32 30 35 54" stroke="currentColor" strokeWidth="0.3" opacity="0.06" fill="none" />
+      <path d="M75 6 Q78 30 75 54" stroke="currentColor" strokeWidth="0.3" opacity="0.06" fill="none" />
 
       {/* Atmospheric arc connecting two nodes */}
       <path
