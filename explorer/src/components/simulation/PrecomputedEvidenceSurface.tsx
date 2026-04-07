@@ -251,10 +251,10 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
 
   return (
     <div className="space-y-1.5">
-      <div className="flex flex-wrap items-stretch overflow-hidden rounded-[12px] border border-black/[0.06] bg-[#FAF9F7]/96 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.55)]">
-        <div className="flex min-w-[220px] flex-1 items-center gap-2.5 px-3.5 py-2.5">
+      <div className="flex items-stretch overflow-hidden rounded-[12px] border border-black/[0.06] bg-[#FAF9F7]/96 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.55)]">
+        <div className="flex min-w-[180px] items-center gap-2.5 px-3.5 py-2.5" style={{ flex: hasCostDimension ? '1 1 0%' : '0 1 auto' }}>
           <span className={filterLabel}>Scenario</span>
-          <div className="relative min-w-0 flex-1">
+          <div className="relative min-w-0" style={{ flex: hasCostDimension ? '1 1 0%' : '0 1 auto' }}>
             <select
               value={selectedEvaluation}
               onChange={e => findAndSelect(e.target.value, selectedParadigm)}
@@ -269,7 +269,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
         </div>
 
         {hasCostDimension && (
-          <div className="flex min-w-[320px] flex-[1.6] items-center gap-2.5 border-t border-black/[0.06] px-3.5 py-2.5 sm:border-t-0 sm:border-l">
+          <div className="flex min-w-[280px] flex-[1.4] items-center gap-2.5 border-l border-black/[0.06] px-3.5 py-2.5">
             <InlineTooltip label="ETH cost when a validator relocates" detail="Higher cost = stronger geographic lock-in.">
               <span className={filterLabel}>Migration cost</span>
             </InlineTooltip>
@@ -292,7 +292,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
         )}
 
         {paradigms.length > 1 && (
-          <div className="flex items-center gap-2.5 border-t border-black/[0.06] px-3.5 py-2.5 sm:border-t-0 sm:border-l">
+          <div className="flex items-center gap-2.5 border-l border-black/[0.06] px-3.5 py-2.5 ml-auto">
             <InlineTooltip label="Block-building paradigm: External (SSP) or Local (MSP)">
               <span className={filterLabel}>Paradigm</span>
             </InlineTooltip>
