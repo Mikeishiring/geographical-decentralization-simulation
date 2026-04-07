@@ -17,7 +17,7 @@ export function PaperHero() {
       animate="visible"
     >
       {/* Background globe motif */}
-      <div className="absolute -right-6 -top-4 w-[180px] h-[180px] opacity-[0.18] pointer-events-none select-none sm:w-[220px] sm:h-[220px]" aria-hidden="true">
+      <div className="absolute -right-6 -top-4 w-[180px] h-[180px] opacity-[0.22] pointer-events-none select-none sm:w-[220px] sm:h-[220px]" aria-hidden="true">
         <GlobeNetwork className="w-full h-full text-muted" />
       </div>
 

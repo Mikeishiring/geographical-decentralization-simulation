@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, ArrowUpDown, Tag, ChevronDown, ChevronUp, LayoutList, LayoutGrid, Check } from 'lucide-react'
+import { GlobeNetwork } from '../components/decorative/GlobeNetwork'
 import { NodeArc } from '../components/decorative/NodeArc'
 import { getExploration, listExplorations, voteExploration, type Exploration } from '../lib/api'
 import { MOCK_COMMUNITY_NOTES } from '../data/mock-community-notes'
@@ -185,7 +186,12 @@ export function ExploreHistoryPage({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="relative space-y-5">
+      {/* Subtle globe watermark — geographic thread across pages */}
+      <div className="pointer-events-none absolute -bottom-12 -right-10 h-[200px] w-[200px] select-none opacity-[0.07]" aria-hidden="true">
+        <GlobeNetwork className="h-full w-full text-muted" />
+      </div>
+
       {/* ── Single-row toolbar: KPIs · search · view · sort ────── */}
       <div className="flex items-center gap-2">
         {/* Filter pills — dual-purpose: show counts + toggle surface filter */}
