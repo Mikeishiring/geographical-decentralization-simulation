@@ -381,7 +381,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
             </div>
           </div>
 
-          <div className="rounded-[12px] border border-black/[0.05] bg-[#FAF9F7] p-[2px] shadow-[inset_0_1px_1px_rgba(0,0,0,0.03)]">
+          <div className="rounded-[12px] border border-black/[0.05] bg-white p-[2px] shadow-[inset_0_1px_1px_rgba(0,0,0,0.03)]">
             <div className="flex items-center gap-[3px]">
               {([
                 { mode: 'validators' as const, icon: Radio, label: 'Validators', detail: 'Show validator stake distribution across regions' },
@@ -392,7 +392,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                 <button
                   onClick={() => setOverlay(mode)}
                   className={cn(
-                    'flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.25 text-[11px] font-medium transition-all duration-150',
+                    'flex items-center gap-1.5 rounded-[12px] px-2.5 py-1.25 text-[11px] font-medium transition-[transform,opacity,background-color,color,box-shadow] duration-150 active:scale-[0.92]',
                     overlay === mode
                       ? 'bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_0_0_0.5px_rgba(0,0,0,0.04)]'
                       : 'text-stone-400 hover:text-stone-600',
@@ -415,7 +415,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                   setCopied(true)
                   setTimeout(() => setCopied(false), 2000)
                 }}
-                className="flex items-center justify-center h-7 w-7 rounded-[10px] border border-black/[0.05] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all duration-150"
+                className="flex items-center justify-center h-7 w-7 rounded-[12px] border border-black/[0.05] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-[transform,opacity,background-color,color] duration-150 active:scale-[0.92]"
                 title={copied ? 'Copied!' : 'Copy share link with current slot and overlay'}
               >
                 <Link2 className={cn('h-3 w-3 transition-colors', copied && 'text-emerald-500')} />
@@ -434,7 +434,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                   a.click()
                   URL.revokeObjectURL(a.href)
                 }}
-                className="flex items-center justify-center h-7 w-7 rounded-[10px] border border-black/[0.05] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all duration-150"
+                className="flex items-center justify-center h-7 w-7 rounded-[12px] border border-black/[0.05] bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-[transform,opacity,background-color,color] duration-150 active:scale-[0.92]"
                 title="Download snapshot data as JSON"
               >
                 <Download className="h-3 w-3" />
@@ -459,10 +459,10 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
           onPointerLeave={handlePointerUp}
         >
           {/* Zoom controls — Agentation-style floating controls */}
-          <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 rounded-[10px] border border-black/[0.06] bg-white/90 backdrop-blur-md p-1 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+          <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 rounded-[12px] border border-black/[0.06] bg-white/90 backdrop-blur-md p-1 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.06)]">
             <button
               onClick={zoomIn}
-              className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+              className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors active:scale-[0.92]"
               aria-label={`Zoom in (current: ${zoom.toFixed(1)}x)`}
               title="Zoom in"
             >
@@ -471,7 +471,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
             <div className="h-px bg-black/[0.06] mx-0.5" />
             <button
               onClick={zoomOut}
-              className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+              className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors active:scale-[0.92]"
               aria-label={`Zoom out (current: ${zoom.toFixed(1)}x)`}
               title="Zoom out"
             >
@@ -482,7 +482,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                 <div className="h-px bg-black/[0.06] mx-0.5" />
                 <button
                   onClick={resetView}
-                  className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+                  className="flex items-center justify-center h-6 w-6 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors active:scale-[0.92]"
                   aria-label="Reset map zoom and pan to default view"
                   title="Reset zoom"
                 >
@@ -751,7 +751,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                       stroke="white"
                       strokeWidth={isTop3 ? 1.4 : isTop6 ? 1 : 0.6}
                       {...hoverProps}
-                      style={{ cursor: 'pointer', transition: 'r 0.15s ease-out, cx 0.1s ease-out, cy 0.1s ease-out' }}
+                      style={{ cursor: 'pointer', transition: 'r 0.15s cubic-bezier(0.19, 1, 0.22, 1), cx 0.1s cubic-bezier(0.19, 1, 0.22, 1), cy 0.1s cubic-bezier(0.19, 1, 0.22, 1)' }}
                     />
                   ) : (
                     <motion.circle
@@ -854,7 +854,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
                 className="pointer-events-none absolute z-20"
                 style={tooltipStyle}
               >
-                <div className="relative rounded-xl border border-black/[0.06] bg-white px-3.5 py-2.5 backdrop-blur-sm" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' }}>
+                <div className="relative rounded-xl border border-black/[0.06] bg-white px-3.5 py-2.5 backdrop-blur-sm" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.06)' }}>
                   <div className="absolute left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-b border-r border-black/[0.06] bg-white"
                     style={{
                       bottom: (tooltip.y / MAP_VISIBLE_H) * 100 < 15 ? 'auto' : '-5px',
@@ -912,7 +912,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
 
           {/* ── Slot progress bar (bottom of map) ── */}
           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-black/[0.04]">
-            <div className="h-full transition-all duration-100" style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #1c1917, #57534e)' }} />
+            <div className="h-full transition-[width] duration-100" style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #1c1917, #57534e)' }} />
           </div>
         </div>
 
@@ -942,15 +942,15 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5">
             {playing ? (
-              <button onClick={onPause} aria-label="Pause simulation playback" className="flex items-center justify-center rounded-[10px] border border-black/[0.06] bg-white px-3 py-1.5 text-[11px] font-medium text-stone-700 hover:bg-stone-50 transition-all duration-150 gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              <button onClick={onPause} aria-label="Pause simulation playback" className="flex items-center justify-center rounded-[12px] border border-black/[0.06] bg-white px-3 py-1.5 text-[11px] font-medium text-stone-700 hover:bg-stone-50 transition-[transform,opacity,background-color,color] duration-150 active:scale-[0.92] gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                 <Pause className="h-3 w-3" /> Pause
               </button>
             ) : (
-              <button onClick={onPlay} aria-label={slot >= lastSlot ? 'Replay simulation from start' : 'Play simulation timeline'} className="flex items-center justify-center rounded-[10px] bg-stone-900 px-3.5 py-1.5 text-[11px] font-medium text-white hover:bg-stone-800 transition-all duration-150 gap-1.5 shadow-[0_1px_3px_rgba(0,0,0,0.12)]">
+              <button onClick={onPlay} aria-label={slot >= lastSlot ? 'Replay simulation from start' : 'Play simulation timeline'} className="flex items-center justify-center rounded-[12px] bg-stone-900 px-3.5 py-1.5 text-[11px] font-medium text-white hover:bg-stone-800 transition-[transform,opacity,background-color,color] duration-150 active:scale-[0.92] gap-1.5 shadow-[0_1px_3px_rgba(0,0,0,0.12)]">
                 <Play className="h-3 w-3" /> {slot >= lastSlot ? 'Replay' : 'Play'}
               </button>
             )}
-            <button onClick={onReset} aria-label="Jump to final slot" className="flex items-center justify-center rounded-[10px] border border-black/[0.06] bg-white h-[30px] w-[30px] text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.04)]" title="Jump to final slot">
+            <button onClick={onReset} aria-label="Jump to final slot" className="flex items-center justify-center rounded-[12px] border border-black/[0.06] bg-white h-[30px] w-[30px] text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-[transform,opacity,background-color,color] duration-150 active:scale-[0.92] shadow-[0_1px_2px_rgba(0,0,0,0.04)]" title="Jump to final slot">
               <RotateCcw className="h-3 w-3" />
             </button>
           </div>

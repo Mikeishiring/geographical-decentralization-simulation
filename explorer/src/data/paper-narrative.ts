@@ -14,12 +14,12 @@ export interface PaperNarrative {
 
 export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   'system-model': {
-    lede: 'The paper starts from a simple but consequential premise: geography is part of the protocol once latency affects value capture and consensus.',
+    lede: 'Where you are on the map determines how long you can afford to wait — and waiting is where the money is. Once latency affects both value capture and consensus, geography becomes part of the protocol.',
     paragraphs: [
       'External and local block building expose different latency-critical paths, but both transform regional network position into economic advantage. In external block building, a proposer wants fast access to the best supplier while also keeping supplier-to-attester propagation tight enough to satisfy the attestation threshold. In local block building, the proposer wants to sit where value from many sources accumulates while still remaining close enough to attesters to finalize in time.',
       'That turns validator placement into a geographic game. The paper frames this as a tension between value capture and quorum reachability, and that framing matters because it explains why the same infrastructure change can help one paradigm and hurt the other.',
     ],
-    pullQuote: 'The mechanism differs, but the pressure is the same: latency becomes an allocation rule for where validators want to live.',
+    pullQuote: 'Geography creates a payoff gradient, and rational validators will follow it.',
     figureCaption: 'The core comparison is the latency path itself: external block building optimizes a best supplier path, while local block building optimizes over many direct information inputs.',
     keyClaim: 'both transform regional network position into economic advantage',
   },
@@ -36,18 +36,18 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   'baseline-results': {
     lede: 'Under the homogeneous starting baseline, both paradigms centralize. The interesting part is how differently they get there.',
     paragraphs: [
-      'Local block building moves faster and ends more concentrated in the baseline runs. The paper attributes that to the additive nature of local block building: value can accumulate from many distributed sources, so the optimization landscape rewards locations that sit at the overlap between source proximity and attester reachability.',
+      'Local block building moves faster and ends at roughly three times the geographic concentration of external block building in the baseline runs. The paper attributes that to the additive nature of local block building: value can accumulate from many distributed sources, so the optimization landscape rewards locations that sit at the overlap between source proximity and attester reachability.',
       'External block building still centralizes, but the locus is shaped by supplier geography and the proposer-supplier-attester chain. That makes the final map look different even when the underlying force is still latency-driven concentration.',
     ],
     pullQuote: 'Baseline results matter here because they show centralization without needing exotic assumptions.',
     figureCaption: 'The baseline comparison sets the tone for the rest of the paper: local block building is more aggressive in the default geography, external block building is more path-dependent.',
-    keyClaim: 'Local block building moves faster and ends more concentrated in the baseline runs',
+    keyClaim: 'roughly three times the geographic concentration of external block building',
   },
   'se1-source-placement': {
     lede: 'Infrastructure placement is not a neutral background condition. It changes the shape of the optimization problem itself.',
     paragraphs: [
-      'The striking result in SE1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm. Local block building benefits from aligned source placement because value capture and consensus pressure pull in the same direction.',
-      'External block building behaves differently because badly placed suppliers create a stronger co-location premium. When the supplier path is the bottleneck, shaving proposer-supplier latency becomes disproportionately valuable, so misalignment can make concentration worse instead of better.',
+      'The striking result in SE1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm. Local block building exhibits a scaling effect: advantages compound across all sources simultaneously, so aligned placement — where value capture and consensus pressure pull in the same direction — accelerates centralization.',
+      'External block building exhibits a different dynamic, a double penalty: proposer-supplier latency affects payoffs twice, both in observing block value and in the round-trip to attesters. But because the proposer relies on a single best supplier rather than aggregating many sources, the scaling effect is absent. Misalignment makes the double penalty worse by widening the supplier bottleneck, so co-location incentives intensify rather than relax.',
     ],
     pullQuote: 'The same geography can be stabilizing in one paradigm and destabilizing in the other.',
     figureCaption: 'SE1 is the cleanest demonstration that the paper is not merely comparing two labels; it is comparing two different latency geometries.',
@@ -99,7 +99,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
       'The paper sketches mitigation directions: weakening proposer monopoly power through decentralized block building (BuilderNet, MCP), dampening latency sensitivity via MEV-burn, and encouraging geographic diversity among suppliers and signal sources. None of these are presented as settled policy recommendations.',
       'That restraint matters. The contribution is to show that geographic concentration is endogenous to the timing structure of the system, not to claim the model has already solved how to counteract it.',
     ],
-    pullQuote: 'The strongest claim here is about diagnosis: the protocol and infrastructure together create concentration pressure.',
+    pullQuote: 'If we want a different map, we need to reshape the terrain.',
     figureCaption: 'Mitigation ideas are included as design directions, not as recommendations validated by this model.',
     keyClaim: 'geographic concentration is endogenous to the timing structure of the system',
   },
