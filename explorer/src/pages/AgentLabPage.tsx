@@ -117,12 +117,13 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
   const askProgressSignalRef = useRef('')
   const askTransportRef = useRef(new DefaultChatTransport<AskUIMessage>({
     api: '/api/explore/chat',
-    prepareSendMessagesRequest: async ({ body }) => {
+    prepareSendMessagesRequest: async ({ body, messages }) => {
       const launch = pendingAskLaunchRef.current
       pendingAskLaunchRef.current = null
       return {
         body: {
           ...(body ?? {}),
+          messages,
           history: historyRef.current,
           launch,
         },
@@ -133,7 +134,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
   // ── Experiment mode state ──
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [questionDraft, setQuestionDraft] = useState('')
-  const [maxSteps, setMaxSteps] = useState(5)
+  const [maxSteps, setMaxSteps] = useState(3)
 
   // Track pending timers for cleanup on unmount
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
@@ -423,19 +424,19 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
     <div className="space-y-6">
       {/* Header */}
       <div className="reveal-up">
-        <span className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">
+        <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
           Research workspace
         </span>
-        <h1 className="mt-1 text-xl font-semibold text-text-primary">
+        <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-text-primary">
           Ask questions & run experiments
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+        <p className="mt-2 max-w-2xl text-[14px] font-[450] leading-6 tracking-[-0.005em] text-muted">
           {ASK_DESCRIPTION}
         </p>
       </div>
 
-      {/* Mode selector */}
-      <div className="reveal-up flex items-center gap-0.5 rounded-lg border border-rule bg-surface-active p-1 w-fit">
+      {/* Mode selector — pill control with sliding indicator */}
+      <div className="reveal-up flex items-center gap-0.5 rounded-xl p-1 w-fit shadow-[0_0_0_1px_rgba(0,0,0,0.06)] bg-[rgba(0,0,0,0.025)]">
         {([
           { id: 'ask' as AgentMode, icon: MessageSquare, label: 'Ask the paper', tooltip: 'Type a question and get an AI answer grounded in the paper\u2019s data and findings' },
           { id: 'experiment' as AgentMode, icon: FlaskConical, label: 'Run experiment', tooltip: 'Start an autonomous loop that configures, runs, and interprets a simulation for you' },
@@ -447,19 +448,19 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
             transition={SPRING_SNAPPY}
             title={m.tooltip}
             className={cn(
-              'relative flex items-center gap-1.5 rounded-md px-4 py-2 text-sm transition-colors',
+              'relative flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] transition-colors',
               mode === m.id ? 'text-text-primary font-medium' : 'text-muted hover:text-text-primary',
             )}
           >
             {mode === m.id && (
               <motion.span
                 layoutId="agent-mode-pill"
-                className="absolute inset-0 rounded-md bg-white shadow-sm ring-1 ring-rule"
+                className="absolute inset-0 rounded-lg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)]"
                 transition={SPRING_SNAPPY}
               />
             )}
             <span className="relative flex items-center gap-1.5">
-              <m.icon className="h-4 w-4" />
+              <m.icon className="h-4 w-4" strokeWidth={1.5} />
               {m.label}
             </span>
           </motion.button>
@@ -470,18 +471,19 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
       {mode === 'ask' && (
         <div className="space-y-6">
           {/* Query input */}
-          <div className="rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
+          <div className="rounded-2xl bg-white px-5 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_0_0_1px_rgba(0,0,0,0.04)] geo-accent-bar">
             <div className="lab-section-title">
               {ASK_HEADING}
             </div>
             <div className={cn(
-              'mt-3 flex items-center gap-3 rounded-xl border border-rule bg-surface-active px-4 py-3 transition-all',
-              !apiDisabled && 'focus-within:border-accent/30 focus-within:ring-2 focus-within:ring-accent/10',
+              'mt-3 flex items-center gap-3 rounded-xl border px-4 py-3 transition-[border-color,box-shadow] duration-200',
+              'border-[rgba(0,0,0,0.08)] bg-[rgba(0,0,0,0.02)]',
+              !apiDisabled && 'focus-within:border-accent/30 focus-within:shadow-[0_0_0_3px_rgba(59,130,246,0.08)]',
             )}>
               {askLoading ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent" />
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent" strokeWidth={1.5} />
               ) : (
-                <MessageSquare className="h-4 w-4 shrink-0 text-muted/60" />
+                <MessageSquare className="h-4 w-4 shrink-0 text-[rgba(0,0,0,0.3)]" strokeWidth={1.5} />
               )}
               <input
                 type="text"
@@ -490,21 +492,21 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                 onKeyDown={e => e.key === 'Enter' && handleAskSubmit(query)}
                 placeholder={apiDisabled ? 'API server is unavailable' : ASK_PLACEHOLDER}
                 disabled={apiDisabled || askLoading}
-                className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-muted/70 outline-none disabled:opacity-50"
+                className="flex-1 bg-transparent text-[14px] font-[450] text-text-primary placeholder:text-[rgba(0,0,0,0.3)] outline-none disabled:opacity-50"
               />
               <button
                 onClick={() => handleAskSubmit(query)}
                 disabled={!query.trim() || apiDisabled || askLoading}
                 className={cn(
-                  'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                  'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors active:scale-[0.96]',
                   query.trim() && !apiDisabled && !askLoading
                     ? 'bg-accent text-white hover:bg-accent/90'
-                    : 'cursor-not-allowed bg-rule text-muted',
+                    : 'cursor-not-allowed bg-[rgba(0,0,0,0.05)] text-muted',
                 )}
               >
                 {askLoading ? (
                   <span className="inline-flex items-center gap-1.5">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
                     Thinking
                   </span>
                 ) : (
@@ -513,12 +515,12 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
               </button>
             </div>
 
-            {/* API health indicator */}
+            {/* API health indicator — semantic dot */}
             {apiHealthQuery.data && (
-              <div className="mt-2 flex items-center gap-1.5 text-11 text-text-faint">
+              <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-text-faint">
                 <span className={cn(
-                  'w-1.5 h-1.5 rounded-full',
-                  apiHealthQuery.data.anthropicEnabled ? 'bg-success' : 'bg-warning',
+                  'w-[6px] h-[6px] rounded-full',
+                  apiHealthQuery.data.anthropicEnabled ? 'bg-[#22c55e]' : 'bg-[#f59e0b]',
                 )} />
                 {apiHealthQuery.data.anthropicEnabled
                   ? 'Reading guide online'
@@ -591,8 +593,8 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                       : displayedArtifact.stage}
                   </div>
                   {!aiResponse && displayedArtifact.status !== 'ready' && (
-                    <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/[0.04] px-3 py-1 text-11 font-medium text-accent">
-                      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                    <div className="mt-3 inline-flex items-center gap-2 rounded-md bg-accent/[0.04] px-3 py-1 text-[11px] font-medium text-accent shadow-[0_0_0_1px_rgba(59,130,246,0.12)]">
+                      <span className="h-[6px] w-[6px] rounded-full bg-accent" />
                       Live artifact update
                     </div>
                   )}
@@ -606,21 +608,21 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                 )}
 
                 {askToolActivities.length > 0 && (
-                  <div className="mb-4 flex flex-wrap gap-2">
+                  <div className="mb-4 flex flex-wrap gap-1.5">
                     {askToolActivities.map(activity => (
                       <div
                         key={activity.id}
                         className={cn(
-                          'inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-11 font-medium',
-                          activity.state === 'done' && 'border-success/25 bg-success/5 text-success',
-                          activity.state === 'error' && 'border-danger/20 bg-danger/5 text-danger',
-                          activity.state === 'running' && 'border-accent/20 bg-accent/[0.03] text-accent',
+                          'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium',
+                          activity.state === 'done' && 'bg-[#22c55e]/[0.06] text-[#22c55e] shadow-[0_0_0_1px_rgba(34,197,94,0.15)]',
+                          activity.state === 'error' && 'bg-[#ef4444]/[0.06] text-[#ef4444] shadow-[0_0_0_1px_rgba(239,68,68,0.15)]',
+                          activity.state === 'running' && 'bg-accent/[0.04] text-accent shadow-[0_0_0_1px_rgba(59,130,246,0.12)]',
                         )}
                       >
                         <span className={cn(
-                          'h-1.5 w-1.5 rounded-full',
-                          activity.state === 'done' && 'bg-success',
-                          activity.state === 'error' && 'bg-danger',
+                          'h-[6px] w-[6px] rounded-full',
+                          activity.state === 'done' && 'bg-[#22c55e]',
+                          activity.state === 'error' && 'bg-[#ef4444]',
                           activity.state === 'running' && 'bg-accent',
                         )} />
                         {activity.label}
@@ -635,13 +637,13 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                 {aiResponse && (
                   <div className="mt-4 flex flex-wrap items-center gap-3 text-xs">
                     {aiResponse.provenance.explorationId && (
-                      <button onClick={handleShare} className="inline-flex items-center gap-1.5 text-muted hover:text-accent transition-colors">
-                        <Link2 className="w-3 h-3" />
+                      <button onClick={handleShare} className="inline-flex items-center gap-1.5 text-muted transition-colors hover:text-accent active:scale-[0.96]">
+                        <Link2 className="w-3.5 h-3.5" strokeWidth={1.5} />
                         {shareState === 'copied' ? 'Link copied' : 'Share'}
                       </button>
                     )}
-                    <button onClick={handleExportMarkdown} className="inline-flex items-center gap-1.5 text-muted hover:text-accent transition-colors">
-                      <FileText className="w-3 h-3" />
+                    <button onClick={handleExportMarkdown} className="inline-flex items-center gap-1.5 text-muted transition-colors hover:text-accent active:scale-[0.96]">
+                      <FileText className="w-3.5 h-3.5" strokeWidth={1.5} />
                       {exportState === 'copied' ? 'Copied' : 'Export markdown'}
                     </button>
                   </div>
@@ -688,7 +690,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
         <div className="space-y-6">
           {/* Question input */}
           {!session || session.status !== 'active' ? (
-            <div className="rounded-xl border border-rule bg-white px-5 py-5 geo-accent-bar">
+            <div className="rounded-2xl bg-white px-5 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_0_0_1px_rgba(0,0,0,0.04)] geo-accent-bar">
               <div className="lab-section-title">
                 Research question for simulation loop
               </div>
@@ -696,20 +698,32 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                 value={questionDraft}
                 onChange={e => setQuestionDraft(e.target.value)}
                 placeholder="What happens to centralization if we increase gamma from 0.5 to 2.0 under local block building?"
-                className="mt-3 min-h-[100px] w-full resize-none rounded-xl border border-rule bg-surface-active px-4 py-3 text-sm leading-6 text-text-primary placeholder:text-muted/70 outline-none focus:border-accent/30 focus:ring-2 focus:ring-accent/10"
+                className="mt-3 min-h-[100px] w-full resize-none rounded-xl border border-[rgba(0,0,0,0.08)] bg-[rgba(0,0,0,0.02)] px-4 py-3 text-[14px] font-[450] leading-6 text-text-primary placeholder:text-[rgba(0,0,0,0.3)] outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent/30 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.08)]"
                 maxLength={500}
               />
 
+              {/* Time estimate — semantic warning color, monospace numbers */}
+              <div className="mt-3 rounded-lg border border-[#f59e0b]/20 bg-[#f59e0b]/[0.04] px-3.5 py-2.5 text-xs leading-relaxed text-[rgba(0,0,0,0.55)]">
+                Each step involves an LLM call + simulation run.{' '}
+                <span className="font-mono font-semibold tabular-nums text-[rgba(0,0,0,0.7)]">
+                  {maxSteps === 1 ? '~1 min' : `~${maxSteps}\u2013${maxSteps * 2} min`}
+                </span>{' '}
+                for{' '}
+                <span className="font-mono tabular-nums">{maxSteps}</span>
+                {' '}{maxSteps === 1 ? 'step' : 'steps'}.
+                You approve each step before it executes.
+              </div>
+
               <div className="mt-4 flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <label htmlFor="max-steps" className="text-xs text-muted">Max steps</label>
+                  <label htmlFor="max-steps" className="text-[11px] font-medium text-muted">Max steps</label>
                   <select
                     id="max-steps"
                     value={maxSteps}
                     onChange={e => setMaxSteps(Number(e.target.value))}
-                    className="rounded-lg border border-rule bg-surface-active px-2.5 py-1.5 text-xs font-medium text-text-primary outline-none focus:border-accent/30 focus:ring-2 focus:ring-accent/10"
+                    className="rounded-lg border border-[rgba(0,0,0,0.08)] bg-[rgba(0,0,0,0.02)] px-2.5 py-1.5 font-mono text-[11px] font-semibold tabular-nums text-text-primary outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent/30 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.08)]"
                   >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                    {[1, 2, 3].map(n => (
                       <option key={n} value={n}>{n}</option>
                     ))}
                   </select>
@@ -719,15 +733,15 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                   onClick={handleStartExperiment}
                   disabled={isCreating || questionDraft.trim().length < 10}
                   className={cn(
-                    'rounded-xl px-5 py-2.5 text-sm font-medium transition-all',
+                    'rounded-xl px-5 py-2.5 text-[13px] font-medium transition-colors active:scale-[0.92]',
                     isCreating || questionDraft.trim().length < 10
-                      ? 'cursor-not-allowed border border-rule bg-surface-active text-muted'
+                      ? 'cursor-not-allowed border border-[rgba(0,0,0,0.06)] bg-[rgba(0,0,0,0.03)] text-muted'
                       : 'bg-text-primary text-white hover:bg-text-primary/90',
                   )}
                 >
                   {isCreating ? (
                     <span className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Starting
+                      <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} /> Starting
                     </span>
                   ) : (
                     'Start experiment loop'
@@ -736,13 +750,13 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
               </div>
 
               {createSession.isError && (
-                <div className="mt-4 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+                <div className="mt-4 rounded-xl border border-[#ef4444]/20 bg-[#ef4444]/[0.04] px-4 py-3 text-sm text-[#ef4444]">
                   {(createSession.error as Error).message}
                 </div>
               )}
 
               {session?.status === 'completed' && (
-                <div className="mt-4 rounded-xl border border-accent/30 bg-accent/5 px-4 py-3 text-sm text-accent">
+                <div className="mt-4 rounded-xl border border-accent/25 bg-accent/[0.04] px-4 py-3 text-sm text-accent">
                   Session completed. Start a new loop above.
                 </div>
               )}
@@ -754,9 +768,9 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
             <div className="space-y-4">
               <AgentCostBar session={session} />
 
-              <div className="rounded-xl border border-rule bg-surface-active px-4 py-3">
-                <div className="text-2xs font-medium uppercase tracking-[0.1em] text-text-faint">Research question</div>
-                <div className="mt-2 text-sm font-medium text-text-primary">{session.researchQuestion}</div>
+              <div className="rounded-xl bg-[rgba(0,0,0,0.025)] px-4 py-3 shadow-[0_0_0_1px_rgba(0,0,0,0.05)]">
+                <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-text-faint">Research question</div>
+                <div className="mt-1.5 text-[14px] font-medium leading-snug text-text-primary">{session.researchQuestion}</div>
               </div>
 
               <div className="space-y-4">
@@ -778,13 +792,13 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                   <button
                     onClick={handleComplete}
                     disabled={completeSession.isPending}
-                    className="rounded-xl border border-rule bg-white px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-xl bg-white px-4 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.04),0_0_0_1px_rgba(0,0,0,0.06)] transition-[box-shadow,transform] duration-150 hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.08)] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {completeSession.isPending ? 'Completing...' : 'End session'}
                   </button>
                   <button
                     onClick={handleNewSession}
-                    className="rounded-xl border border-rule bg-white px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:border-border-hover"
+                    className="rounded-xl bg-white px-4 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.04),0_0_0_1px_rgba(0,0,0,0.06)] transition-[box-shadow,transform] duration-150 hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.08)] active:scale-[0.96]"
                   >
                     New session
                   </button>
@@ -792,7 +806,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
               ) : (
                 <button
                   onClick={handleNewSession}
-                  className="rounded-xl border border-rule bg-white px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:border-border-hover"
+                  className="rounded-xl bg-white px-4 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.04),0_0_0_1px_rgba(0,0,0,0.06)] transition-[box-shadow,transform] duration-150 hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.08)] active:scale-[0.96]"
                 >
                   Start new session
                 </button>
@@ -804,8 +818,8 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
 
       {/* Idea prompts — minimal, 3 lines */}
       {!hasAskResult && mode === 'ask' && !askLoading && (
-        <div className="rounded-xl border border-rule bg-white px-5 py-5">
-          <div className="space-y-1 text-13 leading-relaxed text-muted">
+        <div className="rounded-2xl bg-white px-5 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_0_0_1px_rgba(0,0,0,0.04)]">
+          <div className="space-y-1 text-[13px] font-[450] leading-relaxed text-muted">
             <p>Ask about any mechanism, metric, or finding in the paper.</p>
             <p>Compare paradigms, question assumptions, or request evidence tables.</p>
             <p>The model reads the full study package and returns grounded answers.</p>
@@ -816,9 +830,9 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                 key={s.prompt}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ ...SPRING, delay: i * 0.03 }}
+                transition={{ ...SPRING, delay: i * 0.025 }}
                 onClick={() => handleSuggestionClick(s.prompt)}
-                className="rounded-full border border-rule bg-surface-active/60 px-3.5 py-1.5 text-xs font-medium text-text-body transition-all hover:border-border-hover hover:bg-white hover:shadow-sm active:scale-[0.97]"
+                className="rounded-full bg-[rgba(0,0,0,0.03)] px-3.5 py-1.5 text-xs font-medium text-text-body shadow-[0_0_0_1px_rgba(0,0,0,0.06)] transition-[box-shadow,background-color,transform] duration-150 hover:bg-white hover:shadow-[0_1px_4px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.08)] active:scale-[0.96]"
               >
                 {s.label}
               </motion.button>
@@ -828,11 +842,11 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
       )}
 
       {!hasExperiment && mode === 'experiment' && !isCreating && (
-        <div className="rounded-xl border border-rule bg-white px-5 py-5">
-          <div className="space-y-1 text-13 leading-relaxed text-muted">
+        <div className="rounded-2xl bg-white px-5 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_0_0_1px_rgba(0,0,0,0.04)]">
+          <div className="space-y-1 text-[13px] font-[450] leading-relaxed text-muted">
             <p>Describe a hypothesis you want to test against the simulation.</p>
-            <p>The agent configures parameters, runs the model, and interprets results.</p>
-            <p>You approve each step before it executes.</p>
+            <p>The agent draws on pre-computed results where possible and runs live simulations when needed.</p>
+            <p>Capped at <span className="font-mono tabular-nums">3</span> steps. You approve each step before it executes.</p>
           </div>
           <div className="mt-4 flex flex-wrap gap-2 stagger-reveal">
             {EXPERIMENT_SUGGESTIONS.map((s, i) => (
@@ -840,9 +854,9 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
                 key={s.prompt}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ ...SPRING, delay: i * 0.03 }}
+                transition={{ ...SPRING, delay: i * 0.025 }}
                 onClick={() => handleSuggestionClick(s.prompt)}
-                className="rounded-full border border-rule bg-surface-active/60 px-3.5 py-1.5 text-xs font-medium text-text-body transition-all hover:border-border-hover hover:bg-white hover:shadow-sm active:scale-[0.97]"
+                className="rounded-full bg-[rgba(0,0,0,0.03)] px-3.5 py-1.5 text-xs font-medium text-text-body shadow-[0_0_0_1px_rgba(0,0,0,0.06)] transition-[box-shadow,background-color,transform] duration-150 hover:bg-white hover:shadow-[0_1px_4px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.08)] active:scale-[0.96]"
               >
                 {s.prompt}
               </motion.button>
