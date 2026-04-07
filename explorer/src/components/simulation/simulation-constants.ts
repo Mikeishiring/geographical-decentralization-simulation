@@ -60,17 +60,17 @@ export const PRESETS: ReadonlyArray<{
     config: { ...PAPER_BASELINE_PRESET, paradigm: 'MSP' },
   },
   {
-    label: 'SE1 Aligned',
+    label: 'EXP 1 Aligned',
     description: 'Paper-style run with latency-aligned sources.',
     config: { ...PAPER_BASELINE_PRESET, sourcePlacement: 'latency-aligned' },
   },
   {
-    label: 'SE1 Misaligned',
+    label: 'EXP 1 Misaligned',
     description: 'Paper-style run with latency-misaligned sources.',
     config: { ...PAPER_BASELINE_PRESET, sourcePlacement: 'latency-misaligned' },
   },
   {
-    label: 'SE2 Real ETH',
+    label: 'EXP 2 Real ETH',
     description: 'Paper-style run with the heterogeneous Ethereum validator start.',
     config: { ...PAPER_BASELINE_PRESET, distribution: 'heterogeneous' },
   },
@@ -129,23 +129,23 @@ export function paperScenarioLabels(config: SimulationConfig): string[] {
   const labels: string[] = []
 
   if (config.distribution === 'heterogeneous' && config.sourcePlacement !== 'homogeneous') {
-    labels.push('Reference: SE3 joint heterogeneity')
+    labels.push('Reference: EXP 3 joint heterogeneity')
   } else if (config.distribution === 'heterogeneous') {
-    labels.push('Reference: SE2 heterogeneous validators')
+    labels.push('Reference: EXP 2 heterogeneous validators')
   } else if (config.distribution === 'homogeneous-gcp') {
     labels.push('Equal per-GCP validator start')
   } else if (config.sourcePlacement === 'latency-aligned') {
-    labels.push('Reference: SE1 latency-aligned sources')
+    labels.push('Reference: EXP 1 latency-aligned sources')
   } else if (config.sourcePlacement === 'latency-misaligned') {
-    labels.push('Reference: SE1 latency-misaligned sources')
+    labels.push('Reference: EXP 1 latency-misaligned sources')
   } else {
     labels.push('Reference: baseline geography/source setup')
   }
 
   if (config.slotTime === 6) {
-    labels.push('Reference: SE4b shorter slots')
+    labels.push('Reference: EXP 4b shorter slots')
   } else if (Math.abs(config.attestationThreshold - 2 / 3) > 0.01) {
-    labels.push('Reference: SE4a gamma variation')
+    labels.push('Reference: EXP 4a gamma variation')
   }
 
   labels.push(config.paradigm === 'SSP' ? 'External exact mode' : 'Local exact mode')

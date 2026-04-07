@@ -1716,23 +1716,23 @@ function paperScenarioLabels(config: SimulationRequest): string[] {
   const labels: string[] = []
 
   if (config.distribution === 'heterogeneous' && config.sourcePlacement !== 'homogeneous') {
-    labels.push('Reference: SE3 joint heterogeneity')
+    labels.push('Reference: EXP 3 joint heterogeneity')
   } else if (config.distribution === 'heterogeneous') {
-    labels.push('Reference: SE2 heterogeneous validators')
+    labels.push('Reference: EXP 2 heterogeneous validators')
   } else if (config.distribution === 'homogeneous-gcp') {
     labels.push('Equal per-GCP validator start')
   } else if (config.sourcePlacement === 'latency-aligned') {
-    labels.push('Reference: SE1 latency-aligned sources')
+    labels.push('Reference: EXP 1 latency-aligned sources')
   } else if (config.sourcePlacement === 'latency-misaligned') {
-    labels.push('Reference: SE1 latency-misaligned sources')
+    labels.push('Reference: EXP 1 latency-misaligned sources')
   } else {
     labels.push('Reference: baseline geography/source setup')
   }
 
   if (config.slotTime === 6) {
-    labels.push('Reference: SE4b shorter slots')
+    labels.push('Reference: EXP 4b shorter slots')
   } else if (Math.abs(config.attestationThreshold - 2 / 3) > 0.01) {
-    labels.push('Reference: SE4a gamma variation')
+    labels.push('Reference: EXP 4a gamma variation')
   }
 
   labels.push(config.paradigm === 'SSP' ? 'External exact mode' : 'Local exact mode')
@@ -3406,15 +3406,15 @@ function publishedEvaluationSortValue(
   switch (inferPublishedExperiment(evaluation)) {
     case 'baseline':
       return 0
-    case 'SE1':
+    case 'EXP 1':
       return 1
-    case 'SE2':
+    case 'EXP 2':
       return 2
-    case 'SE3':
+    case 'EXP 3':
       return 3
-    case 'SE4a':
+    case 'EXP 4a':
       return 4
-    case 'SE4b':
+    case 'EXP 4b':
       return 5
     default:
       return 99
@@ -3632,11 +3632,11 @@ function inferPublishedExperiment(
 ): Cite['experiment'] | undefined {
   if (!evaluation) return undefined
   if (evaluation === 'Baseline') return 'baseline'
-  if (evaluation.startsWith('SE1-')) return 'SE1'
-  if (evaluation.startsWith('SE2-')) return 'SE2'
-  if (evaluation.startsWith('SE3-')) return 'SE3'
-  if (evaluation.startsWith('SE4-Attestation')) return 'SE4a'
-  if (evaluation.startsWith('SE4-EIP7782')) return 'SE4b'
+  if (evaluation.startsWith('SE1-')) return 'EXP 1'
+  if (evaluation.startsWith('SE2-')) return 'EXP 2'
+  if (evaluation.startsWith('SE3-')) return 'EXP 3'
+  if (evaluation.startsWith('SE4-Attestation')) return 'EXP 4a'
+  if (evaluation.startsWith('SE4-EIP7782')) return 'EXP 4b'
   return undefined
 }
 
@@ -7877,15 +7877,15 @@ Each editorial element carries a provenance tag linking it to the paper source o
 | Hash                  | Paper ref | Topic                                      |
 |-----------------------|-----------|--------------------------------------------|
 | #system-model         | §3        | Two-layer geographic game                  |
-| #simulation-design    | §4.1      | 40 regions, 1000 validators, 10000 slots   |
-| #baseline-results     | §4.2      | Convergence under homogeneous start        |
-| #se1-source-placement | §4.3      | Infrastructure alignment effects           |
-| #se2-distribution     | §4.4      | Realistic validator distribution           |
-| #se3-joint            | §4.5      | Transient decentralization (fragile)       |
-| #se4a-attestation     | §4.6.1    | Gamma paradox (signature result)           |
-| #se4b-slots           | §4.6.2    | Shorter slot times (EIP-7782)              |
-| #discussion           | §5        | Mitigation directions (diagnostic)         |
-| #limitations          | §5        | Model assumptions and confidence boundary  |
+| #simulation-design    | §5.2      | 40 regions, 1000 validators, 10000 slots   |
+| #baseline-results     | §5.3      | Convergence under homogeneous start        |
+| #se1-source-placement | §5.4      | Infrastructure alignment effects           |
+| #se2-distribution     | §5.5      | Realistic validator distribution           |
+| #se3-joint            | §5.6      | Transient decentralization (fragile)       |
+| #se4a-attestation     | §5.7.1    | Gamma paradox (signature result)           |
+| #se4b-slots           | §5.7.2    | Shorter slot times (EIP-7782)              |
+| #discussion           | §6        | Mitigation directions (diagnostic)         |
+| #limitations          | §6.3      | Model assumptions and confidence boundary  |
 
 ## Reading modes (interpretation spectrum, left to right)
 1. Editorial     — LLM-generated narrative with source provenance pills

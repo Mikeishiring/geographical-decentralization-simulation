@@ -321,7 +321,7 @@ export function buildTools(): Anthropic.Messages.Tool[] {
           },
           experiment: {
             type: 'string',
-            enum: ['SE1', 'SE2', 'SE3', 'SE4'],
+            enum: ['EXP 1', 'EXP 2', 'EXP 3', 'EXP 4'],
             description: 'Filter to explorations about a specific sensitivity experiment',
           },
           verified_only: {
