@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ListTree, FileText, BookOpen, ScrollText, X } from 'lucide-react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
+import { ListTree, FileText, BookOpen, ScrollText } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING_SNAPPY } from '../../lib/theme'
 import { Tooltip } from '../ui/Tooltip'
@@ -24,8 +24,6 @@ export const MODE_META: Record<ReaderMode, {
   activeTextClass: string
   activeTabClass: string
   hoverTabClass: string
-  summaryClass: string
-  dotClass: string
   badgeClass: string
 }> = {
   editorial: {
@@ -38,8 +36,6 @@ export const MODE_META: Record<ReaderMode, {
     activeTextClass: 'text-accent-warm',
     activeTabClass: 'bg-[rgba(194,85,58,0.10)] text-accent-warm ring-[rgba(194,85,58,0.16)]',
     hoverTabClass: 'hover:bg-[rgba(194,85,58,0.05)] hover:text-accent-warm',
-    summaryClass: 'border-[rgba(194,85,58,0.16)] bg-[rgba(194,85,58,0.055)]',
-    dotClass: 'bg-accent-warm',
     badgeClass: 'border-[rgba(194,85,58,0.14)] bg-white/80 text-accent-warm',
   },
   arguments: {
@@ -52,8 +48,6 @@ export const MODE_META: Record<ReaderMode, {
     activeTextClass: 'text-slate-700',
     activeTabClass: 'bg-slate-100/95 text-slate-700 ring-slate-200/90',
     hoverTabClass: 'hover:bg-slate-100/70 hover:text-slate-700',
-    summaryClass: 'border-slate-200/90 bg-slate-50/85',
-    dotClass: 'bg-slate-500',
     badgeClass: 'border-slate-200/80 bg-white/80 text-slate-600',
   },
   html: {
@@ -66,8 +60,6 @@ export const MODE_META: Record<ReaderMode, {
     activeTextClass: 'text-accent',
     activeTabClass: 'bg-accent/[0.09] text-accent ring-accent/20',
     hoverTabClass: 'hover:bg-accent/[0.04] hover:text-accent',
-    summaryClass: 'border-accent/20 bg-accent/[0.05]',
-    dotClass: 'bg-accent',
     badgeClass: 'border-accent/18 bg-white/85 text-accent',
   },
   paper: {
@@ -80,8 +72,6 @@ export const MODE_META: Record<ReaderMode, {
     activeTextClass: 'text-slate-700',
     activeTabClass: 'bg-[rgba(148,163,184,0.12)] text-slate-700 ring-[rgba(148,163,184,0.22)]',
     hoverTabClass: 'hover:bg-[rgba(148,163,184,0.08)] hover:text-slate-700',
-    summaryClass: 'border-slate-200/90 bg-[rgba(148,163,184,0.08)]',
-    dotClass: 'bg-slate-700',
     badgeClass: 'border-slate-200/80 bg-white/82 text-slate-600',
   },
 }
@@ -108,17 +98,6 @@ export function PaperViewModeBar({
   const barRef = useRef<HTMLDivElement | null>(null)
   const [hoveredMode, setHoveredMode] = useState<ReaderMode | null>(null)
   const [notesHovered, setNotesHovered] = useState(false)
-  const [lensToast, setLensToast] = useState<ReaderMode | null>(null)
-  const prevModeRef = useRef(readerMode)
-
-  /* Show toast only when user actively switches mode (not on mount) */
-  useEffect(() => {
-    if (prevModeRef.current === readerMode) return
-    prevModeRef.current = readerMode
-    setLensToast(readerMode)
-    const timer = setTimeout(() => setLensToast(null), 3000)
-    return () => clearTimeout(timer)
-  }, [readerMode])
 
   useLayoutEffect(() => {
     const bar = barRef.current
@@ -238,39 +217,6 @@ export function PaperViewModeBar({
         </div>
 
       </div>
-
-      {/* Floating lens toast — appears on mode switch */}
-      <AnimatePresence>
-        {lensToast && (() => {
-          const meta = MODE_META[lensToast]
-          return (
-            <motion.div
-              key={lensToast}
-              initial={{ opacity: 0, y: -6, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -4, scale: 0.97 }}
-              transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.8 }}
-              className={cn(
-                'absolute right-4 top-full z-50 mt-2 flex items-center gap-2.5 rounded-xl border px-3 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.06)] sm:right-6',
-                meta.summaryClass,
-              )}
-            >
-              <span className={cn('h-2 w-2 shrink-0 rounded-full', meta.dotClass)} />
-              <div className="min-w-0">
-                <span className="text-xs font-medium text-text-primary">{meta.lensLabel}</span>
-                <span className="mx-1.5 text-rule">·</span>
-                <span className="text-[11px] text-muted">{meta.detail}</span>
-              </div>
-              <button
-                onClick={() => setLensToast(null)}
-                className="ml-1 shrink-0 rounded-md p-0.5 text-muted/60 transition-colors hover:bg-black/[0.04] hover:text-muted"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </motion.div>
-          )
-        })()}
-      </AnimatePresence>
     </div>
   )
 }
