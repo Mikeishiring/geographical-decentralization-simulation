@@ -63,8 +63,8 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
   {
     type: 'insight',
     emphasis: 'surprising',
-    title: 'SE4a shows a paradigm-sensitive attestation effect',
-    text: 'In SE4a\'s homogeneous parameter study, higher γ (attestation threshold) pushes external block building toward **more** concentration but local block building toward **less**. In external block building, tighter timing amplifies proposer-supplier latency sensitivity. In local block building, a higher threshold forces proposers to balance attester proximity (quorum) against signal proximity (value), and those objectives can point in different geographic directions. This is a standout contrast in the paper, not a universal sign-flip claim across all setups.',
+    title: 'EXP 4a shows a paradigm-sensitive attestation effect',
+    text: 'In EXP 4a\'s homogeneous parameter study, higher γ (attestation threshold) pushes external block building toward **more** concentration but local block building toward **less**. In external block building, tighter timing amplifies proposer-supplier latency sensitivity. In local block building, a higher threshold forces proposers to balance attester proximity (quorum) against signal proximity (value), and those objectives can point in different geographic directions. This is a standout contrast in the paper, not a universal sign-flip claim across all setups.',
   },
 
   // Row 5: Validator distribution across the 40 GCP regions used in the paper
@@ -134,8 +134,8 @@ export const OVERVIEW_CARD: TopicCard = {
   theme: 'finding',
   prompts: [
     'Why is Ethereum geography not neutral in these models?',
-    'Why does gamma push external and local block building in opposite directions in SE4a?',
-    'In SE2, when can starting geography outweigh paradigm choice?',
+    'Why does gamma push external and local block building in opposite directions in EXP 4a?',
+    'In EXP 2, when can starting geography outweigh paradigm choice?',
     'What does this imply for protocol design and infrastructure policy?',
     'What changes under shorter slots: geography or fairness?',
     'Where should confidence stop in this model?',
@@ -207,7 +207,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
         headers: ['Lever', 'Paper-backed reading', 'Why restraint matters'],
         rows: [
           ['Shorter slots', 'Raises payoff inequality more clearly than it changes the geographic map', 'Not evidence that slot reduction solves or reverses centralization'],
-          ['Attestation threshold', 'In SE4a, can tighten external block building concentration while loosening local block building concentration', 'The same protocol lever does not generalize across paradigms or setups'],
+          ['Attestation threshold', 'In EXP 4a, can tighten external block building concentration while loosening local block building concentration', 'The same protocol lever does not generalize across paradigms or setups'],
           ['Supplier / source placement', 'Infrastructure geography changes concentration pressure directly', 'This is partly an ecosystem and operator-coordination problem, not just a core-protocol one'],
           ['MEV-burn / reward dampening', 'Reduces latency-driven payoff differences, weakening migration incentives', 'Primarily motivated by fairness; geographic effect is indirect and untested by this model'],
         ],
@@ -243,9 +243,9 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
         rows: [
           ['Baseline (migration-free)', 'North America becomes a focal hub', 'North America becomes a focal hub faster'],
           ['Baseline (with migration cost)', 'More persistence away from the tightest hubs', 'Still concentrates strongly toward North America'],
-          ['SE1: Aligned sources', 'Usually softer than misaligned External', 'Reinforces centralization pressure'],
-          ['SE1: Misaligned sources', 'Poorly connected supplier sharpens co-location pull', 'Source vs attester trade-off becomes more visible'],
-          ['SE2 / SE3: Real ETH start', 'Existing US+EU hubs dominate; remote suppliers can cause a brief dip first', 'Existing US+EU hubs dominate; source placement matters less'],
+          ['EXP 1: Aligned sources', 'Usually softer than misaligned External', 'Reinforces centralization pressure'],
+          ['EXP 1: Misaligned sources', 'Poorly connected supplier sharpens co-location pull', 'Source vs attester trade-off becomes more visible'],
+          ['EXP 2 / SE3: Real ETH start', 'Existing US+EU hubs dominate; remote suppliers can cause a brief dip first', 'Existing US+EU hubs dominate; source placement matters less'],
         ],
         highlight: [4],
       },
@@ -258,7 +258,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
   {
     id: 'source-placement',
     title: 'Why can moving sources help one paradigm and hurt the other?',
-    description: 'SE1 shows the same infrastructure change pushing external and local block building in opposite directions.',
+    description: 'EXP 1 shows the same infrastructure change pushing external and local block building in opposite directions.',
     theme: 'msp',
     prompts: [
       'Why can moving sources help one paradigm and hurt the other?',
@@ -282,7 +282,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
   {
     id: 'initial-distribution',
     title: 'Does starting geography matter more than paradigm?',
-    description: "SE2 asks how much of the result is already baked into today's validator map.",
+    description: "EXP 2 asks how much of the result is already baked into today's validator map.",
     theme: 'finding',
     prompts: [
       'Does starting geography matter more than paradigm choice?',
@@ -295,7 +295,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
         type: 'insight',
         emphasis: 'key-finding',
         title: 'Starting geography can outweigh paradigm differences',
-        text: 'When starting from the real Ethereum distribution, metrics are already elevated and both paradigms converge rapidly. In SE2, **the starting distribution can outweigh paradigm differences for the first-order result** when validators begin concentrated.',
+        text: 'When starting from the real Ethereum distribution, metrics are already elevated and both paradigms converge rapidly. In EXP 2, **the starting distribution can outweigh paradigm differences for the first-order result** when validators begin concentrated.',
       },
       {
         type: 'insight',
@@ -306,12 +306,12 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
   {
     id: 'attestation-threshold',
     title: 'Why does gamma flip direction across paradigms?',
-    description: 'SE4a is a clear paradigm contrast: in the homogeneous setup, one protocol lever moves the paradigms in opposite directions.',
+    description: 'EXP 4a is a clear paradigm contrast: in the homogeneous setup, one protocol lever moves the paradigms in opposite directions.',
     theme: 'msp',
     prompts: [
       'Why does gamma flip direction across paradigms?',
       'Why does a higher attestation threshold centralize external block building more but local block building less?',
-      'What does SE4a show about attestation thresholds?',
+      'What does EXP 4a show about attestation thresholds?',
       'How does higher gamma affect external and local block building?',
     ],
     blocks: [
@@ -327,15 +327,15 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
       {
         type: 'insight',
         emphasis: 'surprising',
-        title: 'Opposite protocol lever in SE4a',
-        text: 'In SE4a\'s homogeneous setup, tighter timing (higher γ) amplifies external latency sensitivity, so reducing proposer-supplier latency yields **larger marginal gains**. In local block building, higher γ forces proposers to balance attester proximity (quorum) against signal proximity (value). These point in **different geographic directions**, so tightening the threshold disperses rather than concentrates.',
+        title: 'Opposite protocol lever in EXP 4a',
+        text: 'In EXP 4a\'s homogeneous setup, tighter timing (higher γ) amplifies external latency sensitivity, so reducing proposer-supplier latency yields **larger marginal gains**. In local block building, higher γ forces proposers to balance attester proximity (quorum) against signal proximity (value). These point in **different geographic directions**, so tightening the threshold disperses rather than concentrates.',
       },
     ],
   },
   {
     id: 'shorter-slots',
     title: 'Do shorter slots worsen fairness more than geography?',
-    description: 'SE4b separates what changes on the map from what changes in reward inequality.',
+    description: 'EXP 4b separates what changes on the map from what changes in reward inequality.',
     theme: 'finding',
     prompts: [
       'Do shorter slots worsen fairness more than geography?',
@@ -413,7 +413,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
       {
         type: 'source',
         refs: [
-          { label: '§5.3 — Limitations', section: 'Full discussion of assumptions' },
+          { label: '§6.3 — Limitations', section: 'Full discussion of assumptions' },
           { label: 'arXiv:2509.21475', url: 'https://arxiv.org/abs/2509.21475' },
         ],
       },

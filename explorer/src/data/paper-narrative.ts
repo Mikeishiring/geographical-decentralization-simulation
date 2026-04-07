@@ -30,7 +30,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
       'The costs of that clarity are explicit. MEV is modeled as deterministic and linear in latency, migration cost is fixed, and information is complete. Those assumptions make the engine more interpretable, but the paper is careful to treat them as modeling limits rather than claims about production Ethereum.',
     ],
     pullQuote: 'This is a paper about structural pressure, not about reproducing every empirical detail of block production.',
-    figureCaption: 'The simulation design is intentionally legible: 40 measured regions, 1,000 validators, and paper-facing runs commonly reported over 10,000 slots under bounded modeling assumptions.',
+    figureCaption: 'The simulation design is intentionally legible: 40 measured regions, 1,000 validators, 20 independent runs per configuration, and paper-facing results commonly reported over 10,000 slots under bounded modeling assumptions.',
     keyClaim: 'MEV is modeled as deterministic and linear in latency, migration cost is fixed, and information is complete',
   },
   'baseline-results': {
@@ -46,21 +46,21 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   'se1-source-placement': {
     lede: 'Infrastructure placement is not a neutral background condition. It changes the shape of the optimization problem itself.',
     paragraphs: [
-      'The striking result in SE1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm. Local block building exhibits a scaling effect: advantages compound across all sources simultaneously, so aligned placement — where value capture and consensus pressure pull in the same direction — accelerates centralization.',
+      'The striking result in EXP 1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm. Local block building exhibits a scaling effect: advantages compound across all sources simultaneously, so aligned placement — where value capture and consensus pressure pull in the same direction — accelerates centralization.',
       'External block building exhibits a different dynamic, a double penalty: proposer-supplier latency affects payoffs twice, both in observing block value and in the round-trip to attesters. But because the proposer relies on a single best supplier rather than aggregating many sources, the scaling effect is absent. Misalignment makes the double penalty worse by widening the supplier bottleneck, so co-location incentives intensify rather than relax.',
     ],
     pullQuote: 'The same geography can be stabilizing in one paradigm and destabilizing in the other.',
-    figureCaption: 'SE1 is the cleanest demonstration that the paper is not merely comparing two labels; it is comparing two different latency geometries.',
+    figureCaption: 'EXP 1 is the cleanest demonstration that the paper is not merely comparing two labels; it is comparing two different latency geometries.',
     keyClaim: 'aligned and misaligned placements invert the severity of centralization depending on the paradigm',
   },
   'se2-distribution': {
     lede: 'The paper then asks a harder question: what if the system is already geographically unequal before agents start moving?',
     paragraphs: [
       'Using a more realistic validator distribution shifts the interpretation of the results. Once the starting state is already concentrated in the US and Europe, both paradigms converge quickly because the system begins near the eventual attractor.',
-      'That result is important for the website because it keeps the narrative honest. Paradigm choice matters, but in SE2 the starting geography can outweigh paradigm differences for the first-order outcome. The model is not claiming a single mechanism explains all observed concentration on its own.',
+      'That result is important for the website because it keeps the narrative honest. Paradigm choice matters, but in EXP 2 the starting geography can outweigh paradigm differences for the first-order outcome. The model is not claiming a single mechanism explains all observed concentration on its own.',
     ],
     pullQuote: 'If the system starts centralized, the paradigm mostly changes how the imbalance amplifies, not whether it exists.',
-    figureCaption: 'SE2 reframes the story from "which paradigm centralizes more?" to "how much of the outcome was already baked into the starting distribution used in the experiment?"',
+    figureCaption: 'EXP 2 reframes the story from "which paradigm centralizes more?" to "how much of the outcome was already baked into the starting distribution used in the experiment?"',
     keyClaim: 'the starting geography can outweigh paradigm differences for the first-order outcome',
   },
   'se3-joint': {
@@ -70,11 +70,11 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
       'But the paper treats that as a temporary artifact of competing geographic pulls, not a recipe for decentralization. That caution is a good editorial anchor for the whole reader experience: the goal is to diagnose pressures, not to manufacture optimistic takeaways.',
     ],
     pullQuote: 'A temporary dip in Gini is not the same thing as a decentralization mechanism.',
-    figureCaption: 'SE3 is best read as a warning against overinterpreting transient trajectories as stable system improvements.',
+    figureCaption: 'EXP 3 is best read as a warning against overinterpreting transient trajectories as stable system improvements.',
     keyClaim: 'temporary artifact of competing geographic pulls, not a recipe for decentralization',
   },
   'se4a-attestation': {
-    lede: 'SE4a provides one of the paper\'s clearest paradigm contrasts: in its homogeneous setup, the same protocol parameter moves the two paradigms in opposite directions.',
+    lede: 'EXP 4a provides one of the paper\'s clearest paradigm contrasts: in its homogeneous setup, the same protocol parameter moves the two paradigms in opposite directions.',
     paragraphs: [
       'Within the attestation-threshold experiment, raising the threshold makes external block building centralize more because the supplier path becomes more timing-sensitive. The proposer gains more by clustering tightly around the supplier geography that minimizes end-to-end delay.',
       'In that same experiment, a higher threshold forces local block building into a harder compromise between being close to attesters and being close to information sources. Those geographic objectives do not perfectly coincide, so stronger timing pressure can disperse the equilibrium rather than compress it.',
@@ -106,7 +106,7 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
   limitations: {
     lede: 'The limitations section is one of the most important parts of the paper because it defines where confidence should stop.',
     paragraphs: [
-      'Every simplification in the model trades realism for tractability: GCP-based latency data, a deterministic value function, additive and fungible information sources, a full-information benchmark, and instantaneous constant-cost migration. Those assumptions make the simulations readable and comparable, but they also bound what can be claimed.',
+      'Every simplification in the model trades realism for tractability: a mean-field approximation that treats migrations as independent, fixed information-source parameters, instantaneous relocation, latency as the sole location factor, and calibration to GCP regions alone. Those assumptions make the simulations readable and comparable, but they also bound what can be claimed.',
       'For the website, this section should remain close to the end of the reading flow rather than hidden behind a footnote. It keeps the project aligned with the researchers\' intent: truth first, then interpretation.',
     ],
     pullQuote: 'A good research interface should make the caveats feel structural, not optional.',

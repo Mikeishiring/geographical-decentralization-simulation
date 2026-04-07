@@ -64,7 +64,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-3': {
     sectionTitle: 'Baseline Results',
-    sectionNumber: '§4.2',
+    sectionNumber: '§5.3',
     quotedPassage:
       'Local block building moves faster and ends more concentrated in the baseline runs. The paper attributes that to the additive nature of local block building: value can accumulate from many distributed sources, so the optimization landscape rewards locations that sit at the overlap between source proximity and attester reachability.',
     replies: [
@@ -92,15 +92,15 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
     ],
   },
   'mock-note-4': {
-    sectionTitle: 'SE4a: Attestation Threshold',
-    sectionNumber: '§4.6.1',
+    sectionTitle: 'EXP 4a: Attestation Threshold',
+    sectionNumber: '§5.7.1',
     quotedPassage:
       'Raising the attestation threshold makes external block building centralize more because the supplier path becomes more timing-sensitive. The proposer gains more by clustering tightly around the supplier geography that minimizes end-to-end delay.',
     replies: [
       {
         id: 'reply-4a',
         author: 'Ethan Z.',
-        body: 'This is one of the clearest paradigm-sensitive results in the paper. Gamma is unusually interpretable as a lever, but I would keep the claim scoped to SE4a\'s homogeneous setup rather than generalizing to every timing-related EIP.',
+        body: 'This is one of the clearest paradigm-sensitive results in the paper. Gamma is unusually interpretable as a lever, but I would keep the claim scoped to EXP 4a\'s homogeneous setup rather than generalizing to every timing-related EIP.',
         createdAt: '2026-03-30T08:20:00Z',
         votes: 14,
       },
@@ -121,10 +121,10 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
     ],
   },
   'mock-note-5': {
-    sectionTitle: 'SE1: Source Placement',
-    sectionNumber: '§4.3',
+    sectionTitle: 'EXP 1: Source Placement',
+    sectionNumber: '§5.4',
     quotedPassage:
-      'The striking result in SE1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm.',
+      'The striking result in EXP 1 is not just that source placement matters, but that aligned and misaligned placements invert the severity of centralization depending on the paradigm.',
     replies: [
       {
         id: 'reply-5a',
@@ -137,7 +137,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-6': {
     sectionTitle: 'Limitations',
-    sectionNumber: '§5.3',
+    sectionNumber: '§6.3',
     quotedPassage:
       'The framework relies on GCP latency data, a deterministic value function with additive and fungible information sources, a full-information benchmark, and instantaneous constant-cost migration. These choices keep the analysis tractable and reproducible, but they also bound the quantitative claims.',
     replies: [
@@ -159,7 +159,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-7': {
     sectionTitle: 'Discussion',
-    sectionNumber: '§5.2',
+    sectionNumber: '§6.2',
     quotedPassage:
       'The paper sketches mitigation directions such as weakening proposer monopoly power through decentralized block building, dampening latency-sensitive rewards via MEV-burn, and encouraging geographic diversity among suppliers and major signal sources.',
     replies: [
@@ -187,8 +187,8 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
     ],
   },
   'mock-note-8': {
-    sectionTitle: 'SE2: Starting Distribution',
-    sectionNumber: '§4.4',
+    sectionTitle: 'EXP 2: Starting Distribution',
+    sectionNumber: '§5.5',
     quotedPassage:
       'Using a more realistic validator distribution shifts the interpretation of the results. Once the starting state is already concentrated in the US and Europe, both paradigms converge quickly because the system begins near the eventual attractor.',
     replies: [
@@ -220,7 +220,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
 
   'mock-note-9': {
     sectionTitle: 'Simulation Design',
-    sectionNumber: '§4.1',
+    sectionNumber: '§5.2',
     quotedPassage:
       'Validators are agents that repeatedly compare expected rewards across measured cloud regions, then migrate if the gain exceeds switching cost. That design keeps the paper close to a geographic equilibrium story rather than a one-off optimization snapshot.',
     replies: [
@@ -242,7 +242,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-10': {
     sectionTitle: 'Simulation Design',
-    sectionNumber: '§4.1',
+    sectionNumber: '§5.2',
     quotedPassage:
       'MEV is modeled as deterministic and linear in latency, migration cost is fixed, and information is complete. Those assumptions make the engine more interpretable, but the paper is careful to treat them as modeling limits rather than claims about production Ethereum.',
     replies: [
@@ -273,7 +273,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   // ── FLAWED ARGUMENT 1 ──
   'mock-note-11': {
     sectionTitle: 'Simulation Design',
-    sectionNumber: '§4.1',
+    sectionNumber: '§5.2',
     quotedPassage:
       'MEV is modeled as deterministic and linear in latency, migration cost is fixed, and information is complete. Those assumptions make the engine more interpretable, but the paper is careful to treat them as modeling limits rather than claims about production Ethereum.',
     replies: [
@@ -310,8 +310,8 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
 
   // ── FLAWED ARGUMENT 2 ──
   'mock-note-12': {
-    sectionTitle: 'SE4a: Attestation Threshold',
-    sectionNumber: '§4.6.1',
+    sectionTitle: 'EXP 4a: Attestation Threshold',
+    sectionNumber: '§5.7.1',
     quotedPassage:
       'In local block building, a higher threshold forces a harder compromise between being close to attesters and being close to information sources. Those geographic objectives do not perfectly coincide, so stronger timing pressure can actually disperse the equilibrium rather than compress it.',
     replies: [
@@ -347,8 +347,8 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
 
   'mock-note-13': {
-    sectionTitle: 'SE3: Joint Heterogeneity',
-    sectionNumber: '§4.5 + App. E',
+    sectionTitle: 'EXP 3: Joint Heterogeneity',
+    sectionNumber: '§5.6 + App. E',
     quotedPassage:
       'In the combined heterogeneous case, the temporary dip in concentration appears when external block building starts from today\'s concentrated validator geography and supplier placement is poorly connected to that start.',
     replies: [
@@ -369,8 +369,8 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
     ],
   },
   'mock-note-14': {
-    sectionTitle: 'SE4b: Shorter Slot Times',
-    sectionNumber: '§4.6.2',
+    sectionTitle: 'EXP 4b: Shorter Slot Times',
+    sectionNumber: '§5.7.2',
     quotedPassage:
       'The paper finds that moving to 6-second slots leaves the broad geographic equilibrium largely intact. The same regions remain attractive, and the same concentration tendencies persist.',
     replies: [
@@ -391,8 +391,8 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
     ],
   },
   'mock-note-15': {
-    sectionTitle: 'SE4b: Shorter Slot Times',
-    sectionNumber: '§4.6.2',
+    sectionTitle: 'EXP 4b: Shorter Slot Times',
+    sectionNumber: '§5.7.2',
     quotedPassage:
       'When the slot is shorter, a fixed latency advantage consumes a bigger fraction of the available timing budget. That raises the penalty for being outside the favored corridors even if the final map does not change dramatically.',
     replies: [
@@ -407,7 +407,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-16': {
     sectionTitle: 'Baseline Results',
-    sectionNumber: '§4.2',
+    sectionNumber: '§5.3',
     quotedPassage:
       'External block building still centralizes, but the locus is shaped by supplier geography and the proposer-supplier-attester chain. That makes the final map look different even when the underlying force is still latency-driven concentration.',
     replies: [
@@ -428,8 +428,8 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
     ],
   },
   'mock-note-17': {
-    sectionTitle: 'SE1: Source Placement',
-    sectionNumber: '§4.3',
+    sectionTitle: 'EXP 1: Source Placement',
+    sectionNumber: '§5.4',
     quotedPassage:
       'External block building behaves differently because badly placed suppliers create a stronger co-location premium. When the supplier path is the bottleneck, shaving proposer-supplier latency becomes disproportionately valuable, so misalignment can make concentration worse instead of better.',
     replies: [
@@ -458,7 +458,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-18': {
     sectionTitle: 'Discussion',
-    sectionNumber: '§5.1',
+    sectionNumber: '§6.1',
     quotedPassage:
       'That restraint matters. The contribution is to show that geographic concentration is endogenous to the timing structure of the system, not to claim the model has already solved how to counteract it.',
     replies: [
@@ -480,7 +480,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-19': {
     sectionTitle: 'Limitations',
-    sectionNumber: '§5.3',
+    sectionNumber: '§6.3',
     quotedPassage:
       'The framework assumes a full-information benchmark and instantaneous constant-cost migration. In practice, both information quality and migration frictions may be coarser, noisier, and more heterogeneous than the model allows.',
     replies: [
@@ -504,8 +504,8 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   /* ── Round 3: for/against debates, new voices ────────────────────────── */
 
   'mock-note-20': {
-    sectionTitle: 'SE2: Starting Distribution',
-    sectionNumber: '§4.5',
+    sectionTitle: 'EXP 2: Starting Distribution',
+    sectionNumber: '§5.6',
     quotedPassage:
       'Using a more realistic validator distribution shifts the interpretation of the results. Once the starting state is already concentrated in the US and Europe, both paradigms converge quickly because the system begins near the eventual attractor.',
     replies: [
@@ -540,8 +540,8 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
     ],
   },
   'mock-note-21': {
-    sectionTitle: 'SE3: Joint Heterogeneity',
-    sectionNumber: '§4.5 + App. E',
+    sectionTitle: 'EXP 3: Joint Heterogeneity',
+    sectionNumber: '§5.6 + App. E',
     quotedPassage:
       'In the combined heterogeneous case, the temporary dip in concentration appears when external block building starts from today\'s concentrated validator geography and supplier placement is poorly connected to that start.',
     replies: [
@@ -569,8 +569,8 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
     ],
   },
   'mock-note-22': {
-    sectionTitle: 'SE4b: Shorter Slot Times',
-    sectionNumber: '§4.6.2',
+    sectionTitle: 'EXP 4b: Shorter Slot Times',
+    sectionNumber: '§5.7.2',
     quotedPassage:
       'When the slot is shorter, a fixed latency advantage consumes a bigger fraction of the available timing budget. That raises the penalty for being outside the favored corridors even if the final map does not change dramatically.',
     replies: [
@@ -606,7 +606,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-23': {
     sectionTitle: 'Discussion',
-    sectionNumber: '§5.2',
+    sectionNumber: '§6.2',
     quotedPassage:
       'The paper sketches mitigation directions such as weakening proposer monopoly power, dampening latency-sensitive rewards, and encouraging geographic diversity among suppliers and major signal sources.',
     replies: [
@@ -635,7 +635,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-24': {
     sectionTitle: 'Baseline Results',
-    sectionNumber: '§4.2',
+    sectionNumber: '§5.3',
     quotedPassage:
       'Local block building moves faster and ends more concentrated in the baseline runs. The paper attributes that to the additive nature of local block building: value can accumulate from many distributed sources, so the optimization landscape rewards locations that sit at the overlap between source proximity and attester reachability.',
     replies: [
@@ -664,7 +664,7 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
   },
   'mock-note-25': {
     sectionTitle: 'Limitations',
-    sectionNumber: '§5.3',
+    sectionNumber: '§6.3',
     quotedPassage:
       'The framework relies on simplified assumptions about latency data, block value, information quality, and migration frictions. Those assumptions keep the model interpretable, but they also bound what can be claimed from the simulations.',
     replies: [
@@ -692,15 +692,15 @@ export const MOCK_NOTE_EXTRAS: Record<string, MockNoteExtras> = {
     ],
   },
   'mock-note-26': {
-    sectionTitle: 'SE4a: Attestation Threshold',
-    sectionNumber: '§4.6.1',
+    sectionTitle: 'EXP 4a: Attestation Threshold',
+    sectionNumber: '§5.7.1',
     quotedPassage:
       'In local block building, a higher threshold forces a harder compromise between being close to attesters and being close to information sources. Those geographic objectives do not perfectly coincide, so stronger timing pressure can actually disperse the equilibrium rather than compress it.',
     replies: [
       {
         id: 'reply-26a',
         author: 'Priya N.',
-        body: 'This is one of the more interesting extensions to SE4a. In a separate sim-lab comparison, varying gamma moved the Gini more than switching paradigms at a fixed gamma, but I would still keep that comparison scoped to those runs rather than upgrading it into the paper\'s headline claim.',
+        body: 'This is one of the more interesting extensions to EXP 4a. In a separate sim-lab comparison, varying gamma moved the Gini more than switching paradigms at a fixed gamma, but I would still keep that comparison scoped to those runs rather than upgrading it into the paper\'s headline claim.',
         createdAt: '2026-03-29T07:00:00Z',
         votes: 19,
       },
@@ -866,7 +866,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: 22,
     createdAt: daysAgo(1),
     paradigmTags: ['External', 'Local'],
-    experimentTags: ['SE4a'],
+    experimentTags: ['EXP 4a'],
     verified: true,
     surface: 'reading',
     anchor: {
@@ -875,12 +875,12 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'SE4a is a clear paradigm-sensitive result',
-      takeaway: 'In SE4a\'s homogeneous setup, a single protocol parameter — attestation threshold — pushes external block building toward more concentration but local block building toward less. That is a strong reminder that timing rules need to be evaluated per paradigm and per setup, rather than being treated as universally geography-improving or geography-worsening.',
+      title: 'EXP 4a is a clear paradigm-sensitive result',
+      takeaway: 'In EXP 4a\'s homogeneous setup, a single protocol parameter — attestation threshold — pushes external block building toward more concentration but local block building toward less. That is a strong reminder that timing rules need to be evaluated per paradigm and per setup, rather than being treated as universally geography-improving or geography-worsening.',
       author: 'Sam K.',
       publishedAt: daysAgo(1),
       featured: true,
-      editorNote: 'Scope: homogeneous SE4a parameter study.',
+      editorNote: 'Scope: homogeneous EXP 4a parameter study.',
     },
   },
   {
@@ -895,7 +895,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: 9,
     createdAt: daysAgo(4),
     paradigmTags: ['External', 'Local'],
-    experimentTags: ['SE1'],
+    experimentTags: ['EXP 1'],
     verified: false,
     surface: 'reading',
     anchor: {
@@ -905,7 +905,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     publication: {
       published: true,
       title: 'Supplier placement is not a neutral infrastructure choice',
-      takeaway: 'SE1 shows that where you place suppliers and information sources changes the centralization outcome, and the effect is paradigm-dependent. This is the strongest argument for treating supplier decentralization as a first-class protocol concern.',
+      takeaway: 'EXP 1 shows that where you place suppliers and information sources changes the centralization outcome, and the effect is paradigm-dependent. This is the strongest argument for treating supplier decentralization as a first-class protocol concern.',
       author: 'Jordan P.',
       publishedAt: daysAgo(4),
       featured: false,
@@ -982,7 +982,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: 11,
     createdAt: daysAgo(2),
     paradigmTags: ['External', 'Local'],
-    experimentTags: ['SE2'],
+    experimentTags: ['EXP 2'],
     verified: false,
     surface: 'reading',
     anchor: {
@@ -991,8 +991,8 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'In SE2, starting geography can outweigh paradigm differences',
-      takeaway: 'SE2 is the humility check. If validators already cluster in US-East and EU-West under the Chainbound-based initialization, the paradigms mainly change how an existing imbalance evolves rather than whether one appears at all. That keeps the result scoped to the heterogeneous start instead of turning it into a general theorem.',
+      title: 'In EXP 2, starting geography can outweigh paradigm differences',
+      takeaway: 'EXP 2 is the humility check. If validators already cluster in US-East and EU-West under the Chainbound-based initialization, the paradigms mainly change how an existing imbalance evolves rather than whether one appears at all. That keeps the result scoped to the heterogeneous start instead of turning it into a general theorem.',
       author: 'Alex W.',
       publishedAt: daysAgo(2),
       featured: false,
@@ -1105,7 +1105,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: -8,
     createdAt: daysAgo(3),
     paradigmTags: ['Local'],
-    experimentTags: ['SE4a'],
+    experimentTags: ['EXP 4a'],
     verified: false,
     surface: 'reading',
     anchor: {
@@ -1135,7 +1135,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: 13,
     createdAt: daysAgo(3),
     paradigmTags: ['External'],
-    experimentTags: ['SE3'],
+    experimentTags: ['EXP 3'],
     verified: false,
     surface: 'reading',
     anchor: {
@@ -1145,7 +1145,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     publication: {
       published: true,
       title: 'The transient dip is a testable prediction, not just a curiosity',
-      takeaway: 'SE3\'s temporary decentralization is the only scenario where Gini decreases, and it happens under specific conditions: concentrated start + misaligned suppliers. This gives us a testable prediction — if supplier infrastructure shifts significantly (e.g., a major new supplier in Asia), we should see a brief period of reduced geographic concentration in external block building before re-convergence. The paper doesn\'t emphasize this, but it\'s the closest thing to an actionable finding.',
+      takeaway: 'EXP 3\'s temporary decentralization is the only scenario where Gini decreases, and it happens under specific conditions: concentrated start + misaligned suppliers. This gives us a testable prediction — if supplier infrastructure shifts significantly (e.g., a major new supplier in Asia), we should see a brief period of reduced geographic concentration in external block building before re-convergence. The paper doesn\'t emphasize this, but it\'s the closest thing to an actionable finding.',
       author: 'Tomás G.',
       publishedAt: daysAgo(3),
       featured: false,
@@ -1164,7 +1164,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: 16,
     createdAt: daysAgo(2),
     paradigmTags: [],
-    experimentTags: ['SE4b'],
+    experimentTags: ['EXP 4b'],
     verified: false,
     surface: 'reading',
     anchor: {
@@ -1173,8 +1173,8 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'SE4b links slot time to reward inequality more than location',
-      takeaway: 'The slot-time experiment suggests shorter slots may matter more for relative reward access than for final geography. That makes SE4b relevant to EIP-7782 discussions, but it does not by itself resolve the broader UX-versus-decentralization tradeoff.',
+      title: 'EXP 4b links slot time to reward inequality more than location',
+      takeaway: 'The slot-time experiment suggests shorter slots may matter more for relative reward access than for final geography. That makes EXP 4b relevant to EIP-7782 discussions, but it does not by itself resolve the broader UX-versus-decentralization tradeoff.',
       author: 'Nadia S.',
       publishedAt: daysAgo(2),
       featured: true,
@@ -1193,7 +1193,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: 8,
     createdAt: daysAgo(5),
     paradigmTags: [],
-    experimentTags: ['SE4b'],
+    experimentTags: ['EXP 4b'],
     verified: false,
     surface: 'reading',
     anchor: {
@@ -1251,7 +1251,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: 17,
     createdAt: daysAgo(5),
     paradigmTags: ['External'],
-    experimentTags: ['SE1'],
+    experimentTags: ['EXP 1'],
     verified: true,
     surface: 'reading',
     anchor: {
@@ -1261,11 +1261,11 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     publication: {
       published: true,
       title: 'Supplier placement may be a fast-moving infrastructure lever',
-      takeaway: 'SE1 suggests supplier placement can materially change external block-building concentration pressure. That makes supplier geography an operational lever worth studying alongside protocol changes, though the paper does not rank it above protocol-level interventions or validate a specific deployment plan.',
+      takeaway: 'EXP 1 suggests supplier placement can materially change external block-building concentration pressure. That makes supplier geography an operational lever worth studying alongside protocol changes, though the paper does not rank it above protocol-level interventions or validate a specific deployment plan.',
       author: 'Kira T.',
       publishedAt: daysAgo(5),
       featured: true,
-      editorNote: 'Infrastructure interpretation layered on top of SE1.',
+      editorNote: 'Infrastructure interpretation layered on top of EXP 1.',
     },
   },
   {
@@ -1341,7 +1341,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: -2,
     createdAt: daysAgo(1),
     paradigmTags: ['External', 'Local'],
-    experimentTags: ['SE2'],
+    experimentTags: ['EXP 2'],
     verified: false,
     surface: 'reading',
     anchor: {
@@ -1351,7 +1351,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     publication: {
       published: true,
       title: 'Starting geography is overrated — paradigm choice matters more long-term',
-      takeaway: 'SE2\'s "initial conditions dominate" finding is overstated. Yes, the first 2,000 slots look similar from a concentrated start, but by 10,000 slots the paradigm divergence is clear: local block building spreads validators across 14 regions while external block building collapses to 8. The paper\'s snapshot at convergence misses the long-run spatial dynamics that matter for resilience.',
+      takeaway: 'EXP 2\'s "initial conditions dominate" finding is overstated. Yes, the first 2,000 slots look similar from a concentrated start, but by 10,000 slots the paradigm divergence is clear: local block building spreads validators across 14 regions while external block building collapses to 8. The paper\'s snapshot at convergence misses the long-run spatial dynamics that matter for resilience.',
       author: 'Ethan Z.',
       publishedAt: daysAgo(1),
       featured: false,
@@ -1370,7 +1370,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: 15,
     createdAt: daysAgo(2),
     paradigmTags: ['External'],
-    experimentTags: ['SE3'],
+    experimentTags: ['EXP 3'],
     verified: false,
     surface: 'reading',
     anchor: {
@@ -1380,7 +1380,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     publication: {
       published: true,
       title: 'The transient dip is a hypothesis about infrastructure shocks',
-      takeaway: 'SE3\'s temporary dip is best read as a bounded hypothesis: when supplier geography is misaligned with an already concentrated validator map, some validators may briefly move away from incumbent hubs before concentration returns. That makes the result interesting for scenario design, but not a deployable decentralization recipe.',
+      takeaway: 'EXP 3\'s temporary dip is best read as a bounded hypothesis: when supplier geography is misaligned with an already concentrated validator map, some validators may briefly move away from incumbent hubs before concentration returns. That makes the result interesting for scenario design, but not a deployable decentralization recipe.',
       author: 'Priya N.',
       publishedAt: daysAgo(2),
       featured: false,
@@ -1399,7 +1399,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: 4,
     createdAt: daysAgo(3),
     paradigmTags: [],
-    experimentTags: ['SE4b'],
+    experimentTags: ['EXP 4b'],
     verified: false,
     surface: 'reading',
     anchor: {
@@ -1408,8 +1408,8 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'SE4b informs the slot-time debate without settling it',
-      takeaway: 'SE4b suggests shorter slots can increase relative reward inequality even when the final geography barely moves. That matters for EIP-7782 discussions, but the paper does not attempt to weigh that cost against throughput or UX gains, so any policy judgment has to come from outside this model.',
+      title: 'EXP 4b informs the slot-time debate without settling it',
+      takeaway: 'EXP 4b suggests shorter slots can increase relative reward inequality even when the final geography barely moves. That matters for EIP-7782 discussions, but the paper does not attempt to weigh that cost against throughput or UX gains, so any policy judgment has to come from outside this model.',
       author: 'Nadia S.',
       publishedAt: daysAgo(3),
       featured: false,
@@ -1428,7 +1428,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: 19,
     createdAt: daysAgo(2),
     paradigmTags: [],
-    experimentTags: ['SE1'],
+    experimentTags: ['EXP 1'],
     verified: true,
     surface: 'reading',
     anchor: {
@@ -1515,7 +1515,7 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     votes: 21,
     createdAt: daysAgo(1),
     paradigmTags: ['External', 'Local'],
-    experimentTags: ['SE4a'],
+    experimentTags: ['EXP 4a'],
     verified: false,
     surface: 'reading',
     anchor: {
@@ -1524,12 +1524,12 @@ export const MOCK_COMMUNITY_NOTES: readonly Exploration[] = [
     },
     publication: {
       published: true,
-      title: 'In SE4a, gamma looks like a major geography lever',
-      takeaway: 'Within SE4a, changing gamma produces a large geographic effect in opposite directions across the two paradigms. That makes attestation threshold a serious geography lever to study, but claims that it is more important than paradigm choice overall should stay scoped to this experiment and any external simulation runs used to extend it.',
+      title: 'In EXP 4a, gamma looks like a major geography lever',
+      takeaway: 'Within EXP 4a, changing gamma produces a large geographic effect in opposite directions across the two paradigms. That makes attestation threshold a serious geography lever to study, but claims that it is more important than paradigm choice overall should stay scoped to this experiment and any external simulation runs used to extend it.',
       author: 'Priya N.',
       publishedAt: daysAgo(1),
       featured: true,
-      editorNote: 'Simulation-lab comparison layered on top of SE4a.',
+      editorNote: 'Simulation-lab comparison layered on top of EXP 4a.',
     },
   },
   {

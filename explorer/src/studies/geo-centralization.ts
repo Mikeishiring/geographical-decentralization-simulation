@@ -54,35 +54,35 @@ const ARTIFACTS: StudyPackage['artifacts'] = [
   },
   {
     id: 'source-placement-dataset',
-    label: 'SE1 source placement datasets',
+    label: 'EXP 1 source placement datasets',
     kind: 'dataset',
     summary: 'Latency-aligned and latency-misaligned source placement scenario runs.',
     path: 'dashboard/simulations/heterogeneous_info',
   },
   {
     id: 'validator-start-dataset',
-    label: 'SE2 validator distribution datasets',
+    label: 'EXP 2 validator distribution datasets',
     kind: 'dataset',
     summary: 'Heterogeneous validator-start runs used in the paper comparison.',
     path: 'dashboard/simulations/heterogeneous_validators',
   },
   {
     id: 'joint-heterogeneity-dataset',
-    label: 'SE3 joint heterogeneity datasets',
+    label: 'EXP 3 joint heterogeneity datasets',
     kind: 'dataset',
     summary: 'Scenario family combining heterogeneous validators and source placements.',
     path: 'dashboard/simulations/heterogeneous_both',
   },
   {
     id: 'attestation-dataset',
-    label: 'SE4a attestation-threshold datasets',
+    label: 'EXP 4a attestation-threshold datasets',
     kind: 'dataset',
     summary: 'Published gamma sweep runs for external and local block building.',
     path: 'dashboard/simulations/different_gammas',
   },
   {
     id: 'slot-time-dataset',
-    label: 'SE4b slot-time datasets',
+    label: 'EXP 4b slot-time datasets',
     kind: 'dataset',
     summary: 'Baseline and EIP-7782 slot-time comparison outputs.',
     path: 'dashboard/simulations/eip7782',
@@ -127,7 +127,7 @@ const CLAIMS: StudyPackage['claims'] = {
       text: 'Under the baseline homogeneous setup, local block building centralizes faster and more severely than external block building.',
       sourceIds: ['baseline-figure', 'baseline-dataset', 'paper-pdf'],
       anchors: [
-        { kind: 'section', label: '§4.2', page: 7, sectionId: 'baseline-results' },
+        { kind: 'section', label: '§5.3', page: 7, sectionId: 'baseline-results' },
         { kind: 'figure', label: 'Figure 3', page: 7, artifactId: 'baseline-figure' },
         { kind: 'dataset', label: 'Baseline slot series', artifactId: 'baseline-dataset' },
       ],
@@ -140,7 +140,7 @@ const CLAIMS: StudyPackage['claims'] = {
       text: 'Source placement changes the centralization gradient differently by paradigm, with aligned sources strengthening local concentration and misaligned sources strengthening external concentration.',
       sourceIds: ['source-placement-dataset', 'paper-pdf'],
       anchors: [
-        { kind: 'section', label: '§4.3', page: 8, sectionId: 'se1-source-placement' },
+        { kind: 'section', label: '§5.4', page: 8, sectionId: 'se1-source-placement' },
         { kind: 'figure', label: 'Figure 4', page: 8, artifactId: 'source-placement-dataset' },
       ],
       evidenceType: 'derived-from-dataset',
@@ -152,7 +152,7 @@ const CLAIMS: StudyPackage['claims'] = {
       text: 'When validators start from an already concentrated geography, the external versus local outcome gap compresses.',
       sourceIds: ['validator-start-dataset', 'paper-pdf'],
       anchors: [
-        { kind: 'section', label: '§4.4', page: 8, sectionId: 'se2-distribution' },
+        { kind: 'section', label: '§5.5', page: 8, sectionId: 'se2-distribution' },
         { kind: 'figure', label: 'Figure 5', page: 8, artifactId: 'validator-start-dataset' },
       ],
       evidenceType: 'derived-from-dataset',
@@ -161,10 +161,10 @@ const CLAIMS: StudyPackage['claims'] = {
     },
     {
       id: 'gamma-sign-flip',
-      text: 'In SE4a, increasing the attestation threshold raises external centralization pressure while reducing local centralization pressure.',
+      text: 'In EXP 4a, increasing the attestation threshold raises external centralization pressure while reducing local centralization pressure.',
       sourceIds: ['attestation-dataset', 'paper-pdf'],
       anchors: [
-        { kind: 'section', label: '§4.6.1', page: 10, sectionId: 'se4a-attestation' },
+        { kind: 'section', label: '§5.7.1', page: 10, sectionId: 'se4a-attestation' },
         { kind: 'figure', label: 'Figure 7', page: 10, artifactId: 'attestation-dataset' },
       ],
       evidenceType: 'derived-from-dataset',
@@ -176,7 +176,7 @@ const CLAIMS: StudyPackage['claims'] = {
       text: 'Shorter slots mostly preserve the concentration trajectory while increasing reward variance and fairness pressure.',
       sourceIds: ['slot-time-dataset', 'paper-pdf'],
       anchors: [
-        { kind: 'section', label: '§4.6.2', page: 10, sectionId: 'se4b-slots' },
+        { kind: 'section', label: '§5.7.2', page: 10, sectionId: 'se4b-slots' },
         { kind: 'figure', label: 'Figure 8', page: 10, artifactId: 'slot-time-dataset' },
       ],
       evidenceType: 'derived-from-dataset',
@@ -188,7 +188,7 @@ const CLAIMS: StudyPackage['claims'] = {
       text: 'The deterministic linear MEV function and GCP-only latency measurements are modeling simplifications, not claims about production Ethereum.',
       sourceIds: ['paper-pdf', 'appendix-e'],
       anchors: [
-        { kind: 'section', label: '§4.1', page: 6, sectionId: 'simulation-design' },
+        { kind: 'section', label: '§5.2', page: 6, sectionId: 'simulation-design' },
         { kind: 'appendix', label: 'Appendix E', page: 13, artifactId: 'appendix-e' },
       ],
       evidenceType: 'close-paraphrase',
@@ -408,7 +408,7 @@ const DASHBOARDS: StudyPackage['dashboards'] = [
     title: 'Attestation Threshold Sweep',
     pattern: 'parameter-sweep',
     questionAnswered: 'How does gamma alter concentration pressure across paradigms?',
-    summary: 'Parameter sweep centered on the SE4a sign-flip between external and local block building.',
+    summary: 'Parameter sweep centered on the EXP 4a sign-flip between external and local block building.',
     askMetricKey: 'gini',
     metricIds: ['quorum-pressure', 'concentration-share'],
     sourceArtifactIds: ['attestation-dataset'],
@@ -535,7 +535,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
         {
           id: 'baseline-vs-gamma',
           label: 'Baseline vs gamma',
-          description: 'Contrast the baseline family with the SE4a attestation-threshold sweep on concentration.',
+          description: 'Contrast the baseline family with the EXP 4a attestation-threshold sweep on concentration.',
           values: {
             leftScenario: 'baseline',
             rightScenario: 'higher-gamma',
@@ -672,13 +672,13 @@ const ASSISTANT: StudyPackage['assistant'] = {
       routeHint: 'structured-results',
       badge: 'Sweep',
       outputs: ['parameter sweep table', 'bounded chart', 'supported filters'],
-      bestFor: ['Gamma sweep questions', 'SE1/SE4 family inspection', 'Constrained structured analysis'],
+      bestFor: ['Gamma sweep questions', 'EXP 1/EXP 4 family inspection', 'Constrained structured analysis'],
       defaultPresetId: 'gamma-concentration',
       presets: [
         {
           id: 'gamma-concentration',
           label: 'Gamma concentration',
-          description: 'Inspect the SE4a gamma sweep through final Gini.',
+          description: 'Inspect the EXP 4a gamma sweep through final Gini.',
           values: {
             family: 'gamma-sweep',
             metric: 'gini',
@@ -696,7 +696,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
         {
           id: 'source-placement-gini',
           label: 'Source placement Gini',
-          description: 'Inspect the SE1 source-placement family through final Gini.',
+          description: 'Inspect the EXP 1 source-placement family through final Gini.',
           values: {
             family: 'source-placement-runs',
             metric: 'gini',
@@ -952,7 +952,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
       aliases: ['gamma', 'higher gamma', 'attestation threshold', 'se4a', 'gamma sweep'],
       dashboardIds: ['attestation-threshold'],
       bestFor: [
-        'Comparing the SE4a attestation-threshold sweep',
+        'Comparing the EXP 4a attestation-threshold sweep',
         'Ranking gamma settings by concentration or attestation outcomes',
         'Showing how the sign-flip emerges by paradigm',
       ],
@@ -982,7 +982,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
         },
         {
           label: 'Do not mix unrelated scenarios',
-          description: 'Stay inside the SE4a family unless the reader explicitly asks to compare gamma against another experiment family.',
+          description: 'Stay inside the EXP 4a family unless the reader explicitly asks to compare gamma against another experiment family.',
         },
       ],
     },
@@ -1037,7 +1037,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
       bestFor: [
         'Comparing aligned versus misaligned source placement',
         'Showing the source-placement flip across paradigms',
-        'Ranking SE1 runs by concentration or latency',
+        'Ranking EXP 1 runs by concentration or latency',
       ],
       defaultDimensions: ['evaluation', 'paradigm', 'result'],
       defaultMetrics: ['gini', 'hhi'],
@@ -1061,7 +1061,7 @@ const ASSISTANT: StudyPackage['assistant'] = {
       executionHints: [
         {
           label: 'Keep both paradigms in view',
-          description: 'The main point of SE1 is the paradigm-sensitive flip, so avoid filtering down to a single paradigm unless asked.',
+          description: 'The main point of EXP 1 is the paradigm-sensitive flip, so avoid filtering down to a single paradigm unless asked.',
         },
         {
           label: 'Use aligned versus misaligned labels',
@@ -1128,7 +1128,7 @@ and proposer-to-attesters for consensus. Validators benefit from proximity to bo
 information sources and attesters.
 Note: the simulation engine uses the internal label "MSP" for this paradigm.
 
-## Baseline Results (§4.2)
+## Baseline Results (§5.3)
 Both paradigms drive geographic centralization starting from the homogeneous baseline distribution.
 
 - External block building rises more slowly from the neutral baseline and is more sensitive to migration cost.
@@ -1137,9 +1137,9 @@ Both paradigms drive geographic centralization starting from the homogeneous bas
 - With migration costs, external block building retains more persistence away from the tightest hubs than local.
 
 ## Reference Tags For Paper Experiments
-Use SE1, SE2, SE3, and SE4 as reader-orientation references. Do not present them as stronger than the underlying paper text, exact outputs, or metadata supplied in the current context.
+Use EXP 1, EXP 2, EXP 3, and EXP 4 as reader-orientation references. Do not present them as stronger than the underlying paper text, exact outputs, or metadata supplied in the current context.
 
-## SE1 Reference: Information-Source Placement (§4.3)
+## EXP 1 Reference: Information-Source Placement (§5.4)
 - External + latency-aligned: usually softer than the misaligned external case
 - External + latency-misaligned: stronger co-location pressure around a poorly connected supplier
 - Local + latency-aligned: stronger centralization than the homogeneous local case
@@ -1147,23 +1147,23 @@ Use SE1, SE2, SE3, and SE4 as reader-orientation references. Do not present them
 
 Reference reading: the same infrastructure change can have opposite effects depending on paradigm.
 
-## SE2 Reference: Heterogeneous Initial Distribution (§4.4)
+## EXP 2 Reference: Heterogeneous Initial Distribution (§5.5)
 - Uses real Ethereum validator distribution (Chainbound data)
 - Both paradigms converge rapidly
 - External block building amplifies reward disparities more strongly
 - Starting distribution matters a lot when validators are already concentrated
 
-## SE3 Reference: Joint Heterogeneity (§4.5)
+## EXP 3 Reference: Joint Heterogeneity (§5.6)
 - Combines heterogeneous validators with heterogeneous information sources
 - External block building with remote or poorly connected suppliers under the heterogeneous validator start can produce transient decentralization early
 - This is not a steady state
 
-## SE4a Reference: Attestation Threshold Gamma (§4.6.1)
+## EXP 4a Reference: Attestation Threshold Gamma (§5.7.1)
 - External: higher gamma increases centralization
 - Local: higher gamma can reduce centralization
 - This is one of the paper's most surprising findings
 
-## SE4b Reference: Shorter Slot Times / EIP-7782 (§4.6.2)
+## EXP 4b Reference: Shorter Slot Times / EIP-7782 (§5.7.2)
 - Centralization trajectories are largely unchanged
 - Reward variance increases
 - Shorter slots amplify relative latency advantage without changing the eventual geographic equilibrium much
@@ -1241,7 +1241,7 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
       metadata: ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', 'aligned vs misaligned sources'],
       figureHref: '/paper-figures/fig4-se1-sources.png',
       figureLabel: 'Open original paper figure',
-      datasetSummary: 'Derived from the published SE1 source-placement datasets, sampled from the checked-in slot series for interactive comparison.',
+      datasetSummary: 'Derived from the published EXP 1 source-placement datasets, sampled from the checked-in slot series for interactive comparison.',
       repoPaths: [
         'dashboard/simulations/heterogeneous_info/{SSP,MSP}/cost_0.002_latency_{latency-aligned,latency-misaligned}/data.json',
       ],
@@ -1281,7 +1281,7 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
       metadata: ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', 'heterogeneous validator start'],
       figureHref: '/paper-figures/fig5-se2-validators.png',
       figureLabel: 'Open original paper figure',
-      datasetSummary: 'Derived from the published SE2 heterogeneous-validator datasets, sampled from the checked-in slot series for interactive comparison.',
+      datasetSummary: 'Derived from the published EXP 2 heterogeneous-validator datasets, sampled from the checked-in slot series for interactive comparison.',
       repoPaths: [
         'dashboard/simulations/heterogeneous_validators/{SSP,MSP}/cost_0.002_validators_heterogeneous/data.json',
       ],
@@ -1309,7 +1309,7 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
       metadata: ['1,000 validators', '10,000 slots', 'cost = 0.002 ETH', 'heterogeneous validators + source placement'],
       figureHref: '/paper-figures/fig6-se3-joint.png',
       figureLabel: 'Open original paper figure',
-      datasetSummary: 'Derived from the published SE3 joint-heterogeneity datasets, sampled from the checked-in slot series for interactive comparison.',
+      datasetSummary: 'Derived from the published EXP 3 joint-heterogeneity datasets, sampled from the checked-in slot series for interactive comparison.',
       repoPaths: [
         'dashboard/simulations/heterogeneous_both/{SSP,MSP}/cost_0.002_latency_{latency-aligned,latency-misaligned}/data.json',
       ],
@@ -1420,19 +1420,20 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
       '§3.2': 5,
       '§3.1–3.2': 5,
       '§4': 6,
-      '§4.1': 6,
-      '§4.2': 7,
-      '§4.3': 8,
-      '§4.4': 8,
-      '§4.5': 9,
-      '§4.6.1': 10,
-      '§4.6.2': 10,
-      '§4.5 + App. E': 9,
-      '§5': 11,
-      '§5.1': 11,
-      '§5.2': 11,
-      '§5.3': 11,
-      '§5.1-§5.2': 11,
+      '§5': 6,
+      '§5.2': 6,
+      '§5.3': 7,
+      '§5.4': 8,
+      '§5.5': 8,
+      '§5.6': 9,
+      '§5.7.1': 10,
+      '§5.7.2': 10,
+      '§5.6 + App. E': 9,
+      '§6': 11,
+      '§6.1': 11,
+      '§6.2': 11,
+      '§6.3': 11,
+      '§6.1-§6.2': 11,
       'App. E': 13,
       'App. E.3': 14,
       'App. E.4': 15,

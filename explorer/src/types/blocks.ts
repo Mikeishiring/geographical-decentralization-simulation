@@ -5,7 +5,7 @@ import { z } from 'zod/v4'
 export const citeSchema = z.object({
   paperSection: z.string().optional(),
   figure: z.string().optional(),
-  experiment: z.enum(['baseline', 'SE1', 'SE2', 'SE3', 'SE4a', 'SE4b']).optional(),
+  experiment: z.enum(['baseline', 'EXP 1', 'EXP 2', 'EXP 3', 'EXP 4a', 'EXP 4b']).optional(),
   table: z.string().optional(),
 }).optional()
 
