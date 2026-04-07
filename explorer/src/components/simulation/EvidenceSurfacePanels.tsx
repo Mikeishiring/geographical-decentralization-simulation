@@ -48,6 +48,9 @@ interface SparklineGeometry {
   readonly baselineY: number
 }
 
+/** Inset padding so end-of-line circles aren't clipped by the viewBox edge */
+const SPARK_PAD = 4
+
 function buildSparklineGeometry(
   data: readonly number[],
   width: number,
@@ -57,10 +60,12 @@ function buildSparklineGeometry(
   const min = Math.min(...data)
   const max = Math.max(...data)
   const range = max - min || 1
-  const step = width / (data.length - 1)
+  const innerW = width - SPARK_PAD * 2
+  const innerH = height - SPARK_PAD * 2
+  const step = innerW / (data.length - 1)
   const coords = data.map((value, index) => ({
-    x: Number((index * step).toFixed(1)),
-    y: Number((height - 1 - ((value - min) / range) * (height - 4)).toFixed(1)),
+    x: Number((SPARK_PAD + index * step).toFixed(1)),
+    y: Number((SPARK_PAD + innerH - ((value - min) / range) * innerH).toFixed(1)),
     value,
   }))
   const points = coords.map(coord => `${coord.x},${coord.y}`).join(' ')
@@ -114,16 +119,29 @@ function Sparkline({
   const first = coords[0]!
   const smoothAreaD = `${smoothD} L ${last.x} ${baselineY} L ${first.x} ${baselineY} Z`
   const gradientId = `spark-fill-${color.replace(/[^a-zA-Z0-9]/g, '')}`
+  const edgeFadeId = `spark-edge-${color.replace(/[^a-zA-Z0-9]/g, '')}`
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0" aria-hidden>
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0" style={{ overflow: 'visible' }} aria-hidden>
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2={height}>
           <stop offset="0%" stopColor={color} stopOpacity={0.12} />
           <stop offset="100%" stopColor={color} stopOpacity={0.01} />
         </linearGradient>
+        {/* Horizontal edge fade mask — soft dissolve at left and right edges */}
+        <linearGradient id={edgeFadeId} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="white" stopOpacity={0} />
+          <stop offset="12%" stopColor="white" stopOpacity={1} />
+          <stop offset="85%" stopColor="white" stopOpacity={1} />
+          <stop offset="100%" stopColor="white" stopOpacity={0} />
+        </linearGradient>
+        <mask id={`${edgeFadeId}-mask`}>
+          <rect width={width} height={height} fill={`url(#${edgeFadeId})`} />
+        </mask>
       </defs>
-      <path d={smoothAreaD} fill={`url(#${gradientId})`} />
-      <path d={smoothD} fill="none" stroke={withAlpha(color, 0.8)} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      <g mask={`url(#${edgeFadeId}-mask)`}>
+        <path d={smoothAreaD} fill={`url(#${gradientId})`} />
+        <path d={smoothD} fill="none" stroke={withAlpha(color, 0.8)} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      </g>
       <line x1={highlight.x} y1={2} x2={highlight.x} y2={baselineY} stroke={withAlpha(color, 0.14)} strokeWidth={0.75} strokeDasharray="2 2" />
       <circle cx={highlight.x} cy={highlight.y} r={3} fill={withAlpha(color, 0.1)} />
       <circle cx={highlight.x} cy={highlight.y} r={2} fill="white" stroke={color} strokeWidth={1.2} />
@@ -133,10 +151,12 @@ function Sparkline({
 
 function sampleForSpark(raw: readonly number[] | undefined, maxPoints = 32): number[] {
   if (!raw || raw.length === 0) return []
-  const step = Math.max(1, Math.ceil(raw.length / maxPoints))
+  const clean = raw.filter(v => Number.isFinite(v))
+  if (clean.length === 0) return []
+  const step = Math.max(1, Math.ceil(clean.length / maxPoints))
   const out: number[] = []
-  for (let i = 0; i < raw.length; i += step) out.push(raw[i]!)
-  const last = raw[raw.length - 1]!
+  for (let i = 0; i < clean.length; i += step) out.push(clean[i]!)
+  const last = clean[clean.length - 1]!
   if (out[out.length - 1] !== last) out.push(last)
   return out
 }
@@ -517,14 +537,14 @@ function EvidenceKpiCard({
 
       <div className="mt-1 flex items-center gap-1.5 h-[28px]">
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-x-1.5">
+          <div className="flex items-baseline gap-x-1.5 flex-wrap">
             <div className="text-[18px] font-medium text-stone-900 tabular-nums leading-none tracking-[-0.01em] font-[family-name:var(--font-mono)]">
               {hoverIndex != null && currentValue != null ? card.formatSeriesValue(currentValue) : card.value}
             </div>
             {seriesDelta && (
               <InlineTooltip label={hoverIndex != null ? 'Change from slot 1 to the inspected slot' : 'Change from slot 1 to the final slot'}>
               <div
-                className={cn('inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums', DELTA_COLOR[deltaSentiment])}
+                className={cn('inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums whitespace-nowrap', DELTA_COLOR[deltaSentiment])}
               >
                 <span>{DELTA_ARROW[deltaDirection]}</span>
                 <span>{seriesDelta.formatted}</span>
@@ -534,38 +554,40 @@ function EvidenceKpiCard({
           </div>
         </div>
 
-        {card.sparkData.length > 1 ? (
-          <div
-            ref={sparklineRef}
-            className="relative shrink-0"
-            onPointerMove={handleSparklinePointerMove}
-            onPointerLeave={() => setHoverIndex(null)}
-          >
-            <AnimatePresence initial={false}>
-              {hoverIndex != null && currentValue != null ? (
-                <motion.div
-                  className={cn('pointer-events-none absolute bottom-full z-30 mb-2', tooltipPositionClass)}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 4 }}
-                  transition={{ duration: 0.12, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <div className="min-w-[96px] rounded-lg border border-rule/70 bg-white/96 px-2 py-1.5 text-[9px] leading-tight text-stone-600 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
-                    <div className="font-medium text-stone-900">Slot {(effectiveIndex + 1).toLocaleString()}</div>
-                    <div className="mt-0.5 tabular-nums">{card.formatSeriesValue(currentValue)}</div>
-                  </div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-            <Sparkline
-              data={card.sparkData}
-              color={card.sparkColor}
-              width={88}
-              height={28}
-              highlightIndex={hoverIndex != null && card.sparkData.length > 1 ? Math.round((hoverIndex / Math.max(1, card.series.length - 1)) * Math.max(0, card.sparkData.length - 1)) : null}
-            />
-          </div>
-        ) : null}
+        <div
+          ref={sparklineRef}
+          className="relative shrink-0 w-[72px] h-[28px]"
+          onPointerMove={handleSparklinePointerMove}
+          onPointerLeave={() => setHoverIndex(null)}
+        >
+          {card.sparkData.length > 1 ? (
+            <>
+              <AnimatePresence initial={false}>
+                {hoverIndex != null && currentValue != null ? (
+                  <motion.div
+                    className={cn('pointer-events-none absolute bottom-full z-30 mb-2', tooltipPositionClass)}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    transition={{ duration: 0.12, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <div className="min-w-[96px] rounded-lg border border-rule/70 bg-white/96 px-2 py-1.5 text-[9px] leading-tight text-stone-600 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+                      <div className="font-medium text-stone-900">Slot {(effectiveIndex + 1).toLocaleString()}</div>
+                      <div className="mt-0.5 tabular-nums">{card.formatSeriesValue(currentValue)}</div>
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+              <Sparkline
+                data={card.sparkData}
+                color={card.sparkColor}
+                width={72}
+                height={28}
+                highlightIndex={hoverIndex != null && card.sparkData.length > 1 ? Math.round((hoverIndex / Math.max(1, card.series.length - 1)) * Math.max(0, card.sparkData.length - 1)) : null}
+              />
+            </>
+          ) : null}
+        </div>
       </div>
     </motion.button>
   )

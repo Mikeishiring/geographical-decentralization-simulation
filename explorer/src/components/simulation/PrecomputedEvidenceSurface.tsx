@@ -108,9 +108,15 @@ function sampleSeries(raw: readonly number[] | undefined, maxPoints = 200): Arra
   if (!raw || raw.length === 0) return []
   const step = Math.max(1, Math.ceil(raw.length / maxPoints))
   const points: Array<{ x: number; y: number }> = []
-  for (let i = 0; i < raw.length; i += step) points.push({ x: i + 1, y: raw[i]! })
+  for (let i = 0; i < raw.length; i += step) {
+    const v = raw[i]!
+    if (Number.isFinite(v)) points.push({ x: i + 1, y: v })
+  }
   const lastIndex = raw.length - 1
-  if (points[points.length - 1]?.x !== lastIndex + 1) points.push({ x: lastIndex + 1, y: raw[lastIndex]! })
+  const lastVal = raw[lastIndex]!
+  if (Number.isFinite(lastVal) && points[points.length - 1]?.x !== lastIndex + 1) {
+    points.push({ x: lastIndex + 1, y: lastVal })
+  }
   return points
 }
 
@@ -208,7 +214,7 @@ interface ScenarioSelectorProps {
 }
 
 const filterLabel = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-400 shrink-0'
-const selectClass = 'appearance-none rounded-[7px] border border-black/[0.08] bg-white pl-2.5 pr-7 py-1 text-[12px] font-medium text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/20'
+const selectClass = 'appearance-none rounded-[7px] border border-black/[0.12] bg-stone-50 pl-2.5 pr-7 py-1 text-[12px] font-medium text-stone-800 shadow-[0_1px_2px_rgba(0,0,0,0.06)] cursor-pointer transition-colors hover:bg-white hover:border-black/[0.18] focus:outline-none focus:ring-2 focus:ring-accent/20 focus:bg-white'
 
 function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selectedResult, onSelect }: ScenarioSelectorProps) {
   const evaluations = useMemo(() => uniqueOrdered(catalog.datasets.map(d => d.evaluation)), [catalog])
