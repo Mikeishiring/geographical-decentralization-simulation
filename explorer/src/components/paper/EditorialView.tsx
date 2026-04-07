@@ -114,7 +114,7 @@ export function EditorialView({
       </AnimatePresence>
 
       {/* Section-by-section reading — the main content */}
-      <div className="mt-8">
+      <div className="mt-10">
         <PaperSectionView
           activeSectionId={activeSectionId}
           onSectionClick={onSectionClick}

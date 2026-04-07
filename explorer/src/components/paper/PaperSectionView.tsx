@@ -235,6 +235,14 @@ function SectionNav({ activeSectionId, onSectionClick, compact = false }: Sectio
   )
 }
 
+/** One-line bridges between sections — only where they genuinely reframe */
+const SECTION_BRIDGES: Record<string, string> = {
+  'se1-source-placement': 'Both paradigms centralize. But do they respond the same way to infrastructure changes?',
+  'se2-distribution': 'Sources matter. But does the starting geography matter even more?',
+  'se4a-attestation': 'Geography and infrastructure explored. What do consensus parameters do?',
+  'se4b-slots': 'Gamma moves the paradigms apart. Does slot time do the same?',
+}
+
 const NARROW_UNFRIENDLY_BLOCK_TYPES = new Set<Block['type']>([
   'table',
   'comparison',
@@ -311,8 +319,15 @@ export function PaperSectionView({
             return (
               <div key={section.id}>
                 {index > 0 && (
-                  <div className="section-journey-divider mb-8">
-                    <div className="section-journey-node" />
+                  <div className="mb-8">
+                    <div className="section-journey-divider">
+                      <div className="section-journey-node" />
+                    </div>
+                    {SECTION_BRIDGES[section.id] && (
+                      <p className="mt-2 text-center text-[13px] leading-relaxed text-muted/70 italic font-serif max-w-lg mx-auto">
+                        {SECTION_BRIDGES[section.id]}
+                      </p>
+                    )}
                   </div>
                 )}
                 <SectionCard
@@ -429,7 +444,7 @@ function SectionCard({
           <h2 className="text-2xl font-medium text-text-primary font-serif text-balance sm:text-3xl">
             {section.title}
           </h2>
-          <p className={cn('mt-2.5 text-[15px] leading-relaxed text-muted font-serif', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[52rem]')}>
+          <p className={cn('mt-2.5 text-[15px] leading-relaxed text-text-primary/70 font-serif', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[52rem]')}>
             {section.description}
           </p>
         </div>
