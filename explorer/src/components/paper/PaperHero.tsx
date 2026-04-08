@@ -28,16 +28,6 @@ export function PaperHero() {
             {study.metadata.abstract}
           </p>
         </motion.div>
-
-        {/* Key claims — the paper's central findings */}
-        <motion.div variants={STAGGER_ITEM} className="mt-5 flex flex-wrap gap-2">
-          {study.metadata.keyClaims.map(claim => (
-            <span key={claim} className="rounded-lg border border-accent/12 bg-accent/[0.04] px-3 py-1.5 text-[13px] font-medium leading-snug text-text-primary">
-              {claim}
-            </span>
-          ))}
-        </motion.div>
-
       </div>
     </motion.section>
   )

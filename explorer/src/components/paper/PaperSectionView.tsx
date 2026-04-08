@@ -1,12 +1,12 @@
-import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Link2, Check, X, Lightbulb, MessageSquare, Users } from 'lucide-react'
+import { Link2, Check, X, Lightbulb, MessageSquare, Users, ChevronRight } from 'lucide-react'
 import { BlockCanvas } from '../explore/BlockCanvas'
 import { PaperChartBlock } from '../blocks/PaperChartBlock'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import { MacroRegionSnapshot } from './MacroRegionSnapshot'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_POPUP, SECTION_CATEGORY_STYLE } from '../../lib/theme'
+import { SPRING, SPRING_POPUP, SPRING_ACCORDION, SECTION_CATEGORY_STYLE } from '../../lib/theme'
 import { getActiveStudy } from '../../studies'
 import type { PaperNarrative, PaperSection } from '../../studies/types'
 import type { Exploration } from '../../lib/api'
@@ -249,14 +249,6 @@ function SectionNav({ activeSectionId, onSectionClick, compact = false }: Sectio
   )
 }
 
-/** One-line bridges between sections — only where they genuinely reframe */
-const SECTION_BRIDGES: Record<string, string> = {
-  'se1-source-placement': 'Both paradigms centralize. But do they respond the same way to infrastructure changes?',
-  'se2-distribution': 'Sources matter. But does the starting geography matter even more?',
-  'se4a-attestation': 'Geography and infrastructure explored. What do consensus parameters do?',
-  'se4b-slots': 'Gamma moves the paradigms apart. Does slot time do the same?',
-}
-
 const NARROW_UNFRIENDLY_BLOCK_TYPES = new Set<Block['type']>([
   'table',
   'comparison',
@@ -296,6 +288,16 @@ export function PaperSectionView({
   const activeSectionId = activeSectionIdProp ?? sections[0].id
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
   const [copyFailed, setCopyFailed] = useState(false)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set([sections[0]?.id].filter(Boolean)))
+
+  const toggleSection = useCallback((id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
 
   const handleCopySectionLink = async (sectionId: string) => {
     const url = new URL(window.location.href)
@@ -324,41 +326,82 @@ export function PaperSectionView({
           </div>
         </aside>
 
-        <div className="space-y-10 xl:min-w-0">
+        <div className="space-y-3 xl:min-w-0">
           {sections.map((section, index) => {
             const narrative = narratives[section.id]
             const previousSection = sections[index - 1]
             const nextSection = sections[index + 1]
+            const isExpanded = expandedIds.has(section.id)
+            const catStyle = SECTION_CATEGORY_STYLE[section.category]
 
             return (
-              <div key={section.id}>
-                {index > 0 && (
-                  <div className="mb-8">
-                    <div className="section-journey-divider">
-                      <div className="section-journey-node" />
+              <div key={section.id} id={isExpanded ? undefined : section.id} style={isExpanded ? undefined : { scrollMarginTop: PAPER_STACK_SCROLL_MARGIN }}>
+                {/* Collapsed row — always visible */}
+                {!isExpanded && (
+                  <button
+                    onClick={() => toggleSection(section.id)}
+                    className="w-full rounded-xl border border-rule bg-white px-5 py-4 text-left transition-colors hover:bg-surface-active/40 card-hover"
+                  >
+                    <div className="flex items-start gap-3">
+                      <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-text-faint" />
+                      <span className="mt-0.5 mono-xs text-accent shrink-0">{section.number}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-13 font-medium text-text-primary">{section.title}</span>
+                          {catStyle && (
+                            <span className={cn('hidden sm:inline-flex items-center rounded-full border px-2 py-0.5 text-2xs font-medium shrink-0', catStyle.bg, catStyle.text, catStyle.border)}>
+                              {catStyle.label}
+                            </span>
+                          )}
+                        </div>
+                        {narrative?.lede && (
+                          <p className="mt-1 text-xs leading-relaxed text-muted/60 line-clamp-1 sm:line-clamp-2">
+                            {narrative.lede}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    {SECTION_BRIDGES[section.id] && (
-                      <p className="mt-2 text-center text-[13px] leading-relaxed text-muted/70 italic font-serif max-w-lg mx-auto">
-                        {SECTION_BRIDGES[section.id]}
-                      </p>
-                    )}
-                  </div>
+                  </button>
                 )}
-                <SectionCard
-                  section={section}
-                  narrative={narrative}
-                  previousSection={previousSection}
-                  nextSection={nextSection}
-                  copiedSectionId={copiedSectionId}
-                  copyFailed={copyFailed}
-                  onCopyLink={handleCopySectionLink}
-                  onNavigate={(id: string) => {
-                    document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
-                  }}
-                  notesVisible={notesVisible}
-                  sectionNotes={notesBySection?.get(section.id) ?? []}
-                  onOpenNote={onOpenNote}
-                />
+
+                {/* Expanded — full section card */}
+                <AnimatePresence initial={false}>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      {/* Collapse button */}
+                      <button
+                        onClick={() => toggleSection(section.id)}
+                        className="mb-2 flex items-center gap-2 text-[11px] text-muted/50 hover:text-text-primary transition-colors"
+                      >
+                        <ChevronRight className="h-3 w-3 rotate-90" />
+                        <span>Collapse</span>
+                      </button>
+                      <SectionCard
+                        section={section}
+                        narrative={narrative}
+                        previousSection={previousSection}
+                        nextSection={nextSection}
+                        copiedSectionId={copiedSectionId}
+                        copyFailed={copyFailed}
+                        onCopyLink={handleCopySectionLink}
+                        onNavigate={(id: string) => {
+                          setExpandedIds(prev => new Set([...prev, id]))
+                          requestAnimationFrame(() => {
+                            document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                          })
+                        }}
+                        notesVisible={notesVisible}
+                        sectionNotes={notesBySection?.get(section.id) ?? []}
+                        onOpenNote={onOpenNote}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )
           })}
