@@ -1,31 +1,52 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { MousePointerClick, X, MessageSquarePlus, Eye, Highlighter } from 'lucide-react'
+import { Compass, MousePointerClick, X, MessageSquarePlus, Eye, Highlighter, BookOpen, ListTree, BarChart3 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 
-const SESSION_KEY = 'annotation-guide-dismissed'
+const SESSION_KEY = 'paper-guide-dismissed'
 
-const STEPS = [
+const ORIENT_STEPS = [
+  {
+    icon: BookOpen,
+    title: 'Start with the Abstract',
+    detail: 'The Editorial view gives you an interpreted walkthrough. Switch to Arguments for a structured breakdown.',
+  },
+  {
+    icon: ListTree,
+    title: 'Four reading modes',
+    detail: 'Editorial (narrative), Arguments (claims), HTML (source article), PDF (original). Each adds a different lens.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Explore beyond the paper',
+    detail: 'Results runs simulations, Agent answers questions, Community shows public notes.',
+  },
+] as const
+
+const ANNOTATE_STEPS = [
   {
     icon: Highlighter,
     title: 'Highlight any passage',
-    detail: 'Select text in Editorial, Arguments, or HTML view to open the note composer.',
+    detail: 'Select text to open the note composer.',
   },
   {
     icon: MessageSquarePlus,
     title: 'Publish a human takeaway',
-    detail: 'Add context in your own words. Public notes are your interpretation layered on cited evidence.',
+    detail: 'Add context in your own words — your interpretation layered on cited evidence.',
   },
   {
     icon: Eye,
     title: 'See it in two places',
-    detail: 'Published notes appear inline in the paper and on the Community page for replies and voting.',
+    detail: 'Notes appear inline in the paper and on the Community page.',
   },
 ] as const
 
+type GuideTab = 'orient' | 'annotate'
+
 /**
- * Floating annotation guide — bottom-right widget with collapsed pill
- * and expandable 3-step card. Dismissed state persists for the session.
+ * Floating paper guide — bottom-right widget combining orientation
+ * (how to use the app) and annotation instructions (how to add notes).
+ * Collapsed pill, expandable card with two tabs.
  */
 export function AnnotationGuide() {
   const [dismissed, setDismissed] = useState(() =>
@@ -34,36 +55,33 @@ export function AnnotationGuide() {
   const [visible, setVisible] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [autoCollapsed, setAutoCollapsed] = useState(false)
+  const [activeTab, setActiveTab] = useState<GuideTab>('orient')
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Entrance: fade in after a short delay
   useEffect(() => {
     if (dismissed) return
     const t = setTimeout(() => setVisible(true), 600)
     return () => clearTimeout(t)
   }, [dismissed])
 
-  // Auto-expand shortly after appearing
   useEffect(() => {
     if (!visible || dismissed || autoCollapsed) return
     const t = setTimeout(() => setExpanded(true), 800)
     return () => clearTimeout(t)
   }, [visible, dismissed, autoCollapsed])
 
-  // Auto-collapse after showing the expanded card
   useEffect(() => {
     if (!expanded || autoCollapsed) return
     const t = setTimeout(() => {
       setExpanded(false)
       setAutoCollapsed(true)
-    }, 6000)
+    }, 8000)
     return () => clearTimeout(t)
   }, [expanded, autoCollapsed])
 
   const handleDismiss = useCallback(() => {
     setVisible(false)
     try { sessionStorage.setItem(SESSION_KEY, '1') } catch { /* noop */ }
-    // Remove from DOM after exit transition completes
     const el = containerRef.current
     if (el) {
       const onEnd = () => { setDismissed(true); el.removeEventListener('transitionend', onEnd) }
@@ -79,6 +97,8 @@ export function AnnotationGuide() {
   }, [])
 
   if (dismissed) return null
+
+  const steps = activeTab === 'orient' ? ORIENT_STEPS : ANNOTATE_STEPS
 
   return (
     <div
@@ -104,23 +124,48 @@ export function AnnotationGuide() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
             <div className="flex items-center gap-2">
-              <MousePointerClick className="h-3.5 w-3.5 text-accent" />
+              {activeTab === 'orient'
+                ? <Compass className="h-3.5 w-3.5 text-accent" />
+                : <MousePointerClick className="h-3.5 w-3.5 text-accent" />
+              }
               <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">
-                How to annotate
+                {activeTab === 'orient' ? 'Getting started' : 'How to annotate'}
               </span>
             </div>
             <button
               onClick={handleDismiss}
               className="flex h-5 w-5 items-center justify-center rounded-full text-stone-400 transition-[color,background-color] duration-100 hover:bg-stone-100 hover:text-stone-600 active:scale-[0.92] active:transition-transform active:duration-100"
-              aria-label="Dismiss annotation guide"
+              aria-label="Dismiss guide"
             >
               <X className="h-3 w-3" />
             </button>
           </div>
 
+          {/* Tab switcher */}
+          <div className="mx-4 mb-2 flex gap-0.5 rounded-lg border border-rule bg-surface-active p-0.5">
+            {([
+              { id: 'orient' as GuideTab, label: 'Reading guide', icon: Compass },
+              { id: 'annotate' as GuideTab, label: 'Annotating', icon: MousePointerClick },
+            ] as const).map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors',
+                  activeTab === tab.id
+                    ? 'bg-white text-text-primary shadow-sm'
+                    : 'text-stone-400 hover:text-stone-600',
+                )}
+              >
+                <tab.icon className="h-3 w-3" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           {/* Steps */}
           <div className="space-y-0 px-4 pb-4">
-            {STEPS.map((step, i) => {
+            {steps.map((step, i) => {
               const Icon = step.icon
               return (
                 <div key={step.title} className="flex gap-3 py-2.5">
@@ -162,10 +207,10 @@ export function AnnotationGuide() {
             'text-[11px] font-medium text-stone-500 transition-[color,background-color] duration-150 hover:bg-white hover:text-stone-700',
             'origin-bottom-right active:scale-[0.92] active:transition-transform active:duration-100',
           )}
-          aria-label="Open annotation guide"
+          aria-label="Open guide"
         >
-          <MousePointerClick className="h-3.5 w-3.5 text-accent" />
-          <span className="hidden sm:inline">How to annotate</span>
+          <Compass className="h-3.5 w-3.5 text-accent" />
+          <span className="hidden sm:inline">Guide</span>
         </motion.button>
       )}
     </div>

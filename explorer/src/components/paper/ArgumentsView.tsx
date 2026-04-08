@@ -97,15 +97,42 @@ function SectionSourcesRow({ section }: { readonly section: PaperSection }) {
 function BlockGroup({
   label,
   blocks,
+  defaultOpen = true,
 }: {
   readonly label: string
   readonly blocks: readonly Block[]
+  readonly defaultOpen?: boolean
 }) {
+  const [open, setOpen] = useState(defaultOpen)
+
   if (blocks.length === 0) return null
   return (
     <div className="mt-4">
-      <div className="mb-2 text-2xs font-medium uppercase tracking-[0.08em] text-text-faint">{label}</div>
-      <BlockCanvas blocks={blocks} showExport={false} />
+      <button
+        onClick={() => setOpen(prev => !prev)}
+        className="mb-2 flex items-center gap-2 text-2xs font-medium uppercase tracking-[0.08em] text-text-faint hover:text-text-primary transition-colors"
+      >
+        <motion.div animate={{ rotate: open ? 90 : 0 }} transition={SPRING_CRISP}>
+          <ChevronDown className="h-2.5 w-2.5 -rotate-90" />
+        </motion.div>
+        {label}
+        <span className="text-muted/40 normal-case tracking-normal font-normal">
+          {blocks.length} {blocks.length === 1 ? 'block' : 'blocks'}
+        </span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ height: SPRING, opacity: { duration: 0.15 } }}
+            className="overflow-hidden"
+          >
+            <BlockCanvas blocks={blocks} showExport={false} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -360,10 +387,19 @@ export function ArgumentsView({
                         {/* Source pills — promoted above blocks */}
                         <SectionSourcesRow section={section} />
 
+                        {/* Divider between context and evidence */}
+                        {(claims.length > 0 || evidence.length > 0 || caveats.length > 0) && (
+                          <div className="flex items-center gap-3 pt-1">
+                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-rule/60 to-transparent" />
+                            <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted/40 shrink-0">Detail</span>
+                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-rule/60 to-transparent" />
+                          </div>
+                        )}
+
                         {/* Blocks grouped by argument role */}
                         <BlockGroup label="Claims" blocks={claims} />
-                        <BlockGroup label="Evidence" blocks={evidence} />
-                        <BlockGroup label="Caveats" blocks={caveats} />
+                        <BlockGroup label="Evidence" blocks={evidence} defaultOpen={false} />
+                        <BlockGroup label="Caveats" blocks={caveats} defaultOpen={false} />
 
                         {/* Inline community notes */}
                         {notesVisible && notesBySection?.get(section.id) && (
