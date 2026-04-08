@@ -93,16 +93,25 @@ export function SelectionPopover({
     setPosition(computePosition(rect, containerRef))
   }, [rect, containerRef])
 
-  // Auto-focus textarea
+  // Focus textarea only when user starts typing (not on open — preserves text selection + Ctrl+C)
   useEffect(() => {
     if (!anchor || !position || phase !== 'idle') return
-    const timer = window.setTimeout(() => {
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Let copy shortcut pass through to the selected text
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'a')) return
+      // Ignore other modifier-only or navigation keys
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      if (e.key === 'Escape' || e.key === 'Tab' || e.key.startsWith('Arrow') || e.key.startsWith('F')) return
+
       const el = textareaRef.current
-      if (!el) return
+      if (!el || document.activeElement === el) return
       el.focus({ preventScroll: true })
-      el.setSelectionRange(el.value.length, el.value.length)
-    }, 220)
-    return () => window.clearTimeout(timer)
+      // Don't prevent default — the keypress will type into the now-focused textarea
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [anchor, position, phase])
 
   // Outside click: shake if has text, dismiss if empty
