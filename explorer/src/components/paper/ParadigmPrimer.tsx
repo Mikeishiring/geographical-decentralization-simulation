@@ -35,11 +35,11 @@ export function ParadigmPrimer() {
       </motion.div>
 
       <motion.div variants={STAGGER_ITEM} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {/* External (SSP) */}
+        {/* External */}
         <div className="rounded-xl border border-accent/20 bg-gradient-to-b from-accent/[0.04] to-white p-4">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-accent" />
-            <span className="text-xs font-semibold text-accent">External (SSP)</span>
+            <span className="text-xs font-semibold text-accent">External block building</span>
           </div>
           <p className="mt-2 text-[13px] leading-relaxed text-text-body">
             Proposers outsource block construction to specialized <strong>suppliers</strong> (PBS/ePBS).
@@ -48,11 +48,11 @@ export function ParadigmPrimer() {
           </p>
         </div>
 
-        {/* Local (MSP) */}
+        {/* Local */}
         <div className="rounded-xl border border-accent-warm/20 bg-gradient-to-b from-accent-warm/[0.04] to-white p-4">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-accent-warm" />
-            <span className="text-xs font-semibold text-accent-warm">Local (MSP)</span>
+            <span className="text-xs font-semibold text-accent-warm">Local block building</span>
           </div>
           <p className="mt-2 text-[13px] leading-relaxed text-text-body">
             Proposers self-construct blocks from distributed <strong>signal sources</strong>.
