@@ -32,20 +32,20 @@ export function PaperHero() {
         <motion.div variants={STAGGER_ITEM} className="mt-6 border-t border-rule/60 pt-5">
           <span className="text-2xs font-medium uppercase tracking-[0.14em] text-text-faint">Two paradigms compared</span>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-accent/20 bg-gradient-to-b from-accent/[0.04] to-transparent p-4">
+            <div className="rounded-xl border border-teal-500/20 bg-gradient-to-b from-teal-500/[0.04] to-transparent p-4">
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-accent" />
-                <span className="text-xs font-semibold text-accent">External block building</span>
+                <span className="h-2 w-2 rounded-full bg-teal-600" />
+                <span className="text-xs font-semibold text-teal-700">External block building</span>
               </div>
               <p className="mt-2 text-[13px] leading-relaxed text-text-body">
                 Proposers outsource block construction to specialized <strong>suppliers</strong> (PBS/ePBS).
                 Centralization pressure is bounded by a single best supplier relationship.
               </p>
             </div>
-            <div className="rounded-xl border border-accent-warm/20 bg-gradient-to-b from-accent-warm/[0.04] to-transparent p-4">
+            <div className="rounded-xl border border-rose-500/20 bg-gradient-to-b from-rose-500/[0.04] to-transparent p-4">
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-accent-warm" />
-                <span className="text-xs font-semibold text-accent-warm">Local block building</span>
+                <span className="h-2 w-2 rounded-full bg-rose-600" />
+                <span className="text-xs font-semibold text-rose-700">Local block building</span>
               </div>
               <p className="mt-2 text-[13px] leading-relaxed text-text-body">
                 Proposers self-construct blocks from distributed <strong>signal sources</strong>.
