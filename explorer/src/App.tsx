@@ -18,7 +18,6 @@ const PAPER_SECTION_IDS = new Set(PAPER_SECTIONS.map(section => section.id))
 const loadSimulationLabPageModule = () => import('./pages/SimulationLabPage')
 const loadAgentLabPageModule = () => import('./pages/AgentLabPage')
 const loadExploreHistoryPageModule = () => import('./pages/ExploreHistoryPage')
-
 const SimulationLabPage = lazy(async () => {
   const module = await loadSimulationLabPageModule()
   return { default: module.SimulationLabPage }
@@ -278,6 +277,7 @@ function App() {
             </ErrorBoundary>
           </div>
         )}
+
       </main>
 
       <Footer />
