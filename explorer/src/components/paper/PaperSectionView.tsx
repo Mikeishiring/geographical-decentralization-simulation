@@ -225,9 +225,9 @@ function SectionNav({ activeSectionId, onSectionClick, compact = false }: Sectio
               href={`#${section.id}`}
               onClick={() => onSectionClick?.(section.id)}
               className={cn(
-                'flex items-baseline gap-2 rounded-md px-2 py-1.5 text-xs transition-all duration-150',
+                'flex items-baseline gap-2 rounded-lg px-2.5 py-2 text-xs transition-all duration-150',
                 activeSectionId === section.id
-                  ? 'bg-accent/[0.06] text-text-primary'
+                  ? 'bg-accent/[0.10] text-text-primary font-medium'
                   : 'text-muted/70 hover:bg-surface-active/60 hover:text-text-primary',
               )}
             >
@@ -491,7 +491,7 @@ function SectionCard({
         </div>
 
         <div className={cn('mt-4', showSidebarSupporting ? 'max-w-5xl' : 'max-w-[64rem]')}>
-          <h2 className="text-2xl font-medium text-text-primary font-serif text-balance sm:text-3xl">
+          <h2 className="text-2xl font-semibold text-text-primary font-serif text-balance sm:text-3xl">
             {section.title}
           </h2>
           <p className={cn('mt-2.5 text-[15px] leading-relaxed text-text-primary/70 font-serif', showSidebarSupporting ? 'max-w-3xl' : 'max-w-[52rem]')}>
@@ -521,8 +521,8 @@ function SectionCard({
       )}
 
       {showInlineSupporting && (
-        <div className="mb-8 rounded-2xl border border-rule/70 bg-surface-active/25 p-4 sm:p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-8 rounded-2xl border border-rule/70 bg-surface-active/25 p-3 sm:p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <span className="text-xs font-medium text-text-primary">Supporting evidence</span>
             <span className="rounded-full border border-rule/50 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-text-faint tabular-nums">
               {supportingBlocks.length} block{supportingBlocks.length === 1 ? '' : 's'}
@@ -564,7 +564,7 @@ function SectionCard({
 
         {showSidebarSupporting && (
           <aside className="min-w-0 xl:sticky" style={{ top: PAPER_STACK_STICKY_TOP }}>
-            <div className="rounded-2xl border border-rule/70 bg-surface-active/25 p-4">
+            <div className="rounded-2xl border border-rule/70 bg-surface-active/25 p-3">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <span className="text-xs font-medium text-text-primary">Supporting evidence</span>
                 <span className="rounded-full border border-rule/50 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-text-faint tabular-nums">
