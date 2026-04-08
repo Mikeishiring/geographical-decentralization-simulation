@@ -181,11 +181,15 @@ function AuthorChip({ author, index, total }: { readonly author: Author; readonl
   )
 }
 
-/** arXiv logo — stylized "χ" mark */
+/** arXiv logo — document with χ overlay, visually distinct from X/Twitter */
 function ArxivIcon({ className }: { readonly className?: string }) {
   return (
-    <svg viewBox="0 0 16 16" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-      <path d="M4 3l8 10M12 3L4 13" />
+    <svg viewBox="0 0 16 16" className={className} fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      {/* Document outline */}
+      <path d="M4 1.5h5.5L13 5v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1z" />
+      <path d="M9.5 1.5V5H13" />
+      {/* χ mark inside */}
+      <path d="M6 8l4 5M10 8l-4 5" strokeWidth="1.6" />
     </svg>
   )
 }
