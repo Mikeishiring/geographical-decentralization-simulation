@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { FileText } from 'lucide-react'
 import { PAPER_METADATA, type Author, type AuthorSocial } from '../../data/paper-sections'
 import { CONTENT_MAX_WIDTH } from '../../lib/theme'
 import { GlobeWireframe } from '../decorative/GlobeWireframe'
@@ -145,31 +144,14 @@ function AuthorChip({ author, index, total }: { readonly author: Author; readonl
                 )}
               </div>
 
-              {/* Social row + paper link */}
-              {(author.socials?.length || author.url) && (
+              {/* Social row */}
+              {author.socials?.length ? (
                 <div className="flex items-center gap-1 border-t border-black/[0.06] px-3 py-2">
-                  {author.socials?.map(social => (
+                  {author.socials.map(social => (
                     <SocialIcon key={social.platform} social={social} />
                   ))}
-                  {author.url && (
-                    <>
-                      {author.socials?.length ? (
-                        <div className="mx-1 h-3.5 w-px bg-black/[0.08]" />
-                      ) : null}
-                      <a
-                        href={author.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="View in paper"
-                        className="flex h-[22px] items-center gap-1 rounded-full px-1.5 text-muted/50 transition-colors duration-150 hover:bg-accent/8 hover:text-accent"
-                      >
-                        <FileText className="h-3 w-3" />
-                        <span className="text-[10px] font-medium tracking-wide uppercase">Paper</span>
-                      </a>
-                    </>
-                  )}
                 </div>
-              )}
+              ) : null}
             </div>
           </motion.div>
         )}

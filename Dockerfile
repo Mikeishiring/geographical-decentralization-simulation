@@ -1,5 +1,6 @@
 FROM node:20-bookworm-slim
 
+# Cache-bust: 2026-04-08 — force clean rebuild after TS fix
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
