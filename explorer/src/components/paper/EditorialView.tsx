@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { PAGE_TRANSITION } from '../../lib/theme'
 import { PaperHero } from './PaperHero'
+import { ParadigmPrimer } from './ParadigmPrimer'
 import { PaperSectionView } from './PaperSectionView'
 import type { Exploration } from '../../lib/api'
 
@@ -35,6 +36,7 @@ export function EditorialView({
       className="min-w-0 overflow-x-hidden"
     >
       <PaperHero />
+      <ParadigmPrimer />
 
       <div className="mt-10">
         <PaperSectionView
