@@ -42,9 +42,6 @@ const AUTHORS = PAPER_METADATA.authors
 const HEADER_ARXIV_URL =
   PAPER_METADATA.references.find((reference) => reference.label === 'arXiv paper')?.url
   ?? 'https://arxiv.org/abs/2509.21475'
-const HEADER_REPOSITORY_URL =
-  PAPER_METADATA.references.find((reference) => reference.label === 'Simulation repository')?.url
-  ?? 'https://github.com/syang-ng/geographical-decentralization-simulation'
 
 function AuthorChip({ author, index, total }: { readonly author: Author; readonly index: number; readonly total: number }) {
   const [hovered, setHovered] = useState(false)
@@ -181,21 +178,6 @@ function AuthorChip({ author, index, total }: { readonly author: Author; readonl
   )
 }
 
-/** arXiv logo — document with χ overlay, visually distinct from X/Twitter */
-function ArxivIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg viewBox="0 0 16 16" className={className} fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      {/* Document outline */}
-      <path d="M4 1.5h5.5L13 5v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1z" />
-      <path d="M9.5 1.5V5H13" />
-      {/* χ mark inside */}
-      <path d="M6 8l4 5M10 8l-4 5" strokeWidth="1.6" />
-    </svg>
-  )
-}
-
-const ICON_LINK_CLASS = 'flex h-[30px] w-[30px] items-center justify-center rounded-full border border-rule text-muted transition-all duration-150 hover:border-accent/30 hover:text-accent hover:scale-110 active:scale-95'
-
 export function Header() {
   return (
     <header className="relative bg-white border-b border-rule stripe-top-accent">
@@ -219,17 +201,14 @@ export function Header() {
             <p className="text-2xs font-medium uppercase tracking-[0.14em] text-text-faint">
               Interactive paper edition
             </p>
-            <div className="flex items-center gap-1.5">
-              <a href={HEADER_ARXIV_URL} target="_blank" rel="noopener noreferrer" aria-label="arXiv paper" className={ICON_LINK_CLASS}>
-                <ArxivIcon className="h-3.5 w-3.5" />
-              </a>
-              <a href={HEADER_REPOSITORY_URL} target="_blank" rel="noopener noreferrer" aria-label="GitHub repository" className={ICON_LINK_CLASS}>
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current"><path d={SOCIAL_ICON_PATHS.github.path} /></svg>
-              </a>
-              <a href="https://x.com/syang2ng" target="_blank" rel="noopener noreferrer" aria-label="X / Twitter" className={ICON_LINK_CLASS}>
-                <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current"><path d={SOCIAL_ICON_PATHS.x.path} /></svg>
-              </a>
-            </div>
+            <a
+              href={HEADER_ARXIV_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] font-medium text-muted/50 transition-colors hover:text-accent"
+            >
+              arXiv:2509.21475
+            </a>
           </div>
 
           {/* Title */}

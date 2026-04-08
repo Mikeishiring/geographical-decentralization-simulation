@@ -46,7 +46,7 @@ export function PaperReaderPage({
       : sections[0].id
   })
 
-  const [notesVisible, setNotesVisible] = useState(true)
+  const [notesVisible, setNotesVisible] = useState(false)
   const [pdfTargetPage, setPdfTargetPage] = useState<number | undefined>(undefined)
 
   const goToPdfPage = useCallback((page: number) => {
@@ -269,12 +269,9 @@ export function PaperReaderPage({
         />
       ) : (
         <EditorialView
-          isActive={isActive}
           activeSectionId={activeSectionId}
           onSectionClick={setActiveSectionId}
           onOpenCommunityExploration={onOpenCommunityExploration}
-          onTabChange={onTabChange}
-
           notesVisible={notesVisible}
           notesBySection={notesBySection}
         />
