@@ -44,7 +44,7 @@ export const PAPER_METADATA = {
       socials: [
         { platform: 'scholar', url: 'https://scholar.google.com/citations?user=_YL_ZSIAAAAJ' },
         { platform: 'x', url: 'https://x.com/boez95' },
-        { platform: 'github', url: 'https://github.com/burakoz-tr' },
+        { platform: 'github', url: 'https://github.com/boz1' },
       ],
     },
     {

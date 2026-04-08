@@ -216,6 +216,11 @@ export function PaperViewModeBar({
           )}
         </div>
 
+        {/* Active mode purpose — visible without hovering */}
+        <div className="hidden sm:block border-t border-rule/40 mt-1.5 pt-1.5 px-1 text-[11px] text-muted/60 leading-tight select-none">
+          {MODE_META[readerMode].detail}
+        </div>
+
       </div>
     </div>
   )

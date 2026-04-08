@@ -203,33 +203,47 @@ function renderWithNoteHighlights(
 }
 
 function SectionNav({ activeSectionId, onSectionClick, compact = false }: SectionNavProps) {
-  const sections = getActiveStudy().sections
+  const study = getActiveStudy()
+  const sections = study.sections
+  const recommended = new Set(study.navigation.bestFirstStopIds)
 
   return (
     <>
-      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/60">Sections</div>
+      <div className="mb-2 flex items-center gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/60">Sections</span>
+        <span className="flex items-center gap-1 text-[9px] text-accent/50">
+          <span className="h-1 w-1 rounded-full bg-accent/50" />
+          recommended
+        </span>
+      </div>
       <nav className={cn('space-y-0.5', compact && 'max-h-[calc(100vh-12.5rem)] overflow-auto pr-1')}>
-        {sections.map(section => (
-          <a
-            key={section.id}
-            href={`#${section.id}`}
-            onClick={() => onSectionClick?.(section.id)}
-            className={cn(
-              'flex items-baseline gap-2 rounded-md px-2 py-1.5 text-xs transition-all duration-150',
-              activeSectionId === section.id
-                ? 'bg-accent/[0.06] text-text-primary'
-                : 'text-muted/70 hover:bg-surface-active/60 hover:text-text-primary',
-            )}
-          >
-            <span className={cn(
-              'shrink-0 font-mono text-[10px] transition-colors duration-150',
-              activeSectionId === section.id ? 'text-accent' : 'text-muted/40',
-            )}>
-              {section.number}
-            </span>
-            <span className="leading-snug">{section.title}</span>
-          </a>
-        ))}
+        {sections.map(section => {
+          const isRecommended = recommended.has(section.id)
+          return (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              onClick={() => onSectionClick?.(section.id)}
+              className={cn(
+                'flex items-baseline gap-2 rounded-md px-2 py-1.5 text-xs transition-all duration-150',
+                activeSectionId === section.id
+                  ? 'bg-accent/[0.06] text-text-primary'
+                  : 'text-muted/70 hover:bg-surface-active/60 hover:text-text-primary',
+              )}
+            >
+              <span className={cn(
+                'shrink-0 font-mono text-[10px] transition-colors duration-150',
+                activeSectionId === section.id ? 'text-accent' : 'text-muted/40',
+              )}>
+                {section.number}
+              </span>
+              <span className="leading-snug">{section.title}</span>
+              {isRecommended && (
+                <span className="ml-auto h-1 w-1 shrink-0 rounded-full bg-accent/50" />
+              )}
+            </a>
+          )
+        })}
       </nav>
     </>
   )

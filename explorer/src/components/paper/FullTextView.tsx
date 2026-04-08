@@ -8,7 +8,7 @@ import {
   ChevronUp, ZoomIn, ZoomOut, Users,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_SNAPPY, SPRING_CRISP, SPRING_ACCORDION } from '../../lib/theme'
+import { SPRING_SNAPPY, SPRING_CRISP, SPRING_ACCORDION } from '../../lib/theme'
 import { getStudyPdfUrl } from './paper-helpers'
 import { useFadeOnIdle } from '../../hooks/useFadeOnIdle'
 
