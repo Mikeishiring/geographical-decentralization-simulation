@@ -248,6 +248,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
   const findAndSelect = useCallback((evaluation: string, paradigm: string, result?: string) => {
     const match = result
       ? catalog.datasets.find(d => d.evaluation === evaluation && d.paradigm === paradigm && d.result === result)
+        ?? catalog.datasets.find(d => d.evaluation === evaluation && d.paradigm === paradigm)
       : catalog.datasets.find(d => d.evaluation === evaluation && d.paradigm === paradigm)
         ?? catalog.datasets.find(d => d.evaluation === evaluation)
     if (match) onSelect(match)
@@ -307,7 +308,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
           <div className="relative">
             <select
               value={selectedParadigm}
-              onChange={e => findAndSelect(selectedEvaluation, e.target.value)}
+              onChange={e => findAndSelect(selectedEvaluation, e.target.value, selectedResult)}
               className={selectClass}
             >
               {paradigms.map(paradigm => (
