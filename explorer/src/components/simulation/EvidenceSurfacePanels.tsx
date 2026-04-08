@@ -655,15 +655,21 @@ export function EvidenceConfigSnapshot({ metadata, description, paradigm, totalS
       <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium mb-2">Configuration snapshot</div>
 
       <div className="flex flex-wrap gap-1.5 mb-3">
-        <span className="rounded-md border border-black/[0.06] bg-[#FAFAF8] px-2 py-0.5 text-[10px] text-stone-600 font-medium" title="Block-building paradigm used in this simulation">{paradigmLabel(paradigm)}</span>
-        <span className="rounded-md border border-black/[0.06] bg-[#FAFAF8] px-2 py-0.5 text-[10px] text-stone-600 font-medium tabular-nums" title="Total number of consensus slots simulated">{totalSlots.toLocaleString()} slots</span>
+        <InlineTooltip label="Block-building paradigm used in this simulation">
+          <span className="rounded-md border border-black/[0.06] bg-[#FAFAF8] px-2 py-0.5 text-[10px] text-stone-600 font-medium">{paradigmLabel(paradigm)}</span>
+        </InlineTooltip>
+        <InlineTooltip label="Total number of consensus slots simulated">
+          <span className="rounded-md border border-black/[0.06] bg-[#FAFAF8] px-2 py-0.5 text-[10px] text-stone-600 font-medium tabular-nums">{totalSlots.toLocaleString()} slots</span>
+        </InlineTooltip>
         {metadata && PARAM_DEFS.map(({ key, label, title, format }) => {
           const val = metadata[key]
           if (val == null || typeof val !== 'number') return null
           return (
-            <span key={key} title={title} className="rounded-md border border-black/[0.06] bg-[#FAFAF8] px-2 py-0.5 text-[10px] text-stone-600 font-medium tabular-nums">
-              {label}: {format(val)}
-            </span>
+            <InlineTooltip key={key} label={title}>
+              <span className="rounded-md border border-black/[0.06] bg-[#FAFAF8] px-2 py-0.5 text-[10px] text-stone-600 font-medium tabular-nums">
+                {label}: {format(val)}
+              </span>
+            </InlineTooltip>
           )
         })}
       </div>
@@ -720,10 +726,9 @@ export function PlotFilterToolbar({ activeCategory, onCategoryChange, counts }: 
       </p>
       <div className="flex flex-wrap gap-1">
         {PLOT_CATEGORIES.map(cat => (
+          <InlineTooltip key={cat.id} label={CATEGORY_DESCRIPTIONS[cat.id] ?? `Show ${cat.label.toLowerCase()} charts`}>
           <button
-            key={cat.id}
             onClick={() => onCategoryChange(cat.id)}
-            title={CATEGORY_DESCRIPTIONS[cat.id] ?? `Show ${cat.label.toLowerCase()} charts`}
             className={cn(
               'rounded-md border px-2.5 py-1 text-[11px] font-medium transition-all duration-150',
               activeCategory === cat.id
@@ -734,6 +739,7 @@ export function PlotFilterToolbar({ activeCategory, onCategoryChange, counts }: 
           >
             {cat.label}
           </button>
+          </InlineTooltip>
         ))}
       </div>
     </div>
@@ -832,10 +838,9 @@ export function EvidenceCategoryBar({
             </div>
             <div className="flex flex-wrap gap-1">
               {PLOT_CATEGORIES.map(cat => (
+                <InlineTooltip key={cat.id} label={CATEGORY_DESCRIPTIONS[cat.id] ?? `Show ${cat.label.toLowerCase()} charts`}>
                 <button
-                  key={cat.id}
                   onClick={() => handleCategoryChange(cat.id)}
-                  title={CATEGORY_DESCRIPTIONS[cat.id] ?? `Show ${cat.label.toLowerCase()} charts`}
                   className={cn(
                     'inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[10px] font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30',
                     activeCategory === cat.id
@@ -854,6 +859,7 @@ export function EvidenceCategoryBar({
                     </span>
                   )}
                 </button>
+                </InlineTooltip>
               ))}
             </div>
           </div>
