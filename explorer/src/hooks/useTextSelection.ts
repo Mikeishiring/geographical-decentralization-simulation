@@ -3,6 +3,8 @@ import type { TextAnchor } from '../types/anchors'
 
 const MIN_SELECTION_LENGTH = 3
 const MAX_SELECTION_LENGTH = 500
+/** Delay before surfacing the annotation popover so Ctrl+C can fire first */
+const POPOVER_DELAY_MS = 400
 
 /**
  * Watches for text selections within a container element and returns
@@ -56,16 +58,17 @@ export function useTextSelection(viewMode?: string) {
     return true
   }, [viewMode])
 
-  const scheduleSelectionSync = useCallback(() => {
+  const scheduleSelectionSync = useCallback((immediate = false) => {
     if (selectionSyncFrameRef.current !== null) {
-      window.cancelAnimationFrame(selectionSyncFrameRef.current)
+      window.clearTimeout(selectionSyncFrameRef.current)
     }
-    selectionSyncFrameRef.current = window.requestAnimationFrame(() => {
+    const delay = immediate ? 0 : POPOVER_DELAY_MS
+    selectionSyncFrameRef.current = window.setTimeout(() => {
       selectionSyncFrameRef.current = null
       if (!syncSelectionFromWindow()) {
         resetSelectionState()
       }
-    })
+    }, delay)
   }, [resetSelectionState, syncSelectionFromWindow])
 
   // Recompute rect from the stored Range on every scroll/resize.
@@ -123,7 +126,9 @@ export function useTextSelection(viewMode?: string) {
       scheduleSelectionSync()
     }
 
-    const handleKeyUp = () => {
+    const handleKeyUp = (event: KeyboardEvent) => {
+      // Skip popover trigger on copy shortcut
+      if ((event.ctrlKey || event.metaKey) && event.key === 'c') return
       scheduleSelectionSync()
     }
 
@@ -146,18 +151,28 @@ export function useTextSelection(viewMode?: string) {
       scheduleSelectionSync()
     }
 
+    // Suppress popover when the user copies — let them copy in peace
+    const handleCopy = () => {
+      if (selectionSyncFrameRef.current !== null) {
+        window.clearTimeout(selectionSyncFrameRef.current)
+        selectionSyncFrameRef.current = null
+      }
+    }
+
     container.addEventListener('pointerdown', handlePointerDown)
     container.addEventListener('pointerup', handlePointerUp)
     container.addEventListener('keyup', handleKeyUp)
     document.addEventListener('selectionchange', handleSelectionChange)
+    document.addEventListener('copy', handleCopy)
 
     return () => {
       container.removeEventListener('pointerdown', handlePointerDown)
       container.removeEventListener('pointerup', handlePointerUp)
       container.removeEventListener('keyup', handleKeyUp)
       document.removeEventListener('selectionchange', handleSelectionChange)
+      document.removeEventListener('copy', handleCopy)
       if (selectionSyncFrameRef.current !== null) {
-        window.cancelAnimationFrame(selectionSyncFrameRef.current)
+        window.clearTimeout(selectionSyncFrameRef.current)
         selectionSyncFrameRef.current = null
       }
     }

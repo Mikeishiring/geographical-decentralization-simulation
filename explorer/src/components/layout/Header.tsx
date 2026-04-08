@@ -5,7 +5,7 @@ import { PAPER_METADATA, type Author, type AuthorSocial } from '../../data/paper
 import { CONTENT_MAX_WIDTH } from '../../lib/theme'
 import { GlobeWireframe } from '../decorative/GlobeWireframe'
 
-const SOCIAL_ICONS: Record<AuthorSocial['platform'], { label: string; path: string; viewBox?: string }> = {
+const SOCIAL_ICON_PATHS: Record<AuthorSocial['platform'], { label: string; path: string; viewBox?: string }> = {
   x: {
     label: 'X / Twitter',
     path: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z',
@@ -21,7 +21,7 @@ const SOCIAL_ICONS: Record<AuthorSocial['platform'], { label: string; path: stri
 }
 
 function SocialIcon({ social }: { readonly social: AuthorSocial }) {
-  const icon = SOCIAL_ICONS[social.platform]
+  const icon = SOCIAL_ICON_PATHS[social.platform]
   return (
     <a
       href={social.url}
@@ -49,9 +49,9 @@ const HEADER_REPOSITORY_URL =
 function AuthorChip({ author, index, total }: { readonly author: Author; readonly index: number; readonly total: number }) {
   const [hovered, setHovered] = useState(false)
   const chipRef = useRef<HTMLSpanElement>(null)
-  const tooltipRef = useRef<HTMLDivElement>(null)
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null)
 
-  // Dismiss tooltip on any scroll (fixes reappearing tooltip when scrolling across tabs)
+  // Dismiss tooltip on any scroll
   useEffect(() => {
     if (!hovered) return
     const dismiss = () => setHovered(false)
@@ -59,8 +59,26 @@ function AuthorChip({ author, index, total }: { readonly author: Author; readonl
     return () => window.removeEventListener('scroll', dismiss, { capture: true })
   }, [hovered])
 
-  // Compute whether tooltip should anchor right instead of left to avoid clipping
-  const isRightHalf = index >= total / 2
+  // Compute fixed viewport position for tooltip to avoid clipping
+  useEffect(() => {
+    if (!hovered || !chipRef.current) {
+      setTooltipPos(null)
+      return
+    }
+    const rect = chipRef.current.getBoundingClientRect()
+    const tooltipWidth = 260
+    const isRightHalf = index >= total / 2
+
+    // Horizontal: anchor left or right depending on position in row
+    let left = isRightHalf
+      ? rect.right - tooltipWidth
+      : rect.left
+
+    // Clamp to viewport
+    left = Math.max(8, Math.min(left, window.innerWidth - tooltipWidth - 8))
+
+    setTooltipPos({ top: rect.bottom + 8, left })
+  }, [hovered, index, total])
 
   const nameElement = author.url ? (
     <a
@@ -80,6 +98,8 @@ function AuthorChip({ author, index, total }: { readonly author: Author; readonl
   const handleMouseEnter = useCallback(() => setHovered(true), [])
   const handleMouseLeave = useCallback(() => setHovered(false), [])
 
+  const hasTooltipContent = author.role || author.focus || (author.socials && author.socials.length > 0)
+
   return (
     <span
       ref={chipRef}
@@ -92,17 +112,19 @@ function AuthorChip({ author, index, total }: { readonly author: Author; readonl
       {nameElement}
 
       <AnimatePresence>
-        {hovered && (author.role || author.focus || author.socials?.length) && (
+        {hovered && hasTooltipContent && tooltipPos && (
           <motion.div
-            ref={tooltipRef}
             initial={{ opacity: 0, y: 6, scale: 0.92 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 3, scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 380, damping: 22, mass: 0.7 }}
-            className={`absolute top-full mt-2.5 z-40 ${isRightHalf ? 'right-0' : 'left-0'}`}
+            className="fixed z-50"
+            style={{ top: tooltipPos.top, left: tooltipPos.left }}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
           >
             <div
-              className="rounded-2xl bg-white/[0.97] backdrop-blur-xl min-w-[200px] max-w-[280px]"
+              className="rounded-2xl bg-white/[0.97] backdrop-blur-xl min-w-[200px] max-w-[260px]"
               style={{
                 boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.08), 0 12px 40px rgba(0,0,0,0.04)',
               }}
@@ -168,23 +190,7 @@ function ArxivIcon({ className }: { readonly className?: string }) {
   )
 }
 
-/** GitHub Octocat mark */
-function GitHubIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
-      <path d={SOCIAL_ICONS.github.path} />
-    </svg>
-  )
-}
-
-/** X (Twitter) logo */
-function XIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
-      <path d={SOCIAL_ICONS.x.path} />
-    </svg>
-  )
-}
+const ICON_LINK_CLASS = 'flex h-[30px] w-[30px] items-center justify-center rounded-full border border-rule text-muted transition-all duration-150 hover:border-accent/30 hover:text-accent hover:scale-110 active:scale-95'
 
 export function Header() {
   return (
@@ -204,38 +210,20 @@ export function Header() {
 
       <div className={`relative ${CONTENT_MAX_WIDTH} mx-auto px-4 py-6 sm:px-6 sm:py-10`}>
         <div className="flex flex-col gap-3 sm:gap-4">
-          {/* Top row: edition label + external links */}
+          {/* Top row: edition label + icon-only external links */}
           <div className="flex flex-wrap items-start justify-between gap-2 sm:items-center">
             <p className="text-2xs font-medium uppercase tracking-[0.14em] text-text-faint">
               Interactive paper edition
             </p>
             <div className="flex items-center gap-1.5">
-              <a
-                href={HEADER_ARXIV_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="arXiv paper"
-                className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-rule text-muted transition-all duration-150 hover:border-accent/30 hover:text-accent hover:scale-110 active:scale-95"
-              >
+              <a href={HEADER_ARXIV_URL} target="_blank" rel="noopener noreferrer" aria-label="arXiv paper" className={ICON_LINK_CLASS}>
                 <ArxivIcon className="h-3.5 w-3.5" />
               </a>
-              <a
-                href={HEADER_REPOSITORY_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="GitHub repository"
-                className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-rule text-muted transition-all duration-150 hover:border-accent/30 hover:text-accent hover:scale-110 active:scale-95"
-              >
-                <GitHubIcon className="h-3.5 w-3.5" />
+              <a href={HEADER_REPOSITORY_URL} target="_blank" rel="noopener noreferrer" aria-label="GitHub repository" className={ICON_LINK_CLASS}>
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current"><path d={SOCIAL_ICON_PATHS.github.path} /></svg>
               </a>
-              <a
-                href="https://x.com/syang2ng"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="X / Twitter"
-                className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-rule text-muted transition-all duration-150 hover:border-accent/30 hover:text-accent hover:scale-110 active:scale-95"
-              >
-                <XIcon className="h-3 w-3" />
+              <a href="https://x.com/syang2ng" target="_blank" rel="noopener noreferrer" aria-label="X / Twitter" className={ICON_LINK_CLASS}>
+                <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current"><path d={SOCIAL_ICON_PATHS.x.path} /></svg>
               </a>
             </div>
           </div>
