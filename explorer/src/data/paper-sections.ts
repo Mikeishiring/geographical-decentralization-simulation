@@ -204,6 +204,12 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     category: 'finding',
     blocks: [
       {
+        type: 'paperChart',
+        title: 'Source Placement Effect: Aligned vs Misaligned Across Paradigms',
+        dataKey: 'se1-source-placement',
+        cite: { paperSection: '§5.4', experiment: 'EXP 1', figure: 'Figure 4' },
+      },
+      {
         type: 'insight',
         emphasis: 'surprising',
         title: 'Opposite paradigm sensitivities',
@@ -220,6 +226,12 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     category: 'finding',
     blocks: [
       {
+        type: 'paperChart',
+        title: 'Heterogeneous Validator Start: External vs Local',
+        dataKey: 'se2-distribution',
+        cite: { paperSection: '§5.5', experiment: 'EXP 2', figure: 'Figure 5' },
+      },
+      {
         type: 'insight',
         emphasis: 'key-finding',
         title: 'Concentrated starts compress paradigm differences',
@@ -235,6 +247,12 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     description: 'A brief dip in concentration that looks like decentralization — but the paper refuses to overclaim it.',
     category: 'finding',
     blocks: [
+      {
+        type: 'paperChart',
+        title: 'Joint Heterogeneity: Validators + Sources Combined',
+        dataKey: 'se3-joint',
+        cite: { paperSection: '§5.6', experiment: 'EXP 3', figure: 'Figure 6' },
+      },
       {
         type: 'insight',
         emphasis: 'surprising',
@@ -277,6 +295,12 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     description: 'Halving slot time barely moves the map — but raises reward inequality by 5-10%.',
     category: 'finding',
     blocks: [
+      {
+        type: 'paperChart',
+        title: 'Shorter Slots (6s vs 12s): Centralization and Reward Disparity',
+        dataKey: 'se4b-slots',
+        cite: { paperSection: '§5.7.2', experiment: 'EXP 4b', figure: 'Figure 8' },
+      },
       {
         type: 'insight',
         emphasis: 'key-finding',
