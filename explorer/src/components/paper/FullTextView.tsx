@@ -8,7 +8,7 @@ import {
   ChevronUp, ZoomIn, ZoomOut, Users,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_SNAPPY, SPRING_CRISP } from '../../lib/theme'
+import { SPRING, SPRING_SNAPPY, SPRING_CRISP, SPRING_ACCORDION } from '../../lib/theme'
 import { getStudyPdfUrl } from './paper-helpers'
 import { useFadeOnIdle } from '../../hooks/useFadeOnIdle'
 
@@ -398,7 +398,10 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={SPRING}
+            transition={{
+              height: SPRING_ACCORDION,
+              opacity: { duration: 0.15, ease: [0.22, 1, 0.36, 1] },
+            }}
             className="overflow-hidden"
           >
             <div className={cn(

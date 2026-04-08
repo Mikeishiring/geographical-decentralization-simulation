@@ -5,7 +5,7 @@ import { MOCK_NOTE_EXTRAS } from '../../data/mock-community-notes'
 import { VoteControls } from './VoteControls'
 import { ReplyThread } from './ReplyThread'
 import { cn } from '../../lib/cn'
-import { SPRING_CRISP, SPRING_SOFT } from '../../lib/theme'
+import { SPRING_CRISP, SPRING_ACCORDION } from '../../lib/theme'
 import { cardTitle, cardSummary, cardTimestamp, replyCount, formatTimeAgo } from '../../lib/community-helpers'
 
 export function CompactExplorationRow({
@@ -117,7 +117,10 @@ export function CompactExplorationRow({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={SPRING_SOFT}
+            transition={{
+              height: SPRING_ACCORDION,
+              opacity: { duration: 0.15, ease: [0.22, 1, 0.36, 1] },
+            }}
             className="overflow-hidden"
           >
             <div className="border-t border-rule px-3 py-3 space-y-3">
