@@ -308,6 +308,7 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
             {/* Notes toggle */}
             <button
               onClick={() => setShowAnnotations(prev => !prev)}
+              aria-label={showAnnotations ? 'Hide private notes' : 'Show private notes'}
               className={cn(
                 'flex items-center justify-center gap-1.5 rounded-md border px-2.5 py-1.25 text-xs transition-colors sm:py-1.5',
                 showAnnotations
@@ -331,6 +332,7 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
                 setShowAnnotationForm(prev => !prev)
                 showChrome()
               }}
+              aria-label="Add new private note"
               className={cn(
                 'flex items-center justify-center gap-1.5 rounded-md border px-2.5 py-1.25 text-xs transition-colors sm:py-1.5',
                 darkMode
