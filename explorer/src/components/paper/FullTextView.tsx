@@ -548,7 +548,7 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
                 data-page={pageNum}
                 className={cn(
                   'shadow-md transition-shadow',
-                  darkMode ? 'shadow-black/30' : 'shadow-black/8',
+                  darkMode ? 'shadow-black/30 pdf-page-dark' : 'shadow-black/8',
                 )}
               >
                 <Page
@@ -556,7 +556,6 @@ export function FullTextView({ initialPage }: FullTextViewProps) {
                   width={Math.min(800, (typeof window !== 'undefined' ? window.innerWidth : 800) - 80) * zoom}
                   renderTextLayer
                   renderAnnotationLayer
-                  canvasBackground={darkMode ? '#1e1e2e' : '#ffffff'}
                 />
               </div>
             ))}
