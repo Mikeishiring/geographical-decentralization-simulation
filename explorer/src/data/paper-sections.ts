@@ -109,6 +109,39 @@ export const PAPER_SECTIONS: readonly PaperSection[] = [
     ],
   },
   {
+    id: 'analytical-results',
+    number: '§4',
+    title: 'Analytical Results',
+    description: 'Formal proofs that latency advantages are real, paradigm-specific, and structurally opposite — before any simulation runs.',
+    category: 'methodology',
+    blocks: [
+      {
+        type: 'insight',
+        emphasis: 'key-finding',
+        title: 'Theorem 5: Latency-Payoff Monotonicity',
+        text: 'Reducing propagation delays to payoff-relevant parties weakly increases optimal release time and expected payoff under **both** paradigms. This is the paper\'s central formal result — it proves that geographic proximity is an economic advantage without relying on simulation.',
+        cite: { paperSection: '§4' },
+      },
+      {
+        type: 'table',
+        title: 'Propositions 6–9: Paradigm-Specific Structure',
+        headers: ['Proposition', 'Paradigm', 'Key Result'],
+        rows: [
+          ['Prop 6: Signal-source scaling', 'Local', 'Payoff advantage scales linearly with the number of signal sources — 10ms closer to each of M sources yields M × 10ms × growth rate'],
+          ['Prop 7: Single-supplier bound', 'External', 'Payoff gain bounded by a single best supplier — no scaling with supplier count'],
+          ['Prop 8: Opposing placement sensitivity', 'Both', 'Concentrated low-latency sources amplify local migration; remote sources amplify external migration'],
+          ['Prop 9: Slot duration', 'Both', 'Shorter slots preserve pairwise payoff differences but increase normalized reward disparity'],
+        ],
+        highlight: [2],
+        cite: { paperSection: '§4' },
+      },
+      {
+        type: 'caveat',
+        text: 'These results use a mean-field approximation under large validator populations. They establish directional effects without parametric assumptions, but do not predict equilibrium magnitudes — that is the simulation\'s role in §5.',
+      },
+    ],
+  },
+  {
     id: 'simulation-design',
     number: '§5.2',
     title: 'Simulation Design',
