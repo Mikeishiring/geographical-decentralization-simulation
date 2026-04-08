@@ -6,7 +6,7 @@ import { PaperChartBlock } from '../blocks/PaperChartBlock'
 import { InlineSectionNotes } from '../community/InlineSectionNotes'
 import { MacroRegionSnapshot } from './MacroRegionSnapshot'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_POPUP, SECTION_CATEGORY_STYLE } from '../../lib/theme'
+import { SPRING, SPRING_POPUP, SECTION_CATEGORY_STYLE, SECTION_CATEGORY_BORDER } from '../../lib/theme'
 import { getActiveStudy } from '../../studies'
 import type { PaperNarrative, PaperSection } from '../../studies/types'
 import type { Exploration } from '../../lib/api'
@@ -340,26 +340,18 @@ export function PaperSectionView({
                 {!isExpanded && (
                   <button
                     onClick={() => toggleSection(section.id)}
-                    className="w-full rounded-xl border border-rule bg-white px-5 py-4 text-left transition-colors hover:bg-surface-active/40 card-hover"
+                    className={cn(
+                      'w-full rounded-xl border border-rule border-l-[3px] bg-white px-5 py-3 text-left transition-colors hover:bg-surface-active/40 card-hover',
+                      SECTION_CATEGORY_BORDER[section.category],
+                    )}
                   >
-                    <div className="flex items-start gap-3">
-                      <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-text-faint" />
-                      <span className="mt-0.5 mono-xs text-accent shrink-0">{section.number}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-13 font-medium text-text-primary">{section.title}</span>
-                          {catStyle && (
-                            <span className={cn('hidden sm:inline-flex items-center rounded-full border px-2 py-0.5 text-2xs font-medium shrink-0', catStyle.bg, catStyle.text, catStyle.border)}>
-                              {catStyle.label}
-                            </span>
-                          )}
-                        </div>
-                        {narrative?.lede && (
-                          <p className="mt-1 text-xs leading-relaxed text-muted/60 line-clamp-1 sm:line-clamp-2">
-                            {narrative.lede}
-                          </p>
-                        )}
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-13 font-medium text-text-primary">{section.title}</span>
+                      {catStyle && (
+                        <span className={cn('hidden sm:inline-flex items-center rounded-full border px-2 py-0.5 text-2xs font-medium shrink-0', catStyle.bg, catStyle.text, catStyle.border)}>
+                          {catStyle.label}
+                        </span>
+                      )}
                     </div>
                   </button>
                 )}

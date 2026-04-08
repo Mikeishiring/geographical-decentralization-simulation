@@ -35,6 +35,14 @@ export const SECTION_CATEGORY_STYLE: Record<string, { bg: string; text: string; 
   discussion: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Discussion' },
 } as const
 
+/** Section category left-border accent — 3px colored rail on collapsed section cards */
+export const SECTION_CATEGORY_BORDER: Record<string, string> = {
+  methodology: 'border-l-slate-400',
+  finding: 'border-l-blue-400',
+  caveat: 'border-l-amber-400',
+  discussion: 'border-l-emerald-400',
+} as const
+
 /** Topic card theme colors — maps TopicTheme to accent color + subtle bg */
 export const TOPIC_THEME_STYLE: Record<string, { dot: string; activeBorder: string; activeBg: string }> = {
   ssp: { dot: '#2563EB', activeBorder: 'border-blue-400', activeBg: 'bg-blue-50/50' },
