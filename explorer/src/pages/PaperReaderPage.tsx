@@ -274,7 +274,7 @@ export function PaperReaderPage({
           onSectionClick={setActiveSectionId}
           onOpenCommunityExploration={onOpenCommunityExploration}
           onTabChange={onTabChange}
-          onQueryAgent={onQueryAgent}
+
           notesVisible={notesVisible}
           notesBySection={notesBySection}
         />

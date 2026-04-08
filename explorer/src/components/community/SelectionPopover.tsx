@@ -141,16 +141,17 @@ export function SelectionPopover({
     setPosition(computePosition(rect, containerRef))
   }, [rect, containerRef])
 
-  // Auto-focus textarea on the next frame so the note can be typed immediately.
+  // Auto-focus textarea after the popover entrance animation settles.
+  // Delayed so Ctrl+C can fire before focus is stolen from the native selection.
   useEffect(() => {
     if (!anchor || !position || phase !== 'idle') return
-    const frame = window.requestAnimationFrame(() => {
+    const timer = window.setTimeout(() => {
       const el = textareaRef.current
       if (!el) return
-      el.focus()
+      el.focus({ preventScroll: true })
       el.setSelectionRange(el.value.length, el.value.length)
-    })
-    return () => window.cancelAnimationFrame(frame)
+    }, 220)
+    return () => window.clearTimeout(timer)
   }, [anchor, position, phase])
 
   // Outside click: shake if has text, dismiss if empty (agentation pattern)

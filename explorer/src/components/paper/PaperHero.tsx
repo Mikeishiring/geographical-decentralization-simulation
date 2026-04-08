@@ -22,12 +22,12 @@ export function PaperHero() {
       </div>
 
       <div className="relative max-w-5xl">
-        <motion.p
-          variants={STAGGER_ITEM}
-          className="text-lg leading-relaxed text-text-primary/80 font-serif sm:text-xl text-balance"
-        >
-          {study.metadata.subtitle}
-        </motion.p>
+        <motion.div variants={STAGGER_ITEM}>
+          <span className="text-2xs font-medium uppercase tracking-[0.14em] text-text-faint">Abstract</span>
+          <p className="mt-2 text-sm leading-relaxed text-text-primary/80 sm:text-[15px] sm:leading-relaxed">
+            {study.metadata.abstract}
+          </p>
+        </motion.div>
 
         {/* Key claims — the paper's central findings */}
         <motion.div variants={STAGGER_ITEM} className="mt-5 flex flex-wrap gap-2">
