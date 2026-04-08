@@ -600,6 +600,13 @@ body {
   flex-shrink: 0;
 }
 
+/* ── PDF dark mode — invert + hue-rotate preserves color fidelity ── */
+.pdf-page-dark canvas,
+.pdf-page-dark .react-pdf__Page__textContent,
+.pdf-page-dark .react-pdf__Page__annotations {
+  filter: invert(0.88) hue-rotate(180deg);
+}
+
 /* ── Reduced motion — respect OS preference ── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
