@@ -302,7 +302,7 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
       {/* Paradigm */}
       {paradigms.length > 1 && (
         <div className="flex items-center gap-2">
-          <InlineTooltip label="Block-building paradigm: External (SSP) or Local (MSP)">
+          <InlineTooltip label="Block-building paradigm: External or Local">
             <span className={filterLabel}>Paradigm</span>
           </InlineTooltip>
           <div className="relative">
@@ -441,7 +441,7 @@ export function PrecomputedEvidenceSurface({
           <div>
             <h3 className="text-lg font-semibold text-text-primary">Simulation Evidence Lab</h3>
             <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted">
-              Explore pre-computed simulation results across SSP and MSP paradigms. Compare Gini coefficients,
+              Explore pre-computed simulation results across External and Local paradigms. Compare Gini coefficients,
               HHI concentration, liveness thresholds, and geographic distribution metrics across scenarios.
             </p>
           </div>

@@ -45,6 +45,7 @@ const HEADER_ARXIV_URL =
 function AuthorChip({ author, index, total }: { readonly author: Author; readonly index: number; readonly total: number }) {
   const [hovered, setHovered] = useState(false)
   const chipRef = useRef<HTMLSpanElement>(null)
+  const tooltipRef = useRef<HTMLDivElement>(null)
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null)
 
   // Dismiss tooltip on any scroll
@@ -63,17 +64,19 @@ function AuthorChip({ author, index, total }: { readonly author: Author; readonl
     }
     const rect = chipRef.current.getBoundingClientRect()
     const tooltipWidth = 260
-    const isRightHalf = index >= total / 2
+    const tooltipHeight = tooltipRef.current?.getBoundingClientRect().height ?? 100
 
-    // Horizontal: anchor left or right depending on position in row
-    let left = isRightHalf
-      ? rect.right - tooltipWidth
-      : rect.left
+    // Anchor to the left edge of the name
+    let left = rect.left
 
     // Clamp to viewport
     left = Math.max(8, Math.min(left, window.innerWidth - tooltipWidth - 8))
 
-    setTooltipPos({ top: rect.bottom + 8, left })
+    // Position above the name so the tooltip never blocks the tab bar below
+    // Fall back to below if not enough room above
+    const above = rect.top - tooltipHeight - 8
+    const top = above >= 8 ? above : rect.bottom + 8
+    setTooltipPos({ top, left })
   }, [hovered, index, total])
 
   const nameElement = author.url ? (
@@ -110,10 +113,11 @@ function AuthorChip({ author, index, total }: { readonly author: Author; readonl
       <AnimatePresence>
         {hovered && hasTooltipContent && tooltipPos && (
           <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.92 }}
+            initial={{ opacity: 0, y: -6, scale: 0.92 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 3, scale: 0.96 }}
+            exit={{ opacity: 0, y: -3, scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 380, damping: 22, mass: 0.7 }}
+            ref={tooltipRef}
             className="fixed z-50 pointer-events-none"
             style={{ top: tooltipPos.top, left: tooltipPos.left }}
           >

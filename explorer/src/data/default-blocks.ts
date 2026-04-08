@@ -222,7 +222,7 @@ export const TOPIC_CARDS: readonly TopicCard[] = [
     description: 'The baseline head-to-head, plus the mechanism that makes local block building harsher.',
     theme: 'ssp',
       prompts: [
-        'How does SSP compare to MSP?',
+        'How does External compare to Local?',
         'Why does local block building centralize faster than external?',
         'How does external block building compare to local?',
         'What is the baseline External vs Local result?',
