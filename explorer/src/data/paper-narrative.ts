@@ -23,6 +23,16 @@ export const PAPER_NARRATIVE: Record<string, PaperNarrative> = {
     figureCaption: 'The core comparison is the latency path itself: external block building optimizes a best-supplier path (double penalty), while local block building optimizes over many direct information inputs (scaling effect).',
     keyClaim: 'both transform regional network position into economic advantage',
   },
+  'analytical-results': {
+    lede: 'Before running any simulation, the paper proves formally that geographic proximity creates economic advantage — and that the two paradigms respond to it in structurally opposite ways.',
+    paragraphs: [
+      'Theorem 5 is the anchor: reducing propagation delays to payoff-relevant parties weakly increases both the optimal release time and the expected payoff. This holds under both paradigms without parametric assumptions. The implication is that latency advantage is not a simulation artifact — it is a structural property of the block-building game.',
+      'Propositions 6 and 7 expose the scaling difference. Under local block building, the payoff gap between two regions scales linearly with the number of signal sources — many small latency advantages aggregate into a large one. Under external block building, the gain is bounded by a single best supplier, so adding more suppliers does not widen the gap. Propositions 8 and 9 complete the picture: source placement and slot duration affect the two paradigms in provably opposite or asymmetric directions.',
+    ],
+    pullQuote: 'The formal results prove that geographic advantage is structural, not incidental.',
+    figureCaption: 'Section 4 bridges the system model and the simulation by establishing directional claims that hold without calibration data.',
+    keyClaim: 'reducing propagation delays to payoff-relevant parties weakly increases both the optimal release time and the expected payoff',
+  },
   'simulation-design': {
     lede: 'With timing slack, the scaling effect, and the double penalty established formally, the simulation examines how these forces play out on a real map. The design is deliberately simplified to isolate causal mechanisms and make each result interpretable.',
     paragraphs: [
