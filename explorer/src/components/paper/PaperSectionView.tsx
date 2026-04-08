@@ -442,6 +442,7 @@ function SectionCard({
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <button
               onClick={() => onCopyLink(section.id)}
+              aria-label={`Copy link to section ${section.number}`}
               className="inline-flex items-center gap-1.5 rounded-full border border-rule/70 bg-white px-3 py-1.5 text-[11px] font-medium text-muted transition-colors hover:bg-surface-active hover:text-text-primary"
             >
               {copiedSectionId === section.id
@@ -561,6 +562,7 @@ function SectionCard({
           <a
             href={`#${previousSection.id}`}
             onClick={() => onNavigate(previousSection.id)}
+            aria-label={`Previous section: ${previousSection.title}`}
             className="group/nav flex items-center gap-2 rounded-lg px-2 py-1.5 -mx-2 text-xs text-muted transition-colors hover:text-accent hover:bg-accent/[0.04]"
           >
             <span className="transition-transform group-hover/nav:-translate-x-0.5">&larr;</span>
@@ -573,6 +575,7 @@ function SectionCard({
           <a
             href={`#${nextSection.id}`}
             onClick={() => onNavigate(nextSection.id)}
+            aria-label={`Next section: ${nextSection.title}`}
             className="group/nav flex items-center gap-2 rounded-lg px-2 py-1.5 -mx-2 text-xs text-muted transition-colors hover:text-accent hover:bg-accent/[0.04]"
           >
             <span><span className="mono-xs text-text-faint">{nextSection.number}</span> {nextSection.title}</span>
