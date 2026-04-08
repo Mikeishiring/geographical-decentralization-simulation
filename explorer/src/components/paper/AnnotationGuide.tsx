@@ -1,17 +1,25 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { type ReactNode, useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Compass, MousePointerClick, X, MessageSquarePlus, Eye, Highlighter, BookOpen, ListTree, BarChart3 } from 'lucide-react'
+import { Compass, MousePointerClick, X, MessageSquarePlus, Eye, Highlighter, ListTree, BarChart3, MessagesSquare } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING_POPUP, SPRING_CRISP } from '../../lib/theme'
 
 const SESSION_KEY = 'paper-guide-dismissed'
 
-const ORIENT_STEPS = [
-  {
-    icon: BookOpen,
-    title: 'Start with the Abstract',
-    detail: 'The Editorial view gives you an interpreted walkthrough. Switch to Arguments for a structured breakdown.',
-  },
+interface GuideStep {
+  icon: typeof ListTree
+  title: string
+  detail: ReactNode
+}
+
+const COMMUNITY_LINK = (
+  <a
+    href="/?tab=community"
+    className="text-stone-500 underline decoration-stone-300/0 underline-offset-2 transition-[text-decoration-color] duration-150 hover:decoration-stone-400"
+  >Community page</a>
+)
+
+const ORIENT_STEPS: GuideStep[] = [
   {
     icon: ListTree,
     title: 'Four reading modes',
@@ -22,9 +30,9 @@ const ORIENT_STEPS = [
     title: 'Explore beyond the paper',
     detail: 'Results runs simulations, Agent answers questions, Community shows public notes.',
   },
-] as const
+]
 
-const ANNOTATE_STEPS = [
+const ANNOTATE_STEPS: GuideStep[] = [
   {
     icon: Highlighter,
     title: 'Highlight any passage',
@@ -38,9 +46,14 @@ const ANNOTATE_STEPS = [
   {
     icon: Eye,
     title: 'See it in two places',
-    detail: 'Notes appear inline in the paper and on the Community page.',
+    detail: <>Notes appear inline in the paper and on the {COMMUNITY_LINK}.</>,
   },
-] as const
+  {
+    icon: MessagesSquare,
+    title: 'Discuss in Community',
+    detail: <>Browse, vote, and reply to notes from other readers on the {COMMUNITY_LINK}.</>,
+  },
+]
 
 type GuideTab = 'orient' | 'annotate'
 
