@@ -155,10 +155,7 @@ export function AnnotationGuide() {
             initial={{ opacity: 0, scale: 0.4, filter: 'blur(8px)' }}
             animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
             exit={{ opacity: 0, scale: 0.6, filter: 'blur(6px)' }}
-            transition={{
-              enter: { ...SPRING_POPUP, duration: 0.28 },
-              exit: { duration: 0.15, ease: [0.22, 1, 0.36, 1] },
-            }}
+            transition={SPRING_POPUP}
             onClick={handleHintClick}
             className={cn(
               'absolute bottom-5 right-5 sm:bottom-6 sm:right-6',
