@@ -459,10 +459,10 @@ export function PrecomputedEvidenceSurface({
           <p className="text-xs text-muted">The pre-computed catalog is currently unavailable.</p>
           {onModeChange && (
             <button
-              onClick={() => onModeChange('engine')}
+              onClick={() => onModeChange('data')}
               className="rounded-lg bg-text-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-text-primary/90"
             >
-              Run your own simulation
+              Query raw data
             </button>
           )}
         </div>

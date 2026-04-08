@@ -1,6 +1,6 @@
 import { cn } from '../../lib/cn'
 
-export type SimulationSurfaceMode = 'evidence' | 'engine'
+export type SimulationSurfaceMode = 'evidence' | 'data'
 
 interface SimulationModeToggleProps {
   readonly value: SimulationSurfaceMode
@@ -32,16 +32,16 @@ export function SimulationModeToggle({ value, onChange, className }: SimulationM
       </button>
       <button
         type="button"
-        aria-pressed={value === 'engine'}
-        onClick={() => onChange('engine')}
+        aria-pressed={value === 'data'}
+        onClick={() => onChange('data')}
         className={cn(
           'rounded-[10px] px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
-          value === 'engine'
+          value === 'data'
             ? 'bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_0_0_0.5px_rgba(0,0,0,0.04)]'
             : 'text-stone-400 hover:text-stone-600',
         )}
       >
-        Engine
+        Data
       </button>
     </div>
   )

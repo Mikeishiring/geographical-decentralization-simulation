@@ -8533,6 +8533,20 @@ setInterval(() => {
 
 // --- Static file serving for production (Railway serves both API + SPA) ---
 
+// Serve raw research data CSVs for the browser-side DuckDB SQL query interface
+const DATA_DIR = path.resolve(REPO_ROOT, 'data')
+if (existsSync(DATA_DIR)) {
+  app.use('/data', express.static(DATA_DIR, {
+    maxAge: '1h',
+    immutable: false,
+    setHeaders(res, filePath) {
+      if (filePath.endsWith('.csv')) {
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+      }
+    },
+  }))
+}
+
 const DIST_DIR = path.join(__dirname, '..', 'dist')
 if (existsSync(DASHBOARD_DIR)) {
   // Guard: detect unresolved Git LFS pointer stubs before express.static serves them.

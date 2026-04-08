@@ -23,6 +23,7 @@ const TAB_MIGRATION: Record<string, TabId> = {
   community: 'community',
   agent: 'agent',
   original: 'paper',
+  data: 'results',
 }
 
 export const AGENT_ROUTE_PARAM_KEYS = [
