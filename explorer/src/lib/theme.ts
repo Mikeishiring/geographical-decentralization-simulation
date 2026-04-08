@@ -30,7 +30,7 @@ export const STAGGER_ITEM = {
 /** Section category badge colors — maps SectionCategory to [bg, text, border] Tailwind classes */
 export const SECTION_CATEGORY_STYLE: Record<string, { bg: string; text: string; border: string; label: string }> = {
   methodology: { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', label: 'Methodology' },
-  finding: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: 'Finding' },
+  finding: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200', label: 'Finding' },
   caveat: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', label: 'Caveat' },
   discussion: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Discussion' },
 } as const
@@ -38,7 +38,7 @@ export const SECTION_CATEGORY_STYLE: Record<string, { bg: string; text: string; 
 /** Section category left-border accent — 3px colored rail on collapsed section cards */
 export const SECTION_CATEGORY_BORDER: Record<string, string> = {
   methodology: 'border-l-slate-400',
-  finding: 'border-l-blue-400',
+  finding: 'border-l-violet-400',
   caveat: 'border-l-amber-400',
   discussion: 'border-l-emerald-400',
 } as const
@@ -47,7 +47,7 @@ export const SECTION_CATEGORY_BORDER: Record<string, string> = {
 export const TOPIC_THEME_STYLE: Record<string, { dot: string; activeBorder: string; activeBg: string }> = {
   ssp: { dot: '#2563EB', activeBorder: 'border-blue-400', activeBg: 'bg-blue-50/50' },
   msp: { dot: '#C2553A', activeBorder: 'border-orange-400', activeBg: 'bg-orange-50/50' },
-  finding: { dot: '#2563EB', activeBorder: 'border-blue-400', activeBg: 'bg-blue-50/50' },
+  finding: { dot: '#7C3AED', activeBorder: 'border-violet-400', activeBg: 'bg-violet-50/50' },
   mitigation: { dot: '#16A34A', activeBorder: 'border-emerald-400', activeBg: 'bg-emerald-50/50' },
   caveat: { dot: '#D97706', activeBorder: 'border-amber-400', activeBg: 'bg-amber-50/50' },
   methodology: { dot: '#6B7280', activeBorder: 'border-gray-400', activeBg: 'bg-gray-50/50' },
