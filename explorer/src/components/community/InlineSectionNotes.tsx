@@ -11,7 +11,7 @@ import {
   MousePointerClick,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { SPRING_SNAPPY, SPRING_POPUP } from '../../lib/theme'
+import { SPRING_ACCORDION, SPRING_POPUP } from '../../lib/theme'
 import { MOCK_NOTE_EXTRAS } from '../../data/mock-community-notes'
 import type { Exploration } from '../../lib/api'
 import { ReplyThread } from './ReplyThread'
@@ -79,7 +79,10 @@ export function InlineSectionNotes({ notes, onOpenNote, showAnnotationHint = fal
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={SPRING_SNAPPY}
+            transition={{
+                height: SPRING_ACCORDION,
+                opacity: { duration: 0.15, ease: [0.22, 1, 0.36, 1] },
+              }}
             className="overflow-hidden"
           >
             <div className="mt-3 space-y-2">
@@ -222,7 +225,10 @@ function NoteCard({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={SPRING_SNAPPY}
+            transition={{
+                height: SPRING_ACCORDION,
+                opacity: { duration: 0.15, ease: [0.22, 1, 0.36, 1] },
+              }}
             className="overflow-hidden"
           >
             <div className="border-t border-rule/60 px-3.5 pb-3.5">

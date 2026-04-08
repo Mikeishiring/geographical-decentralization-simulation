@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, FileText, Lightbulb, MousePointerClick, Zap } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { SPRING, SPRING_CRISP, SECTION_CATEGORY_STYLE, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
+import { SPRING, SPRING_CRISP, SPRING_ACCORDION, SECTION_CATEGORY_STYLE, STAGGER_CONTAINER, STAGGER_ITEM } from '../../lib/theme'
 import { getActiveStudy } from '../../studies'
 import type { PaperSection } from '../../studies/types'
 import { summarizeSection, sectionEntryLine, sectionToPage } from './paper-helpers'
@@ -319,13 +319,16 @@ export function ArgumentsView({
                   </div>
                 </button>
 
-                <AnimatePresence>
+                <AnimatePresence initial={false}>
                   {isExpanded && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={SPRING}
+                      transition={{
+                        height: SPRING_ACCORDION,
+                        opacity: { duration: 0.18, ease: [0.22, 1, 0.36, 1] },
+                      }}
                       className="overflow-hidden"
                     >
                       <div className="border-t border-rule px-5 pb-5 pt-4 space-y-4">
