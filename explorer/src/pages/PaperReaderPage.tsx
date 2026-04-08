@@ -26,7 +26,7 @@ interface PaperReaderPageProps {
 export function PaperReaderPage({
   isActive = true,
   onOpenCommunityExploration,
-  onTabChange,
+  onTabChange: _onTabChange,
   onQueryAgent: _onQueryAgent,
 }: PaperReaderPageProps) {
   const sections = getActiveStudy().sections
