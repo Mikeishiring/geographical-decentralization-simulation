@@ -43,7 +43,7 @@ export function DeepDivePage() {
               Arguments, contrasts, and caveats
             </h1>
             <p className="mt-1 text-13 text-muted">
-              Ten sections from model design through limitations — expand any to see the evidence blocks.
+              Eleven sections from model design through limitations — expand any to see the evidence blocks.
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0 pt-1">

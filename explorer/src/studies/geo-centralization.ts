@@ -22,7 +22,7 @@ const ARTIFACTS: StudyPackage['artifacts'] = [
     label: 'arXiv HTML',
     kind: 'paper-html',
     summary: 'HTML rendering used for section and appendix anchors.',
-    url: 'https://arxiv.org/html/2509.21475v2',
+    url: 'https://arxiv.org/html/2509.21475v3',
   },
   {
     id: 'simulation-repo',
@@ -92,7 +92,7 @@ const ARTIFACTS: StudyPackage['artifacts'] = [
     label: 'Appendix E',
     kind: 'appendix',
     summary: 'Migration cost appendix used repeatedly in the editorial layer.',
-    url: 'https://arxiv.org/html/2509.21475v2#A5',
+    url: 'https://arxiv.org/html/2509.21475v3#A5',
   },
 ]
 
@@ -1413,7 +1413,7 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
   navigation: {
     bestFirstStopIds: ['system-model', 'baseline-results', 'se4a-attestation', 'limitations'],
     pdfUrl: 'https://arxiv.org/pdf/2509.21475',
-    htmlUrl: 'https://arxiv.org/html/2509.21475v2',
+    htmlUrl: 'https://arxiv.org/html/2509.21475v3',
     sectionPageMap: {
       '§3': 4,
       '§3.1': 5,
@@ -1455,43 +1455,43 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
         id: 'appendix-a',
         label: 'Appendix A',
         summary: 'List of Google Cloud Platform regions.',
-        url: 'https://arxiv.org/html/2509.21475v2#A1',
+        url: 'https://arxiv.org/html/2509.21475v3#A1',
       },
       {
         id: 'appendix-b',
         label: 'Appendix B',
         summary: 'List of symbols used throughout the model.',
-        url: 'https://arxiv.org/html/2509.21475v2#A2',
+        url: 'https://arxiv.org/html/2509.21475v3#A2',
       },
       {
         id: 'appendix-c',
         label: 'Appendix C',
         summary: 'Marginal benefit distribution.',
-        url: 'https://arxiv.org/html/2509.21475v2#A3',
+        url: 'https://arxiv.org/html/2509.21475v3#A3',
       },
       {
         id: 'appendix-d',
         label: 'Appendix D',
         summary: 'Experiments with different scales.',
-        url: 'https://arxiv.org/html/2509.21475v2#A4',
+        url: 'https://arxiv.org/html/2509.21475v3#A4',
       },
       {
         id: 'appendix-e',
         label: 'Appendix E',
         summary: 'Migration costs.',
-        url: 'https://arxiv.org/html/2509.21475v2#A5',
+        url: 'https://arxiv.org/html/2509.21475v3#A5',
       },
       {
         id: 'appendix-f',
         label: 'Appendix F',
         summary: 'Baseline validator convergence locus.',
-        url: 'https://arxiv.org/html/2509.21475v2#A6',
+        url: 'https://arxiv.org/html/2509.21475v3#A6',
       },
       {
         id: 'appendix-g',
         label: 'Appendix G',
         summary: 'Joint heterogeneity validator convergence locus.',
-        url: 'https://arxiv.org/html/2509.21475v2#A7',
+        url: 'https://arxiv.org/html/2509.21475v3#A7',
       },
     ],
   },
@@ -1697,7 +1697,7 @@ export const GEO_CENTRALIZATION_STUDY: StudyPackage = {
       {
         label: 'arXiv HTML',
         section: 'Source document',
-        url: 'https://arxiv.org/html/2509.21475v2',
+        url: 'https://arxiv.org/html/2509.21475v3',
       },
       {
         label: 'Public dashboard',
