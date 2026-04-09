@@ -5,10 +5,51 @@ import { cn } from '../../lib/cn'
 export function VoteControls({
   votes,
   onVote,
+  layout = 'vertical',
 }: {
   readonly votes: number
   readonly onVote: (delta: 1 | -1) => void
+  readonly layout?: 'vertical' | 'horizontal'
 }) {
+  if (layout === 'horizontal') {
+    return (
+      <div className="inline-flex items-center gap-1">
+        <motion.button
+          onClick={event => {
+            event.stopPropagation()
+            onVote(1)
+          }}
+          whileTap={{ scale: 0.88 }}
+          className="flex items-center justify-center h-6 w-6 text-muted transition-colors hover:text-accent rounded-full hover:bg-accent/[0.06]"
+          aria-label="Upvote"
+        >
+          <ThumbsUp className="h-2.5 w-2.5" />
+        </motion.button>
+        <span
+          className={cn(
+            'text-2xs font-semibold tabular-nums min-w-[1.25rem] text-center',
+            votes > 0 && 'text-accent',
+            votes < 0 && 'text-danger',
+            votes === 0 && 'text-text-faint',
+          )}
+        >
+          {votes}
+        </span>
+        <motion.button
+          onClick={event => {
+            event.stopPropagation()
+            onVote(-1)
+          }}
+          whileTap={{ scale: 0.88 }}
+          className="flex items-center justify-center h-6 w-6 text-muted transition-colors hover:text-danger rounded-full hover:bg-danger/[0.06]"
+          aria-label="Downvote"
+        >
+          <ThumbsDown className="h-2.5 w-2.5" />
+        </motion.button>
+      </div>
+    )
+  }
+
   return (
     <div className="flex shrink-0 flex-col items-center gap-0.5">
       <motion.button

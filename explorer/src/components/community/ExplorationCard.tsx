@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronUp, ChevronDown, Link2, MessageSquare } from 'lucide-react'
+import { ChevronUp, ChevronDown, Link2, MessageSquare, Sparkles, Play } from 'lucide-react'
 import type { Exploration } from '../../lib/api'
 import { MOCK_NOTE_EXTRAS } from '../../data/mock-community-notes'
 import { BlockCanvas } from '../explore/BlockCanvas'
@@ -32,7 +32,6 @@ export function ExplorationCard({
 }) {
   const timeAgo = formatTimeAgo(cardTimestamp(exploration))
   const allTags = [...exploration.paradigmTags, ...exploration.experimentTags]
-  const accentColor = exploration.surface === 'simulation' ? 'border-l-accent-warm' : 'border-l-accent'
   const mockReplies = MOCK_NOTE_EXTRAS[exploration.id]?.replies ?? []
   const realReplies = exploration.replies ?? []
   const realReplyIds = new Set(realReplies.map(r => r.id))
@@ -47,29 +46,34 @@ export function ExplorationCard({
         visible: { opacity: 1, y: 0, transition: SPRING_CRISP },
       }}
       className={cn(
-        'overflow-hidden rounded-xl border border-l-[3px] bg-white transition-shadow duration-150',
-        accentColor,
+        'overflow-hidden rounded-xl border bg-white transition-shadow duration-150',
         isDeepLinked
-          ? 'border-y-accent/20 border-r-accent/20 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent)_6%,transparent)]'
-          : 'border-y-rule border-r-rule shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]',
+          ? 'border-accent/20 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent)_6%,transparent)]'
+          : 'border-rule shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]',
       )}
     >
-      <div className="flex gap-3 p-4">
-        {onVote ? (
-          <VoteControls votes={exploration.votes} onVote={onVote} />
-        ) : (
-          <div className="w-8 shrink-0" />
-        )}
-
-        <button onClick={onToggleExpand} className="min-w-0 flex-1 text-left" aria-expanded={isExpanded}>
+      {/* ── Card header — clickable, no left gutter ──────────── */}
+      <button onClick={onToggleExpand} className="flex w-full gap-3 p-4 text-left" aria-expanded={isExpanded}>
+        <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-text-primary">
             {cardTitle(exploration)}
           </p>
-          <p className="mt-1 line-clamp-2 text-xs text-muted">
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">
             {cardSummary(exploration)}
           </p>
 
+          {/* Metadata row — votes live here now, inline with other metadata */}
           <div className="mt-2.5 flex flex-wrap items-center gap-2.5 text-xs">
+            {/* Inline vote count (no up/down arrows in collapsed state) */}
+            <span className={cn(
+              'text-xs font-semibold tabular-nums',
+              exploration.votes > 0 && 'text-accent',
+              exploration.votes < 0 && 'text-danger',
+              exploration.votes === 0 && 'text-text-faint',
+            )}>
+              {exploration.votes > 0 ? `+${exploration.votes}` : exploration.votes}
+            </span>
+
             <span className="inline-flex items-center gap-1.5 text-muted">
               <span className={cn(
                 'h-1.5 w-1.5 rounded-full',
@@ -119,9 +123,9 @@ export function ExplorationCard({
             </div>
           )}
 
-          {/* Anchored text excerpt */}
+          {/* Anchored text excerpt — subtle indent instead of colored border */}
           {exploration.anchor?.excerpt && (
-            <div className="mt-2 rounded-md border-l-2 border-l-accent/40 bg-canvas px-3 py-2">
+            <div className="mt-2 rounded-md bg-canvas px-3 py-2">
               <p className="text-xs italic text-muted line-clamp-2">
                 &ldquo;{exploration.anchor.excerpt}&rdquo;
               </p>
@@ -132,18 +136,14 @@ export function ExplorationCard({
               )}
             </div>
           )}
-        </button>
+        </div>
 
-        <button
-          onClick={onToggleExpand}
-          className="self-start p-1 text-muted transition-colors hover:text-text-primary"
-          aria-label={isExpanded ? 'Collapse note' : 'Expand note'}
-          aria-expanded={isExpanded}
-        >
+        <div className="self-start p-1 text-muted transition-colors hover:text-text-primary">
           {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </button>
-      </div>
+        </div>
+      </button>
 
+      {/* ── Expanded content ──────────────────────────────────── */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -156,29 +156,40 @@ export function ExplorationCard({
             }}
             className="overflow-hidden"
           >
-            <div className="border-t border-rule p-4">
-              <div role="note" aria-label="Truth boundary" className="mb-4 rounded-lg border border-rule bg-surface-active px-3 py-2.5 text-xs text-muted">
-                <span className="font-medium text-text-primary">Truth boundary:</span>{' '}
+            <div className="border-t border-rule px-4 pb-4 pt-3">
+              {/* Truth boundary — lightweight inline label, not a banner */}
+              <p className="mb-3 text-2xs text-text-faint">
+                <span className="font-medium text-muted">Truth boundary</span>
+                {' — '}
                 {exploration.publication.published
-                  ? 'This is a published human-authored community note layered on top of the paper or an exact-run artifact.'
-                  : 'This is saved secondary context. It can be useful, but it is not a canonical paper or published-results artifact.'}
-              </div>
+                  ? 'Human-authored community note on top of the paper or an exact-run artifact.'
+                  : 'Saved secondary context — not a canonical paper or published-results artifact.'}
+              </p>
 
               {exploration.publication.editorNote && (
-                <div className="mb-4 rounded-lg border border-warning/30 bg-warning/6 px-3 py-2 text-xs text-muted">
-                  <span className="font-medium text-text-primary">Context note:</span> {exploration.publication.editorNote}
-                </div>
+                <p className="mb-3 text-xs text-muted">
+                  <span className="font-medium text-text-primary">Context:</span>{' '}
+                  {exploration.publication.editorNote}
+                </p>
               )}
 
               <BlockCanvas blocks={exploration.blocks} />
 
-              <div className="mt-4 flex flex-wrap gap-2">
+              {/* ── Unified action footer bar ─────────────────── */}
+              <div className="mt-4 flex items-center gap-2 border-t border-rule pt-3">
+                {onVote && (
+                  <VoteControls votes={exploration.votes} onVote={onVote} layout="horizontal" />
+                )}
+
+                <div className="h-4 w-px bg-rule" />
+
                 {exploration.surface === 'reading' && onOpenQuery && (
                   <button
                     onClick={() => onOpenQuery(exploration.query)}
-                    className="rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
-                    title="Ask the AI copilot about this topic — it will use the paper's findings to answer"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-white px-2.5 py-1.5 text-xs text-text-primary transition-colors hover:border-border-hover"
+                    title="Ask the AI copilot about this topic"
                   >
+                    <Sparkles className="h-3 w-3" />
                     Explore with AI
                   </button>
                 )}
@@ -186,8 +197,9 @@ export function ExplorationCard({
                 {exploration.surface === 'simulation' && onOpenSimulation && (
                   <button
                     onClick={onOpenSimulation}
-                    className="rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-white px-2.5 py-1.5 text-xs text-text-primary transition-colors hover:border-border-hover"
                   >
+                    <Play className="h-3 w-3" />
                     Open Simulation
                   </button>
                 )}
@@ -195,14 +207,15 @@ export function ExplorationCard({
                 {exploration.publication.published && onShare && (
                   <button
                     onClick={() => void onShare(exploration.id)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-white px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-white px-2.5 py-1.5 text-xs text-text-primary transition-colors hover:border-border-hover"
                   >
-                    <Link2 className="h-3.5 w-3.5" />
-                    {shareCopied ? 'Link copied' : 'Copy note link'}
+                    <Link2 className="h-3 w-3" />
+                    {shareCopied ? 'Link copied' : 'Copy link'}
                   </button>
                 )}
               </div>
 
+              {/* Reply thread now inside the unified footer area */}
               <ReplyThread
                 explorationId={exploration.id}
                 realReplies={realReplies}
