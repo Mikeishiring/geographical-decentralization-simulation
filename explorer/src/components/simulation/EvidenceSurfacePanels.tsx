@@ -372,13 +372,14 @@ function buildKpiCards(payload: PublishedAnalyticsPayload): readonly KpiCard[] {
 
   // Active regions — geographic spread
   const activeEnd = activeRegionCountAtSlot(payload, finalSlot)
+  const activeStart = activeRegionCountAtSlot(payload, 0)
   const regionSentiment = sentimentHigher(activeEnd, THRESHOLDS.activeRegions)
   if (activeEnd > 0) {
     cards.push({
       label: 'Active regions',
       subtitle: 'Geographic spread',
       value: String(activeEnd),
-      showDelta: false,
+      showDelta: activeStart > 0,
       preferredDeltaDirection: 'higher',
       note: regionSentiment === 'positive' ? 'Final stake footprint stays broad.' : regionSentiment === 'neutral' ? 'Final stake footprint stays mixed.' : 'Final stake footprint narrows sharply.',
       insight: regionSentiment === 'positive'
@@ -494,7 +495,7 @@ function EvidenceKpiCard({
       aria-pressed={active}
       aria-label={`${card.label}: ${card.value}. ${card.detail}`}
       className={cn(
-        'group relative z-0 min-h-[72px] h-full overflow-visible bg-white/80 px-3 py-2 text-left transition-[background-color,box-shadow,transform] duration-150 hover:bg-white/94 active:scale-[0.97] active:duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20',
+        'group relative z-0 min-h-[72px] h-full overflow-visible bg-white/80 px-4 py-2.5 text-left transition-[background-color,box-shadow,transform] duration-150 hover:bg-white/94 active:scale-[0.97] active:duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20',
         active && 'z-10 bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)]',
         hovered && 'z-20',
       )}
@@ -536,15 +537,15 @@ function EvidenceKpiCard({
       </InlineTooltip>
 
       <div className="mt-1 flex items-center gap-1.5 h-[28px]">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-x-1.5 flex-wrap">
-            <div className="text-[18px] font-medium text-stone-900 tabular-nums leading-none tracking-[-0.01em] font-[family-name:var(--font-mono)]">
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <div className="flex items-baseline gap-x-1.5">
+            <div className="min-w-0 truncate text-[18px] font-medium text-stone-900 tabular-nums leading-none tracking-[-0.01em] font-[family-name:var(--font-mono)]">
               {hoverIndex != null && currentValue != null ? card.formatSeriesValue(currentValue) : card.value}
             </div>
             {seriesDelta && (
               <InlineTooltip label={hoverIndex != null ? 'Change from slot 1 to the inspected slot' : 'Change from slot 1 to the final slot'}>
               <div
-                className={cn('inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums whitespace-nowrap', DELTA_COLOR[deltaSentiment])}
+                className={cn('inline-flex shrink-0 items-center gap-0.5 text-[10px] font-medium tabular-nums whitespace-nowrap', DELTA_COLOR[deltaSentiment])}
               >
                 <span>{DELTA_ARROW[deltaDirection]}</span>
                 <span>{seriesDelta.formatted}</span>
