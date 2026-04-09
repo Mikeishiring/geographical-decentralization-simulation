@@ -11,6 +11,8 @@ interface ReplyThreadProps {
   readonly explorationId: string
   readonly realReplies: readonly Reply[]
   readonly mockReplies: readonly MockReply[]
+  readonly composerOpen?: boolean
+  readonly onComposerChange?: (open: boolean) => void
 }
 
 function formatReplyDate(iso: string): string {
@@ -18,9 +20,14 @@ function formatReplyDate(iso: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export function ReplyThread({ explorationId, realReplies, mockReplies }: ReplyThreadProps) {
+export function ReplyThread({ explorationId, realReplies, mockReplies, composerOpen: composerOpenProp, onComposerChange }: ReplyThreadProps) {
   const queryClient = useQueryClient()
-  const [composerOpen, setComposerOpen] = useState(false)
+  const [composerOpenLocal, setComposerOpenLocal] = useState(false)
+  const composerOpen = composerOpenProp ?? composerOpenLocal
+  const setComposerOpen = (open: boolean) => {
+    setComposerOpenLocal(open)
+    onComposerChange?.(open)
+  }
   const [body, setBody] = useState('')
   const [author, setAuthor] = useState('')
 
@@ -56,7 +63,7 @@ export function ReplyThread({ explorationId, realReplies, mockReplies }: ReplyTh
   const atLimit = merged.length >= 50
 
   return (
-    <div className="mt-4 border-t border-rule pt-3">
+    <div className="mt-4 rounded-lg bg-canvas/60 px-3 py-3">
       {merged.length > 0 && (
         <>
           <span className="mb-2 block text-2xs font-medium uppercase tracking-wide text-text-faint">
@@ -64,7 +71,7 @@ export function ReplyThread({ explorationId, realReplies, mockReplies }: ReplyTh
           </span>
           <div className="space-y-2">
             {merged.map(reply => (
-              <div key={reply.id} className="flex gap-2.5 rounded-lg bg-surface-active px-3 py-2">
+              <div key={reply.id} className="flex gap-2.5 rounded-lg bg-white px-3 py-2">
                 <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rule text-2xs font-medium text-text-faint">
                   {reply.author.charAt(0).toUpperCase()}
                 </div>
@@ -97,16 +104,6 @@ export function ReplyThread({ explorationId, realReplies, mockReplies }: ReplyTh
             ))}
           </div>
         </>
-      )}
-
-      {!composerOpen && !atLimit && (
-        <button
-          onClick={() => setComposerOpen(true)}
-          className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-accent"
-        >
-          <MessageSquare className="h-3 w-3" />
-          Reply
-        </button>
       )}
 
       {atLimit && (

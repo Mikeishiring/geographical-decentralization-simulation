@@ -26,7 +26,7 @@ export function InsightBlock({ block }: InsightBlockProps) {
   return (
     <motion.div
       className={cn(
-        'bg-white border border-rule rounded-xl p-5 border-l-2 topo-bg card-hover',
+        'bg-white border border-rule rounded-xl p-5 border-l-[1.5px] topo-bg card-hover',
         emphasisStyles[emphasis],
       )}
       initial={{ opacity: 0, y: 8 }}
