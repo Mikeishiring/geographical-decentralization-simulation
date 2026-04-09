@@ -381,6 +381,7 @@ export function PaperSectionView({
                         copiedSectionId={copiedSectionId}
                         copyFailed={copyFailed}
                         onCopyLink={handleCopySectionLink}
+                        onCollapse={() => toggleSection(section.id)}
                         onNavigate={(id: string) => {
                           setExpandedIds(prev => new Set([...prev, id]))
                           requestAnimationFrame(() => {
@@ -411,6 +412,7 @@ function SectionCard({
   copiedSectionId,
   copyFailed = false,
   onCopyLink,
+  onCollapse,
   onNavigate,
   notesVisible = false,
   sectionNotes = [],
@@ -423,6 +425,7 @@ function SectionCard({
   readonly copiedSectionId: string | null
   readonly copyFailed?: boolean
   readonly onCopyLink: (id: string) => void
+  readonly onCollapse: () => void
   readonly onNavigate: (id: string) => void
   readonly notesVisible?: boolean
   readonly sectionNotes?: readonly Exploration[]
@@ -461,7 +464,20 @@ function SectionCard({
       className="group overflow-hidden rounded-2xl border border-rule bg-white p-6 card-hover geo-accent-bar sm:p-7 lg:p-8"
       style={{ scrollMarginTop: PAPER_STACK_SCROLL_MARGIN }}
     >
-      <div className="mb-6 border-b border-rule pb-5">
+      <div
+        className="mb-6 cursor-pointer border-b border-rule pb-5"
+        role="button"
+        tabIndex={0}
+        onClick={(e) => {
+          // Don't collapse if user clicked on an interactive element (button, link)
+          if ((e.target as HTMLElement).closest('button, a')) return
+          // Don't collapse if user was selecting text
+          const sel = window.getSelection()?.toString()
+          if (sel && sel.length > 0) return
+          onCollapse()
+        }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCollapse() } }}
+      >
         <div className="flex flex-wrap items-start gap-3">
           <div className="flex items-center gap-3">
             <span className="mono-xs text-accent">{section.number}</span>
