@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronUp, ChevronDown, Link2, MessageSquare, Sparkles, Play } from 'lucide-react'
 import type { Exploration } from '../../lib/api'
@@ -32,6 +33,7 @@ export function ExplorationCard({
 }) {
   const timeAgo = formatTimeAgo(cardTimestamp(exploration))
   const allTags = [...exploration.paradigmTags, ...exploration.experimentTags]
+  const [replyComposerOpen, setReplyComposerOpen] = useState(false)
   const mockReplies = MOCK_NOTE_EXTRAS[exploration.id]?.replies ?? []
   const realReplies = exploration.replies ?? []
   const realReplyIds = new Set(realReplies.map(r => r.id))
@@ -213,6 +215,19 @@ export function ExplorationCard({
                     {shareCopied ? 'Link copied' : 'Copy link'}
                   </button>
                 )}
+
+                <button
+                  onClick={() => setReplyComposerOpen(prev => !prev)}
+                  className={cn(
+                    'ml-auto inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                    replyComposerOpen
+                      ? 'bg-accent/10 text-accent border border-accent/20'
+                      : 'bg-accent text-white hover:bg-accent/90',
+                  )}
+                >
+                  <MessageSquare className="h-3 w-3" />
+                  Reply
+                </button>
               </div>
 
               {/* Reply thread now inside the unified footer area */}
@@ -220,6 +235,8 @@ export function ExplorationCard({
                 explorationId={exploration.id}
                 realReplies={realReplies}
                 mockReplies={mockReplies}
+                composerOpen={replyComposerOpen}
+                onComposerChange={setReplyComposerOpen}
               />
 
               {exploration.followUps.length > 0 && (
