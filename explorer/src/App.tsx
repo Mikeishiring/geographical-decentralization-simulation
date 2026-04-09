@@ -1,4 +1,4 @@
-import { Suspense, lazy, startTransition, useState, useCallback, useEffect } from 'react'
+import { Suspense, lazy, startTransition, useState, useCallback, useEffect, useRef, useLayoutEffect } from 'react'
 import { Header } from './components/layout/Header'
 import { TabNav, type TabId } from './components/layout/TabNav'
 import { Footer } from './components/layout/Footer'
@@ -13,6 +13,7 @@ const DEFAULT_TAB: TabId = 'paper'
 const RESULTS_TAB: TabId = 'results'
 const AGENT_TAB: TabId = 'agent'
 const COMMUNITY_TAB: TabId = 'community'
+const TAB_ORDER: readonly TabId[] = ['paper', 'results', 'agent', 'community']
 const PAPER_SECTION_IDS = new Set(PAPER_SECTIONS.map(section => section.id))
 
 const loadSimulationLabPageModule = () => import('./pages/SimulationLabPage')
@@ -136,6 +137,23 @@ function App() {
     community: initialRoute.tab === COMMUNITY_TAB,
   })
 
+  // ── Directional crossfade: track panel refs + enter direction ──
+  const panelRefs = useRef<Partial<Record<TabId, HTMLDivElement | null>>>({})
+  const enterDirRef = useRef<'left' | 'right' | null>(null)
+
+  useLayoutEffect(() => {
+    const dir = enterDirRef.current
+    if (!dir) return
+    const panel = panelRefs.current[activeTab]
+    if (!panel) return
+
+    // Remove previous animation, force reflow to restart, then apply
+    panel.classList.remove('tab-enter-left', 'tab-enter-right')
+    void panel.offsetHeight
+    panel.classList.add(`tab-enter-${dir}`)
+    enterDirRef.current = null
+  }, [activeTab])
+
   const applyRouteState = useCallback((
     next: ExplorerRouteState,
     replace = false,
@@ -154,7 +172,15 @@ function App() {
 
   const syncFromLocation = useCallback(() => {
     const next = readRouteState()
-    setActiveTab(next.tab)
+    // Compute direction for browser back/forward navigation
+    setActiveTab(prev => {
+      const oldIdx = TAB_ORDER.indexOf(prev)
+      const newIdx = TAB_ORDER.indexOf(next.tab)
+      if (oldIdx !== newIdx) {
+        enterDirRef.current = newIdx > oldIdx ? 'right' : 'left'
+      }
+      return next.tab
+    })
     setSharedQuery(next.query)
     setSharedExplorationId(next.explorationId)
   }, [])
@@ -184,13 +210,20 @@ function App() {
   }, [activeTab])
 
   const handleTabChange = useCallback((tab: TabId) => {
+    // Compute directional slide: right if moving to a higher-index tab, left otherwise
+    const oldIdx = TAB_ORDER.indexOf(activeTab)
+    const newIdx = TAB_ORDER.indexOf(tab)
+    if (oldIdx !== newIdx) {
+      enterDirRef.current = newIdx > oldIdx ? 'right' : 'left'
+    }
+
     preloadTab(tab)
     applyRouteState(
       { tab, query: sharedQuery, explorationId: null },
       false,
       (tab === AGENT_TAB || tab === RESULTS_TAB) ? { resetAgentRoute: true } : undefined,
     )
-  }, [applyRouteState, sharedQuery])
+  }, [activeTab, applyRouteState, sharedQuery])
 
   const handleTabIntent = useCallback((tab: TabId) => {
     preloadTab(tab)
@@ -226,7 +259,7 @@ function App() {
               : 'max-w-[96rem]',
           )}
         >
-        <div {...hiddenPanelProps(activeTab !== 'paper')}>
+        <div ref={el => { panelRefs.current.paper = el }} {...hiddenPanelProps(activeTab !== 'paper')}>
           <ErrorBoundary fallbackLabel="The Paper tab encountered an error.">
             <PaperReaderPage
               isActive={activeTab === 'paper'}
@@ -238,7 +271,7 @@ function App() {
         </div>
 
         {visitedTabs.results && (
-          <div {...hiddenPanelProps(activeTab !== 'results')}>
+          <div ref={el => { panelRefs.current.results = el }} {...hiddenPanelProps(activeTab !== 'results')}>
             <ErrorBoundary fallbackLabel="The Results tab encountered an error.">
               <Suspense fallback={<PageFallback label="Loading simulation lab" />}>
                 <SimulationLabPage
@@ -251,7 +284,7 @@ function App() {
         )}
 
         {visitedTabs.agent && (
-          <div {...hiddenPanelProps(activeTab !== 'agent')}>
+          <div ref={el => { panelRefs.current.agent = el }} {...hiddenPanelProps(activeTab !== 'agent')}>
             <ErrorBoundary fallbackLabel="The Agent encountered an error.">
               <Suspense fallback={<PageFallback label="Loading agent workspace" />}>
                 <AgentLabPage
@@ -264,7 +297,7 @@ function App() {
         )}
 
         {visitedTabs.community && (
-          <div {...hiddenPanelProps(activeTab !== 'community')}>
+          <div ref={el => { panelRefs.current.community = el }} {...hiddenPanelProps(activeTab !== 'community')}>
             <ErrorBoundary fallbackLabel="The Community tab encountered an error.">
               <Suspense fallback={<PageFallback label="Loading community notes" />}>
                 <ExploreHistoryPage
