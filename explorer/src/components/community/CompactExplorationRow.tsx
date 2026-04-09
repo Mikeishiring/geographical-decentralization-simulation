@@ -129,7 +129,7 @@ export function CompactExplorationRow({
 
               {/* Anchored excerpt */}
               {exploration.anchor?.excerpt && (
-                <div className="rounded-md border-l-2 border-l-accent/40 bg-canvas px-3 py-1.5">
+                <div className="rounded-md bg-canvas px-3 py-1.5">
                   <p className="text-2xs italic text-muted line-clamp-2">
                     &ldquo;{exploration.anchor.excerpt}&rdquo;
                   </p>
