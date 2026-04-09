@@ -247,7 +247,7 @@ export function ExploreHistoryPage({
             placeholder="Search titles, takeaways, authors, paradigms..."
             className={cn(
               'w-full rounded-lg border border-rule bg-white py-1.5 pl-8 pr-3 text-xs',
-              'text-text-primary placeholder:text-muted/60 focus:outline-none focus:border-accent/30 focus:ring-1 focus:ring-accent/10',
+              'text-text-primary placeholder:text-muted focus:outline-none focus:border-accent/30 focus:ring-1 focus:ring-accent/10',
             )}
           />
         </div>
