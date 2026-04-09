@@ -96,7 +96,6 @@ export function PaperViewModeBar({
   const [notesHovered, setNotesHovered] = useState(false)
 
   const isViewActive = (VIEW_MODES as readonly string[]).includes(readerMode)
-  const isFormatActive = (FORMAT_MODES as readonly string[]).includes(readerMode)
 
   useLayoutEffect(() => {
     const bar = barRef.current
