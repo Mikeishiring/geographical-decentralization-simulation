@@ -288,7 +288,7 @@ export function PaperSectionView({
   const activeSectionId = activeSectionIdProp ?? sections[0].id
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null)
   const [copyFailed, setCopyFailed] = useState(false)
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set([sections[0]?.id].filter(Boolean)))
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
 
   const toggleSection = useCallback((id: string) => {
     setExpandedIds(prev => {
