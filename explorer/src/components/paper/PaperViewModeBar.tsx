@@ -1,6 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ListTree, FileText, BookOpen, ScrollText } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { SPRING_SNAPPY } from '../../lib/theme'
 import { Tooltip } from '../ui/Tooltip'
@@ -15,7 +14,6 @@ import {
 export type ReaderMode = 'editorial' | 'arguments' | 'html' | 'paper'
 
 export const MODE_META: Record<ReaderMode, {
-  icon: typeof ListTree
   label: string
   lensLabel: string
   toneLabel: string
@@ -27,7 +25,6 @@ export const MODE_META: Record<ReaderMode, {
   badgeClass: string
 }> = {
   editorial: {
-    icon: BookOpen,
     label: 'Editorial',
     lensLabel: 'Interpretive lens',
     toneLabel: 'Synthesized',
@@ -39,7 +36,6 @@ export const MODE_META: Record<ReaderMode, {
     badgeClass: 'border-[rgba(194,85,58,0.14)] bg-white/80 text-accent-warm',
   },
   arguments: {
-    icon: ListTree,
     label: 'Arguments',
     lensLabel: 'Claim lens',
     toneLabel: 'Structured',
@@ -51,7 +47,6 @@ export const MODE_META: Record<ReaderMode, {
     badgeClass: 'border-slate-200/80 bg-white/80 text-slate-600',
   },
   html: {
-    icon: ScrollText,
     label: 'HTML',
     lensLabel: 'Source lens',
     toneLabel: 'Anchored',
@@ -63,7 +58,6 @@ export const MODE_META: Record<ReaderMode, {
     badgeClass: 'border-accent/18 bg-white/85 text-accent',
   },
   paper: {
-    icon: FileText,
     label: 'PDF',
     lensLabel: 'Record lens',
     toneLabel: 'Original',
@@ -76,7 +70,9 @@ export const MODE_META: Record<ReaderMode, {
   },
 }
 
-const MODES_ORDERED: readonly ReaderMode[] = ['editorial', 'arguments', 'html', 'paper'] as const
+/** Views are interpretive lenses; formats are source renderings */
+const VIEW_MODES: readonly ReaderMode[] = ['editorial', 'arguments'] as const
+const FORMAT_MODES: readonly ReaderMode[] = ['html', 'paper'] as const
 
 interface PaperViewModeBarProps {
   readonly readerMode: ReaderMode
@@ -99,12 +95,18 @@ export function PaperViewModeBar({
   const [hoveredMode, setHoveredMode] = useState<ReaderMode | null>(null)
   const [notesHovered, setNotesHovered] = useState(false)
 
+  const isViewActive = (VIEW_MODES as readonly string[]).includes(readerMode)
+  const isFormatActive = (FORMAT_MODES as readonly string[]).includes(readerMode)
+
   useLayoutEffect(() => {
     const bar = barRef.current
     if (!bar) return
 
     const updateHeight = () => {
-      document.documentElement.style.setProperty('--explorer-paper-mode-bar-height', `${Math.ceil(bar.getBoundingClientRect().height)}px`)
+      document.documentElement.style.setProperty(
+        '--explorer-paper-mode-bar-height',
+        `${Math.ceil(bar.getBoundingClientRect().height)}px`,
+      )
     }
 
     updateHeight()
@@ -128,60 +130,98 @@ export function PaperViewModeBar({
     <div
       ref={barRef}
       data-testid="paper-view-mode-bar"
-      className="sticky z-40 -mx-4 border-b border-rule/70 bg-canvas/92 px-4 py-2 backdrop-blur-md sm:-mx-6 sm:px-6"
+      className="sticky z-40 -mx-4 bg-white/92 px-4 backdrop-blur-md sm:-mx-6 sm:px-6"
       style={{ top: 'var(--explorer-tab-nav-height, 3.75rem)' }}
     >
-      <div className="rounded-[1rem] border border-rule/80 bg-white/90 px-2.5 py-2 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-sm sm:px-3">
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          {/* Mode switcher */}
-          <div className="flex min-w-0 items-center gap-3">
-            <div
-              className="grid w-full grid-cols-4 items-center gap-0.5 rounded-xl border border-rule bg-surface-active p-0.5 sm:inline-flex sm:w-auto sm:grid-cols-none"
-              role="tablist"
-              aria-label="Reading mode"
-            >
-              {MODES_ORDERED.map(mode => {
-                const meta = MODE_META[mode]
-                const isActive = readerMode === mode
-                const isHovered = hoveredMode === mode
-                return (
-                  <Tooltip key={mode} label={`${meta.lensLabel} · ${meta.toneLabel}`} detail={meta.detail}>
-                    <motion.button
-                      role="tab"
-                      aria-selected={isActive}
-                      onClick={() => onModeChange(mode)}
-                      onMouseEnter={() => setHoveredMode(mode)}
-                      onMouseLeave={() => setHoveredMode(null)}
-                      whileTap={{ scale: 0.96 }}
-                      transition={SPRING_SNAPPY}
-                      className={cn(
-                        'relative flex min-h-[2.25rem] items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors sm:justify-start',
-                        isActive
-                          ? 'font-medium'
-                          : cn('text-muted hover:text-text-primary', meta.hoverTabClass),
-                      )}
-                    >
-                      {isActive && (
-                        <motion.span
-                          layoutId="mode-pill"
-                          className={cn('absolute inset-0 rounded-lg shadow-sm ring-1', meta.activeTabClass)}
-                          transition={SPRING_SNAPPY}
-                        />
-                      )}
-                      <span className={cn('relative flex items-center gap-1.5', isActive ? meta.activeTextClass : null)}>
-                        {mode === 'editorial' && <AnimatedBookOpen isActive={isActive} isHovered={isHovered} />}
-                        {mode === 'arguments' && <AnimatedListTree isActive={isActive} isHovered={isHovered} />}
-                        {mode === 'html' && <AnimatedScrollText isActive={isActive} isHovered={isHovered} />}
-                        {mode === 'paper' && <AnimatedFileText isActive={isActive} isHovered={isHovered} />}
-                        <span className="hidden sm:inline">{meta.label}</span>
-                      </span>
-                    </motion.button>
-                  </Tooltip>
-                )
-              })}
-            </div>
+      <div className="flex items-center justify-between gap-3 border-b border-rule/70 py-2.5">
+        {/* ── Left: View tabs + lens label ── */}
+        <div className="flex min-w-0 items-center">
+          <nav className="flex items-center" role="tablist" aria-label="Reading mode">
+            {VIEW_MODES.map(mode => {
+              const meta = MODE_META[mode]
+              const isActive = readerMode === mode
+              const isHovered = hoveredMode === mode
+              return (
+                <Tooltip key={mode} label={`${meta.lensLabel} · ${meta.toneLabel}`} detail={meta.detail}>
+                  <motion.button
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => onModeChange(mode)}
+                    onMouseEnter={() => setHoveredMode(mode)}
+                    onMouseLeave={() => setHoveredMode(null)}
+                    whileTap={{ scale: 0.96 }}
+                    transition={SPRING_SNAPPY}
+                    className={cn(
+                      'relative flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.04em] transition-colors first:pl-0',
+                      isActive
+                        ? meta.activeTextClass
+                        : 'text-muted hover:text-text-primary',
+                    )}
+                  >
+                    {mode === 'editorial' && <AnimatedBookOpen isActive={isActive} isHovered={isHovered} />}
+                    {mode === 'arguments' && <AnimatedListTree isActive={isActive} isHovered={isHovered} />}
+                    <span>{meta.label}</span>
 
-          </div>
+                    {/* Sliding underline — only shown when a view is active */}
+                    {isActive && (
+                      <motion.span
+                        layoutId="view-indicator"
+                        className="absolute bottom-0 left-0 right-0 h-[2px] first:left-0"
+                        style={{
+                          background: 'linear-gradient(90deg, var(--color-accent), var(--color-accent-warm))',
+                        }}
+                        transition={SPRING_SNAPPY}
+                      />
+                    )}
+                  </motion.button>
+                </Tooltip>
+              )
+            })}
+          </nav>
+
+          {/* Inline lens label — visible on sm+ when a view is active */}
+          {isViewActive && (
+            <span className="hidden text-[11px] text-muted/50 sm:inline ml-1.5">
+              · {MODE_META[readerMode].lensLabel}
+            </span>
+          )}
+        </div>
+
+        {/* ── Right: Format pills + Community Notes ── */}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {FORMAT_MODES.map(mode => {
+            const meta = MODE_META[mode]
+            const isActive = readerMode === mode
+            const isHovered = hoveredMode === mode
+            return (
+              <Tooltip key={mode} label={`${meta.lensLabel} · ${meta.toneLabel}`} detail={meta.detail}>
+                <motion.button
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => onModeChange(mode)}
+                  onMouseEnter={() => setHoveredMode(mode)}
+                  onMouseLeave={() => setHoveredMode(null)}
+                  whileTap={{ scale: 0.96 }}
+                  transition={SPRING_SNAPPY}
+                  className={cn(
+                    'relative flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] transition-colors',
+                    isActive
+                      ? cn('font-medium shadow-sm ring-1', meta.activeTabClass)
+                      : cn('text-muted', meta.hoverTabClass),
+                  )}
+                >
+                  {mode === 'html' && <AnimatedScrollText isActive={isActive} isHovered={isHovered} />}
+                  {mode === 'paper' && <AnimatedFileText isActive={isActive} isHovered={isHovered} />}
+                  <span className={cn(isActive && meta.activeTextClass)}>{meta.label}</span>
+                </motion.button>
+              </Tooltip>
+            )
+          })}
+
+          {/* Vertical divider between formats and notes */}
+          {onNotesToggle && (
+            <div className="mx-1 h-4 w-px bg-rule/60" />
+          )}
 
           {onNotesToggle && (
             <Tooltip label="Show inline public notes, note highlights, and section annotation prompts">
@@ -190,19 +230,18 @@ export function PaperViewModeBar({
                 onMouseEnter={() => setNotesHovered(true)}
                 onMouseLeave={() => setNotesHovered(false)}
                 className={cn(
-                  'flex min-h-[2.25rem] shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors',
+                  'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] transition-colors',
                   notesVisible
                     ? 'border-accent/30 bg-accent/5 text-accent'
                     : 'border-accent/20 bg-white text-accent/80 hover:border-accent/35 hover:bg-accent/[0.05] hover:text-accent',
                 )}
               >
                 <AnimatedMessageSquare isActive={notesVisible} isHovered={notesHovered} />
-                <span className="sm:hidden">Notes</span>
-                <span className="hidden sm:inline">Community notes</span>
+                <span className="hidden sm:inline">Notes</span>
                 {noteCount > 0 && (
                   <motion.span
                     className={cn(
-                      'ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold',
+                      'inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold',
                       notesVisible ? 'bg-accent text-white' : 'bg-surface-active text-text-faint',
                     )}
                     animate={notesVisible ? { scale: [1, 1.2, 1] } : {}}
@@ -215,12 +254,6 @@ export function PaperViewModeBar({
             </Tooltip>
           )}
         </div>
-
-        {/* Active mode purpose — visible without hovering */}
-        <div className="hidden sm:block border-t border-rule/40 mt-1.5 pt-1.5 px-1 text-[11px] text-muted/60 leading-tight select-none">
-          {MODE_META[readerMode].detail}
-        </div>
-
       </div>
     </div>
   )
