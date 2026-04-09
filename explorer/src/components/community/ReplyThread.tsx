@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ThumbsUp, MessageSquare, Send } from 'lucide-react'
+import { ThumbsUp, Send } from 'lucide-react'
 import { addReply, voteReply, type Reply } from '../../lib/api'
 import type { MockReply } from '../../data/mock-community-notes'
 import { cn } from '../../lib/cn'
