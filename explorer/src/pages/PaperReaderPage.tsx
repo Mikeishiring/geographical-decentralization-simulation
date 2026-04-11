@@ -48,6 +48,7 @@ export function PaperReaderPage({
 
   const [notesVisible, setNotesVisible] = useState(false)
   const [pdfTargetPage, setPdfTargetPage] = useState<number | undefined>(undefined)
+  const [guideOpenRequestKey, setGuideOpenRequestKey] = useState(0)
 
   const goToPdfPage = useCallback((page: number) => {
     setPdfTargetPage(page)
@@ -230,7 +231,12 @@ export function PaperReaderPage({
     />
 
     {/* Floating annotation guide — bottom-right widget, only on annotatable views */}
-    {readerMode !== 'paper' && <AnnotationGuide />}
+    {readerMode !== 'paper' && (
+      <AnnotationGuide
+        openRequestKey={guideOpenRequestKey}
+        showFloatingTrigger={false}
+      />
+    )}
 
     <AnimatePresence>
       {noteError && (
@@ -259,6 +265,7 @@ export function PaperReaderPage({
       <PaperViewModeBar
         readerMode={readerMode}
         onModeChange={setReaderMode}
+        onGuideOpen={() => setGuideOpenRequestKey(previous => previous + 1)}
         notesVisible={notesVisible}
         onNotesToggle={() => setNotesVisible(prev => !prev)}
         noteCount={totalNoteCount}

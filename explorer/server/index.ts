@@ -7713,6 +7713,7 @@ app.post('/api/simulation-copilot', simulationCopilotRateLimit, async (req, res)
     ]
     const MAX_TOOL_ROUNDS = 4
     let finalResponse: Anthropic.Messages.Message | null = null
+    let forceFinalRender = false
 
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
       const response = await client.messages.create({
@@ -7726,7 +7727,7 @@ app.post('/api/simulation-copilot', simulationCopilotRateLimit, async (req, res)
           },
         ],
         tools: simulationCopilotTools,
-        tool_choice: round === MAX_TOOL_ROUNDS
+        tool_choice: forceFinalRender || round === MAX_TOOL_ROUNDS
           ? { type: 'tool', name: 'render_simulation_view_spec' }
           : { type: 'auto' },
         messages,
@@ -7737,9 +7738,19 @@ app.post('/api/simulation-copilot', simulationCopilotRateLimit, async (req, res)
           block.type === 'tool_use' && block.name === 'render_simulation_view_spec',
       )
 
-      if (finalTool || response.stop_reason === 'end_turn') {
+      if (finalTool) {
         finalResponse = response
         break
+      }
+
+      if (response.stop_reason === 'end_turn') {
+        messages.push({ role: 'assistant', content: response.content })
+        messages.push({
+          role: 'user',
+          content: 'Return the final answer using render_simulation_view_spec only. Do not answer with plain text.',
+        })
+        forceFinalRender = true
+        continue
       }
 
       const toolCalls = response.content.filter(
