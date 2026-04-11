@@ -232,7 +232,7 @@ export function PaperReaderPage({
 
     <AnnotationGuide
       openRequestKey={guideOpenRequestKey}
-      showFloatingTrigger={false}
+      showFloatingTrigger={readerMode !== 'paper'}
     />
 
     <AnimatePresence>

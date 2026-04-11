@@ -189,16 +189,8 @@ export function PaperViewModeBar({
                 </nav>
               </div>
 
-              <div
-                data-testid="paper-current-lens-summary-desktop"
-                className="mt-2 hidden max-w-[26rem] rounded-2xl border border-black/[0.05] bg-[#fbfaf8]/88 px-3 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:block"
-              >
-                <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-400">
-                  {activeMeta.lensLabel}
-                </div>
-                <div className="mt-0.5 text-[11px] leading-relaxed text-stone-600">
-                  {activeMeta.detail}
-                </div>
+              <div data-testid="paper-current-lens-summary-desktop" className="sr-only">
+                {activeMeta.lensLabel} {activeMeta.detail}
               </div>
             </div>
 
