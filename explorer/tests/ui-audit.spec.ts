@@ -231,7 +231,7 @@ test('pdf toolbar stays beneath the paper toolbar without overlap', async ({ pag
     window.localStorage.setItem('paper-reader-mode', 'paper')
   })
   await page.goto('/')
-  await expect(page.getByText('Public community notes vs private PDF notes')).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByText('Public community notes on highlighted PDF passages')).toBeVisible({ timeout: 60_000 })
 
   const paperToolbar = page.getByTestId('paper-view-mode-bar')
   const pdfToolbar = page.getByTestId('pdf-viewer-toolbar')
