@@ -57,6 +57,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
   const [hoveredRegion, setHoveredRegion] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [mapViewportHeight, setMapViewportHeight] = useState<number | null>(null)
+  const [ghostNodes, setGhostNodes] = useState<Array<{ id: string; x: number; y: number; color: string }>>([])
   const rafRef = useRef<number | null>(null)
   const lastFrameRef = useRef(0)
   const prevNodeIdsRef = useRef<Set<string>>(new Set())
@@ -175,24 +176,27 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
   )
 
   // Ghost nodes — nodes that just disappeared get a fade-out instead of instant removal
-  const ghostNodes = useMemo(() => {
+  useEffect(() => {
     const currentIds = new Set(displayNodes.map(n => n.id))
-    const ghosts: Array<{ id: string; x: number; y: number; color: string }> = []
-    // Only track ghosts during playback
-    if (playing) {
-      for (const prevId of prevNodeIdsRef.current) {
-        if (!currentIds.has(prevId)) {
-          // Find this node's last known position from the GCP region data
-          const region = GCP_REGION_MAP.get(prevId)
-          if (region) {
-            const { x, y } = latLonToMercator(region.lat, region.lon, SVG_W, SVG_H)
-            ghosts.push({ id: prevId, x, y, color: regionColor(region.macroRegion) })
-          }
+    if (!playing) {
+      prevNodeIdsRef.current = currentIds
+      setGhostNodes([])
+      return
+    }
+
+    const nextGhosts: Array<{ id: string; x: number; y: number; color: string }> = []
+    for (const prevId of prevNodeIdsRef.current) {
+      if (!currentIds.has(prevId)) {
+        const region = GCP_REGION_MAP.get(prevId)
+        if (region) {
+          const { x, y } = latLonToMercator(region.lat, region.lon, SVG_W, SVG_H)
+          nextGhosts.push({ id: prevId, x, y, color: regionColor(region.macroRegion) })
         }
       }
     }
+
     prevNodeIdsRef.current = currentIds
-    return ghosts
+    setGhostNodes(nextGhosts)
   }, [displayNodes, playing])
 
   const latencyResult = useMemo(
@@ -248,7 +252,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
       }
     }
     return result
-  }, [displayNodes])
+  }, [displayNodes, idPrefix])
 
   // ── Metrics at current slot ──
   const metrics = payload.metrics ?? {}

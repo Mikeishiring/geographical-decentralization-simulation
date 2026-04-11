@@ -62,7 +62,7 @@ def load_simulation_config(config_file_path):
     try:
         with open(config_file_path, "r", encoding="utf-8") as file:
             config = yaml.safe_load(file)
-        print(f"✅ Successfully loaded configuration from: {config_file_path}")
+        print(f"[ok] Successfully loaded configuration from: {config_file_path}")
         return config
     except yaml.YAMLError as e:
         raise ValueError(f"Error parsing YAML file: {e}")
@@ -267,7 +267,19 @@ def simulation(
         with open(f"{output_folder}/{output_name}", "w") as f:
             json.dump(names, f)
 
-    gcp_region_profits = pd.DataFrame(model_standard.region_profits)
+    normalized_region_profits = []
+    for entry in model_standard.region_profits:
+        normalized_entry = dict(entry)
+        relay = normalized_entry.get("relay")
+        if relay is not None:
+            normalized_entry["relay"] = getattr(
+                relay,
+                "unique_id",
+                getattr(relay, "gcp_region", str(relay)),
+            )
+        normalized_region_profits.append(normalized_entry)
+
+    gcp_region_profits = pd.DataFrame(normalized_region_profits)
     gcp_region_profits.to_csv(f"{output_folder}/region_profits.csv", index=False)
     with open(f"{output_folder}/avg_mev.json", "w") as f:
         json.dump(export_payloads["avg_mev"], f)
@@ -591,7 +603,7 @@ if __name__ == "__main__":
 
     except (FileNotFoundError, ValueError, RuntimeError) as e:
         traceback.print_exc()
-        print(f"\n❌ Fatal error during simulation setup or execution: {e}")
+        print(f"\n[error] Fatal error during simulation setup or execution: {e}")
     except Exception as e:
         traceback.print_exc()
-        print(f"\n❌ An unexpected error occurred: {e}")
+        print(f"\n[error] An unexpected error occurred: {e}")

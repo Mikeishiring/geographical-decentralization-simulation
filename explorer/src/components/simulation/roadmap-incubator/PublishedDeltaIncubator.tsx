@@ -282,28 +282,26 @@ export function PublishedDeltaIncubator({
     ? 0
     : Math.max(0, Math.min(variantTotalSlots - 1, Math.round(sharedProgress * (variantTotalSlots - 1))))
 
-  const summaryByMetric = useMemo(() => new Map(
+  const summaryByMetric = new Map(
     focusMetrics.map(metric => [
       metric,
       buildDeltaSummary(metric, baselinePayload, variantPayload, baselineSlotIndex, variantSlotIndex),
     ] as const),
-  ), [baselinePayload, baselineSlotIndex, focusMetrics, variantPayload, variantSlotIndex])
+  )
 
-  const detailBlocks = useMemo(() => {
-    if (!baselinePayload || !variantPayload || !baselineDataset || !variantDataset) return []
-
-    return focusMetrics.flatMap(metric => buildAnalyticsBlocks({
-      analyticsView: metricView(metric),
-      queryMetric: metric,
-      compareMode: 'delta',
-      primaryPayload: variantPayload,
-      primarySlot: variantSlotIndex,
-      primaryLabel: `${variantDataset.result} (variant)`,
-      comparisonPayload: baselinePayload,
-      comparisonSlot: baselineSlotIndex,
-      comparisonLabel: `${baselineDataset.result} (baseline)`,
-    }))
-  }, [baselineDataset, baselinePayload, baselineSlotIndex, focusMetrics, variantDataset, variantPayload, variantSlotIndex])
+  const detailBlocks = !baselinePayload || !variantPayload || !baselineDataset || !variantDataset
+    ? []
+    : focusMetrics.flatMap(metric => buildAnalyticsBlocks({
+        analyticsView: metricView(metric),
+        queryMetric: metric,
+        compareMode: 'delta',
+        primaryPayload: variantPayload,
+        primarySlot: variantSlotIndex,
+        primaryLabel: `${variantDataset.result} (variant)`,
+        comparisonPayload: baselinePayload,
+        comparisonSlot: baselineSlotIndex,
+        comparisonLabel: `${baselineDataset.result} (baseline)`,
+      }))
 
   const errorMessages = datasetQueries.flatMap(query => (
     query.error instanceof Error ? [query.error.message] : []

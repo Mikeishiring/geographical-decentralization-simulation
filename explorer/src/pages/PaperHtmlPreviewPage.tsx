@@ -63,7 +63,7 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
   }, [study.paperCharts, study.sections])
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className={embedded ? 'w-full' : 'min-h-screen bg-canvas'}>
       {!embedded && (
         <div className="border-b border-rule/70 bg-white/92 backdrop-blur-lg">
           <div className={cn('mx-auto flex items-center justify-between gap-4 px-4 py-3 sm:px-6', CONTENT_MAX_WIDTH)}>
@@ -97,7 +97,12 @@ export function PaperHtmlPreviewPage({ embedded = false }: PaperHtmlPreviewPageP
         </div>
       )}
 
-      <main className={cn('mx-auto px-4 sm:px-6', CONTENT_MAX_WIDTH, embedded ? 'py-4 sm:py-6' : 'py-8')}>
+      <main
+        className={cn(
+          embedded ? 'w-full py-4 sm:py-6' : 'mx-auto px-4 sm:px-6 py-8',
+          embedded ? '' : CONTENT_MAX_WIDTH,
+        )}
+      >
         <div className="grid gap-8 xl:grid-cols-[250px_minmax(0,1fr)]">
           <aside className="hidden xl:block">
             <div

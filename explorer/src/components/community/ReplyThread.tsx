@@ -40,7 +40,7 @@ export function ReplyThread({ explorationId, realReplies, mockReplies, composerO
         .map(m => ({ id: m.id, explorationId, author: m.author, body: m.body, createdAt: m.createdAt, votes: m.votes })),
     ]
     return [...combined].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-  }, [realReplies, mockReplies])
+  }, [explorationId, realReplies, mockReplies])
 
   const addMutation = useMutation({
     mutationFn: (input: { author?: string; body: string }) =>

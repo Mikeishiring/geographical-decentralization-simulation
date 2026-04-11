@@ -11,9 +11,8 @@ interface CiteBadgeProps {
 }
 
 export function CiteBadge({ cite, alwaysVisible = false }: CiteBadgeProps) {
-  if (!cite) return null
-
   const { goToPdfPage } = usePaperNav()
+  if (!cite) return null
   const page = sectionToPage(cite.paperSection)
 
   // Build the section+figure+table label for the primary pill

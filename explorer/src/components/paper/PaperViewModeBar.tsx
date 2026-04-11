@@ -129,7 +129,7 @@ export function PaperViewModeBar({
     <div
       ref={barRef}
       data-testid="paper-view-mode-bar"
-      className="sticky z-40 -mx-4 bg-white/92 px-4 backdrop-blur-md sm:-mx-6 sm:px-6"
+      className="sticky z-40 bg-white/92 backdrop-blur-md"
       style={{ top: 'var(--explorer-tab-nav-height, 3.75rem)' }}
     >
       <div className="flex items-center justify-between gap-3 border-b border-rule/70 py-2.5">

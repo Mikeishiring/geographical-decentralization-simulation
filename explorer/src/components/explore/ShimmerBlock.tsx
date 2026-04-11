@@ -8,11 +8,13 @@ function BreathingChartSkeleton() {
   const [pathD, setPathD] = useState('')
   const [alpha, setAlpha] = useState(0.22)
   const rafRef = useRef(0)
-  const startRef = useRef(Date.now())
+  const startRef = useRef<number | null>(null)
 
   useEffect(() => {
+    startRef.current = performance.now()
+
     function tick() {
-      const elapsed = Date.now() - startRef.current
+      const elapsed = performance.now() - (startRef.current ?? 0)
       setPathD(breathingSineWave(500, 140, elapsed))
       setAlpha(breathingAlpha(elapsed))
       rafRef.current = requestAnimationFrame(tick)

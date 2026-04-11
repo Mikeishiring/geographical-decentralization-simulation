@@ -208,6 +208,10 @@ class RawValidatorAgent(Agent):
         if cached_time is not None:
             return cached_time
 
+        if not self.model.current_attesters:
+            self.model.minimal_needed_time_cache[cache_key] = 0.0
+            return 0.0
+
         params = self.calculate_minimal_needed_time_params(gcp_region)
         if self.model.fast_mode:
             to_attester_latency, required_attesters_for_supermajority = params
@@ -391,12 +395,14 @@ class MSPValidator(RawValidatorAgent):
             self.timing_strategy["type"] == "optimal_latency"
         ):  # The proposer knows its latency is optimized
             required_time = self.model.consensus_settings.attestation_time_ms - self.calculate_minimal_needed_time(self.gcp_region)
+            previous_slot_time_ms_inner = max(
+                0,
+                current_slot_time_ms_inner - self.model.consensus_settings.time_granularity_ms,
+            )
 
             if (
-                current_slot_time_ms_inner <= required_time
-                and current_slot_time_ms_inner
-                + self.model.consensus_settings.time_granularity_ms
-                > required_time
+                previous_slot_time_ms_inner <= required_time
+                and current_slot_time_ms_inner > required_time
             ):
                 mev_offer = 0.0
                 for signal_agent in self.model.signal_agents:
@@ -759,11 +765,13 @@ class SSPValidator(RawValidatorAgent):
                     self.gcp_region, self.target_relay.gcp_region
                 )
                 self.set_latency_threshold(self.target_relay, to_relay_latency)
+            previous_slot_time_ms_inner = max(
+                0,
+                current_slot_time_ms_inner - self.model.consensus_settings.time_granularity_ms,
+            )
             if (
-                current_slot_time_ms_inner <= self.latency_threshold
-                and current_slot_time_ms_inner
-                + self.model.consensus_settings.time_granularity_ms
-                > self.latency_threshold
+                previous_slot_time_ms_inner <= self.latency_threshold
+                and current_slot_time_ms_inner > self.latency_threshold
             ):
                 # TODO: Depending on relay-proposer latency, proposer will get mev not at current step but at a previous one
                 mev_offer = self.target_relay.get_mev_offer_at_time(

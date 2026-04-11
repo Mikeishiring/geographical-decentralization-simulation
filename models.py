@@ -306,9 +306,12 @@ class EthereumRawModel(Model):
                     (self.consensus_settings.attestation_threshold) * len(self.current_attesters)
                 )
 
-                self.current_proposer_agent.attestation_rate = (
-                    slot_successful_attestations / len(self.current_attesters)
-                ) * 100
+                if self.current_attesters:
+                    self.current_proposer_agent.attestation_rate = (
+                        slot_successful_attestations / len(self.current_attesters)
+                    ) * 100
+                else:
+                    self.current_proposer_agent.attestation_rate = 100.0
 
                 if slot_successful_attestations >= required_attesters_for_supermajority:
                     self.current_proposer_agent.mev_captured = (
@@ -412,7 +415,6 @@ class EthereumRawModel(Model):
         # Find all validators after they have been created and assigned positions
         self.validators = self.agents.select(agent_type=ValidatorAgent)
         self.update_validator_profiles()
-        self.validator_step_order = list(self.validators)
         
         # Set validator type and preferences
         self.validators = list(self.validators)  # Convert to list for shuffling
@@ -424,6 +426,7 @@ class EthereumRawModel(Model):
         random.shuffle(self.validators)
         for validator_agent in self.validators[:int(self.num_validators * self.validator_noncompliant_percentage)]:
             validator_agent.set_validator_preference(ValidatorPreference.NONCOMPLIANT)
+        self.validator_step_order = list(self.validators)
     
 
 # Multi-Source Paradigm (MSP) Model

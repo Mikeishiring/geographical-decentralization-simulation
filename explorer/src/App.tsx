@@ -6,6 +6,7 @@ import { PaperReaderPage } from './pages/PaperReaderPage'
 import { PaperHtmlPreviewPage } from './pages/PaperHtmlPreviewPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { cn } from './lib/cn'
+import { CONTENT_MAX_WIDTH } from './lib/theme'
 import { AGENT_ROUTE_PARAM_KEYS, readRouteStateFromLocation, type ExplorerRouteState } from './lib/route-state'
 import { PAPER_SECTIONS } from './data/paper-sections'
 
@@ -120,12 +121,7 @@ function readPreviewMode(): string | null {
   return params.get('preview')
 }
 
-function App() {
-  const previewMode = readPreviewMode()
-  if (previewMode === 'paper-html') {
-    return <PaperHtmlPreviewPage />
-  }
-
+function ExplorerApp() {
   const initialRoute = readRouteState()
   const [activeTab, setActiveTab] = useState<TabId>(initialRoute.tab)
   const [sharedQuery, setSharedQuery] = useState<string | null>(initialRoute.query)
@@ -253,10 +249,8 @@ function App() {
           id="main-content"
           className={cn(
             'mx-auto px-4 sm:px-6',
-            activeTab === 'paper' ? 'max-w-[96rem] pb-8 pt-3 sm:pt-4' : 'py-8',
-            activeTab === 'paper'
-              ? ''
-              : 'max-w-[96rem]',
+            CONTENT_MAX_WIDTH,
+            activeTab === 'paper' ? 'pb-8 pt-3 sm:pt-4' : 'py-8',
           )}
         >
         <div ref={el => { panelRefs.current.paper = el }} {...hiddenPanelProps(activeTab !== 'paper')}>
@@ -318,4 +312,11 @@ function App() {
   )
 }
 
-export default App
+export default function App() {
+  const previewMode = readPreviewMode()
+  if (previewMode === 'paper-html') {
+    return <PaperHtmlPreviewPage />
+  }
+
+  return <ExplorerApp />
+}
