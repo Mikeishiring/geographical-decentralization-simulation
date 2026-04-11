@@ -75,7 +75,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
   const [hover, setHover] = useState<{ x: number; svgX: number; svgY: number } | null>(null)
   const gradientBaseId = useId().replace(/:/g, '')
 
-  const padding = { top: 20, right: 60, bottom: 42, left: 45 }
+  const padding = { top: 20, right: 60, bottom: 34, left: 45 }
   const svgW = 600
   const svgH = 240
   const chartW = svgW - padding.left - padding.right
@@ -302,7 +302,7 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 <motion.text
                   key={`${tick}-${index}`}
                   x={sx}
-                  y={svgH - 16}
+                  y={svgH - 8}
                   textAnchor="middle"
                   className="fill-muted"
                   style={{ fontSize: CHART.labelSize }}
@@ -325,18 +325,6 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                 transform={`rotate(-90, 12, ${padding.top + chartH / 2})`}
               >
                 {block.yLabel}
-              </text>
-            )}
-
-            {block.xLabel && (
-              <text
-                x={svgW - padding.right}
-                y={svgH - 2.5}
-                textAnchor="end"
-                className="fill-muted"
-                style={{ fontSize: CHART.labelSize }}
-              >
-                {block.xLabel}
               </text>
             )}
 
