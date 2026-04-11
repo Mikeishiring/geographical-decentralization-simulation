@@ -13,3 +13,4 @@ seaborn
 scikit-learn
 scipy
 PyYAML
+pytest

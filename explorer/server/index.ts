@@ -3978,13 +3978,6 @@ function resolveStudyResultsTemplates(
   return resolveExpectedStudyResultsTemplates(query)
 }
 
-function resolveStudyResultsTemplate(
-  query: string,
-  chartKey: string | null,
-): StudyDashboardSpec | null {
-  return resolveStudyResultsTemplates(query, [chartKey])[0] ?? null
-}
-
 function resolveStudyResultsTemplatesForResponses(
   query: string,
   responses: readonly PublishedResultsToolResponse[],
@@ -3993,13 +3986,6 @@ function resolveStudyResultsTemplatesForResponses(
     query,
     responses.map(response => resolveCanonicalPaperChartKey(response)),
   )
-}
-
-function resolveStudyResultsTemplateForBlocks(
-  query: string,
-  blocks: readonly Block[],
-): StudyDashboardSpec | null {
-  return resolveStudyResultsTemplatesForBlocks(query, blocks)[0] ?? null
 }
 
 function resolveStudyResultsTemplatesForBlocks(
@@ -4611,10 +4597,6 @@ function resolvePaperChartKeysFromQuery(
     .filter(candidate => candidate.score >= threshold)
     .slice(0, limit)
     .map(candidate => candidate.key)
-}
-
-function resolvePaperChartKeyFromQuery(query: string): string | null {
-  return resolvePaperChartKeysFromQuery(query, 1)[0] ?? null
 }
 
 function buildQueryPaperChartFallbackBlocks(

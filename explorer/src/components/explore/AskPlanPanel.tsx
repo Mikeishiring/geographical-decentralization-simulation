@@ -25,19 +25,19 @@ function routeLabel(route: AskPlanData['route']): string {
   }
 }
 
-function routeIcon(route: AskPlanData['route']) {
+function RouteIcon({ route, className }: { readonly route: AskPlanData['route']; readonly className?: string }) {
   switch (route) {
     case 'orientation':
-      return Compass
+      return <Compass className={className} />
     case 'results':
-      return BarChart3
+      return <BarChart3 className={className} />
     case 'structured-results':
-      return Database
+      return <Database className={className} />
     case 'simulation-config':
-      return FlaskConical
+      return <FlaskConical className={className} />
     case 'hybrid':
     default:
-      return Sparkles
+      return <Sparkles className={className} />
   }
 }
 
@@ -80,7 +80,6 @@ function querySurfaceLabel(surface: string | undefined): string {
 }
 
 export function AskPlanPanel({ plan, compact = false }: AskPlanPanelProps) {
-  const Icon = routeIcon(plan.route)
   const visibleModules = compact ? plan.modules.slice(0, 3) : plan.modules
   const visibleTemplates = compact ? plan.templates.slice(0, 3) : plan.templates
   const visibleNextSteps = compact ? plan.nextSteps.slice(0, 2) : plan.nextSteps
@@ -90,7 +89,7 @@ export function AskPlanPanel({ plan, compact = false }: AskPlanPanelProps) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="inline-flex items-center gap-2 text-sm font-medium text-text-primary">
-            <Icon className="h-4 w-4 text-accent" />
+            <RouteIcon route={plan.route} className="h-4 w-4 text-accent" />
             Live query plan
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">

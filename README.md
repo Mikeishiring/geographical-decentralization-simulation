@@ -9,6 +9,11 @@ Please install Python and the dependencies by running the following command:
 pip install -r requirements.txt
 ```
 
+Run the Python test suite with:
+```bash
+python -m pytest -q
+```
+
 ## Evaluations
 
 ### Batch Scheduler

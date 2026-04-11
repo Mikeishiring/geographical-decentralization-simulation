@@ -273,10 +273,8 @@ export function AskQueryWorkbench({
     setState(buildStateFromView(liveViewMatch, activeRequest))
   }, [activeRequest, liveViewMatch, state])
 
-  if (!activeView || !state) return null
-
-  const prompt = buildPrompt(activeView, state)
-  const launchContext = buildLaunchContext(activeView, state)
+  const prompt = activeView && state ? buildPrompt(activeView, state) : ''
+  const launchContext = activeView && state ? buildLaunchContext(activeView, state) : null
   const deferredView = deferredState
     ? queryViews.find(view => view.id === deferredState.viewId) ?? null
     : null
@@ -293,6 +291,8 @@ export function AskQueryWorkbench({
     placeholderData: previousData => previousData,
     queryFn: async () => previewStructuredQuery(deferredPrompt, deferredLaunchContext!),
   })
+  if (!activeView || !state) return null
+
   const preview = previewQuery.data
   const previewBlocks = preview?.response.blocks.slice(0, 3) ?? []
   const previewSummary = preview?.response.summary ?? activeView.title
@@ -679,11 +679,11 @@ export function AskQueryWorkbench({
                 {(previewQuery.error as Error).message}
               </div>
             ) : null}
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => onLaunch(prompt, launchContext)}
-              className={cn(
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onLaunch(prompt, launchContext ?? undefined)}
+                className={cn(
                 'mt-4 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors',
                 busy
                   ? 'cursor-not-allowed border border-rule bg-white/70 text-muted'

@@ -8,7 +8,7 @@
  * Users can switch modes freely. Both share the same research context.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { DefaultChatTransport } from 'ai'
@@ -116,16 +116,19 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
   const pendingAskQueryRef = useRef<string | null>(null)
   const pendingAskLaunchRef = useRef<AskLaunchContext | null>(null)
   const askProgressSignalRef = useRef('')
-  const askTransportRef = useRef(new DefaultChatTransport<AskUIMessage>({
+  const askTransportRuntime = useMemo(() => ({
+    readHistory: () => [] as { query: string; summary: string }[],
+    consumeLaunch: () => null as AskLaunchContext | null,
+  }), [])
+  const [askTransport] = useState(() => new DefaultChatTransport<AskUIMessage>({
     api: '/api/explore/chat',
     prepareSendMessagesRequest: async ({ body, messages }) => {
-      const launch = pendingAskLaunchRef.current
-      pendingAskLaunchRef.current = null
+      const launch = askTransportRuntime.consumeLaunch()
       return {
         body: {
           ...(body ?? {}),
           messages,
-          history: historyRef.current,
+          history: askTransportRuntime.readHistory(),
           launch,
         },
       }
@@ -178,6 +181,16 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
     historyRef.current = history
   }, [history])
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
+    askTransportRuntime.readHistory = () => historyRef.current
+    askTransportRuntime.consumeLaunch = () => {
+      const launch = pendingAskLaunchRef.current
+      pendingAskLaunchRef.current = null
+      return launch
+    }
+  }, [askTransportRuntime])
+
   const {
     messages: askMessages,
     sendMessage,
@@ -186,7 +199,7 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
     error: askChatError,
     clearError: clearAskChatError,
   } = useChat<AskUIMessage>({
-    transport: askTransportRef.current,
+    transport: askTransport,
     dataPartSchemas: ASK_DATA_PART_SCHEMAS,
     onFinish: ({ messages }) => {
       const nextResponse = extractLatestExploreResponse(messages)

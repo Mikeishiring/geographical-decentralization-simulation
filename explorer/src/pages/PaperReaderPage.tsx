@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createExploration, publishExploration, listExplorations, type Exploration } from '../lib/api'
@@ -55,6 +55,16 @@ export function PaperReaderPage({
   }, [])
 
   const paperNavValue = useMemo(() => ({ goToPdfPage }), [goToPdfPage])
+
+  // ── Fade-in on view mode switch ──
+  const viewContentRef = useRef<HTMLDivElement | null>(null)
+  useLayoutEffect(() => {
+    const el = viewContentRef.current
+    if (!el) return
+    el.classList.remove('view-fade-in')
+    void el.offsetHeight
+    el.classList.add('view-fade-in')
+  }, [readerMode])
 
   // Text selection for community notes
   const { containerRef, selection, selectionRect, clearSelection } = useTextSelection(readerMode)
@@ -254,7 +264,8 @@ export function PaperReaderPage({
         noteCount={totalNoteCount}
       />
 
-      {/* Active view */}
+      {/* Active view — fades in on mode switch */}
+      <div ref={viewContentRef}>
       {readerMode === 'paper' ? (
         <FullTextView initialPage={pdfTargetPage} />
       ) : readerMode === 'html' ? (
@@ -276,6 +287,7 @@ export function PaperReaderPage({
           notesBySection={notesBySection}
         />
       )}
+      </div>
     </div>
     </PaperNavProvider>
   )

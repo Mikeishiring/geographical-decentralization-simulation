@@ -607,6 +607,16 @@ body {
   filter: invert(0.88) hue-rotate(180deg);
 }
 
+/* ── View mode crossfade — subtle opacity fade on paper view switch ── */
+@keyframes view-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.view-fade-in {
+  animation: view-fade-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* ── Tab panel directional crossfade ── */
 /* Enter: 220ms smooth-out (slower in). Hidden→visible handled by hidden attr removal. */
 @keyframes tab-enter-right {
@@ -643,7 +653,7 @@ body {
   .node-breathe,
   .halo-breathe { animation: none !important; }
   .stagger-reveal > * { opacity: 1; animation: none; }
-  .tab-enter-left, .tab-enter-right { animation: none !important; opacity: 1; }
+  .tab-enter-left, .tab-enter-right, .view-fade-in { animation: none !important; opacity: 1; }
   .card-hover { transform: none !important; }
 }
 

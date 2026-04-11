@@ -71,19 +71,25 @@ interface WorkflowPanelProps {
   readonly onPromptSelect: (prompt: string, launch?: AskLaunchContext) => void
 }
 
-function routeIcon(routeHint: StudyAssistantWorkflow['routeHint']) {
+function RouteIcon({
+  routeHint,
+  className,
+}: {
+  readonly routeHint: StudyAssistantWorkflow['routeHint']
+  readonly className?: string
+}) {
   switch (routeHint) {
     case 'orientation':
-      return Compass
+      return <Compass className={className} />
     case 'results':
-      return BarChart3
+      return <BarChart3 className={className} />
     case 'structured-results':
-      return Database
+      return <Database className={className} />
     case 'simulation-config':
-      return FlaskConical
+      return <FlaskConical className={className} />
     case 'hybrid':
     default:
-      return Sparkles
+      return <Sparkles className={className} />
   }
 }
 
@@ -569,7 +575,6 @@ function WorkflowPanel({
   onPromptSelect,
 }: WorkflowPanelProps) {
   const { workflow, activePresetId, resolvedPrompt, launchContext } = card
-  const Icon = routeIcon(workflow.routeHint)
   const isPromptActive = normalizePrompt(activePrompt) === normalizePrompt(resolvedPrompt)
   const isRouteActive = !isPromptActive && workflow.routeHint != null && workflow.routeHint === activeRoute
   const isActive = isPromptActive || isRouteActive
@@ -605,7 +610,7 @@ function WorkflowPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-rule bg-white text-text-primary shadow-sm">
-            <Icon className="h-4 w-4" />
+            <RouteIcon routeHint={workflow.routeHint} className="h-4 w-4" />
           </div>
           <div>
             <div className="text-sm font-medium text-text-primary">
@@ -712,8 +717,6 @@ export function AskWorkflowDeck({
     setSelections(current => syncWorkflowSelections(workflows.filter(workflow => matchesMode(workflow, mode)), current))
   }, [mode, workflows])
 
-  if (visibleWorkflows.length === 0) return null
-
   const workflowCards = visibleWorkflows.map(workflow => {
     const activePresetId = detectActivePresetId(workflow, selections[workflow.id])
     const resolvedPrompt = composeWorkflowPrompt(workflow, selections[workflow.id], activePresetId)
@@ -803,6 +806,8 @@ export function AskWorkflowDeck({
     isFetching: query.isFetching,
     error: query.error instanceof Error ? query.error : undefined,
   }))
+
+  if (visibleWorkflows.length === 0) return null
 
   return (
     <div className="rounded-2xl border border-rule bg-white px-5 py-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
