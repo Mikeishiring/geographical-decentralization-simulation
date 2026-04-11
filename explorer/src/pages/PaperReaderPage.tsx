@@ -230,13 +230,10 @@ export function PaperReaderPage({
       containerRef={containerRef}
     />
 
-    {/* Floating annotation guide — bottom-right widget, only on annotatable views */}
-    {readerMode !== 'paper' && (
-      <AnnotationGuide
-        openRequestKey={guideOpenRequestKey}
-        showFloatingTrigger={false}
-      />
-    )}
+    <AnnotationGuide
+      openRequestKey={guideOpenRequestKey}
+      showFloatingTrigger={false}
+    />
 
     <AnimatePresence>
       {noteError && (
