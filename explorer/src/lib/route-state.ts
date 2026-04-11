@@ -72,10 +72,21 @@ export function getInitialTabFromLocation(
 ): TabId {
   const params = new URLSearchParams(search)
   const raw = params.get('tab')
-  const migrated = raw ? (TAB_MIGRATION[raw] ?? null) : null
-  const tab = migrated as TabId | null
   const hasPaperHash = hasPaperSectionHash(hash, paperSectionIds)
   const hasAgentParams = hasAgentRouteParams(params)
+  const hasQuery = Boolean(params.get('q'))
+  const hasExplorationId = Boolean(params.get('eid'))
+
+  if (raw === 'explore') {
+    if (hasAgentParams) return RESULTS_TAB
+    if (hasQuery) return AGENT_TAB
+    if (hasExplorationId) return 'community'
+    if (params.get('topic') || hasPaperHash) return 'paper'
+    return DEFAULT_TAB
+  }
+
+  const migrated = raw ? (TAB_MIGRATION[raw] ?? null) : null
+  const tab = migrated as TabId | null
 
   if (tab && VALID_TABS.includes(tab)) {
     // Legacy: ?tab=explore with simulation params → results

@@ -22,10 +22,10 @@ test('paper hash still opens the paper tab when explore has no reading state', (
   assert.equal(tab, 'paper')
 })
 
-test('plain explore deep links still open explore', () => {
+test('plain explore deep links still open the agent workspace', () => {
   const route = readRouteStateFromLocation('?tab=explore&q=What+does+baseline+show%3F&eid=abc123', '', PAPER_SECTION_IDS)
 
-  assert.equal(route.tab, 'explore')
-  assert.equal(route.query, 'What does baseline show?')
-  assert.equal(route.explorationId, 'abc123')
+  assert.equal(route.tab, 'agent')
+  assert.equal(route.query, null)
+  assert.equal(route.explorationId, null)
 })

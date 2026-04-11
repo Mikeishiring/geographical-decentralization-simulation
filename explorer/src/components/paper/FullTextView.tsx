@@ -60,7 +60,7 @@ const ANNOTATION_COLORS: { id: Annotation['color']; label: string; cssClass: str
 
 const ZOOM_STEPS = [0.6, 0.75, 0.9, 1.0, 1.15, 1.3, 1.5] as const
 const DEFAULT_ZOOM_INDEX = 3 // 1.0
-const PDF_TOOLBAR_TOP = 'calc(var(--explorer-tab-nav-height, 3.75rem) + var(--explorer-paper-mode-bar-height, 4.75rem) + 0.5rem)'
+const PDF_TOOLBAR_TOP = 'calc(var(--explorer-tab-nav-height, 3.75rem) + var(--explorer-paper-mode-bar-height, 4.75rem) + 1.25rem)'
 
 /* ── Component ────────────────────────────────── */
 

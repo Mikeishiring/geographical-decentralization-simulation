@@ -57,6 +57,11 @@ const ANNOTATE_STEPS: GuideStep[] = [
 
 type GuideTab = 'orient' | 'annotate'
 
+interface AnnotationGuideProps {
+  readonly openRequestKey?: number
+  readonly showFloatingTrigger?: boolean
+}
+
 /**
  * Three-stage guide widget — bottom-right corner.
  *
@@ -67,7 +72,10 @@ type GuideTab = 'orient' | 'annotate'
  * First visit: auto-opens after a short delay, then collapses to hidden.
  * After that, the guide lives in the corner as an invisible hover zone.
  */
-export function AnnotationGuide() {
+export function AnnotationGuide({
+  openRequestKey = 0,
+  showFloatingTrigger = true,
+}: AnnotationGuideProps) {
   const [stage, setStage] = useState<'hidden' | 'hinting' | 'open'>('hidden')
   const stageRef = useRef(stage)
   const [hasAutoShown, setHasAutoShown] = useState(() =>
@@ -103,22 +111,24 @@ export function AnnotationGuide() {
   }, [hasAutoShown, updateStage])
 
   const handleZoneEnter = useCallback(() => {
+    if (!showFloatingTrigger) return
     if (stageRef.current !== 'hidden') return
     if (leaveTimerRef.current) {
       clearTimeout(leaveTimerRef.current)
       leaveTimerRef.current = null
     }
     updateStage('hinting')
-  }, [updateStage])
+  }, [showFloatingTrigger, updateStage])
 
   const handleZoneLeave = useCallback(() => {
+    if (!showFloatingTrigger) return
     if (stageRef.current === 'open') return
     // Short delay before hiding — prevents flicker on accidental mouse drift
     leaveTimerRef.current = setTimeout(() => {
       if (stageRef.current === 'open') return
       updateStage('hidden')
     }, 300)
-  }, [updateStage])
+  }, [showFloatingTrigger, updateStage])
 
   const handleHintClick = useCallback(() => {
     if (leaveTimerRef.current) {
@@ -144,6 +154,11 @@ export function AnnotationGuide() {
     }
   }, [])
 
+  useEffect(() => {
+    if (openRequestKey <= 0) return
+    handleHintClick()
+  }, [handleHintClick, openRequestKey])
+
   const steps = activeTab === 'orient' ? ORIENT_STEPS : ANNOTATE_STEPS
 
   return (
@@ -153,16 +168,18 @@ export function AnnotationGuide() {
       onMouseLeave={handleZoneLeave}
     >
       {/* Invisible hover zone — always present, large enough to discover */}
-      <div
-        className={cn(
-          'absolute bottom-0 right-0 transition-[width,height]',
-          stage === 'open' ? 'w-[340px] h-[420px]' : 'w-24 h-24',
-        )}
-        style={{ transitionDuration: '200ms', transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)' }}
-      />
+      {(showFloatingTrigger || stage === 'open') && (
+        <div
+          className={cn(
+            'absolute bottom-0 right-0 transition-[width,height]',
+            stage === 'open' ? 'h-[420px] w-[340px]' : 'h-24 w-24',
+          )}
+          style={{ transitionDuration: '200ms', transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)' }}
+        />
+      )}
 
       <AnimatePresence>
-        {stage === 'hinting' && (
+        {showFloatingTrigger && stage === 'hinting' && (
           <motion.button
             key="hint"
             initial={{ opacity: 0, scale: 0.4, filter: 'blur(8px)' }}
@@ -185,9 +202,9 @@ export function AnnotationGuide() {
 
             <span className="relative flex items-center gap-2 px-3.5 py-2">
               <Compass className="h-3.5 w-3.5 text-accent" />
-              <span className="text-[11px] font-medium text-stone-500 hidden sm:inline">Guide</span>
-            </span>
-          </motion.button>
+                <span className="hidden text-[11px] font-medium text-stone-500 sm:inline">Guide</span>
+              </span>
+            </motion.button>
         )}
 
         {stage === 'open' && (
@@ -245,6 +262,19 @@ export function AnnotationGuide() {
             </div>
 
             {/* Steps */}
+            <div className="px-4 pb-1">
+              {activeTab === 'orient' && (
+                <div className="rounded-xl border border-black/[0.05] bg-[#fbfaf8] px-3 py-2.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-400">
+                    Suggested entry points
+                  </div>
+                  <div className="mt-1 text-[11px] leading-snug text-stone-500">
+                    Start with the lens that matches your task, then branch into Results, Agent, or Community.
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-0 px-4 pb-4">
               {steps.map((step, i) => {
                 const Icon = step.icon
