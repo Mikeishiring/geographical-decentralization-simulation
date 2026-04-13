@@ -93,19 +93,6 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
   const maxY = Math.max(...allPoints.map(point => point.y))
   const rangeX = maxX - minX || 1
   const rangeY = maxY - minY || 1
-  const seriesSnapshots = block.series.flatMap((series, index) => {
-    const first = series.data[0]
-    const latestPt = series.data[series.data.length - 1]
-    if (!first || !latestPt) return []
-    return [{
-      label: series.label,
-      color: series.color ?? BLOCK_COLORS[index % BLOCK_COLORS.length],
-      first: first.y,
-      latest: latestPt.y,
-      peak: Math.max(...series.data.map(point => point.y)),
-      delta: latestPt.y - first.y,
-    }]
-  })
   const pointStep = Math.max(1, Math.floor(Math.max(...block.series.map(series => series.data.length)) / 18))
   const hoverReadout = hover
     ? block.series.flatMap((series, index) => {
@@ -173,7 +160,6 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
 
           <div className="flex flex-wrap items-center gap-1.5">
             {block.series.map((series, index) => {
-              const latest = series.data[series.data.length - 1]
               const color = series.color ?? BLOCK_COLORS[index % BLOCK_COLORS.length]
               return (
                 <span
@@ -185,29 +171,11 @@ export function TimeSeriesBlock({ block, notePins = [] }: TimeSeriesBlockProps) 
                     style={{ backgroundColor: color }}
                   />
                   {series.label}
-                  {latest && (
-                    <span className="font-medium tabular-nums text-text-primary">
-                      {formatSeriesNumber(latest.y)}
-                    </span>
-                  )}
                 </span>
               )
             })}
           </div>
         </div>
-
-        {/* Compact snapshot strip */}
-        {seriesSnapshots.length > 0 && (
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-11 text-text-faint">
-            {seriesSnapshots.map(snapshot => (
-              <div key={`snapshot-${snapshot.label}`} className="flex items-center gap-2">
-                <span>range <span className="tabular-nums text-muted">{formatSeriesNumber(snapshot.first)}</span>–<span className="tabular-nums text-muted">{formatSeriesNumber(snapshot.peak)}</span></span>
-                <span className="text-rule">·</span>
-                <span>delta <span className="tabular-nums text-muted">{formatSeriesNumber(snapshot.delta)}</span></span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="px-4 py-3">

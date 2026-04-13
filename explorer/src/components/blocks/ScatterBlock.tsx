@@ -119,10 +119,6 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
               )
             })}
 
-            {block.xLabel && (
-              <text x={padding.left + chartW / 2} y={svgH - 2} textAnchor="middle"
-                className="fill-muted" style={{ fontSize: CHART.labelSize }}>{block.xLabel}</text>
-            )}
             {block.yLabel && (
               <text x={12} y={padding.top + chartH / 2} textAnchor="middle"
                 className="fill-muted" style={{ fontSize: CHART.labelSize }}
@@ -221,6 +217,12 @@ export function ScatterBlock({ block }: ScatterBlockProps) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {block.xLabel ? (
+          <div className="mt-2 text-center text-11 text-text-faint">
+            {block.xLabel}
+          </div>
+        ) : null}
       </div>
     </div>
   )
