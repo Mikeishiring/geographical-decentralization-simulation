@@ -120,6 +120,18 @@ function sampleSeries(raw: readonly number[] | undefined, maxPoints = 200): Arra
   return points
 }
 
+function sampleInfoDistanceSeries(
+  raw: ReadonlyArray<readonly number[]> | undefined,
+  maxPoints = 200,
+): Array<{ x: number; y: number }> {
+  if (!raw?.length) return []
+  return sampleSeries(raw.map(values => {
+    const numericValues = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+    if (numericValues.length === 0) return 0
+    return numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length
+  }), maxPoints)
+}
+
 
 function buildTimeseriesBlocks(payload: PublishedAnalyticsPayload): Block[] {
   const metrics = payload.metrics ?? {}
@@ -139,7 +151,7 @@ function buildTimeseriesBlocks(payload: PublishedAnalyticsPayload): Block[] {
   push('Coefficient of variation \u2014 profit disparity', 'CV', sampleSeries(metrics.profit_variance), CHART_COLORS.cv, 'Variance ratio (lower = fairer)')
   push('Average nearest-neighbor distance \u2014 local spacing', 'Avg NND', sampleSeries(metrics.avg_nnd), CHART_COLORS.avgNnd, 'Distance between nearest validators')
   push('Nearest neighbor index \u2014 spatial regularity', 'NNI', sampleSeries(metrics.nni), CHART_COLORS.nni, 'Ratio (< 1 = clustered, > 1 = dispersed)')
-  push('Relay distance \u2014 source accessibility', 'Relay dist', sampleSeries(metrics.info_avg_distance), CHART_COLORS.relayDist, 'Avg distance to information sources')
+  push('Relay distance \u2014 source accessibility', 'Relay dist', sampleInfoDistanceSeries(metrics.info_avg_distance), CHART_COLORS.relayDist, 'Avg distance to information sources')
   return blocks
 }
 

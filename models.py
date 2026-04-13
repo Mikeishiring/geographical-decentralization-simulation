@@ -427,6 +427,27 @@ class EthereumRawModel(Model):
         for validator_agent in self.validators[:int(self.num_validators * self.validator_noncompliant_percentage)]:
             validator_agent.set_validator_preference(ValidatorPreference.NONCOMPLIANT)
         self.validator_step_order = list(self.validators)
+
+
+    def record_migration_decision(
+        self,
+        *,
+        validator_agent,
+        action_reason,
+        previous_region,
+        new_region,
+        migrated,
+    ):
+        self.migration_queue.append(migrated)
+        self.action_reasons.append({
+            "slot": self.current_slot_idx,
+            "validator_unique_id": getattr(validator_agent, "unique_id", None),
+            "validator_index": getattr(validator_agent, "index", None),
+            "action_reason": action_reason,
+            "previous_region": previous_region,
+            "new_region": new_region,
+            "migrated": bool(migrated),
+        })
     
 
 # Multi-Source Paradigm (MSP) Model
@@ -463,13 +484,21 @@ class MultiSourceParadigm(EthereumRawModel):
     def _setup_new_slot(self):
         super()._setup_new_slot()
 
+        if not self.current_proposer_agent:
+            self.migration_queue.append(False)
+            return
+
         # moving decision logic here to ensure it happens after proposer is selected
         prev_gcp_region = self.current_proposer_agent.gcp_region
         is_migrated, action_reason = self.current_proposer_agent.decide_to_migrate()  # Check if proposer should migrate
         new_gcp_region = self.current_proposer_agent.gcp_region
-        # Log migration decision
-        self.migration_queue.append(is_migrated)
-        self.action_reasons.append((action_reason, prev_gcp_region, new_gcp_region))
+        self.record_migration_decision(
+            validator_agent=self.current_proposer_agent,
+            action_reason=action_reason,
+            previous_region=prev_gcp_region,
+            new_region=new_gcp_region,
+            migrated=is_migrated,
+        )
 
         [signal_agent.update_mev_offer() for signal_agent in self.signal_agents]
     
@@ -509,12 +538,20 @@ class SingleSourceParadigm(EthereumRawModel):
     def _setup_new_slot(self):
         super()._setup_new_slot()
 
+        if not self.current_proposer_agent:
+            self.migration_queue.append(False)
+            return
+
         prev_gcp_region = self.current_proposer_agent.gcp_region
         is_migrated, action_reason = self.current_proposer_agent.decide_to_migrate()  # Check if proposer should migrate
         new_gcp_region = self.current_proposer_agent.gcp_region
-        # Log migration decision
-        self.migration_queue.append(is_migrated)
-        self.action_reasons.append((action_reason, prev_gcp_region, new_gcp_region))
+        self.record_migration_decision(
+            validator_agent=self.current_proposer_agent,
+            action_reason=action_reason,
+            previous_region=prev_gcp_region,
+            new_region=new_gcp_region,
+            migrated=is_migrated,
+        )
 
         # Reset relay's MEV offer for the new slot start
         [relay_agent.update_mev_offer() for relay_agent in self.relay_agents]

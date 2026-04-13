@@ -62,7 +62,11 @@ export function SimulationLabPage({
             </div>
           </motion.div>
 
-          <DataLabSurface />
+          <DataLabSurface
+            currentJobId={routeState.currentJobId}
+            publishedDetailPath={routeState.exactComparisonPath}
+            researchViewerBaseUrl={routeState.researchViewerBaseUrl}
+          />
         </>
       )}
 
