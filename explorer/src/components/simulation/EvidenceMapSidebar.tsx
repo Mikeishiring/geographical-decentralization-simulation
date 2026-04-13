@@ -48,8 +48,8 @@ export function EvidenceMapSidebar({
   return (
     <div
       className={cn(
-        'border-t border-black/[0.06] bg-[#FAFAF8] p-3 lg:border-l lg:border-t-0',
-        'space-y-3 max-h-[min(360px,calc(100vh-220px))] overflow-y-auto overscroll-contain lg:overflow-y-auto',
+        'border-t border-black/[0.06] bg-[#FAFAF8] p-2.5 lg:border-l lg:border-t-0',
+        'space-y-2.5 max-h-[min(340px,calc(100vh-220px))] overflow-y-auto overscroll-contain lg:overflow-y-auto',
         className,
       )}
       style={style}
@@ -60,41 +60,41 @@ export function EvidenceMapSidebar({
           <span className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium">Metrics</span>
           <span className="text-[9px] font-mono text-stone-400 tabular-nums">slot {(slot + 1).toLocaleString()}</span>
         </div>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="mt-1 grid grid-cols-2 gap-1">
           {gini != null && (
-            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+            <div className="rounded-xl border border-black/[0.06] bg-white px-2 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
               <InlineTooltip label="Gini coefficient — 0 = perfectly equal, 1 = maximally concentrated" placement="above"><span className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Gini</span></InlineTooltip>
-              <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(gini, THRESHOLDS.gini)])}>
+              <div className={cn('mt-0.5 text-[12px] font-semibold tabular-nums leading-none', SENTIMENT_TEXT[sentimentLower(gini, THRESHOLDS.gini)])}>
                 {formatNumber(gini, 3)}
               </div>
             </div>
           )}
           {hhi != null && (
-            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+            <div className="rounded-xl border border-black/[0.06] bg-white px-2 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
               <InlineTooltip label="Herfindahl-Hirschman Index — sum of squared market shares, higher = more concentrated" placement="above"><span className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">HHI</span></InlineTooltip>
-              <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentLower(hhi, THRESHOLDS.hhi)])}>
+              <div className={cn('mt-0.5 text-[12px] font-semibold tabular-nums leading-none', SENTIMENT_TEXT[sentimentLower(hhi, THRESHOLDS.hhi)])}>
                 {formatNumber(hhi, 4)}
               </div>
             </div>
           )}
           {liveness != null && (
-            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+            <div className="rounded-xl border border-black/[0.06] bg-white px-2 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
               <InlineTooltip label={`${LIVENESS_LABEL} — ${LIVENESS_DESCRIPTION}`} placement="above"><span className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">{LIVENESS_LABEL}</span></InlineTooltip>
-              <div className={cn('text-[13px] font-semibold tabular-nums', SENTIMENT_TEXT[sentimentHigher(liveness, THRESHOLDS.liveness)])}>
+              <div className={cn('mt-0.5 text-[12px] font-semibold tabular-nums leading-none', SENTIMENT_TEXT[sentimentHigher(liveness, THRESHOLDS.liveness)])}>
                 {formatLivenessCount(liveness)}
               </div>
             </div>
           )}
           {clusters != null && (
-            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+            <div className="rounded-xl border border-black/[0.06] bg-white px-2 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
               <InlineTooltip label="Distinct geographic clusters identified by nearest-neighbor analysis" placement="above"><span className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Clusters</span></InlineTooltip>
-              <div className="text-[13px] font-semibold tabular-nums text-stone-800">{clusters}</div>
+              <div className="mt-0.5 text-[12px] font-semibold tabular-nums leading-none text-stone-800">{clusters}</div>
             </div>
           )}
           {distance != null && (
-            <div className="rounded-lg border border-black/[0.06] bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+            <div className="rounded-xl border border-black/[0.06] bg-white px-2 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
               <InlineTooltip label="Sum of pairwise distances between active regions — higher = more geographically spread" placement="above"><span className="text-[9px] uppercase tracking-wider text-stone-400 font-medium">Distance</span></InlineTooltip>
-              <div className="text-[13px] font-semibold tabular-nums text-stone-800">{distance.toLocaleString()}</div>
+              <div className="mt-0.5 text-[12px] font-semibold tabular-nums leading-none text-stone-800">{distance.toLocaleString()}</div>
             </div>
           )}
         </div>
@@ -104,13 +104,13 @@ export function EvidenceMapSidebar({
       {macroBreakdown.length > 0 && (
         <div>
           <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium">Continents</div>
-          <div className="space-y-1.5">
+          <div className="mt-1 space-y-1">
             {macroBreakdown.map(({ region, share }, i) => {
               const barColor = REGION_COLORS[region as keyof typeof REGION_COLORS] ?? '#94A3B8'
               return (
                 <div key={region} className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: barColor }} />
-                  <span className="text-[10px] text-stone-500 w-[60px] truncate">{region}</span>
+                  <span className="w-[54px] truncate text-[10px] text-stone-500">{region}</span>
                   <div className="flex-1 h-[3px] rounded-full bg-stone-100 overflow-hidden">
                     <motion.div
                       className="h-full rounded-full"
@@ -132,12 +132,12 @@ export function EvidenceMapSidebar({
       <div>
         <div className="text-[9px] uppercase tracking-[0.08em] text-stone-400 font-medium">Top regions</div>
         <motion.div
-          className="space-y-0.5"
+          className="mt-1 space-y-0.5"
           variants={STAGGER_CONTAINER}
           initial="hidden"
           animate="visible"
         >
-          {sorted.slice(0, 5).map((node, i) => {
+          {sorted.slice(0, 4).map((node, i) => {
             const color = overlay === 'sources' ? NODE_BLUE.source : regionColor(node.macroRegion)
             const pct = ((node.count / maxCount) * 100).toFixed(0)
             const sharePct = totalValidators > 0 ? ((node.count / totalValidators) * 100).toFixed(1) : '0'
@@ -147,8 +147,8 @@ export function EvidenceMapSidebar({
                 key={node.id}
                 variants={STAGGER_ITEM}
                 className={cn(
-                  'group rounded-lg px-2 py-1.5 transition-all duration-150 cursor-default',
-                  isHovered ? 'bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] border border-black/[0.06]' : 'border border-transparent',
+                  'group rounded-xl px-2 py-1.5 transition-all duration-150 cursor-default',
+                  isHovered ? 'border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]' : 'border border-transparent',
                 )}
                 onMouseEnter={() => onHover({
                   x: node.x, y: node.y,
@@ -162,10 +162,10 @@ export function EvidenceMapSidebar({
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                    <span className="text-[11px] text-stone-700 font-medium truncate">{node.city.split(',')[0]}</span>
+                    <span className="text-[10.5px] text-stone-700 font-medium truncate">{node.city.split(',')[0]}</span>
                   </div>
                   <div className="flex items-baseline gap-1 shrink-0">
-                    <span className="text-[11px] font-semibold tabular-nums text-stone-800">{node.count.toLocaleString()}</span>
+                    <span className="text-[10.5px] font-semibold tabular-nums text-stone-800">{node.count.toLocaleString()}</span>
                     <span className="text-[9px] text-stone-400 font-medium">{sharePct}%</span>
                   </div>
                 </div>
@@ -186,8 +186,8 @@ export function EvidenceMapSidebar({
 
       {/* Latency legend */}
       {overlay === 'latency' && (
-        <div className="rounded-lg border border-black/[0.06] bg-white p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-          <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium mb-2">Latency scale</div>
+        <div className="rounded-xl border border-black/[0.06] bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <div className="mb-1.5 text-[9px] uppercase tracking-wider text-stone-400 font-medium">Latency scale</div>
           <InlineTooltip label="Green = low latency, Red = high latency between GCP regions" placement="above">
             <span className="block h-1.5 w-full rounded-full" style={{ background: 'linear-gradient(to right, #10B981, #FBBF24, #F97316, #EF4444)' }} />
           </InlineTooltip>
@@ -200,8 +200,8 @@ export function EvidenceMapSidebar({
 
       {/* Density / region legend */}
       {overlay !== 'latency' && (
-        <div className="rounded-lg border border-black/[0.06] bg-white p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-          <div className="text-[9px] uppercase tracking-wider text-stone-400 font-medium mb-2">{overlay === 'sources' ? 'Source density' : 'Regions'}</div>
+        <div className="rounded-xl border border-black/[0.06] bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <div className="mb-1.5 text-[9px] uppercase tracking-wider text-stone-400 font-medium">{overlay === 'sources' ? 'Source density' : 'Regions'}</div>
           {overlay === 'sources' ? (
             <div className="flex items-center gap-3">
               {([
