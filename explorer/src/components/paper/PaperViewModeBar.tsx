@@ -138,17 +138,22 @@ export function PaperViewModeBar({
       className="sticky z-40 bg-white/92 backdrop-blur-md"
       style={{ top: 'var(--explorer-tab-nav-height, 3.75rem)' }}
     >
-      <div className="border-b border-rule/70 py-2.5">
-        <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
+      <div className="border-b border-rule/70 py-2">
+        <div className="flex flex-col gap-2 sm:gap-2.5 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0 flex-1">
-            <div className="rounded-[16px] border border-black/[0.05] bg-[rgba(255,255,255,0.88)] p-1 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <div className="rounded-[18px] border border-black/[0.05] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(250,248,244,0.92))] p-1.5 shadow-[0_1px_2px_rgba(15,23,42,0.04),inset_0_1px_0_rgba(255,255,255,0.7)]">
               <nav className="flex flex-wrap items-center gap-1" role="tablist" aria-label="Reading mode">
                 {ALL_MODES.map(mode => {
                   const meta = MODE_META[mode]
                   const isActive = readerMode === mode
                   const isHovered = hoveredMode === mode
                   return (
-                    <Tooltip key={mode} label={`${meta.lensLabel} · ${meta.toneLabel}`} detail={meta.detail}>
+                    <Tooltip
+                      key={mode}
+                      eyebrow={meta.lensLabel}
+                      label={`${meta.label} · ${meta.toneLabel}`}
+                      detail={meta.detail}
+                    >
                       <div className="flex items-center gap-1">
                         {mode === 'html' && (
                           <span aria-hidden className="mx-1 hidden h-5 w-px bg-black/[0.08] sm:block" />
@@ -162,9 +167,9 @@ export function PaperViewModeBar({
                           whileTap={{ scale: 0.97 }}
                           transition={SPRING_SNAPPY}
                           className={cn(
-                            'relative flex items-center gap-1.5 rounded-[11px] px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.04em] transition-[background-color,color,box-shadow]',
+                            'relative flex items-center gap-1.5 rounded-[12px] px-3.5 py-2 text-[11px] font-medium uppercase tracking-[0.04em] transition-[background-color,color,box-shadow]',
                             isActive
-                              ? cn('shadow-sm ring-1', meta.activeTabClass)
+                              ? cn('shadow-[0_1px_2px_rgba(15,23,42,0.06)] ring-1', meta.activeTabClass)
                               : 'text-stone-500 hover:bg-black/[0.035] hover:text-stone-800',
                           )}
                         >
@@ -181,29 +186,27 @@ export function PaperViewModeBar({
               </nav>
             </div>
 
-            <div className="mt-1 hidden items-center gap-2 text-[10px] text-stone-400 sm:flex">
-              <span className="font-medium uppercase tracking-[0.08em]">{activeMeta.lensLabel}</span>
-              <span className="h-1 w-1 rounded-full bg-stone-300" />
-              <span>{activeMeta.detail}</span>
-            </div>
-
             <div data-testid="paper-current-lens-summary-desktop" className="sr-only">
               {activeMeta.lensLabel} {activeMeta.detail}
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 xl:pl-4">
+          <div className="flex items-center justify-end gap-2 xl:pl-3">
             {(showNotesToggle || onGuideOpen) && (
-              <div className="flex items-center gap-1 rounded-[14px] border border-black/[0.06] bg-white/88 p-1 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+              <div className="flex items-center gap-1 rounded-[16px] border border-black/[0.06] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,245,241,0.92))] p-1.5 shadow-[0_1px_2px_rgba(15,23,42,0.04),inset_0_1px_0_rgba(255,255,255,0.72)]">
                 {showNotesToggle && (
-                  <Tooltip label="Show inline public notes, note highlights, and section annotation prompts">
+                  <Tooltip
+                    eyebrow="Community notes"
+                    label="Inline notes and prompts"
+                    detail="Show public notes, note highlights, and section annotation prompts directly in the reading surface."
+                  >
                     <button
                       onClick={onNotesToggle}
                       onMouseEnter={() => setNotesHovered(true)}
                       onMouseLeave={() => setNotesHovered(false)}
                       aria-label="Notes"
                       className={cn(
-                        'flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[11px] transition-[background-color,color,box-shadow]',
+                        'flex items-center gap-1.5 rounded-[11px] px-2.75 py-1.75 text-[11px] transition-[background-color,color,box-shadow]',
                         notesVisible
                           ? 'bg-accent/8 text-accent shadow-[inset_0_0_0_1px_rgba(59,130,246,0.18)]'
                           : 'text-stone-500 hover:bg-black/[0.035] hover:text-stone-800',
@@ -230,14 +233,18 @@ export function PaperViewModeBar({
                   <span aria-hidden className="h-4 w-px bg-black/[0.06]" />
                 )}
                 {onGuideOpen && (
-                  <Tooltip label="Open the reading guide and suggested entry points for this paper surface">
+                  <Tooltip
+                    eyebrow="Reading guide"
+                    label={`${activeMeta.lensLabel} · suggested entry points`}
+                    detail="Open the guide, reading modes, and navigation cues for this paper surface."
+                  >
                     <button
                       onClick={onGuideOpen}
                       onMouseEnter={() => setGuideHovered(true)}
                       onMouseLeave={() => setGuideHovered(false)}
                       aria-label="Guide"
                       className={cn(
-                        'flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[11px] text-stone-500 transition-[background-color,color,box-shadow]',
+                        'flex items-center gap-1.5 rounded-[11px] px-2.75 py-1.75 text-[11px] text-stone-500 transition-[background-color,color,box-shadow]',
                         guideHovered
                           ? 'bg-black/[0.035] text-stone-800 shadow-[0_1px_2px_rgba(15,23,42,0.04)]'
                           : 'hover:bg-black/[0.035] hover:text-stone-800',
