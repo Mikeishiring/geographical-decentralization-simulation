@@ -248,7 +248,7 @@ function ExplorerApp() {
       <main
         id="main-content"
         className={cn(
-          'mx-auto px-4 sm:px-6 py-8 sm:py-9',
+          'mx-auto px-4 pt-3 pb-8 sm:px-6 sm:pt-[6px] sm:pb-9',
           CONTENT_MAX_WIDTH,
         )}
       >
