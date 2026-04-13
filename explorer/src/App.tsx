@@ -245,14 +245,13 @@ function ExplorerApp() {
       <Header />
       <TabNav activeTab={activeTab} onTabChange={handleTabChange} onTabIntent={handleTabIntent} />
 
-        <main
-          id="main-content"
-          className={cn(
-            'mx-auto px-4 sm:px-6',
-            CONTENT_MAX_WIDTH,
-            activeTab === 'paper' ? 'pb-8 pt-3 sm:pt-4' : 'py-8',
-          )}
-        >
+      <main
+        id="main-content"
+        className={cn(
+          'mx-auto px-4 sm:px-6 py-8 sm:py-9',
+          CONTENT_MAX_WIDTH,
+        )}
+      >
         <div ref={el => { panelRefs.current.paper = el }} {...hiddenPanelProps(activeTab !== 'paper')}>
           <ErrorBoundary fallbackLabel="The Paper tab encountered an error.">
             <PaperReaderPage

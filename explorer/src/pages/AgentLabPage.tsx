@@ -463,58 +463,62 @@ export default function AgentLabPage({ onTabChange, onOpenCommunityExploration }
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="reveal-up relative overflow-hidden">
-        <div className="absolute -right-4 -top-2 w-[140px] h-[140px] opacity-[0.14] pointer-events-none select-none" aria-hidden="true">
+      <div className="reveal-up relative overflow-hidden rounded-2xl border border-rule/70 bg-white/92 px-5 py-5 shadow-sm">
+        <div className="absolute -right-3 -top-2 w-[124px] h-[124px] opacity-[0.12] pointer-events-none select-none" aria-hidden="true">
           <GlobeNetwork className="w-full h-full text-muted" />
         </div>
-        <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
-          Research workspace
-        </span>
-        <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-text-primary">
-          Ask questions & run experiments
-        </h1>
-        <p className="mt-2 max-w-2xl text-[14px] font-[450] leading-6 tracking-[-0.005em] text-muted">
-          {ASK_DESCRIPTION}
-        </p>
-      </div>
-
-      {/* Mode selector — pill control with sliding indicator */}
-      <div className="reveal-up flex items-center gap-0.5 rounded-xl p-1 w-fit shadow-[0_0_0_1px_rgba(0,0,0,0.06)] bg-[rgba(0,0,0,0.025)]">
-        {([
-          { id: 'ask' as AgentMode, icon: MessageSquare, label: 'Ask the paper', tooltip: 'Type a question and get an AI answer grounded in the paper\u2019s data and findings' },
-          { id: 'experiment' as AgentMode, icon: FlaskConical, label: 'Run experiment', tooltip: 'Start an autonomous loop that configures, runs, and interprets a simulation for you' },
-        ]).map(m => (
-          <motion.button
-            key={m.id}
-            onClick={() => setMode(m.id)}
-            whileTap={{ scale: 0.96 }}
-            transition={SPRING_SNAPPY}
-            title={m.tooltip}
-            className={cn(
-              'relative flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] transition-colors',
-              mode === m.id ? 'text-text-primary font-medium' : 'text-muted hover:text-text-primary',
-            )}
-          >
-            {mode === m.id && (
-              <motion.span
-                layoutId="agent-mode-pill"
-                className="absolute inset-0 rounded-lg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)]"
-                transition={SPRING_SNAPPY}
-              />
-            )}
-            <span className="relative flex items-center gap-1.5">
-              <m.icon className="h-4 w-4" strokeWidth={1.5} />
-              {m.label}
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
+              Research workspace
             </span>
-          </motion.button>
-        ))}
+            <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-text-primary">
+              Ask questions & run experiments
+            </h1>
+            <p className="mt-2 text-[14px] font-[450] leading-6 tracking-[-0.005em] text-muted">
+              {ASK_DESCRIPTION}
+            </p>
+          </div>
+
+          {/* Mode selector — pill control with sliding indicator */}
+          <div className="reveal-up flex items-center gap-0.5 rounded-xl p-1 w-fit shadow-[0_0_0_1px_rgba(0,0,0,0.06)] bg-[rgba(0,0,0,0.025)]">
+            {([
+              { id: 'ask' as AgentMode, icon: MessageSquare, label: 'Ask the paper', tooltip: 'Type a question and get an AI answer grounded in the paper\u2019s data and findings' },
+              { id: 'experiment' as AgentMode, icon: FlaskConical, label: 'Run experiment', tooltip: 'Start an autonomous loop that configures, runs, and interprets a simulation for you' },
+            ]).map(m => (
+              <motion.button
+                key={m.id}
+                onClick={() => setMode(m.id)}
+                whileTap={{ scale: 0.96 }}
+                transition={SPRING_SNAPPY}
+                title={m.tooltip}
+                className={cn(
+                  'relative flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] transition-colors',
+                  mode === m.id ? 'text-text-primary font-medium' : 'text-muted hover:text-text-primary',
+                )}
+              >
+                {mode === m.id && (
+                  <motion.span
+                    layoutId="agent-mode-pill"
+                    className="absolute inset-0 rounded-lg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)]"
+                    transition={SPRING_SNAPPY}
+                  />
+                )}
+                <span className="relative flex items-center gap-1.5">
+                  <m.icon className="h-4 w-4" strokeWidth={1.5} />
+                  {m.label}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ─── Sticky query bar ─── */}
       {mode === 'ask' && (
         <div
           ref={stickyBarRef}
-          className="sticky z-30 -mx-4 border-b border-rule/70 bg-canvas/92 px-4 py-2.5 backdrop-blur-md sm:-mx-6 sm:px-6"
+          className="sticky z-30 rounded-2xl border border-rule/70 bg-canvas/92 px-4 py-2.5 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
           style={{ top: 'var(--explorer-tab-nav-height, 3.75rem)' }}
         >
           <div className="flex items-center gap-3">
