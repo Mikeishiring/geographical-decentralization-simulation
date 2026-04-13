@@ -60,6 +60,7 @@ type GuideTab = 'orient' | 'annotate'
 interface AnnotationGuideProps {
   readonly openRequestKey?: number
   readonly showFloatingTrigger?: boolean
+  readonly paperMode?: boolean
 }
 
 /**
@@ -75,6 +76,7 @@ interface AnnotationGuideProps {
 export function AnnotationGuide({
   openRequestKey = 0,
   showFloatingTrigger = true,
+  paperMode = false,
 }: AnnotationGuideProps) {
   const [stage, setStage] = useState<'hidden' | 'hinting' | 'open'>('hidden')
   const stageRef = useRef(stage)
@@ -172,7 +174,13 @@ export function AnnotationGuide({
         <div
           className={cn(
             'absolute bottom-0 right-0 transition-[width,height]',
-            stage === 'open' ? 'h-[420px] w-[340px]' : 'h-24 w-24',
+            paperMode
+              ? stage === 'open'
+                ? 'h-[380px] w-[300px]'
+                : 'h-16 w-16'
+              : stage === 'open'
+                ? 'h-[420px] w-[340px]'
+                : 'h-24 w-24',
           )}
           style={{ transitionDuration: '200ms', transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)' }}
         />
@@ -188,7 +196,8 @@ export function AnnotationGuide({
             transition={SPRING_POPUP}
             onClick={handleHintClick}
             className={cn(
-              'absolute bottom-5 right-5 sm:bottom-6 sm:right-6',
+              'absolute',
+              paperMode ? 'bottom-4 right-4 sm:bottom-5 sm:right-5' : 'bottom-5 right-5 sm:bottom-6 sm:right-6',
               'flex items-center gap-2 rounded-full',
               'border border-black/[0.06] bg-white/[0.95] backdrop-blur-lg',
               'shadow-[0_4px_20px_rgba(15,23,42,0.1),0_0_0_1px_rgba(0,0,0,0.04)]',
@@ -200,11 +209,11 @@ export function AnnotationGuide({
             {/* Breathing ring behind the icon */}
             <span className="absolute inset-0 rounded-full animate-[guidePulse_2.4s_ease-in-out_infinite] bg-accent/[0.06]" />
 
-            <span className="relative flex items-center gap-2 px-3.5 py-2">
+            <span className={cn('relative flex items-center gap-2', paperMode ? 'px-3 py-1.5' : 'px-3.5 py-2')}>
               <Compass className="h-3.5 w-3.5 text-accent" />
-                <span className="hidden text-[11px] font-medium text-stone-500 sm:inline">Guide</span>
-              </span>
-            </motion.button>
+              <span className="hidden text-[11px] font-medium text-stone-500 sm:inline">Guide</span>
+            </span>
+          </motion.button>
         )}
 
         {stage === 'open' && (
@@ -217,7 +226,10 @@ export function AnnotationGuide({
               ...SPRING_POPUP,
               filter: { duration: 0.2 },
             }}
-            className="absolute bottom-5 right-5 sm:bottom-6 sm:right-6 w-[300px] sm:w-[320px] origin-bottom-right rounded-2xl border border-black/[0.06] bg-white/[0.97] shadow-[0_16px_48px_rgba(15,23,42,0.12),0_0_0_1px_rgba(0,0,0,0.06)] backdrop-blur-lg"
+            className={cn(
+              'absolute origin-bottom-right rounded-2xl border border-black/[0.06] bg-white/[0.97] shadow-[0_16px_48px_rgba(15,23,42,0.12),0_0_0_1px_rgba(0,0,0,0.06)] backdrop-blur-lg',
+              paperMode ? 'bottom-4 right-4 w-[286px] sm:bottom-5 sm:right-5 sm:w-[306px]' : 'bottom-5 right-5 w-[300px] sm:bottom-6 sm:right-6 sm:w-[320px]',
+            )}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 pt-3.5 pb-2">

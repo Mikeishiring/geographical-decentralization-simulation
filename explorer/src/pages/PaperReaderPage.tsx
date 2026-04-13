@@ -49,6 +49,7 @@ export function PaperReaderPage({
   const [notesVisible, setNotesVisible] = useState(false)
   const [pdfTargetPage, setPdfTargetPage] = useState<number | undefined>(undefined)
   const [guideOpenRequestKey, setGuideOpenRequestKey] = useState(0)
+  const isPaperMode = readerMode === 'paper'
 
   const goToPdfPage = useCallback((page: number) => {
     setPdfTargetPage(page)
@@ -219,80 +220,84 @@ export function PaperReaderPage({
 
   return (
     <PaperNavProvider value={paperNavValue}>
-    {/* Popover lives OUTSIDE the container so mousedown on it
-        never triggers the container's selection-clear handler */}
-    <SelectionPopover
-      anchor={selection}
-      rect={selectionRect}
-      onAddNote={handleAddNote}
-      onDismiss={clearSelection}
-      sectionNoteCount={selectionSectionNoteCount}
-      containerRef={containerRef}
-    />
-
-    <AnnotationGuide
-      openRequestKey={guideOpenRequestKey}
-      showFloatingTrigger={readerMode !== 'paper'}
-    />
-
-    <AnimatePresence>
-      {noteError && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 12 }}
-          transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-danger/20 bg-danger/5 px-4 py-2.5 text-sm text-danger shadow-lg backdrop-blur-sm"
-        >
-          <span>{noteError}</span>
-          <button
-            onClick={() => setNoteError(null)}
-            className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium text-danger/70 hover:text-danger hover:bg-danger/10 transition-colors"
-            aria-label="Dismiss error"
-          >
-            Dismiss
-          </button>
-        </motion.div>
-      )}
-    </AnimatePresence>
-
-    <div ref={containerRef} className="min-w-0 w-full max-w-full">
-
-      {/* Sticky reading-mode bar */}
-      <PaperViewModeBar
-        readerMode={readerMode}
-        onModeChange={setReaderMode}
-        onGuideOpen={() => setGuideOpenRequestKey(previous => previous + 1)}
-        notesVisible={notesVisible}
-        onNotesToggle={() => setNotesVisible(prev => !prev)}
-        noteCount={totalNoteCount}
-      />
-
-      {/* Active view — fades in on mode switch */}
-      <div ref={viewContentRef}>
-      {readerMode === 'paper' ? (
-        <FullTextView initialPage={pdfTargetPage} />
-      ) : readerMode === 'html' ? (
-        <PaperHtmlPreviewPage embedded />
-      ) : readerMode === 'arguments' ? (
-        <ArgumentsView
-          activeSectionId={activeSectionId}
-          onSectionClick={setActiveSectionId}
-          notesVisible={notesVisible}
-          notesBySection={notesBySection}
-          onOpenNote={onOpenCommunityExploration}
+      <div className="relative mx-auto w-full max-w-[1280px] px-4 pb-8 sm:px-6 lg:px-8">
+        {/* Popover lives OUTSIDE the container so mousedown on it
+            never triggers the container's selection-clear handler */}
+        <SelectionPopover
+          anchor={selection}
+          rect={selectionRect}
+          onAddNote={handleAddNote}
+          onDismiss={clearSelection}
+          sectionNoteCount={selectionSectionNoteCount}
+          containerRef={containerRef}
         />
-      ) : (
-        <EditorialView
-          activeSectionId={activeSectionId}
-          onSectionClick={setActiveSectionId}
-          onOpenCommunityExploration={onOpenCommunityExploration}
-          notesVisible={notesVisible}
-          notesBySection={notesBySection}
+
+        <AnnotationGuide
+          openRequestKey={guideOpenRequestKey}
+          showFloatingTrigger
+          paperMode={isPaperMode}
         />
-      )}
+
+        <AnimatePresence>
+          {noteError && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 12 }}
+              transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-danger/20 bg-danger/5 px-4 py-2.5 text-sm text-danger shadow-lg backdrop-blur-sm"
+            >
+              <span>{noteError}</span>
+              <button
+                onClick={() => setNoteError(null)}
+                className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium text-danger/70 transition-colors hover:bg-danger/10 hover:text-danger"
+                aria-label="Dismiss error"
+              >
+                Dismiss
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div ref={containerRef} className="min-w-0 w-full">
+          <div className="space-y-4">
+            {/* Sticky reading-mode bar */}
+            <PaperViewModeBar
+              readerMode={readerMode}
+              onModeChange={setReaderMode}
+              onGuideOpen={() => setGuideOpenRequestKey(previous => previous + 1)}
+              notesVisible={notesVisible}
+              onNotesToggle={() => setNotesVisible(prev => !prev)}
+              noteCount={totalNoteCount}
+            />
+
+            {/* Active view — fades in on mode switch */}
+            <div ref={viewContentRef}>
+              {readerMode === 'paper' ? (
+                <FullTextView initialPage={pdfTargetPage} />
+              ) : readerMode === 'html' ? (
+                <PaperHtmlPreviewPage embedded />
+              ) : readerMode === 'arguments' ? (
+                <ArgumentsView
+                  activeSectionId={activeSectionId}
+                  onSectionClick={setActiveSectionId}
+                  notesVisible={notesVisible}
+                  notesBySection={notesBySection}
+                  onOpenNote={onOpenCommunityExploration}
+                />
+              ) : (
+                <EditorialView
+                  activeSectionId={activeSectionId}
+                  onSectionClick={setActiveSectionId}
+                  onOpenCommunityExploration={onOpenCommunityExploration}
+                  notesVisible={notesVisible}
+                  notesBySection={notesBySection}
+                />
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
     </PaperNavProvider>
   )
 }

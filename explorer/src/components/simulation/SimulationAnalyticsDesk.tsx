@@ -84,8 +84,17 @@ export function SimulationAnalyticsDesk({
         </summary>
 
         <div className="border-t border-rule/60 px-5 py-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div />
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="text-2xs uppercase tracking-[0.12em] text-text-faint">Current selection</div>
+              <div className="mt-1 truncate text-sm text-text-primary">
+                {activeView?.label ?? 'Analytics'}
+                {' · '}
+                {activeMetric?.label ?? 'Metric'}
+                {' · '}
+                {activeCompareMode?.label ?? 'Absolute'}
+              </div>
+            </div>
             {onCopyShareUrl || onCopyQueryJson || onDownloadQueryJson || onDownloadQueryCsv ? (
               <div className="flex flex-wrap gap-2 lg:justify-end">
                 {onCopyShareUrl ? (
@@ -200,52 +209,52 @@ export function SimulationAnalyticsDesk({
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...SPRING_CRISP, delay: 0.1 }}
       >
-      <div className="rounded-xl border border-rule bg-surface-active px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="text-sm font-medium text-text-primary">
-            {activeMetric?.label ?? activeView?.label ?? 'Analytics'}
+        <div className="rounded-xl border border-rule bg-surface-active px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-medium text-text-primary">
+              {activeMetric?.label ?? activeView?.label ?? 'Analytics'}
+            </div>
+            {activeCompareMode ? (
+              <span
+                className="lab-chip bg-white/85 text-2xs"
+                title={activeCompareMode.description}
+              >
+                {activeCompareMode.label}
+              </span>
+            ) : null}
           </div>
-          {activeCompareMode ? (
-            <span
-              className="lab-chip bg-white/85 text-2xs"
-              title={activeCompareMode.description}
-            >
-              {activeCompareMode.label}
-            </span>
-          ) : null}
         </div>
-      </div>
 
-      {statusMessage ? (
-        <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4 text-sm text-muted">
-          {statusMessage}
-        </div>
-      ) : null}
+        {statusMessage ? (
+          <div className="mt-4 rounded-xl border border-rule bg-white px-4 py-4 text-sm text-muted">
+            {statusMessage}
+          </div>
+        ) : null}
 
-      {!statusMessage ? children : null}
+        {!statusMessage ? children : null}
 
-      {!statusMessage && metricCards.length > 0 ? (
-        <motion.div
-          className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
-          variants={STAGGER_CONTAINER}
-          initial="hidden"
-          animate="visible"
-        >
-          {metricCards.map(card => (
-            <motion.div key={card.label} variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-white px-4 py-4 card-hover">
-              <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
-              <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
-              <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
-            </motion.div>
-          ))}
-        </motion.div>
-      ) : null}
+        {!statusMessage && metricCards.length > 0 ? (
+          <motion.div
+            className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
+            variants={STAGGER_CONTAINER}
+            initial="hidden"
+            animate="visible"
+          >
+            {metricCards.map(card => (
+              <motion.div key={card.label} variants={STAGGER_ITEM} className="rounded-xl border border-rule bg-white px-4 py-4 card-hover">
+                <div className="text-2xs uppercase tracking-[0.1em] text-text-faint">{card.label}</div>
+                <div className="mt-2 text-sm font-medium text-text-primary">{card.value}</div>
+                <div className="mt-2 text-xs leading-5 text-muted">{card.detail}</div>
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : null}
 
-      {!statusMessage && blocks.length > 0 ? (
-        <div className="mt-4">
-          <BlockCanvas blocks={blocks} showExport={false} />
-        </div>
-      ) : null}
+        {!statusMessage && blocks.length > 0 ? (
+          <div className="mt-4">
+            <BlockCanvas blocks={blocks} showExport={false} />
+          </div>
+        ) : null}
       </motion.div>
     </motion.div>
   )
