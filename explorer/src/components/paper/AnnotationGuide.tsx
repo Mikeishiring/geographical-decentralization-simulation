@@ -1,4 +1,5 @@
 import { type ReactNode, useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Compass, MousePointerClick, X, MessageSquarePlus, Eye, Highlighter, ListTree, BarChart3, MessagesSquare } from 'lucide-react'
 import { cn } from '../../lib/cn'
@@ -163,7 +164,7 @@ export function AnnotationGuide({
 
   const steps = activeTab === 'orient' ? ORIENT_STEPS : ANNOTATE_STEPS
 
-  return (
+  const guide = (
     <div
       className="fixed bottom-0 right-0 z-40"
       onMouseEnter={handleZoneEnter}
@@ -327,4 +328,7 @@ export function AnnotationGuide({
       </AnimatePresence>
     </div>
   )
+
+  if (typeof document === 'undefined') return guide
+  return createPortal(guide, document.body)
 }

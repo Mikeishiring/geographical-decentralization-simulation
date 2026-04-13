@@ -23,37 +23,6 @@ export function SimulationLabPage({
 
   return (
     <div className="space-y-6">
-      <motion.div
-        className="relative overflow-hidden rounded-2xl border border-rule/70 bg-white/92 px-5 py-5 shadow-sm"
-        style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)' }}
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={SPRING}
-      >
-        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/[0.08]">
-              <Database className="h-[18px] w-[18px] text-accent" />
-            </div>
-            <div className="max-w-2xl">
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
-                Results
-              </div>
-              <h1 className="mt-1 text-xl font-semibold tracking-tight text-text-primary">
-                Evidence and data, in one place
-              </h1>
-              <p className="mt-2 text-[14px] leading-6 text-muted">
-                Browse precomputed evidence or switch into SQL to query the underlying research data directly.
-              </p>
-            </div>
-          </div>
-
-          <div className="self-start">
-            <SimulationModeToggle value={resultsMode} onChange={setResultsMode} />
-          </div>
-        </div>
-      </motion.div>
-
       {resultsMode === 'evidence' ? (
         <PrecomputedEvidenceSurface
           catalogScriptUrl={routeState.researchCatalogScriptUrl}
@@ -61,7 +30,40 @@ export function SimulationLabPage({
           onModeChange={setResultsMode}
         />
       ) : (
-        <DataLabSurface />
+        <>
+          <motion.div
+            className="relative overflow-hidden rounded-[1.15rem] border border-rule/70 bg-white/92 px-5 py-5 shadow-sm"
+            style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)' }}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={SPRING}
+          >
+            <div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/[0.08]">
+                  <Database className="h-[18px] w-[18px] text-accent" />
+                </div>
+                <div className="max-w-2xl">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                    Results
+                  </div>
+                  <h1 className="mt-1 text-xl font-semibold tracking-tight text-text-primary">
+                    Data Lab
+                  </h1>
+                  <p className="mt-2 text-[14px] leading-6 text-muted">
+                    Query the underlying research datasets directly in SQL with DuckDB in the browser.
+                  </p>
+                </div>
+              </div>
+
+              <div className="self-start">
+                <SimulationModeToggle value={resultsMode} onChange={setResultsMode} />
+              </div>
+            </div>
+          </motion.div>
+
+          <DataLabSurface />
+        </>
       )}
 
       {/* Cross-tab navigation footer */}
