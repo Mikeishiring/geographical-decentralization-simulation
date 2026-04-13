@@ -22,45 +22,45 @@ export function SimulationLabPage({
   const [resultsMode, setResultsMode] = useState<SimulationSurfaceMode>('evidence')
 
   return (
-    <div>
-      {/* ── Mode: Data — SQL query interface ── */}
-      {resultsMode === 'data' && (
-        <motion.div
-          className="relative mb-5 overflow-hidden rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6"
-          style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)' }}
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={SPRING}
-        >
-          <div className="relative flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/[0.08]">
-                <Database className="h-4 w-4 text-accent" />
-              </div>
-              <div>
-                <h1 className="text-lg font-semibold tracking-tight text-text-primary">Data Lab</h1>
-                <p className="mt-0.5 text-xs leading-relaxed text-muted">
-                  Query raw research datasets with SQL — powered by DuckDB in your browser
-                </p>
-              </div>
+    <div className="space-y-6">
+      <motion.div
+        className="relative overflow-hidden rounded-2xl border border-rule/70 bg-white/92 px-5 py-5 shadow-sm"
+        style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)' }}
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING}
+      >
+        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/[0.08]">
+              <Database className="h-[18px] w-[18px] text-accent" />
             </div>
+            <div className="max-w-2xl">
+              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
+                Results
+              </div>
+              <h1 className="mt-1 text-xl font-semibold tracking-tight text-text-primary">
+                Evidence and data, in one place
+              </h1>
+              <p className="mt-2 text-[14px] leading-6 text-muted">
+                Browse precomputed evidence or switch into SQL to query the underlying research data directly.
+              </p>
+            </div>
+          </div>
 
+          <div className="self-start">
             <SimulationModeToggle value={resultsMode} onChange={setResultsMode} />
           </div>
-        </motion.div>
-      )}
+        </div>
+      </motion.div>
 
-      {/* ── Mode: Evidence — pre-computed published results ── */}
-      {resultsMode === 'evidence' && (
+      {resultsMode === 'evidence' ? (
         <PrecomputedEvidenceSurface
           catalogScriptUrl={routeState.researchCatalogScriptUrl}
           viewerBaseUrl={routeState.researchViewerBaseUrl}
           onModeChange={setResultsMode}
         />
-      )}
-
-      {/* ── Mode: Data — SQL interface ── */}
-      {resultsMode === 'data' && (
+      ) : (
         <DataLabSurface />
       )}
 
