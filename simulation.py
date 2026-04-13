@@ -303,9 +303,13 @@ def simulation(
             json.dump(export_payloads["attest_by_slot"], f)
         with open(f"{output_folder}/proposal_time_by_slot.json", "w") as f:
             json.dump(export_payloads["proposal_time_by_slot"], f)
-        action_reasons_df = pd.DataFrame(
-            model_standard.action_reasons, columns=["Action_Reason", "Previous_Region", "New_Region"]
-        )
+        if model_standard.action_reasons and isinstance(model_standard.action_reasons[0], dict):
+            action_reasons_df = pd.DataFrame(model_standard.action_reasons)
+        else:
+            action_reasons_df = pd.DataFrame(
+                model_standard.action_reasons,
+                columns=["action_reason", "previous_region", "new_region"],
+            )
         action_reasons_df.to_csv(f"{output_folder}/action_reasons.csv", index=False)
 
     summary = {
