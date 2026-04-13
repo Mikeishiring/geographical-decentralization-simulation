@@ -923,9 +923,9 @@ const ASSISTANT: StudyPackage['assistant'] = {
       defaultOrder: 'desc',
       defaultLimit: 8,
       constraints: {
-        dimensions: ['evaluation', 'paradigm', 'result', 'gamma', 'activeRegions', 'dominantRegion', 'totalSlots'],
-        metrics: ['gini', 'hhi', 'liveness', 'proposal_times', 'attestations', 'clusters', 'failed_block_proposals'],
-        orderBy: ['gini', 'hhi', 'liveness', 'proposal_times', 'attestations', 'clusters', 'failed_block_proposals', 'evaluation', 'paradigm', 'result', 'gamma', 'activeRegions', 'totalSlots'],
+        dimensions: ['evaluation', 'paradigm', 'result', 'gamma', 'migrationCost', 'activeRegions', 'dominantRegion', 'totalSlots'],
+        metrics: ['gini', 'hhi', 'liveness', 'proposal_times', 'attestations', 'clusters', 'failed_block_proposals', 'total_distance', 'avg_nnd', 'nni', 'profit_variance', 'info_avg_distance'],
+        orderBy: ['gini', 'hhi', 'liveness', 'proposal_times', 'attestations', 'clusters', 'failed_block_proposals', 'total_distance', 'avg_nnd', 'nni', 'profit_variance', 'info_avg_distance', 'evaluation', 'paradigm', 'result', 'gamma', 'migrationCost', 'activeRegions', 'totalSlots'],
         slots: ['final', 'initial'],
         filters: {
           evaluation: ['Baseline', 'SE1-Information-Source-Placement-Effect', 'SE2-Validator-Distribution-Effect', 'SE3-Joint-Heterogeneity', 'SE4-Attestation-Threshold', 'SE4-EIP7782'],
@@ -966,8 +966,8 @@ const ASSISTANT: StudyPackage['assistant'] = {
       },
       constraints: {
         dimensions: ['evaluation', 'paradigm', 'gamma', 'result'],
-        metrics: ['gini', 'hhi', 'attestations', 'proposal_times'],
-        orderBy: ['gini', 'hhi', 'attestations', 'proposal_times', 'gamma', 'paradigm', 'result'],
+        metrics: ['gini', 'hhi', 'attestations', 'proposal_times', 'profit_variance', 'total_distance', 'info_avg_distance'],
+        orderBy: ['gini', 'hhi', 'attestations', 'proposal_times', 'profit_variance', 'total_distance', 'info_avg_distance', 'gamma', 'paradigm', 'result'],
         slots: ['final', 'initial'],
         filters: {
           evaluation: ['SE4-Attestation-Threshold'],
@@ -1006,8 +1006,8 @@ const ASSISTANT: StudyPackage['assistant'] = {
       defaultLimit: 6,
       constraints: {
         dimensions: ['evaluation', 'paradigm', 'result', 'totalSlots'],
-        metrics: ['proposal_times', 'gini', 'hhi', 'liveness', 'attestations'],
-        orderBy: ['proposal_times', 'gini', 'hhi', 'liveness', 'attestations', 'paradigm', 'result', 'totalSlots'],
+        metrics: ['proposal_times', 'gini', 'hhi', 'liveness', 'attestations', 'profit_variance', 'info_avg_distance'],
+        orderBy: ['proposal_times', 'gini', 'hhi', 'liveness', 'attestations', 'profit_variance', 'info_avg_distance', 'paradigm', 'result', 'totalSlots'],
         slots: ['final', 'initial'],
         filters: {
           evaluation: ['Baseline', 'SE4-EIP7782'],
@@ -1049,8 +1049,8 @@ const ASSISTANT: StudyPackage['assistant'] = {
       },
       constraints: {
         dimensions: ['evaluation', 'paradigm', 'result'],
-        metrics: ['gini', 'hhi', 'proposal_times', 'liveness'],
-        orderBy: ['gini', 'hhi', 'proposal_times', 'liveness', 'paradigm', 'result'],
+        metrics: ['gini', 'hhi', 'proposal_times', 'liveness', 'total_distance', 'avg_nnd', 'nni', 'info_avg_distance'],
+        orderBy: ['gini', 'hhi', 'proposal_times', 'liveness', 'total_distance', 'avg_nnd', 'nni', 'info_avg_distance', 'paradigm', 'result'],
         slots: ['final', 'initial'],
         filters: {
           evaluation: ['SE1-Information-Source-Placement-Effect'],

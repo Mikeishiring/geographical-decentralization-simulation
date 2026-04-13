@@ -36,7 +36,17 @@ import { ExplorationStore, normalizeQuery, type ExplorationSurface, type ListOpt
 import { AgentLoopStore } from './agent-loop-store.ts'
 import { AgentLoopOrchestrator } from './agent-loop-orchestrator.ts'
 import { AGENT_LOOP_DEFAULTS } from './agent-loop-types.ts'
+import {
+  describeResultsWarehouse,
+  executeResultsWarehouseQuery,
+  loadPublishedResultsWarehouseIndex,
+} from './results-warehouse.ts'
 import { GCP_REGIONS } from '../src/data/gcp-regions.ts'
+import type {
+  PublishedResultsWarehouseIndex,
+  WarehouseMetricSnapshotRow,
+  WarehouseRunRow,
+} from '../src/lib/results-warehouse.ts'
 import {
   buildSimulationArtifactBundle,
   buildSimulationSummaryChart,
@@ -222,6 +232,7 @@ const simulationCopilotRateLimit = createRateLimitMiddleware('simulation-copilot
 const publishedReplayCopilotRateLimit = createRateLimitMiddleware('published-replay-copilot', 60_000, 18)
 const simulationSubmitRateLimit = createRateLimitMiddleware('simulations', 60_000, 10)
 const agentLoopRateLimit = createRateLimitMiddleware('agent-loop', 60_000, 8)
+const resultsWarehouseRateLimit = createRateLimitMiddleware('results-warehouse', 60_000, 48)
 
 const app = express()
 app.set('trust proxy', true)
@@ -532,6 +543,8 @@ interface PublishedReplayMetrics {
   readonly hhi?: readonly number[]
   readonly liveness?: readonly number[]
   readonly failed_block_proposals?: readonly number[]
+  readonly profit_variance?: readonly number[]
+  readonly info_avg_distance?: ReadonlyArray<readonly number[]>
 }
 
 interface PublishedReplayPayload {
@@ -2027,6 +2040,13 @@ async function loadPublishedReplayPayload(datasetPath: string): Promise<Publishe
   return parsed
 }
 
+async function loadResultsWarehouseIndex(): Promise<PublishedResultsWarehouseIndex | null> {
+  return loadPublishedResultsWarehouseIndex(
+    ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH,
+    ACTIVE_PUBLISHED_RESULTS_BASE_DIR,
+  )
+}
+
 function totalPublishedSlots(payload: PublishedReplayPayload): number {
   return Math.max(
     1,
@@ -2057,6 +2077,19 @@ function readPublishedMetricValue(
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+function readPublishedInfoDistanceValue(
+  series: ReadonlyArray<readonly number[]> | undefined,
+  slot: number,
+): number | null {
+  if (!series?.length) return null
+  const clampedIndex = Math.max(0, Math.min(slot, series.length - 1))
+  const values = series[clampedIndex]
+  if (!values?.length) return null
+  const numericValues = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+  if (numericValues.length === 0) return null
+  return numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length
+}
+
 function formatPublishedMetricValue(
   key: keyof PublishedReplayMetrics,
   value: number | null,
@@ -2072,6 +2105,8 @@ function formatPublishedMetricValue(
     case 'hhi':
     case 'nni':
     case 'avg_nnd':
+    case 'profit_variance':
+    case 'info_avg_distance':
       return formatMetricNumber(value, 4)
     case 'attestations':
     case 'liveness':
@@ -2109,6 +2144,10 @@ function publishedMetricLabel(key: keyof PublishedReplayMetrics): string {
       return 'liveness'
     case 'failed_block_proposals':
       return 'failed block proposals'
+    case 'profit_variance':
+      return 'profit variance'
+    case 'info_avg_distance':
+      return 'source distance'
     default:
       return key
   }
@@ -2232,11 +2271,15 @@ function buildPublishedSlotSummary(
       hhi: readPublishedMetricValue(payload.metrics?.hhi, slot),
       liveness: readPublishedMetricValue(payload.metrics?.liveness, slot),
       total_distance: readPublishedMetricValue(payload.metrics?.total_distance, slot),
+      avg_nnd: readPublishedMetricValue(payload.metrics?.avg_nnd, slot),
+      nni: readPublishedMetricValue(payload.metrics?.nni, slot),
       proposal_times: readPublishedMetricValue(payload.metrics?.proposal_times, slot),
       mev: readPublishedMetricValue(payload.metrics?.mev, slot),
       failed_block_proposals: readPublishedMetricValue(payload.metrics?.failed_block_proposals, slot),
       clusters: readPublishedMetricValue(payload.metrics?.clusters, slot),
       attestations: readPublishedMetricValue(payload.metrics?.attestations, slot),
+      profit_variance: readPublishedMetricValue(payload.metrics?.profit_variance, slot),
+      info_avg_distance: readPublishedInfoDistanceValue(payload.metrics?.info_avg_distance, slot),
     },
     topRegions: summarizePublishedRegions(regions),
   }
@@ -2326,6 +2369,10 @@ type PublishedExploreMetricKey = Extract<
   | 'clusters'
   | 'failed_block_proposals'
   | 'total_distance'
+  | 'avg_nnd'
+  | 'nni'
+  | 'profit_variance'
+  | 'info_avg_distance'
 >
 
 const publishedExploreMetricValues = [
@@ -2338,6 +2385,10 @@ const publishedExploreMetricValues = [
   'clusters',
   'failed_block_proposals',
   'total_distance',
+  'avg_nnd',
+  'nni',
+  'profit_variance',
+  'info_avg_distance',
 ] as const satisfies readonly PublishedExploreMetricKey[]
 
 type PublishedResultsQueryDimension =
@@ -2957,6 +3008,65 @@ function buildPublishedResultsQueryCite(
   return experiment ? { experiment } : undefined
 }
 
+function snapshotMetricsRecord(
+  snapshot: WarehouseMetricSnapshotRow,
+): Readonly<Record<string, number | null>> {
+  return {
+    gini: snapshot.gini,
+    hhi: snapshot.hhi,
+    liveness: snapshot.liveness,
+    proposal_times: snapshot.proposal_times,
+    mev: snapshot.mev,
+    attestations: snapshot.attestations,
+    clusters: snapshot.clusters,
+    failed_block_proposals: snapshot.failed_block_proposals,
+    total_distance: snapshot.total_distance,
+    avg_nnd: snapshot.avg_nnd,
+    nni: snapshot.nni,
+    profit_variance: snapshot.profit_variance,
+    info_avg_distance: snapshot.info_avg_distance,
+  }
+}
+
+function buildPublishedExploreEntryFromWarehouse(
+  run: WarehouseRunRow,
+  initialSnapshot: WarehouseMetricSnapshotRow,
+  finalSnapshot: WarehouseMetricSnapshotRow,
+  slotMode: 'initial' | 'final',
+): PublishedExploreResultEntry {
+  const focusSnapshot = slotMode === 'initial' ? initialSnapshot : finalSnapshot
+  const dominantRegion = focusSnapshot.dominant_region_id
+    ? {
+        regionId: focusSnapshot.dominant_region_id,
+        city: publishedRegionLookup.get(focusSnapshot.dominant_region_id)?.city ?? null,
+        share: focusSnapshot.dominant_region_share ?? 0,
+        count: 0,
+      }
+    : null
+
+  return {
+    label: run.label,
+    evaluation: run.evaluation ?? 'Published',
+    paradigm: run.paradigm,
+    result: run.result_key ?? 'unknown',
+    datasetPath: run.dataset_path ?? '',
+    sourceRole: sourceRoleLabel(run.source_role),
+    description: run.description,
+    validators: run.validators,
+    migrationCost: run.migration_cost,
+    gamma: run.gamma,
+    totalSlots: run.total_slots,
+    initialMetrics: snapshotMetricsRecord(initialSnapshot),
+    finalMetrics: snapshotMetricsRecord(finalSnapshot),
+    activeRegions: focusSnapshot.active_regions,
+    dominantRegion,
+    topRegions: dominantRegion
+      ? `${dominantRegion.city ?? dominantRegion.regionId} (${formatMetricNumber(dominantRegion.share, 1)}%)`
+      : '',
+    metricDigest: [],
+  }
+}
+
 async function queryPublishedResultsTable(input: {
   readonly queryHint?: string
   readonly viewId?: string
@@ -2979,14 +3089,17 @@ async function queryPublishedResultsTable(input: {
   readonly blocks: readonly Block[]
   readonly followUps: readonly string[]
 }> {
-  const catalog = await loadPublishedResearchCatalog()
-  if (!catalog) {
+  const [catalog, warehouseIndex] = await Promise.all([
+    loadPublishedResearchCatalog(),
+    loadResultsWarehouseIndex(),
+  ])
+  if (!catalog || !warehouseIndex) {
     return {
       summary: 'Structured results query unavailable',
-      description: 'The published Results catalog is unavailable on this server.',
+      description: 'The published Results catalog or warehouse index is unavailable on this server.',
       blocks: [{
         type: 'caveat',
-        text: 'The published Results catalog is unavailable on this server.',
+        text: 'The published Results catalog or warehouse index is unavailable on this server.',
       }],
       followUps: [],
     }
@@ -3059,40 +3172,21 @@ async function queryPublishedResultsTable(input: {
   }
 
   const slotMode = queryPlan.slot
-  const hydratedEntries = await Promise.all(dedupedMatchedEntries.map(async entry => {
-    const datasetPath = normalizePublishedDatasetPath(entry.path)
-    if (!datasetPath) return null
-    const payload = await loadPublishedReplayPayload(datasetPath)
-    const initialSnapshot = buildPublishedSlotSummary(payload, 0)
-    const finalSnapshot = buildPublishedSlotSummary(payload, Math.max(0, totalPublishedSlots(payload) - 1))
-    const focusSnapshot = slotMode === 'initial' ? initialSnapshot : finalSnapshot
-    return {
-      label: `${entry.evaluation} / ${entry.paradigm} / ${entry.result}`,
-      evaluation: entry.evaluation,
-      paradigm: entry.paradigm === 'External' ? 'SSP' : 'MSP',
-      result: entry.result,
-      datasetPath: toPublishedResultsRelativePath(datasetPath),
-      sourceRole: sourceRoleLabel(entry.sourceRole),
-      description: payload.description ?? entry.metadata?.description ?? null,
-      validators: payload.v ?? entry.metadata?.v ?? null,
-      migrationCost: payload.cost ?? entry.metadata?.cost ?? null,
-      gamma: payload.gamma ?? entry.metadata?.gamma ?? null,
-      totalSlots: focusSnapshot.totalSlots,
-      initialMetrics: initialSnapshot.metrics,
-      finalMetrics: finalSnapshot.metrics,
-      activeRegions: focusSnapshot.activeRegions,
-      dominantRegion: focusSnapshot.dominantRegion
-        ? {
-            regionId: focusSnapshot.dominantRegion.regionId,
-            city: focusSnapshot.dominantRegion.city,
-            share: focusSnapshot.dominantRegion.share,
-            count: focusSnapshot.dominantRegion.count,
-          }
-        : null,
-      topRegions: focusSnapshot.topRegions,
-      metricDigest: [],
-    } satisfies PublishedExploreResultEntry
-  }))
+  const runById = new Map(warehouseIndex.runs.map(run => [run.run_id, run] as const))
+  const snapshotById = new Map(
+    warehouseIndex.run_metric_snapshots.map(snapshot => [
+      `${snapshot.run_id}::${snapshot.snapshot}`,
+      snapshot,
+    ] as const),
+  )
+  const hydratedEntries = dedupedMatchedEntries.map(entry => {
+    const runId = `published::${entry.path}`
+    const run = runById.get(runId)
+    const initialSnapshot = snapshotById.get(`${runId}::initial`)
+    const finalSnapshot = snapshotById.get(`${runId}::final`)
+    if (!run || !initialSnapshot || !finalSnapshot) return null
+    return buildPublishedExploreEntryFromWarehouse(run, initialSnapshot, finalSnapshot, slotMode)
+  })
 
   const results = hydratedEntries.filter((entry): entry is PublishedExploreResultEntry => entry !== null)
   if (results.length === 0) {
@@ -3320,6 +3414,10 @@ function normalizePublishedMetricKey(
       return 'gini'
     case 'hhi':
       return 'hhi'
+    case 'profit_variance':
+    case 'cv':
+    case 'reward_variance':
+      return 'profit_variance'
     case 'liveness':
       return 'liveness'
     case 'proposal_times':
@@ -3335,6 +3433,16 @@ function normalizePublishedMetricKey(
     case 'clusters':
     case 'cluster':
       return 'clusters'
+    case 'avg_nnd':
+    case 'avg-nnd':
+      return 'avg_nnd'
+    case 'nni':
+      return 'nni'
+    case 'info_avg_distance':
+    case 'source_distance':
+    case 'relay_distance':
+    case 'signal_distance':
+      return 'info_avg_distance'
     case 'failed_block_proposals':
     case 'failed-proposals':
     case 'failed proposals':
@@ -3355,9 +3463,6 @@ function publishedMetricUnit(
       return ' ms'
     case 'mev':
       return ' ETH'
-    case 'liveness':
-    case 'attestations':
-      return '%'
     default:
       return undefined
   }
@@ -3558,11 +3663,15 @@ function selectPublishedMetricKey(
     { key: 'failed_block_proposals', pattern: /\bfailed block|missed block|failed proposal\b/i },
     { key: 'gini', pattern: /\bgini|inequality|centrali[sz]ation|concentration\b/i },
     { key: 'hhi', pattern: /\bhhi|herfindahl\b/i },
+    { key: 'profit_variance', pattern: /\bprofit variance|reward variance|cv_g|coefficient of variation\b/i },
     { key: 'attestations', pattern: /\battestations\b|\battestation (?:count|rate|share|level)\b/i },
     { key: 'liveness', pattern: /\bliveness|uptime|availability\b/i },
     { key: 'mev', pattern: /\bmev\b/i },
     { key: 'clusters', pattern: /\bcluster\b/i },
-    { key: 'total_distance', pattern: /\bdistance|dispersion\b/i },
+    { key: 'avg_nnd', pattern: /\bavg nnd|average nearest(?:-| )neighbor\b/i },
+    { key: 'nni', pattern: /\bnni|nearest(?:-| )neighbor index\b/i },
+    { key: 'info_avg_distance', pattern: /\bsource distance|relay distance|signal distance|info distance\b/i },
+    { key: 'total_distance', pattern: /\btotal distance|dispersion\b/i },
   ]
 
   const match = matchers.find(candidate => candidate.pattern.test(query))
@@ -3604,6 +3713,14 @@ function publishedMetricTitle(key: PublishedExploreMetricKey): string {
       return 'Failed proposals'
     case 'total_distance':
       return 'Total distance'
+    case 'avg_nnd':
+      return 'Avg NND'
+    case 'nni':
+      return 'NNI'
+    case 'profit_variance':
+      return 'Profit variance'
+    case 'info_avg_distance':
+      return 'Source distance'
     default:
       return publishedMetricLabel(key)
   }
@@ -3618,6 +3735,9 @@ function publishedMetricSemantics(
     case 'proposal_times':
     case 'failed_block_proposals':
     case 'total_distance':
+    case 'avg_nnd':
+    case 'profit_variance':
+    case 'info_avg_distance':
       return 'lower-is-better'
     case 'liveness':
     case 'attestations':
@@ -7978,6 +8098,77 @@ app.get('/llm-full.txt', async (_req, res) => {
     '',
     sections,
   ].join('\n'))
+})
+
+app.get('/api/results-warehouse/meta', resultsWarehouseRateLimit, async (req, res) => {
+  try {
+    const currentJobId = typeof req.query.currentJobId === 'string'
+      ? req.query.currentJobId.trim()
+      : ''
+    const metadata = await describeResultsWarehouse({
+      catalogPath: ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH,
+      baseDir: ACTIVE_PUBLISHED_RESULTS_BASE_DIR,
+      manifest: currentJobId ? simulationRuntime.getManifest(currentJobId) : null,
+    })
+    if (!metadata) {
+      res.status(404).json({ error: 'Results warehouse metadata is unavailable on this server.' })
+      return
+    }
+    res.json(metadata)
+  } catch (error) {
+    console.error('Failed to describe results warehouse', error)
+    res.status(500).json({ error: 'Failed to describe the results warehouse.' })
+  }
+})
+
+app.post('/api/results-warehouse/query', resultsWarehouseRateLimit, async (req, res) => {
+  const sql = typeof req.body?.sql === 'string' ? req.body.sql : null
+  if (!sql) {
+    res.status(400).json({ error: 'A SQL string is required.' })
+    return
+  }
+
+  const currentJobId = typeof req.body?.currentJobId === 'string'
+    ? req.body.currentJobId.trim()
+    : ''
+  const rawMaxRows = Number(req.body?.maxRows)
+  const maxRows = Number.isFinite(rawMaxRows) ? Math.trunc(rawMaxRows) : null
+
+  try {
+    const result = await executeResultsWarehouseQuery({
+      catalogPath: ACTIVE_PUBLISHED_RESULTS_CATALOG_PATH,
+      baseDir: ACTIVE_PUBLISHED_RESULTS_BASE_DIR,
+      sql,
+      manifest: currentJobId ? simulationRuntime.getManifest(currentJobId) : null,
+      maxRows,
+    })
+    if (!result) {
+      res.status(404).json({ error: 'Results warehouse is unavailable on this server.' })
+      return
+    }
+    res.json(result)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to execute warehouse query.'
+    const status = /read-only|single read-only|write a sql query/i.test(message) ? 400 : 500
+    if (status === 500) {
+      console.error('Failed to execute results warehouse query', error)
+    }
+    res.status(status).json({ error: message })
+  }
+})
+
+app.get('/api/results-warehouse/index', async (_req, res) => {
+  try {
+    const warehouseIndex = await loadResultsWarehouseIndex()
+    if (!warehouseIndex) {
+      res.status(404).json({ error: 'Published results warehouse index is unavailable.' })
+      return
+    }
+    res.json(warehouseIndex)
+  } catch (error) {
+    console.error('Failed to load published results warehouse index', error)
+    res.status(500).json({ error: 'Failed to load the published results warehouse index.' })
+  }
 })
 
 app.get('/api/health', (_req, res) => {
