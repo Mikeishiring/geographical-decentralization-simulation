@@ -260,7 +260,7 @@ export function PaperReaderPage({
         </AnimatePresence>
 
         <div ref={containerRef} className="min-w-0 w-full">
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Sticky reading-mode bar */}
             <PaperViewModeBar
               readerMode={readerMode}
