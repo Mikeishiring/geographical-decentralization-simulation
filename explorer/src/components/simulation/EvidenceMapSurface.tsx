@@ -451,7 +451,7 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
       </div>
 
       {/* ── Map + Sidebar ── */}
-      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_248px] lg:items-start">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-start xl:grid-cols-[minmax(0,1fr)_228px]">
         {/* SVG Map */}
         <div
           ref={mapContainerRef}
