@@ -220,7 +220,7 @@ export function PaperReaderPage({
 
   return (
     <PaperNavProvider value={paperNavValue}>
-      <div className="relative mx-auto w-full max-w-[1280px] px-4 pb-8 sm:px-6 lg:px-8">
+      <div className="relative w-full pb-8">
         {/* Popover lives OUTSIDE the container so mousedown on it
             never triggers the container's selection-clear handler */}
         <SelectionPopover
@@ -232,11 +232,13 @@ export function PaperReaderPage({
           containerRef={containerRef}
         />
 
-        <AnnotationGuide
-          openRequestKey={guideOpenRequestKey}
-          showFloatingTrigger
-          paperMode={isPaperMode}
-        />
+        {isActive && (
+          <AnnotationGuide
+            openRequestKey={guideOpenRequestKey}
+            showFloatingTrigger
+            paperMode={isPaperMode}
+          />
+        )}
 
         <AnimatePresence>
           {noteError && (
