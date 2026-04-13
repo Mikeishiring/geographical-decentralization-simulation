@@ -38,6 +38,11 @@ from simulation import (
     simulation as run_simulation,
 )
 from source_agent import initialize_relays, initialize_signals
+from analytics_payloads import (
+    build_preprocessed_payload_from_output_dir,
+    compute_paper_metrics,
+    parse_profit,
+)
 
 TEMPLATE_PATHS = {
     ("SSP", "homogeneous"): REPO_ROOT / "params" / "SSP-baseline.yaml",
@@ -53,7 +58,7 @@ ATTESTATION_CUTOFF_BY_SLOT_SECONDS = {
     8: 4000,
     12: 4000,
 }
-SIMULATION_CACHE_VERSION = 2
+SIMULATION_CACHE_VERSION = 3
 SIMULATION_CACHE_DIRNAME = ".simulation_cache"
 SIMULATION_CODE_FILES = (
     "simulation.py",
@@ -320,68 +325,29 @@ def liveness_coefficient(values: list[float]) -> float:
 
 
 def build_paper_geography_metrics(region_counts_per_slot: dict[str, Any], region_profits_df: pd.DataFrame) -> dict[str, list[float]]:
-    known_continents = tuple(dict.fromkeys(continent for _, continent in _CONTINENT_RULES))
+    region_to_country = {
+        str(row["gcp_region"]): (
+            str(row["location"]).split(",")[-1].strip()
+            if "," in str(row["location"])
+            else str(row["location"]).strip()
+        )
+        for _, row in GCP_REGIONS.iterrows()
+    }
 
-    gini_hist: list[float] = []
-    hhi_hist: list[float] = []
-    liveness_hist: list[float] = []
-
-    slot_keys = sorted(
-        region_counts_per_slot.keys(),
-        key=lambda value: int(value) if str(value).isdigit() else str(value),
+    _region_metrics, _country_metrics, continent_metrics = compute_paper_metrics(
+        region_counts_per_slot,
+        region_to_country,
     )
-    for slot_key in slot_keys:
-        raw_counts = region_counts_per_slot.get(slot_key, {})
-        continent_counts = {continent: 0 for continent in known_continents}
+    profits_metrics = parse_profit(region_profits_df.copy()) if not region_profits_df.empty else pd.DataFrame()
 
-        if isinstance(raw_counts, dict):
-            entries = raw_counts.items()
-        elif isinstance(raw_counts, list):
-            entries = raw_counts
-        else:
-            entries = []
-
-        for entry in entries:
-            if isinstance(entry, tuple) or isinstance(entry, list):
-                if len(entry) < 2:
-                    continue
-                region_name, count = entry[0], entry[1]
-            else:
-                continue
-            continent_counts[to_continent(str(region_name))] += int(count)
-
-        values = [continent_counts.get(continent, 0) for continent in known_continents]
-        gini_hist.append(round(gini_coefficient(values), 6))
-        hhi_hist.append(round(hhi_index(values), 6))
-        liveness_hist.append(round(liveness_coefficient(values), 6))
-
-    profit_variance_hist: list[float] = []
-    if not region_profits_df.empty:
-        working = region_profits_df.copy()
-        if {"gcp_region", "mev_offer", "slot"}.issubset(working.columns):
-            region_column = "gcp_region"
-            profit_column = "mev_offer"
-            slot_column = "slot"
-        elif {"Region", "Profit", "Time"}.issubset(working.columns):
-            region_column = "Region"
-            profit_column = "Profit"
-            slot_column = "Time"
-        else:
-            region_column = None
-            profit_column = None
-            slot_column = None
-
-        if region_column and profit_column and slot_column:
-            working["continent"] = working[region_column].map(to_continent)
-            for _, slot_frame in working.groupby(slot_column, sort=True):
-                profit_by_continent = slot_frame.groupby("continent")[profit_column].sum()
-                ordered = np.asarray(
-                    [float(profit_by_continent.get(continent, 0.0)) for continent in known_continents],
-                    dtype=float,
-                )
-                mean = float(np.mean(ordered)) if ordered.size else 0.0
-                cv = 0.0 if mean == 0.0 else float(np.std(ordered) / mean)
-                profit_variance_hist.append(round(cv, 6))
+    gini_hist = continent_metrics["gini"].round(6).tolist()
+    hhi_hist = continent_metrics["hhi"].round(6).tolist()
+    liveness_hist = continent_metrics["liveness"].round(6).tolist()
+    profit_variance_hist = (
+        profits_metrics.sort_values("slot")["cv"].round(6).tolist()
+        if not profits_metrics.empty and "cv" in profits_metrics.columns
+        else []
+    )
 
     target_length = len(gini_hist)
     if len(profit_variance_hist) < target_length:
@@ -911,62 +877,40 @@ def ensure_published_analytics_payload_output(
 ) -> None:
     payload_path = output_dir / "published_analytics_payload.json"
     source_paths = [
-        output_dir / "avg_mev.json",
+        output_dir / "mev_by_slot.json",
+        output_dir / "attest_by_slot.json",
+        output_dir / "proposal_time_by_slot.json",
         output_dir / "failed_block_proposals.json",
-        output_dir / "proposal_time_avg.json",
-        output_dir / "attestation_sum.json",
-        output_dir / "paper_geography_metrics.json",
         output_dir / "region_counter_per_slot.json",
+        output_dir / "region_profits.csv",
         output_dir / ("relay_names.json" if config["paradigm"] == "SSP" else "signal_names.json"),
     ]
-    existing_sources = [path for path in source_paths if path.is_file()]
-    if existing_sources and is_up_to_date(payload_path, existing_sources):
+    if all(path.is_file() for path in source_paths) and is_up_to_date(payload_path, source_paths):
         return
 
-    region_counter_per_slot = load_json_if_exists(output_dir / "region_counter_per_slot.json", {})
-    source_entries = load_json_if_exists(
-        output_dir / ("relay_names.json" if config["paradigm"] == "SSP" else "signal_names.json"),
-        [],
+    payload = build_preprocessed_payload_from_output_dir(
+        data_dir=REPO_ROOT / "data",
+        output_dir=output_dir,
+        model=str(config.get("paradigm", "SSP")),
+        validator_count=int(config.get("validators", 0)),
+        cost=float(config.get("migrationCost", 0.0)),
+        delta=int(config.get("slotTime", 0)) * 1000,
+        cutoff=int(consensus_settings.attestation_time_ms),
+        gamma=float(config.get("attestationThreshold", 0.0)),
+        description=build_exact_payload_description(config),
+        source_label_style="published",
+        output_file=payload_path,
+        verbose=False,
     )
-    paper_geography_metrics = read_paper_geography_metrics(output_dir / "paper_geography_metrics.json")
 
-    metrics = {
-        "mev": read_numeric_series(output_dir / "avg_mev.json"),
-        "attestations": read_numeric_series(output_dir / "attestation_sum.json"),
-        "proposal_times": read_numeric_series(output_dir / "proposal_time_avg.json"),
-        "gini": paper_geography_metrics.get("gini", []),
-        "hhi": paper_geography_metrics.get("hhi", []),
-        "liveness": paper_geography_metrics.get("liveness", []),
-        "failed_block_proposals": read_numeric_series(output_dir / "failed_block_proposals.json"),
-    }
-    filtered_metrics = {
+    paper_metrics = {
         key: value
-        for key, value in metrics.items()
-        if isinstance(value, list) and len(value) > 0
+        for key, value in (payload.get("metrics", {}) if isinstance(payload, dict) else {}).items()
+        if key in {"gini", "hhi", "liveness", "profit_variance"}
     }
-    total_slots = max(
-        int(config.get("slots", 0)),
-        len(filtered_metrics.get("gini", [])),
-        len(filtered_metrics.get("mev", [])),
-        len(region_counter_per_slot) if isinstance(region_counter_per_slot, dict) else 0,
-    )
-    validator_count = infer_validator_count_from_slots(region_counter_per_slot) or int(config.get("validators", 0))
-
-    payload = {
-        "v": validator_count,
-        "delta": int(config.get("slotTime", 0)) * 1000,
-        "cutoff": int(consensus_settings.attestation_time_ms),
-        "cost": float(config.get("migrationCost", 0.0)),
-        "gamma": float(config.get("attestationThreshold", 0.0)),
-        "description": build_exact_payload_description(config),
-        "n_slots": total_slots,
-        "metrics": filtered_metrics,
-        "sources": normalize_published_sources(source_entries, str(config.get("paradigm", "SSP"))),
-        "slots": region_counter_per_slot if isinstance(region_counter_per_slot, dict) else {},
-    }
-
-    with payload_path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle)
+    paper_geography_metrics_path = output_dir / "paper_geography_metrics.json"
+    with paper_geography_metrics_path.open("w", encoding="utf-8") as handle:
+        json.dump(paper_metrics, handle)
 
 
 def last_numeric(series: list[Any]) -> float:

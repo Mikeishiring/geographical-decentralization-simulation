@@ -1,21 +1,31 @@
 import type { Block, SourceBlock } from '../../types/blocks'
 import { formatNumber } from './simulation-constants'
+import type { PublishedAnalyticsPayload } from '../../lib/results-warehouse'
+export type {
+  PublishedAnalyticsMetrics,
+  PublishedAnalyticsPayload,
+} from '../../lib/results-warehouse'
 
 export type AnalyticsDeckView = 'concentration' | 'latency' | 'economics' | 'geography'
 export type AnalyticsQueryMetric =
   | 'gini'
   | 'hhi'
+  | 'profit_variance'
   | 'active_regions'
   | 'leader_share'
   | 'liveness'
   | 'proposal_times'
   | 'failed_block_proposals'
+  | 'info_avg_distance'
   | 'mev'
   | 'attestations'
   | 'clusters'
+  | 'total_distance'
+  | 'avg_nnd'
+  | 'nni'
 export type AnalyticsCompareMode = 'absolute' | 'overlay' | 'delta'
 
-type AnalyticsMetricUnit = 'index' | 'percent' | 'milliseconds' | 'eth' | 'count'
+type AnalyticsMetricUnit = 'index' | 'percent' | 'milliseconds' | 'eth' | 'count' | 'distance'
 
 export const LIVENESS_LABEL = 'Critical regions'
 export const LIVENESS_DESCRIPTION = 'Smallest number of regions whose outage collapses the network.'
@@ -60,31 +70,6 @@ export interface AnalyticsDashboardPreset {
   readonly analyticsView: AnalyticsDeckView
   readonly analyticsMetric: AnalyticsQueryMetric
   readonly analyticsCompareMode: AnalyticsCompareMode
-}
-
-export interface PublishedAnalyticsMetrics {
-  readonly clusters?: readonly number[]
-  readonly total_distance?: readonly number[]
-  readonly mev?: readonly number[]
-  readonly attestations?: readonly number[]
-  readonly proposal_times?: readonly number[]
-  readonly gini?: readonly number[]
-  readonly hhi?: readonly number[]
-  readonly liveness?: readonly number[]
-  readonly failed_block_proposals?: readonly number[]
-  readonly profit_variance?: readonly number[]
-  readonly avg_nnd?: readonly number[]
-  readonly nni?: readonly number[]
-  readonly info_avg_distance?: readonly number[]
-}
-
-export interface PublishedAnalyticsPayload {
-  readonly v?: number
-  readonly description?: string
-  readonly n_slots?: number
-  readonly metrics?: PublishedAnalyticsMetrics
-  readonly sources?: ReadonlyArray<readonly [string, string]>
-  readonly slots?: Record<string, ReadonlyArray<readonly [string, number]>>
 }
 
 export interface AnalyticsMetricCard {
@@ -199,6 +184,15 @@ export const ANALYTICS_QUERY_OPTIONS: readonly AnalyticsQueryOption[] = [
     comparisonColor: '#1D4ED8',
   },
   {
+    id: 'profit_variance',
+    view: 'concentration',
+    label: 'Profit variance',
+    description: 'Coefficient of variation across continental profits.',
+    unit: 'index',
+    color: '#7C2D12',
+    comparisonColor: '#9A3412',
+  },
+  {
     id: 'active_regions',
     view: 'concentration',
     label: 'Active regions',
@@ -235,6 +229,15 @@ export const ANALYTICS_QUERY_OPTIONS: readonly AnalyticsQueryOption[] = [
     comparisonColor: '#9F1239',
   },
   {
+    id: 'info_avg_distance',
+    view: 'latency',
+    label: 'Source distance',
+    description: 'Mean validator-to-source distance across the active sources.',
+    unit: 'distance',
+    color: '#0F766E',
+    comparisonColor: '#0D9488',
+  },
+  {
     id: 'mev',
     view: 'economics',
     label: 'MEV',
@@ -260,6 +263,33 @@ export const ANALYTICS_QUERY_OPTIONS: readonly AnalyticsQueryOption[] = [
     unit: 'count',
     color: '#7C3AED',
     comparisonColor: '#6D28D9',
+  },
+  {
+    id: 'total_distance',
+    view: 'geography',
+    label: 'Total distance',
+    description: 'Total pairwise distance across the validator geography.',
+    unit: 'distance',
+    color: '#2563EB',
+    comparisonColor: '#1D4ED8',
+  },
+  {
+    id: 'avg_nnd',
+    view: 'geography',
+    label: 'Avg NND',
+    description: 'Average nearest-neighbor distance over the validator geography.',
+    unit: 'distance',
+    color: '#0F766E',
+    comparisonColor: '#0D9488',
+  },
+  {
+    id: 'nni',
+    view: 'geography',
+    label: 'NNI',
+    description: 'Nearest-neighbor index for the spherical geography surface.',
+    unit: 'index',
+    color: '#C2553A',
+    comparisonColor: '#9A3412',
   },
   {
     id: 'active_regions',
@@ -409,6 +439,11 @@ export function totalSlotsFromPayload(payload: PublishedAnalyticsPayload | null)
     payload?.n_slots ?? 0,
     payload?.metrics?.gini?.length ?? 0,
     payload?.metrics?.mev?.length ?? 0,
+    payload?.metrics?.total_distance?.length ?? 0,
+    payload?.metrics?.avg_nnd?.length ?? 0,
+    payload?.metrics?.nni?.length ?? 0,
+    payload?.metrics?.profit_variance?.length ?? 0,
+    payload?.metrics?.info_avg_distance?.length ?? 0,
     Object.keys(payload?.slots ?? {}).length,
   )
 }
@@ -464,6 +499,19 @@ function sampleSeries(
   return points
 }
 
+function derivedInfoAvgDistanceSeries(
+  payload: PublishedAnalyticsPayload | null,
+): number[] {
+  const series = payload?.metrics?.info_avg_distance
+  if (!series?.length) return []
+
+  return series.map(values => {
+    const numericValues = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+    if (numericValues.length === 0) return 0
+    return numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length
+  })
+}
+
 function derivedActiveRegionsSeries(payload: PublishedAnalyticsPayload | null): number[] {
   if (!payload?.slots) return []
 
@@ -488,18 +536,28 @@ export function analyticsMetricSeriesForPayload(
       return metrics.gini
     case 'hhi':
       return metrics.hhi
+    case 'profit_variance':
+      return metrics.profit_variance
     case 'liveness':
       return metrics.liveness
     case 'proposal_times':
       return metrics.proposal_times
     case 'failed_block_proposals':
       return metrics.failed_block_proposals
+    case 'info_avg_distance':
+      return derivedInfoAvgDistanceSeries(payload)
     case 'mev':
       return metrics.mev
     case 'attestations':
       return metrics.attestations
     case 'clusters':
       return metrics.clusters
+    case 'total_distance':
+      return metrics.total_distance
+    case 'avg_nnd':
+      return metrics.avg_nnd
+    case 'nni':
+      return metrics.nni
     case 'leader_share':
       return derivedLeaderShareSeries(payload)
     case 'active_regions':
@@ -608,6 +666,11 @@ function formatOptionalEth(value: number | null | undefined, digits = 4): string
   return `${formatNumber(value, digits)} ETH`
 }
 
+function formatDistanceValue(value: number | null | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
+  return formatNumber(value, 3)
+}
+
 function formatIndexValue(value: number | null | undefined): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 'N/A'
   return formatNumber(value, 3)
@@ -633,6 +696,8 @@ function formatMetricValue(
       return formatOptionalMilliseconds(value)
     case 'eth':
       return formatOptionalEth(value)
+    case 'distance':
+      return formatDistanceValue(value)
     case 'count':
       return formatCountValue(value)
     case 'index':
@@ -658,6 +723,8 @@ function formatMetricDelta(
       return `${prefix}${formatNumber(value, 1)} ms`
     case 'eth':
       return `${prefix}${formatNumber(value, 4)} ETH`
+    case 'distance':
+      return `${prefix}${formatNumber(value, 3)}`
     case 'count':
       return `${prefix}${Math.round(value).toLocaleString()}`
     case 'index':
@@ -676,6 +743,8 @@ function metricYAxisLabel(queryMetric: AnalyticsQueryMetric): string {
       return 'Milliseconds'
     case 'eth':
       return 'ETH'
+    case 'distance':
+      return 'Distance'
     case 'count':
       return 'Count'
     case 'index':

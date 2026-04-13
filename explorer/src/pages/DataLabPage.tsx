@@ -1,168 +1,56 @@
-import { useState, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Database } from 'lucide-react'
-import type { EditorView } from '@codemirror/view'
-import { useDuckDB } from '../hooks/useDuckDB'
-import { SqlEditor } from '../components/data/SqlEditor'
-import { SqlResultsTable, type QueryResult } from '../components/data/SqlResultsTable'
-import { SqlExampleQueries } from '../components/data/SqlExampleQueries'
-import { SqlSchemaBrowser } from '../components/data/SqlSchemaBrowser'
+import { Database, Sparkles } from 'lucide-react'
+
+import { DataLabSurface } from '../components/data/DataLabSurface'
 import { cn } from '../lib/cn'
-import { SPRING, CONTENT_MAX_WIDTH } from '../lib/theme'
+import { CONTENT_MAX_WIDTH, SPRING } from '../lib/theme'
 
 export function DataLabPage() {
-  const { conn, status, error: dbError, tables } = useDuckDB()
-  const editorRef = useRef<EditorView | null>(null)
-
-  const [result, setResult] = useState<QueryResult | null>(null)
-  const [queryError, setQueryError] = useState<string | null>(null)
-  const [isExecuting, setIsExecuting] = useState(false)
-
-  const executeQuery = useCallback(async (sqlText: string) => {
-    if (!conn) return
-
-    setIsExecuting(true)
-    setQueryError(null)
-    setResult(null)
-
-    const start = performance.now()
-
-    try {
-      const arrowResult = await conn.query(sqlText)
-      const durationMs = performance.now() - start
-
-      const columns = arrowResult.schema.fields.map(f => f.name)
-      const rawRows = arrowResult.toArray()
-
-      const rows = rawRows.map(row => {
-        const obj: Record<string, unknown> = {}
-        for (const col of columns) {
-          obj[col] = row[col]
-        }
-        return obj
-      })
-
-      setResult({ columns, rows, durationMs })
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err)
-      setQueryError(message)
-    } finally {
-      setIsExecuting(false)
-    }
-  }, [conn])
-
-  const handleExampleSelect = useCallback((query: string) => {
-    const view = editorRef.current
-    if (view) {
-      view.dispatch({
-        changes: { from: 0, to: view.state.doc.length, insert: query },
-      })
-    }
-    void executeQuery(query)
-  }, [executeQuery])
-
-  const handleColumnClick = useCallback((tableName: string, columnName: string) => {
-    const view = editorRef.current
-    if (!view) return
-
-    const cursor = view.state.selection.main.head
-    const insertion = `${tableName}.${columnName}`
-    view.dispatch({
-      changes: { from: cursor, to: cursor, insert: insertion },
-      selection: { anchor: cursor + insertion.length },
-    })
-    view.focus()
-  }, [])
-
-  const isReady = status === 'ready'
-
   return (
     <div className={cn(CONTENT_MAX_WIDTH, 'mx-auto')}>
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={SPRING}
-        className="space-y-5"
+        className="space-y-6"
       >
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/[0.08]">
-            <Database className="h-4 w-4 text-accent" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-text-primary leading-tight">Data Lab</h1>
-            <p className="text-11 text-muted/60">
-              Query the raw research datasets with SQL — powered by DuckDB in your browser
-            </p>
+        <div className="relative overflow-hidden rounded-[24px] border border-black/[0.08] bg-white/[0.96] px-6 py-6 shadow-[0_14px_40px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.02)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.12),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,249,251,0.96))]" />
+          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] border border-black/[0.08] bg-white/[0.84] shadow-[0_4px_14px_rgba(0,0,0,0.05)]">
+                <Database className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-primary/45">
+                  Shared warehouse
+                </div>
+                <h1 className="mt-2 text-[clamp(1.6rem,1.25rem+1vw,2.2rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-text-primary">
+                  Research-grade SQL over published simulations and live exact traces.
+                </h1>
+                <p className="mt-3 max-w-2xl text-[13px] leading-6 text-muted/65">
+                  The Data Lab is now a product surface instead of a raw SQL box: reusable queries, shareable URLs,
+                  inline warehouse state, and a faster preview path for large result sets.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full border border-black/[0.08] bg-white/[0.82] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-primary/65">
+                Server DuckDB
+              </span>
+              <span className="rounded-full border border-black/[0.08] bg-white/[0.82] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-primary/65">
+                Catalog + exact
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/18 bg-accent/[0.08] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-accent">
+                <Sparkles className="h-3 w-3" />
+                Product layer
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* DB initialization error */}
-        {status === 'error' && (
-          <div className="rounded-2xl border border-red-200 bg-red-50/80 px-5 py-4">
-            <div className="text-[10px] font-medium uppercase tracking-wide text-red-400">
-              Database initialization failed
-            </div>
-            <pre className="mt-2 whitespace-pre-wrap font-mono text-xs text-red-700">
-              {dbError}
-            </pre>
-          </div>
-        )}
-
-        {/* Loading state */}
-        {status === 'loading' && (
-          <div className="rounded-2xl border border-rule bg-white/92 px-6 py-8 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-              <div>
-                <div className="text-13 font-medium text-text-primary">Loading DuckDB</div>
-                <div className="text-11 text-muted/50">
-                  Fetching WASM engine and importing research datasets (~4MB)...
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Schema browser */}
-        {(isReady || status === 'loading') && (
-          <section>
-            <div className="mb-2 text-[10px] font-medium uppercase tracking-wide text-muted/40">
-              Tables
-            </div>
-            <SqlSchemaBrowser
-              tables={tables}
-              onColumnClick={isReady ? handleColumnClick : undefined}
-            />
-          </section>
-        )}
-
-        {/* Example queries */}
-        <section>
-          <div className="mb-2 text-[10px] font-medium uppercase tracking-wide text-muted/40">
-            Examples
-          </div>
-          <SqlExampleQueries onSelect={handleExampleSelect} disabled={!isReady} />
-        </section>
-
-        {/* SQL editor */}
-        <section>
-          <SqlEditor
-            tables={tables}
-            onExecute={executeQuery}
-            editorRef={editorRef}
-            disabled={!isReady}
-          />
-        </section>
-
-        {/* Results */}
-        <section>
-          <SqlResultsTable
-            result={result}
-            error={queryError}
-            isExecuting={isExecuting}
-          />
-        </section>
+        <DataLabSurface />
       </motion.div>
     </div>
   )
