@@ -4,6 +4,8 @@ import { cn } from '../../lib/cn'
 interface TooltipProps {
   readonly children: ReactNode
   readonly label: string
+  /** Optional eyebrow rendered above the label */
+  readonly eyebrow?: string
   /** Optional secondary line rendered smaller below the label */
   readonly detail?: string
   /** @default 'below' */
@@ -20,6 +22,7 @@ interface TooltipProps {
 function TooltipBase({
   children,
   label,
+  eyebrow,
   detail,
   placement = 'below',
   className,
@@ -48,27 +51,35 @@ function TooltipBase({
         role="tooltip"
         className={cn(
           'pointer-events-none absolute left-1/2 z-50 -translate-x-1/2 whitespace-normal',
-          'min-w-[180px] max-w-[340px] rounded-xl border border-white/[0.08] bg-[#141414]/95 px-3.5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.35),0_0_0_0.5px_rgba(255,255,255,0.06)]',
+          'min-w-[190px] max-w-[320px] rounded-2xl border border-white/[0.08] bg-[#141414]/96 px-3.5 py-3 shadow-[0_14px_34px_rgba(0,0,0,0.3),0_0_0_0.5px_rgba(255,255,255,0.06)]',
           'backdrop-blur-xl',
           'opacity-0 transition-[opacity,transform] duration-200',
           'group-hover/tip:opacity-100 group-hover/tip:delay-[350ms]',
           placement === 'below'
-            ? 'top-full mt-2.5 translate-y-1 group-hover/tip:translate-y-0'
-            : 'bottom-full mb-2.5 -translate-y-1 group-hover/tip:-translate-y-0',
+            ? 'top-full mt-3 translate-y-1.5 group-hover/tip:translate-y-0'
+            : 'bottom-full mb-3 -translate-y-1.5 group-hover/tip:-translate-y-0',
         )}
       >
-        <span className="block text-[11.5px] font-medium leading-[1.45] tracking-[-0.01em] text-white/90">
+        {eyebrow && (
+          <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-white/42">
+            {eyebrow}
+          </span>
+        )}
+        <span className={cn(
+          'block text-[11.5px] font-medium leading-[1.45] tracking-[-0.01em] text-white/90',
+          eyebrow ? 'mt-1' : '',
+        )}>
           {label}
         </span>
         {detail && (
-          <span className="mt-1 block text-[10.5px] leading-[1.5] text-white/50">
+          <span className="mt-1.5 block text-[10.5px] leading-[1.55] text-white/56">
             {detail}
           </span>
         )}
         {/* Arrow */}
         <span
           className={cn(
-            'absolute left-1/2 -translate-x-1/2 border-[5px] border-transparent',
+            'absolute left-1/2 -translate-x-1/2 border-[6px] border-transparent',
             placement === 'below'
               ? 'bottom-full border-b-[#141414]'
               : 'top-full border-t-[#141414]',
