@@ -17,6 +17,7 @@ import type { TextAnchor } from '../types/anchors'
 import type { TabId } from '../components/layout/TabNav'
 
 interface PaperReaderPageProps {
+  readonly readOnly?: boolean
   readonly isActive?: boolean
   readonly onOpenCommunityExploration?: (explorationId: string) => void
   readonly onTabChange?: (tab: TabId) => void
@@ -25,6 +26,7 @@ interface PaperReaderPageProps {
 
 export function PaperReaderPage({
   isActive = true,
+  readOnly = false,
   onOpenCommunityExploration,
   onTabChange: _onTabChange,
   onQueryAgent: _onQueryAgent,
@@ -75,9 +77,9 @@ export function PaperReaderPage({
   const notesQuery = useQuery({
     queryKey: ['explorations', 'reading-notes'],
     queryFn: () => listExplorations({ publishedOnly: true, surface: 'reading', limit: 100 }),
-    enabled: isActive,
+    enabled: isActive && !readOnly,
     staleTime: 30_000,
-    refetchInterval: isActive ? 60_000 : false,
+    refetchInterval: isActive && !readOnly ? 60_000 : false,
   })
 
   // Merge real API notes with mock seed data, dedup by ID
@@ -223,16 +225,16 @@ export function PaperReaderPage({
       <div className="relative w-full pb-8">
         {/* Popover lives OUTSIDE the container so mousedown on it
             never triggers the container's selection-clear handler */}
-        <SelectionPopover
+        {!readOnly && <SelectionPopover
           anchor={selection}
           rect={selectionRect}
           onAddNote={handleAddNote}
           onDismiss={clearSelection}
           sectionNoteCount={selectionSectionNoteCount}
           containerRef={containerRef}
-        />
+        />}
 
-        {isActive && (
+        {isActive && !readOnly && (
           <AnnotationGuide
             openRequestKey={guideOpenRequestKey}
             showFloatingTrigger
@@ -267,9 +269,9 @@ export function PaperReaderPage({
             <PaperViewModeBar
               readerMode={readerMode}
               onModeChange={setReaderMode}
-              onGuideOpen={() => setGuideOpenRequestKey(previous => previous + 1)}
+              onGuideOpen={readOnly ? undefined : () => setGuideOpenRequestKey(previous => previous + 1)}
               notesVisible={notesVisible}
-              onNotesToggle={() => setNotesVisible(prev => !prev)}
+              onNotesToggle={readOnly ? undefined : () => setNotesVisible(prev => !prev)}
               noteCount={totalNoteCount}
             />
 

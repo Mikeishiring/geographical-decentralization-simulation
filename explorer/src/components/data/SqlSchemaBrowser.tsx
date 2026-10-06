@@ -7,6 +7,7 @@ import type { TableMeta } from '../../lib/results-warehouse-api'
 import { SPRING_SNAPPY } from '../../lib/theme'
 
 interface SqlSchemaBrowserProps {
+  readonly hideExact?: boolean
   readonly tables: readonly TableMeta[]
   readonly onColumnClick?: (tableName: string, columnName: string) => void
 }
@@ -58,7 +59,7 @@ function tableMode(tableName: string): {
   }
 }
 
-export function SqlSchemaBrowser({ tables, onColumnClick }: SqlSchemaBrowserProps) {
+export function SqlSchemaBrowser({ hideExact = false, tables, onColumnClick }: SqlSchemaBrowserProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search.trim().toLowerCase())
@@ -90,7 +91,7 @@ export function SqlSchemaBrowser({ tables, onColumnClick }: SqlSchemaBrowserProp
           Loading schema
         </div>
         <p className="mt-2 text-[11px] text-muted/55">
-          Waiting for table metadata from the server-side warehouse.
+          Loading table names and columns.
         </p>
       </div>
     )
@@ -128,9 +129,9 @@ export function SqlSchemaBrowser({ tables, onColumnClick }: SqlSchemaBrowserProp
         <span className="font-mono text-muted/45">
           {filteredTables.length.toLocaleString()} / {tables.length.toLocaleString()} tables
         </span>
-        <span className="text-muted/45">
+        {!hideExact && <span className="text-muted/45">
           {EXACT_OVERLAY_TABLES.size} exact-detail tables attach when an exact run is active.
-        </span>
+        </span>}
       </div>
 
       {filteredTables.length === 0 ? (

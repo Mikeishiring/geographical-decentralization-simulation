@@ -13,7 +13,8 @@
     "smoke": "tsx scripts/smoke-explorer.ts",
     "smoke:ask": "tsx scripts/smoke-ask-chat.ts",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "build:demo": "tsc -b && vite build --mode demo && tsx scripts/build-demo.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.64",

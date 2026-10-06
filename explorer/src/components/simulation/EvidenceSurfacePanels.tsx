@@ -611,7 +611,7 @@ export function EvidenceKpiStrip({ payload, activeCategory, onCategoryChange }: 
       animate="visible"
       variants={STAGGER_CONTAINER}
     >
-      <div className="grid grid-cols-1 gap-px sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 [&>*:first-child]:rounded-tl-[13px] [&>*:first-child]:rounded-tr-[13px] sm:[&>*:first-child]:rounded-tr-none sm:[&>*:nth-child(2)]:rounded-tr-[13px] xl:[&>*:nth-child(2)]:rounded-tr-none xl:[&>*:last-child]:rounded-tr-[13px] [&>*:last-child]:rounded-br-[13px] [&>*:last-child]:rounded-bl-[13px] sm:[&>*:last-child]:rounded-bl-none sm:[&>*:nth-last-child(2)]:rounded-bl-[13px] xl:[&>*:nth-last-child(2)]:rounded-bl-none xl:[&>*:first-child]:rounded-bl-[13px]">
+      <div className="grid grid-cols-1 gap-px sm:grid-cols-2 lg:grid-cols-3 [&>*:first-child]:rounded-tl-[13px] [&>*:first-child]:rounded-tr-[13px] sm:[&>*:first-child]:rounded-tr-none sm:[&>*:nth-child(2)]:rounded-tr-[13px] xl:[&>*:nth-child(2)]:rounded-tr-none xl:[&>*:last-child]:rounded-tr-[13px] [&>*:last-child]:rounded-br-[13px] [&>*:last-child]:rounded-bl-[13px] sm:[&>*:last-child]:rounded-bl-none sm:[&>*:nth-last-child(2)]:rounded-bl-[13px] xl:[&>*:nth-last-child(2)]:rounded-bl-none xl:[&>*:first-child]:rounded-bl-[13px]">
         {cards.map(card => {
           const isActive = activeCategory === card.linkedCategory
           return (

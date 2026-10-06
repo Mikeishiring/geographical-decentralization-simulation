@@ -8,6 +8,7 @@ import { SPRING, SPRING_SNAPPY, CONTENT_MAX_WIDTH } from '../../lib/theme'
 export type TabId = 'paper' | 'results' | 'agent' | 'community'
 
 interface TabNavProps {
+  demo?: boolean
   activeTab: TabId
   onTabChange: (tab: TabId) => void
   onTabIntent?: (tab: TabId) => void
@@ -20,7 +21,8 @@ const tabs: { id: TabId; label: string; icon: typeof BookOpen; hint: string }[] 
   { id: 'community', label: 'Community', icon: Users, hint: 'Published human notes over paper and exact-run evidence' },
 ]
 
-export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
+export function TabNav({ activeTab, onTabChange, onTabIntent, demo = false }: TabNavProps) {
+  const visibleTabs = demo ? tabs.filter(tab => tab.id === 'paper' || tab.id === 'results').map(tab => tab.id === 'results' ? { ...tab, hint: 'Explore recorded simulations, compare scenarios and query the saved data' } : tab) : tabs
   const tabRefs = React.useRef<Map<TabId, HTMLButtonElement>>(new Map())
   const navShellRef = React.useRef<HTMLDivElement | null>(null)
   const [hoveredTab, setHoveredTab] = useState<TabId | null>(null)
@@ -57,7 +59,7 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
     <div ref={navShellRef} data-testid="tab-nav-shell" className="sticky top-0 z-20 border-b border-rule bg-white/92 backdrop-blur-lg shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       <div className={`${CONTENT_MAX_WIDTH} mx-auto px-4 sm:px-6 overflow-x-auto hide-scrollbar tab-scroll-fade`}>
         <nav className="flex gap-1 min-w-max" role="tablist" aria-label="Explorer sections">
-          {tabs.map(tab => {
+          {visibleTabs.map(tab => {
             const isActive = activeTab === tab.id
             const isHovered = hoveredTab === tab.id
             const Icon = tab.icon
@@ -78,24 +80,24 @@ export function TabNav({ activeTab, onTabChange, onTabIntent }: TabNavProps) {
                   }}
                   onBlur={() => setHoveredTab(current => (current === tab.id ? null : current))}
                   onKeyDown={e => {
-                    const currentIndex = tabs.findIndex(t => t.id === tab.id)
+                    const currentIndex = visibleTabs.findIndex(t => t.id === tab.id)
                     if (e.key === 'ArrowRight') {
                       e.preventDefault()
-                      const next = tabs[(currentIndex + 1) % tabs.length]
+                      const next = visibleTabs[(currentIndex + 1) % visibleTabs.length]
                       onTabChange(next.id)
                       focusTab(next.id)
                     } else if (e.key === 'ArrowLeft') {
                       e.preventDefault()
-                      const prev = tabs[(currentIndex - 1 + tabs.length) % tabs.length]
+                      const prev = visibleTabs[(currentIndex - 1 + visibleTabs.length) % visibleTabs.length]
                       onTabChange(prev.id)
                       focusTab(prev.id)
                     } else if (e.key === 'Home') {
                       e.preventDefault()
-                      onTabChange(tabs[0].id)
-                      focusTab(tabs[0].id)
+                      onTabChange(visibleTabs[0].id)
+                      focusTab(visibleTabs[0].id)
                     } else if (e.key === 'End') {
                       e.preventDefault()
-                      const last = tabs[tabs.length - 1]
+                      const last = visibleTabs[visibleTabs.length - 1]
                       onTabChange(last.id)
                       focusTab(last.id)
                     }

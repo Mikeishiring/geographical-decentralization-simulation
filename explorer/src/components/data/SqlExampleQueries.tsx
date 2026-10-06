@@ -4,6 +4,7 @@ import { cn } from '../../lib/cn'
 import { SQL_EXAMPLES } from './sql-examples'
 
 interface SqlExampleQueriesProps {
+  readonly hideExact?: boolean
   readonly onSelect: (query: string) => void
   readonly disabled?: boolean
   readonly hasExactRun?: boolean
@@ -30,6 +31,7 @@ const CATEGORY_META = {
 const CATEGORY_ORDER = ['results', 'traces', 'infrastructure'] as const
 
 export function SqlExampleQueries({
+  hideExact = false,
   onSelect,
   disabled,
   hasExactRun = false,
@@ -38,7 +40,7 @@ export function SqlExampleQueries({
     <div className="space-y-4">
       {CATEGORY_ORDER.map(category => {
         const meta = CATEGORY_META[category]
-        const examples = SQL_EXAMPLES.filter(example => example.category === category)
+        const examples = SQL_EXAMPLES.filter(example => !hideExact || !example.requiresExact).filter(example => example.category === category)
         if (examples.length === 0) return null
         const Icon = meta.icon
 
