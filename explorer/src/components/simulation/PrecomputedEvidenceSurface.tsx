@@ -269,13 +269,13 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
   return (
     <div className="flex flex-wrap items-center gap-3">
       {/* Scenario */}
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 max-w-full items-center gap-2">
         <span className={filterLabel}>Scenario</span>
-        <div className="relative">
+        <div className="relative min-w-0">
           <select
             value={selectedEvaluation}
             onChange={e => findAndSelect(e.target.value, selectedParadigm)}
-            className={selectClass}
+            className={cn(selectClass, 'max-w-full')}
           >
             {evaluations.map(evaluation => (
               <option key={evaluation} value={evaluation}>{evaluation}</option>
@@ -287,11 +287,11 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
 
       {/* Migration cost */}
       {hasCostDimension && (
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 max-w-full items-center gap-2">
           <InlineTooltip label="ETH cost when a validator relocates" detail="Higher cost = stronger geographic lock-in.">
             <span className={filterLabel}>Migration cost</span>
           </InlineTooltip>
-          <div className="relative">
+          <div className="relative min-w-0">
             <select
               value={selectedResult}
               onChange={e => findAndSelect(selectedEvaluation, selectedParadigm, e.target.value)}
@@ -313,15 +313,15 @@ function ScenarioSelector({ catalog, selectedEvaluation, selectedParadigm, selec
 
       {/* Paradigm */}
       {paradigms.length > 1 && (
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 max-w-full items-center gap-2">
           <InlineTooltip label="Block-building paradigm: External or Local">
             <span className={filterLabel}>Paradigm</span>
           </InlineTooltip>
-          <div className="relative">
+          <div className="relative min-w-0">
             <select
               value={selectedParadigm}
               onChange={e => findAndSelect(selectedEvaluation, e.target.value, selectedResult)}
-              className={selectClass}
+              className={cn(selectClass, 'max-w-full')}
             >
               {paradigms.map(paradigm => (
                 <option key={paradigm} value={paradigm}>{paradigmLabel(paradigm)}</option>

@@ -213,7 +213,7 @@ const TABLE_SCHEMAS = {
   ],
 } as const
 
-let singletonPromises = new Map<string, Promise<{
+const singletonPromises = new Map<string, Promise<{
   db: duckdb.AsyncDuckDB
   conn: duckdb.AsyncDuckDBConnection
   tables: readonly TableMeta[]
@@ -356,7 +356,7 @@ function viewerBaseUrl(options: UseDuckDBOptions): string {
 }
 
 async function loadPublishedResultsWarehouseIndex(): Promise<PublishedResultsWarehouseIndex> {
-  return fetchJson<PublishedResultsWarehouseIndex>(`${API_BASE}/results-warehouse/index`)
+  return fetchJson<PublishedResultsWarehouseIndex>(import.meta.env.VITE_DEMO_MODE === 'true' ? '/data/results-warehouse-index.json' : `${API_BASE}/results-warehouse/index`)
 }
 
 async function loadExactDetailBundle(currentJobId: string): Promise<{
@@ -453,10 +453,10 @@ async function initDuckDB(options: UseDuckDBOptions) {
     const selectedRun = runs.find(run => run.run_id === runId)
     if (selectedRun) {
       loadedRunLabels.push(selectedRun.label)
-      runSlotMetrics.push(...buildSlotMetricRows(runId, selectedPublishedPayload))
-      runRegionCounts.push(...buildRegionCountRows(runId, selectedPublishedPayload))
-      runSources.push(...buildSourceRows(runId, selectedPublishedPayload, selectedRun.source_role))
-      runSourceDistances.push(...buildSourceDistanceRows(runId, selectedPublishedPayload, selectedRun.source_role))
+      for (const row of buildSlotMetricRows(runId, selectedPublishedPayload)) runSlotMetrics.push(row)
+      for (const row of buildRegionCountRows(runId, selectedPublishedPayload)) runRegionCounts.push(row)
+      for (const row of buildSourceRows(runId, selectedPublishedPayload, selectedRun.source_role)) runSources.push(row)
+      for (const row of buildSourceDistanceRows(runId, selectedPublishedPayload, selectedRun.source_role)) runSourceDistances.push(row)
     }
   }
 
@@ -464,11 +464,11 @@ async function initDuckDB(options: UseDuckDBOptions) {
     const runId = buildExactRunId(options.currentJobId)
     const exactRun = buildExactRunRow(options.currentJobId, exactDetail.payload, exactDetail.manifest.config)
     runs.push(exactRun)
-    runMetricSnapshots.push(...buildMetricSnapshotRows(runId, exactDetail.payload))
-    runSlotMetrics.push(...buildSlotMetricRows(runId, exactDetail.payload))
-    runRegionCounts.push(...buildRegionCountRows(runId, exactDetail.payload))
-    runSources.push(...buildSourceRows(runId, exactDetail.payload, warehouseSourceRole(exactRun.paradigm)))
-    runSourceDistances.push(...buildSourceDistanceRows(runId, exactDetail.payload, warehouseSourceRole(exactRun.paradigm)))
+    for (const row of buildMetricSnapshotRows(runId, exactDetail.payload)) runMetricSnapshots.push(row)
+    for (const row of buildSlotMetricRows(runId, exactDetail.payload)) runSlotMetrics.push(row)
+    for (const row of buildRegionCountRows(runId, exactDetail.payload)) runRegionCounts.push(row)
+    for (const row of buildSourceRows(runId, exactDetail.payload, warehouseSourceRole(exactRun.paradigm))) runSources.push(row)
+    for (const row of buildSourceDistanceRows(runId, exactDetail.payload, warehouseSourceRole(exactRun.paradigm))) runSourceDistances.push(row)
     loadedRunLabels.push(exactRun.label)
   }
 

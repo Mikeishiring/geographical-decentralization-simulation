@@ -54,6 +54,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['@duckdb/duckdb-wasm'],
   },
+  preview: { proxy: {} },
   server: {
     port: 3200,
     fs: {

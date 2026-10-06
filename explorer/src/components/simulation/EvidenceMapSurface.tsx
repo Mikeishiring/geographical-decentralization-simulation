@@ -386,8 +386,8 @@ export function EvidenceMapSurface({ payload, className, scenarioLabel, embedded
             </div>
           </div>
 
-          <div className="rounded-[12px] border border-black/[0.06] bg-white p-[2px] shadow-[inset_0_1px_1px_rgba(0,0,0,0.03)]">
-            <div className="flex items-center gap-[3px]">
+          <div className="max-w-full rounded-[12px] border border-black/[0.06] bg-white p-[2px] shadow-[inset_0_1px_1px_rgba(0,0,0,0.03)]">
+            <div className="flex flex-wrap items-center gap-[3px]">
               {([
                 { mode: 'validators' as const, icon: Radio, label: 'Validators', detail: 'Show validator stake distribution across regions' },
                 { mode: 'latency' as const, icon: Zap, label: 'Latency', detail: 'Show inter-region network latency arcs' },

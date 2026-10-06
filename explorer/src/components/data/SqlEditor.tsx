@@ -11,6 +11,7 @@ import { cn } from '../../lib/cn'
 import type { TableMeta } from '../../lib/results-warehouse-api'
 
 interface SqlEditorProps {
+  readonly browserLocal?: boolean
   readonly initialValue?: string
   readonly value?: string
   readonly tables: readonly TableMeta[]
@@ -31,6 +32,7 @@ function buildSchemaCompletions(tables: readonly TableMeta[]) {
 }
 
 export function SqlEditor({
+  browserLocal = false,
   initialValue = '',
   value,
   tables,
@@ -212,7 +214,7 @@ LIMIT 10`),
             Query canvas
           </div>
           <p className="mt-1 text-[11px] leading-5 text-muted/60">
-            Server-side DuckDB, read-only SQL, single statement, and warehouse autocomplete.
+            {browserLocal ? 'Browser-local DuckDB. Explore saved research data with SQL.' : 'Server-side DuckDB, read-only SQL, single statement, and warehouse autocomplete.'}
           </p>
         </div>
 
